@@ -1,0 +1,1842 @@
+openapi: 3.0.3
+info:
+  title: Manufacturing Execution System API
+  description: |
+    Comprehensive MES API for jet engine component manufacturing.
+    
+    This API provides endpoints for managing work orders, quality control, 
+    material tracking, equipment management, and comprehensive traceability 
+    for aerospace manufacturing operations.
+    
+    ## Authentication
+    All endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    ## Rate Limiting
+    API requests are limited to 1000 requests per hour per user.
+    
+    ## Error Handling
+    The API uses standard HTTP status codes. Error responses include:
+    - `400` - Bad Request (validation errors)
+    - `401` - Unauthorized (authentication required)
+    - `403` - Forbidden (insufficient permissions)
+    - `404` - Not Found
+    - `409` - Conflict (business rule violation)
+    - `422` - Unprocessable Entity (business validation error)
+    - `500` - Internal Server Error
+  version: 1.0.0
+  contact:
+    name: MES API Support
+    email: support@mes-system.com
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.mes-system.com/v1
+    description: Production server
+  - url: https://staging-api.mes-system.com/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Work Orders
+    description: Production work order management
+  - name: Quality
+    description: Quality management and inspections
+  - name: Materials
+    description: Material and inventory management
+  - name: Traceability
+    description: Component traceability and genealogy
+  - name: Equipment
+    description: Equipment and resource management
+  - name: Maintenance
+    description: Equipment maintenance management
+  - name: Reports
+    description: Reporting and analytics
+  - name: Integration
+    description: External system integration
+
+paths:
+  # =====================================================
+  # AUTHENTICATION ENDPOINTS
+  # =====================================================
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "jsmith"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT access token
+                  refreshToken:
+                    type: string
+                    description: Refresh token
+                  user:
+                    $ref: '#/components/schemas/User'
+                  expiresIn:
+                    type: integer
+                    description: Token expiration time in seconds
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expiresIn:
+                    type: integer
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      responses:
+        '200':
+          description: Logout successful
+
+  # =====================================================
+  # WORK ORDER ENDPOINTS
+  # =====================================================
+  /workorders:
+    get:
+      tags:
+        - Work Orders
+      summary: List work orders
+      description: Retrieve a paginated list of work orders with filtering options
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [CREATED, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED]
+        - name: partNumber
+          in: query
+          schema:
+            type: string
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: dueDateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dueDateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Work orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkOrder'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Work Orders
+      summary: Create work order
+      description: Create a new production work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkOrderRequest'
+      responses:
+        '201':
+          description: Work order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /workorders/{workOrderId}:
+    get:
+      tags:
+        - Work Orders
+      summary: Get work order
+      description: Retrieve a specific work order by ID
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Work order retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Work Orders
+      summary: Update work order
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkOrderRequest'
+      responses:
+        '200':
+          description: Work order updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+
+    delete:
+      tags:
+        - Work Orders
+      summary: Delete work order
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Work order deleted successfully
+
+  /workorders/{workOrderId}/release:
+    post:
+      tags:
+        - Work Orders
+      summary: Release work order to production
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Work order released successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+
+  /workorders/{workOrderId}/operations/{operationId}/start:
+    post:
+      tags:
+        - Work Orders
+      summary: Start operation
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartOperationRequest'
+      responses:
+        '200':
+          description: Operation started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderOperation'
+
+  /workorders/{workOrderId}/operations/{operationId}/complete:
+    post:
+      tags:
+        - Work Orders
+      summary: Complete operation
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteOperationRequest'
+      responses:
+        '200':
+          description: Operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderOperation'
+
+  # =====================================================
+  # QUALITY MANAGEMENT ENDPOINTS
+  # =====================================================
+  /quality/inspections:
+    get:
+      tags:
+        - Quality
+      summary: List inspections
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: workOrderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: result
+          in: query
+          schema:
+            type: string
+            enum: [PASS, FAIL, CONDITIONAL]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Inspections retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inspection'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Quality
+      summary: Create inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInspectionRequest'
+      responses:
+        '201':
+          description: Inspection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inspection'
+
+  /quality/inspections/{inspectionId}:
+    get:
+      tags:
+        - Quality
+      summary: Get inspection
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Inspection retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inspection'
+
+    put:
+      tags:
+        - Quality
+      summary: Update inspection
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInspectionRequest'
+      responses:
+        '200':
+          description: Inspection updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inspection'
+
+  /quality/inspections/{inspectionId}/results:
+    post:
+      tags:
+        - Quality
+      summary: Record inspection results
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionResultsRequest'
+      responses:
+        '200':
+          description: Results recorded successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InspectionResult'
+
+  /quality/ncrs:
+    get:
+      tags:
+        - Quality
+      summary: List non-conformance reports
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, UNDER_REVIEW, DISPOSITION_SET, CLOSED]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [MINOR, MAJOR, CRITICAL]
+      responses:
+        '200':
+          description: NCRs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NonConformanceReport'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Quality
+      summary: Create non-conformance report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNCRRequest'
+      responses:
+        '201':
+          description: NCR created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonConformanceReport'
+
+  /quality/ncrs/{ncrId}/disposition:
+    put:
+      tags:
+        - Quality
+      summary: Set NCR disposition
+      parameters:
+        - name: ncrId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NCRDispositionRequest'
+      responses:
+        '200':
+          description: Disposition set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonConformanceReport'
+
+  /quality/certificates/{workOrderId}:
+    get:
+      tags:
+        - Quality
+      summary: Generate certificate of compliance
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Certificate generated successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  # =====================================================
+  # MATERIAL MANAGEMENT ENDPOINTS
+  # =====================================================
+  /materials/inventory:
+    get:
+      tags:
+        - Materials
+      summary: Get inventory levels
+      parameters:
+        - name: partNumber
+          in: query
+          schema:
+            type: string
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Inventory levels retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryLevel'
+
+  /materials/consumption:
+    post:
+      tags:
+        - Materials
+      summary: Record material consumption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaterialConsumptionRequest'
+      responses:
+        '201':
+          description: Consumption recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryTransaction'
+
+  /materials/allocations:
+    post:
+      tags:
+        - Materials
+      summary: Allocate materials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaterialAllocationRequest'
+      responses:
+        '201':
+          description: Materials allocated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaterialAllocation'
+
+  /materials/genealogy/{serialNumber}:
+    get:
+      tags:
+        - Materials
+      summary: Get material genealogy
+      parameters:
+        - name: serialNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Genealogy retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaterialGenealogy'
+
+  /materials/certifications/{lotCode}:
+    get:
+      tags:
+        - Materials
+      summary: Get material certifications
+      parameters:
+        - name: lotCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Certifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MaterialCertification'
+
+  # =====================================================
+  # TRACEABILITY ENDPOINTS
+  # =====================================================
+  /traceability/genealogy/{serialNumber}:
+    get:
+      tags:
+        - Traceability
+      summary: Get component genealogy
+      description: Retrieve complete genealogy tree for a component
+      parameters:
+        - name: serialNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: includeProcessData
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Genealogy retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceabilityTree'
+
+  /traceability/forward/{materialLot}:
+    get:
+      tags:
+        - Traceability
+      summary: Forward traceability
+      description: Find all components produced from a material lot
+      parameters:
+        - name: materialLot
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Forward traceability retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComponentTrace'
+
+  /traceability/backward/{serialNumber}:
+    get:
+      tags:
+        - Traceability
+      summary: Backward traceability
+      description: Find all materials used in component production
+      parameters:
+        - name: serialNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backward traceability retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MaterialTrace'
+
+  /traceability/audit-trail/{entityId}:
+    get:
+      tags:
+        - Traceability
+      summary: Get audit trail
+      parameters:
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit trail retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditRecord'
+
+  /traceability/export:
+    post:
+      tags:
+        - Traceability
+      summary: Export traceability data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraceabilityExportRequest'
+      responses:
+        '200':
+          description: Export file generated successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  # =====================================================
+  # EQUIPMENT MANAGEMENT ENDPOINTS
+  # =====================================================
+  /equipment:
+    get:
+      tags:
+        - Equipment
+      summary: List equipment
+      parameters:
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: workCenterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [AVAILABLE, BUSY, MAINTENANCE, DOWN]
+      responses:
+        '200':
+          description: Equipment list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Equipment'
+
+  /equipment/{equipmentId}/status:
+    get:
+      tags:
+        - Equipment
+      summary: Get equipment status
+      parameters:
+        - name: equipmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Equipment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentStatus'
+
+  # =====================================================
+  # COMPONENT SCHEMAS
+  # =====================================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Unprocessable entity - business validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # =====================================================
+    # CORE SCHEMAS
+    # =====================================================
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        employeeId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    # =====================================================
+    # WORK ORDER SCHEMAS
+    # =====================================================
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workOrderNumber:
+          type: string
+        partId:
+          type: string
+          format: uuid
+        partNumber:
+          type: string
+        partName:
+          type: string
+        routeId:
+          type: string
+          format: uuid
+        quantityOrdered:
+          type: integer
+          minimum: 1
+        quantityCompleted:
+          type: integer
+          minimum: 0
+        quantityScr [continued...]apped:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [CREATED, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED]
+        priority:
+          type: string
+          enum: [LOW, NORMAL, HIGH, URGENT]
+        customerOrder:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        scheduledStartDate:
+          type: string
+          format: date
+        actualStartDate:
+          type: string
+          format: date
+        scheduledEndDate:
+          type: string
+          format: date
+        actualEndDate:
+          type: string
+          format: date
+        siteId:
+          type: string
+          format: uuid
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderOperation'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WorkOrderOperation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        operationNumber:
+          type: integer
+        operationCode:
+          type: string
+        operationName:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED, SKIPPED]
+        quantityCompleted:
+          type: integer
+        quantityScr [continued...]apped:
+          type: integer
+        setupStartTime:
+          type: string
+          format: date-time
+        setupEndTime:
+          type: string
+          format: date-time
+        runStartTime:
+          type: string
+          format: date-time
+        runEndTime:
+          type: string
+          format: date-time
+        operatorId:
+          type: string
+          format: uuid
+        workCenterId:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+
+    CreateWorkOrderRequest:
+      type: object
+      required:
+        - partNumber
+        - quantityOrdered
+        - siteId
+      properties:
+        partNumber:
+          type: string
+        quantityOrdered:
+          type: integer
+          minimum: 1
+        priority:
+          type: string
+          enum: [LOW, NORMAL, HIGH, URGENT]
+          default: NORMAL
+        customerOrder:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        siteId:
+          type: string
+          format: uuid
+
+    UpdateWorkOrderRequest:
+      type: object
+      properties:
+        quantityOrdered:
+          type: integer
+          minimum: 1
+        priority:
+          type: string
+          enum: [LOW, NORMAL, HIGH, URGENT]
+        customerOrder:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        scheduledStartDate:
+          type: string
+          format: date
+        scheduledEndDate:
+          type: string
+          format: date
+
+    StartOperationRequest:
+      type: object
+      required:
+        - operatorId
+      properties:
+        operatorId:
+          type: string
+          format: uuid
+        equipmentId:
+          type: string
+          format: uuid
+        setupTime:
+          type: string
+          format: date-time
+
+    CompleteOperationRequest:
+      type: object
+      required:
+        - quantityCompleted
+      properties:
+        quantityCompleted:
+          type: integer
+          minimum: 0
+        quantityScr [continued...]apped:
+          type: integer
+          minimum: 0
+        notes:
+          type: string
+
+    # =====================================================
+    # QUALITY SCHEMAS
+    # =====================================================
+    Inspection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        inspectionNumber:
+          type: string
+        workOrderOperationId:
+          type: string
+          format: uuid
+        qualityPlanId:
+          type: string
+          format: uuid
+        lotNumber:
+          type: string
+        serialNumber:
+          type: string
+        sampleSize:
+          type: integer
+        inspectorId:
+          type: string
+          format: uuid
+        inspectionDate:
+          type: string
+          format: date-time
+        overallResult:
+          type: string
+          enum: [PASS, FAIL, CONDITIONAL]
+        notes:
+          type: string
+        certificateRequired:
+          type: boolean
+        certificateGenerated:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/InspectionResult'
+
+    InspectionResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        qualityCharacteristicId:
+          type: string
+          format: uuid
+        characteristicName:
+          type: string
+        sampleNumber:
+          type: integer
+        measuredValue:
+          type: number
+        attributeValue:
+          type: string
+        result:
+          type: string
+          enum: [PASS, FAIL, NA]
+        outOfSpecReason:
+          type: string
+        measurementEquipment:
+          type: string
+        measuredAt:
+          type: string
+          format: date-time
+
+    CreateInspectionRequest:
+      type: object
+      required:
+        - workOrderOperationId
+        - qualityPlanId
+        - sampleSize
+        - inspectorId
+      properties:
+        workOrderOperationId:
+          type: string
+          format: uuid
+        qualityPlanId:
+          type: string
+          format: uuid
+        lotNumber:
+          type: string
+        serialNumber:
+          type: string
+        sampleSize:
+          type: integer
+          minimum: 1
+        inspectorId:
+          type: string
+          format: uuid
+
+    InspectionResultsRequest:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required:
+              - qualityCharacteristicId
+              - sampleNumber
+              - result
+            properties:
+              qualityCharacteristicId:
+                type: string
+                format: uuid
+              sampleNumber:
+                type: integer
+              measuredValue:
+                type: number
+              attributeValue:
+                type: string
+              result:
+                type: string
+                enum: [PASS, FAIL, NA]
+              outOfSpecReason:
+                type: string
+              measurementEquipment:
+                type: string
+
+    NonConformanceReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ncrNumber:
+          type: string
+        inspectionId:
+          type: string
+          format: uuid
+        workOrderId:
+          type: string
+          format: uuid
+        partId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        quantityAffected:
+          type: integer
+        severity:
+          type: string
+          enum: [MINOR, MAJOR, CRITICAL]
+        status:
+          type: string
+          enum: [OPEN, UNDER_REVIEW, DISPOSITION_SET, CLOSED]
+        disposition:
+          type: string
+          enum: [REWORK, REPAIR, SCRAP, USE_AS_IS, RETURN_TO_SUPPLIER]
+        dispositionReason:
+          type: string
+        rootCause:
+          type: string
+        correctiveAction:
+          type: string
+        reportedBy:
+          type: string
+          format: uuid
+        reportedDate:
+          type: string
+          format: date-time
+
+    CreateNCRRequest:
+      type: object
+      required:
+        - partId
+        - description
+        - quantityAffected
+        - severity
+      properties:
+        inspectionId:
+          type: string
+          format: uuid
+        workOrderId:
+          type: string
+          format: uuid
+        partId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        quantityAffected:
+          type: integer
+          minimum: 1
+        severity:
+          type: string
+          enum: [MINOR, MAJOR, CRITICAL]
+
+    NCRDispositionRequest:
+      type: object
+      required:
+        - disposition
+        - dispositionReason
+      properties:
+        disposition:
+          type: string
+          enum: [REWORK, REPAIR, SCRAP, USE_AS_IS, RETURN_TO_SUPPLIER]
+        dispositionReason:
+          type: string
+        rootCause:
+          type: string
+        correctiveAction:
+          type: string
+
+    # =====================================================
+    # MATERIAL SCHEMAS
+    # =====================================================
+    InventoryLevel:
+      type: object
+      properties:
+        partId:
+          type: string
+          format: uuid
+        partNumber:
+          type: string
+        partName:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        quantityOnHand:
+          type: number
+        quantityAllocated:
+          type: number
+        quantityAvailable:
+          type: number
+        uom:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    MaterialConsumptionRequest:
+      type: object
+      required:
+        - workOrderId
+        - partId
+        - quantity
+        - uom
+      properties:
+        workOrderId:
+          type: string
+          format: uuid
+        partId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          minimum: 0
+        uom:
+          type: string
+        lotNumber:
+          type: string
+        serialNumber:
+          type: string
+        locationId:
+          type: string
+          format: uuid
+
+    MaterialAllocationRequest:
+      type: object
+      required:
+        - workOrderId
+        - materials
+      properties:
+        workOrderId:
+          type: string
+          format: uuid
+        materials:
+          type: array
+          items:
+            type: object
+            required:
+              - partId
+              - quantity
+            properties:
+              partId:
+                type: string
+                format: uuid
+              quantity:
+                type: number
+              lotNumber:
+                type: string
+              serialNumber:
+                type: string
+
+    # =====================================================
+    # TRACEABILITY SCHEMAS
+    # =====================================================
+    TraceabilityTree:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+        partNumber:
+          type: string
+        partName:
+          type: string
+        manufacturedDate:
+          type: string
+          format: date
+        workOrderNumber:
+          type: string
+        materials:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaterialTrace'
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationTrace'
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraceabilityTree'
+
+    MaterialTrace:
+      type: object
+      properties:
+        partNumber:
+          type: string
+        partName:
+          type: string
+        lotNumber:
+          type: string
+        serialNumber:
+          type: string
+        supplier:
+          type: string
+        certificateNumber:
+          type: string
+        heatNumber:
+          type: string
+        consumedDate:
+          type: string
+          format: date-time
+        quantityConsumed:
+          type: number
+
+    OperationTrace:
+      type: object
+      properties:
+        operationNumber:
+          type: integer
+        operationName:
+          type: string
+        workCenter:
+          type: string
+        equipment:
+          type: string
+        operator:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        processParameters:
+          type: object
+          additionalProperties: true
+
+    ComponentTrace:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+        partNumber:
+          type: string
+        workOrderNumber:
+          type: string
+        manufacturedDate:
+          type: string
+          format: date
+        customer:
+          type: string
+        status:
+          type: string
+
+    AuditRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, VIEW]
+        oldValues:
+          type: object
+        newValues:
+          type: object
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    TraceabilityExportRequest:
+      type: object
+      required:
+        - serialNumbers
+        - format
+      properties:
+        serialNumbers:
+          type: array
+          items:
+            type: string
+        format:
+          type: string
+          enum: [PDF, EXCEL, CSV]
+        includeProcessData:
+          type: boolean
+          default: false
+        includeQualityData:
+          type: boolean
+          default: true
+
+    # =====================================================
+    # EQUIPMENT SCHEMAS
+    # =====================================================
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        equipmentNumber:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        workCenterId:
+          type: string
+          format: uuid
+        manufacturer:
+          type: string
+        model:
+          type: string
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum: [AVAILABLE, BUSY, MAINTENANCE, DOWN]
+        lastMaintenanceDate:
+          type: string
+          format: date
+        nextMaintenanceDue:
+          type: string
+          format: date
+
+    EquipmentStatus:
+      type: object
+      properties:
+        equipmentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [AVAILABLE, BUSY, MAINTENANCE, DOWN]
+        currentWorkOrder:
+          type: string
+        currentOperation:
+          type: string
+        utilizationPercent:
+          type: number
+        lastStatusChange:
+          type: string
+          format: date-time
+        maintenanceDue:
+          type: boolean
+        alerts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              message:
+                type: string
+              severity:
+                type: string
+
+    InventoryTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transactionType:
+          type: string
+          enum: [RECEIPT, ISSUE, TRANSFER, ADJUSTMENT, SCRAP]
+        partId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+        uom:
+          type: string
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        workOrderId:
+          type: string
+          format: uuid
+        reasonCode:
+          type: string
+        referenceDocument:
+          type: string
+        performedBy:
+          type: string
+          format: uuid
+        performedAt:
+          type: string
+          format: date-time
+
+    MaterialAllocation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workOrderId:
+          type: string
+          format: uuid
+        partId:
+          type: string
+          format: uuid
+        quantityAllocated:
+          type: number
+        lotNumber:
+          type: string
+        serialNumber:
+          type: string
+        allocatedAt:
+          type: string
+          format: date-time
+
+    MaterialGenealogy:
+      type: object
+      properties:
+        lotNumber:
+          type: string
+        partNumber:
+          type: string
+        supplier:
+          type: string
+        receivedDate:
+          type: string
+          format: date
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaterialCertification'
+        consumptions:
+          type: array
+          items:
+            type: object
+            properties:
+              workOrderNumber:
+                type: string
+              quantityConsumed:
+                type: number
+              consumedDate:
+                type: string
+                format: date-time
+
+    MaterialCertification:
+      type: object
+      properties:
+        certificateNumber:
+          type: string
+        certificateType:
+          type: string
+        issuedBy:
+          type: string
+        issuedDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+        documentUrl:
+          type: string
+          format: uri

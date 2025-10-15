@@ -1,0 +1,547 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Manufacturing Sites
+model Site {
+  id        String   @id @default(cuid())
+  siteCode  String   @unique
+  siteName  String
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workOrders WorkOrder[]
+  equipment  Equipment[]
+  ncrs       NCR[]
+
+  @@map("sites")
+}
+
+// Users and Authentication
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  passwordHash String
+  isActive    Boolean  @default(true)
+  roles       String[]
+  permissions String[]
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdWorkOrders      WorkOrder[]       @relation("CreatedBy")
+  assignedWorkOrders     WorkOrder[]       @relation("AssignedTo")
+  qualityInspections     QualityInspection[]
+  ncrReports            NCR[]             @relation("CreatedBy")
+  assignedNcrs          NCR[]             @relation("AssignedTo")
+  equipmentLogs         EquipmentLog[]
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+// Parts and Materials
+model Part {
+  id              String   @id @default(cuid())
+  partNumber      String   @unique
+  partName        String
+  description     String?
+  partType        String
+  unitOfMeasure   String
+  drawingNumber   String?
+  revision        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  workOrders         WorkOrder[]
+  bomItems           BOMItem[]         @relation("ParentPart")
+  componentItems     BOMItem[]         @relation("ComponentPart")
+  qualityPlans       QualityPlan[]
+  inventoryItems     Inventory[]
+  serializedParts    SerializedPart[]
+
+  @@map("parts")
+}
+
+// Bill of Materials
+model BOMItem {
+  id           String  @id @default(cuid())
+  parentPartId String
+  componentPartId String
+  quantity     Float
+  unitOfMeasure String
+  sequence     Int?
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  parentPart    Part @relation("ParentPart", fields: [parentPartId], references: [id])
+  componentPart Part @relation("ComponentPart", fields: [componentPartId], references: [id])
+
+  @@map("bom_items")
+}
+
+// Work Orders
+model WorkOrder {
+  id                String           @id @default(cuid())
+  workOrderNumber   String           @unique
+  partId            String
+  partNumber        String?          // Denormalized for performance
+  quantity          Int
+  quantityCompleted Int              @default(0)
+  quantityScrapped  Int              @default(0)
+  priority          WorkOrderPriority
+  status            WorkOrderStatus
+  dueDate           DateTime?
+  customerOrder     String?
+  routingId         String?
+  siteId            String?
+  createdById       String
+  assignedToId      String?
+  startedAt         DateTime?
+  actualStartDate   DateTime?
+  completedAt       DateTime?
+  actualEndDate     DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // Relations
+  part             Part               @relation(fields: [partId], references: [id])
+  site             Site?              @relation(fields: [siteId], references: [id])
+  createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  routing          Routing?           @relation(fields: [routingId], references: [id])
+  operations       WorkOrderOperation[]
+  qualityInspections QualityInspection[]
+  materialTransactions MaterialTransaction[]
+  ncrs             NCR[]
+
+  @@map("work_orders")
+}
+
+enum WorkOrderPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum WorkOrderStatus {
+  CREATED
+  RELEASED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+// Routing and Operations
+model Routing {
+  id          String   @id @default(cuid())
+  routingNumber String @unique
+  partId      String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  operations  RoutingOperation[]
+  workOrders  WorkOrder[]
+
+  @@map("routings")
+}
+
+model RoutingOperation {
+  id             String   @id @default(cuid())
+  routingId      String
+  operationNumber Int
+  operationName  String
+  description    String?
+  setupTime      Float?
+  cycleTime      Float?
+  workCenterId   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  routing       Routing            @relation(fields: [routingId], references: [id])
+  workCenter    WorkCenter?        @relation(fields: [workCenterId], references: [id])
+  workOrderOps  WorkOrderOperation[]
+
+  @@map("routing_operations")
+}
+
+model WorkCenter {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String?
+  capacity     Float?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  operations   RoutingOperation[]
+  equipment    Equipment[]
+
+  @@map("work_centers")
+}
+
+model WorkOrderOperation {
+  id                String                    @id @default(cuid())
+  workOrderId       String
+  routingOperationId String
+  status            WorkOrderOperationStatus
+  quantity          Int
+  quantityCompleted Int                      @default(0)
+  quantityScrap     Int                      @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  // Relations
+  workOrder         WorkOrder         @relation(fields: [workOrderId], references: [id])
+  routingOperation  RoutingOperation  @relation(fields: [routingOperationId], references: [id])
+
+  @@map("work_order_operations")
+}
+
+enum WorkOrderOperationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+// Quality Management
+model QualityPlan {
+  id          String   @id @default(cuid())
+  planNumber  String   @unique
+  planName    String
+  partId      String
+  operation   String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  part           Part                @relation(fields: [partId], references: [id])
+  characteristics QualityCharacteristic[]
+  inspections    QualityInspection[]
+
+  @@map("quality_plans")
+}
+
+model QualityCharacteristic {
+  id               String               @id @default(cuid())
+  planId           String
+  characteristic   String
+  specification    String
+  toleranceType    QualityToleranceType
+  nominalValue     Float?
+  upperLimit       Float?
+  lowerLimit       Float?
+  unitOfMeasure    String?
+  inspectionMethod String?
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  // Relations
+  plan         QualityPlan    @relation(fields: [planId], references: [id])
+  measurements QualityMeasurement[]
+
+  @@map("quality_characteristics")
+}
+
+enum QualityToleranceType {
+  BILATERAL
+  UNILATERAL_PLUS
+  UNILATERAL_MINUS
+  NOMINAL
+}
+
+model QualityInspection {
+  id             String                @id @default(cuid())
+  inspectionNumber String              @unique
+  workOrderId    String
+  planId         String
+  inspectorId    String
+  status         QualityInspectionStatus
+  result         QualityInspectionResult?
+  quantity       Int
+  startedAt      DateTime?
+  completedAt    DateTime?
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  // Relations
+  workOrder    WorkOrder           @relation(fields: [workOrderId], references: [id])
+  plan         QualityPlan         @relation(fields: [planId], references: [id])
+  inspector    User                @relation(fields: [inspectorId], references: [id])
+  measurements QualityMeasurement[]
+  ncrs         NCR[]
+
+  @@map("quality_inspections")
+}
+
+enum QualityInspectionStatus {
+  CREATED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum QualityInspectionResult {
+  PASS
+  FAIL
+  CONDITIONAL
+}
+
+model QualityMeasurement {
+  id               String   @id @default(cuid())
+  inspectionId     String
+  characteristicId String
+  measuredValue    Float
+  result           String
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  // Relations
+  inspection    QualityInspection     @relation(fields: [inspectionId], references: [id])
+  characteristic QualityCharacteristic @relation(fields: [characteristicId], references: [id])
+
+  @@map("quality_measurements")
+}
+
+// Non-Conformance Reports
+model NCR {
+  id              String          @id @default(cuid())
+  ncrNumber       String          @unique
+  workOrderId     String?
+  inspectionId    String?
+  siteId          String?
+  partNumber      String
+  operation       String?
+  defectType      String
+  description     String
+  severity        NCRSeverity
+  status          NCRStatus
+  quantity        Int
+  createdById     String
+  assignedToId    String?
+  dueDate         DateTime?
+  rootCause       String?
+  correctiveAction String?
+  preventiveAction String?
+  closedAt        DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  createdBy    User               @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo   User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  inspection   QualityInspection? @relation(fields: [inspectionId], references: [id])
+  workOrder    WorkOrder?         @relation(fields: [workOrderId], references: [id])
+  site         Site?              @relation(fields: [siteId], references: [id])
+
+  @@map("ncrs")
+}
+
+enum NCRSeverity {
+  MINOR
+  MAJOR
+  CRITICAL
+}
+
+enum NCRStatus {
+  OPEN
+  IN_REVIEW
+  CORRECTIVE_ACTION
+  CLOSED
+}
+
+// Equipment Management
+model Equipment {
+  id              String   @id @default(cuid())
+  equipmentNumber String   @unique
+  name            String
+  description     String?
+  manufacturer    String?
+  model           String?
+  serialNumber    String?
+  workCenterId    String?
+  siteId          String?
+  status          EquipmentStatus
+  utilizationRate Float?   @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  workCenter  WorkCenter?    @relation(fields: [workCenterId], references: [id])
+  site        Site?          @relation(fields: [siteId], references: [id])
+  logs        EquipmentLog[]
+
+  @@map("equipment")
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  OPERATIONAL
+  MAINTENANCE
+  DOWN
+  RETIRED
+}
+
+model EquipmentLog {
+  id          String            @id @default(cuid())
+  equipmentId String
+  logType     EquipmentLogType
+  description String
+  userId      String?
+  loggedAt    DateTime          @default(now())
+
+  // Relations
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@map("equipment_logs")
+}
+
+enum EquipmentLogType {
+  MAINTENANCE
+  REPAIR
+  CALIBRATION
+  STATUS_CHANGE
+  USAGE
+}
+
+// Inventory and Materials
+model Inventory {
+  id            String   @id @default(cuid())
+  partId        String
+  location      String
+  lotNumber     String?
+  quantity      Float
+  unitOfMeasure String
+  unitCost      Float?
+  receivedDate  DateTime?
+  expiryDate    DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  part         Part                   @relation(fields: [partId], references: [id])
+  transactions MaterialTransaction[]
+
+  @@map("inventory")
+}
+
+model MaterialTransaction {
+  id            String                    @id @default(cuid())
+  inventoryId   String
+  workOrderId   String?
+  transactionType MaterialTransactionType
+  quantity      Float
+  unitOfMeasure String
+  reference     String?
+  transactionDate DateTime                @default(now())
+  createdAt     DateTime                  @default(now())
+
+  // Relations
+  inventory  Inventory  @relation(fields: [inventoryId], references: [id])
+  workOrder  WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@map("material_transactions")
+}
+
+enum MaterialTransactionType {
+  RECEIPT
+  ISSUE
+  RETURN
+  ADJUSTMENT
+  SCRAP
+}
+
+// Serialized Parts and Traceability
+model SerializedPart {
+  id             String   @id @default(cuid())
+  serialNumber   String   @unique
+  partId         String
+  workOrderId    String?
+  lotNumber      String?
+  status         String
+  currentLocation String?
+  manufactureDate DateTime?
+  shipDate       DateTime?
+  customerInfo   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  part        Part              @relation(fields: [partId], references: [id])
+  genealogy   PartGenealogy[]   @relation("ParentPart")
+  components  PartGenealogy[]   @relation("ComponentPart")
+
+  @@map("serialized_parts")
+}
+
+model PartGenealogy {
+  id                String   @id @default(cuid())
+  parentPartId      String
+  componentPartId   String
+  assemblyDate      DateTime?
+  assemblyOperator  String?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  parentPart    SerializedPart @relation("ParentPart", fields: [parentPartId], references: [id])
+  componentPart SerializedPart @relation("ComponentPart", fields: [componentPartId], references: [id])
+
+  @@map("part_genealogy")
+}
+
+// Audit Trail
+model AuditLog {
+  id          String   @id @default(cuid())
+  tableName   String
+  recordId    String
+  action      String
+  oldValues   Json?
+  newValues   Json?
+  userId      String?
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
