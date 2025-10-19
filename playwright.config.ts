@@ -207,6 +207,19 @@ export default defineConfig({
       },
     },
 
+    /* Frontend smoke tests - comprehensive site traversal */
+    {
+      name: 'smoke-tests',
+      testMatch: '**/frontend-smoke-test.spec.ts',
+      timeout: 300000, // 5 minutes total for all routes
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - test manages its own auth
+        actionTimeout: 15000,
+        navigationTimeout: 10000,
+      },
+    },
+
     // NOTE: Domain integration tests (routing-domain and domain-integration)
     // have been removed because they require Nginx and /etc/hosts configuration.
     // To re-enable, add projects with baseURL: 'http://local.mes.com'

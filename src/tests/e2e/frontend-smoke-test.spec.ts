@@ -189,7 +189,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     console.log('\n' + '='.repeat(80) + '\n');
   });
 
-  test('should navigate to all routes via direct URL access', async ({ page }) => {
+  test('should navigate to all routes via direct URL access', async ({ page, baseURL }) => {
     // Setup authentication for protected routes
     await setupTestAuth(page, 'admin');
 
@@ -199,8 +199,8 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
       try {
         console.log(`Testing: ${route.name.padEnd(40)} (${route.path})`);
 
-        // Navigate to the route
-        const response = await page.goto(`http://localhost:5173${route.path}`, {
+        // Navigate to the route using baseURL from config
+        const response = await page.goto(`${baseURL}${route.path}`, {
           waitUntil: 'domcontentloaded',
           timeout: 10000
         });
@@ -252,9 +252,9 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     expect(failedRoutes.length, `${failedRoutes.length} route(s) failed to load`).toBe(0);
   });
 
-  test('should navigate through main menu items', async ({ page }) => {
+  test('should navigate through main menu items', async ({ page, baseURL }) => {
     await setupTestAuth(page, 'admin');
-    await page.goto('http://localhost:5173/dashboard');
+    await page.goto(`${baseURL}/dashboard`);
     await page.waitForLoadState('networkidle');
 
     // Menu items to test (text that appears in the menu)
@@ -300,9 +300,9 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     }
   });
 
-  test('should verify no broken internal links on dashboard', async ({ page }) => {
+  test('should verify no broken internal links on dashboard', async ({ page, baseURL }) => {
     await setupTestAuth(page, 'admin');
-    await page.goto('http://localhost:5173/dashboard');
+    await page.goto(`${baseURL}/dashboard`);
     await page.waitForLoadState('networkidle');
 
     // Find all internal links (excluding external, anchor-only, and javascript: links)
@@ -329,7 +329,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     for (const link of links.slice(0, 20)) { // Test first 20 links to keep test reasonable
       try {
         const href = link.href!;
-        const fullUrl = href.startsWith('http') ? href : `http://localhost:5173${href}`;
+        const fullUrl = href.startsWith('http') ? href : `${baseURL}${href}`;
 
         const response = await page.request.get(fullUrl);
         const status = response.status();
@@ -349,7 +349,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     expect(brokenLinks.length, `Found ${brokenLinks.length} broken links`).toBe(0);
   });
 
-  test('should check for console errors across all pages', async ({ page }) => {
+  test('should check for console errors across all pages', async ({ page, baseURL }) => {
     await setupTestAuth(page, 'admin');
 
     const pagesWithErrors: { route: string; errorCount: number }[] = [];
@@ -368,7 +368,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     for (const route of criticalPages) {
       const errors = setupConsoleErrorTracking(page);
 
-      await page.goto(`http://localhost:5173${route}`);
+      await page.goto(`${baseURL}${route}`);
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000); // Give time for any delayed errors
 
