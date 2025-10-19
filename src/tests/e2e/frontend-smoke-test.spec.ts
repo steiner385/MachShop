@@ -389,4 +389,178 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
       console.warn(`\n⚠️  Warning: ${pagesWithErrors.length} page(s) have console errors`);
     }
   });
+
+  test('should identify any orphaned pages not reachable via UI navigation', async ({ page, baseURL }) => {
+    await setupTestAuth(page, 'admin');
+
+    console.log('\n🔍 Discovering all reachable links via UI crawl\n');
+
+    // Set to track all discovered internal links
+    const discoveredLinks = new Set<string>();
+    const pagesToCrawl: string[] = ['/dashboard'];
+    const crawledPages = new Set<string>();
+
+    // Helper to extract links from a page
+    async function extractLinksFromPage(url: string): Promise<string[]> {
+      // Get regular anchor links
+      const anchorLinks = await page.locator('a[href]').evaluateAll((anchors) => {
+        return anchors
+          .map((a) => a.getAttribute('href'))
+          .filter((href): href is string => {
+            if (!href) return false;
+            if (href.startsWith('http') && !href.includes('localhost')) return false;
+            if (href.startsWith('#')) return false;
+            if (href.startsWith('javascript:')) return false;
+            if (href.startsWith('mailto:')) return false;
+            return true;
+          })
+          .map((href) => {
+            // Normalize to path only (remove baseURL and query params)
+            if (href.startsWith('http')) {
+              const url = new URL(href);
+              return url.pathname;
+            }
+            // Remove query params and hash
+            return href.split('?')[0].split('#')[0];
+          });
+      });
+
+      // Also extract navigation from menu items (Ant Design menu structure)
+      const menuLinks = await page.locator('[role="menuitem"]').evaluateAll((items) => {
+        return items
+          .map((item) => {
+            // Look for nested anchor tags first
+            const link = item.querySelector('a');
+            if (link) {
+              return link.getAttribute('href');
+            }
+
+            // Ant Design Menu uses data-menu-id for the key
+            // Format: "rc-menu-uuid-{random}-/path" - extract the path part
+            const menuId = item.getAttribute('data-menu-id');
+            if (menuId) {
+              // Find the last hyphen before a slash, extract everything from the slash
+              const lastHyphenSlash = menuId.lastIndexOf('-/');
+              if (lastHyphenSlash !== -1) {
+                return menuId.substring(lastHyphenSlash + 1); // +1 to skip the hyphen, keep the slash
+              }
+            }
+
+            // Some menu items might use other data attributes
+            return item.getAttribute('data-path') || item.getAttribute('data-href');
+          })
+          .filter((href): href is string => {
+            if (!href) return false;
+            if (href.startsWith('#')) return false;
+            if (!href.startsWith('/')) return false;
+            return true;
+          })
+          .map((href) => href.split('?')[0].split('#')[0]);
+      });
+
+      const allLinks = [...anchorLinks, ...menuLinks];
+      return [...new Set(allLinks)]; // Remove duplicates
+    }
+
+    // Crawl pages breadth-first to discover all reachable links
+    while (pagesToCrawl.length > 0) {
+      const currentPath = pagesToCrawl.shift()!;
+
+      if (crawledPages.has(currentPath)) {
+        continue;
+      }
+
+      crawledPages.add(currentPath);
+
+      try {
+        await page.goto(`${baseURL}${currentPath}`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 10000
+        });
+
+        await page.waitForTimeout(500); // Let page render
+
+        const links = await extractLinksFromPage(currentPath);
+
+        for (const link of links) {
+          discoveredLinks.add(link);
+
+          // Add to crawl queue if we haven't crawled it yet
+          if (!crawledPages.has(link) && !pagesToCrawl.includes(link)) {
+            // Limit crawl depth by only adding paths we expect
+            const isKnownRoute = ROUTES_TO_TEST.some(r => r.path === link);
+            if (isKnownRoute) {
+              pagesToCrawl.push(link);
+            }
+          }
+        }
+
+        console.log(`  Crawled: ${currentPath.padEnd(40)} → Found ${links.length} link(s)`);
+      } catch (error: any) {
+        console.log(`  ⚠️  Failed to crawl: ${currentPath} - ${error.message}`);
+      }
+
+      // Safety limit: don't crawl more than 50 pages
+      if (crawledPages.size >= 50) {
+        console.log('  ℹ️  Reached crawl limit of 50 pages');
+        break;
+      }
+    }
+
+    console.log(`\n📊 Crawl Summary:`);
+    console.log(`  Pages crawled: ${crawledPages.size}`);
+    console.log(`  Unique links discovered: ${discoveredLinks.size}`);
+
+    // Now compare: which routes are NOT discoverable via links?
+    const orphanedRoutes: string[] = [];
+
+    for (const route of ROUTES_TO_TEST) {
+      // Skip login page - it's only accessible when logged out
+      if (route.path === '/login') {
+        continue;
+      }
+
+      if (!discoveredLinks.has(route.path)) {
+        orphanedRoutes.push(route.path);
+      }
+    }
+
+    console.log(`\n🔍 Orphaned Pages Analysis:\n`);
+
+    if (orphanedRoutes.length > 0) {
+      console.log(`❌ Found ${orphanedRoutes.length} orphaned page(s) - these pages exist but aren't linked in the UI:`);
+      orphanedRoutes.forEach(route => {
+        const routeInfo = ROUTES_TO_TEST.find(r => r.path === route);
+        console.log(`  - ${route.padEnd(40)} (${routeInfo?.name})`);
+      });
+
+      console.log(`\n⚠️  Recommendation: Add navigation menu items or links to these pages, or remove them if unused.\n`);
+
+      // This is a warning, not a failure - orphaned pages might be intentional (e.g., admin-only)
+      // But we want to know about them
+      console.warn(`Warning: ${orphanedRoutes.length} page(s) are not reachable via UI navigation`);
+    } else {
+      console.log(`✅ No orphaned pages found - all routes are reachable via UI navigation!\n`);
+    }
+
+    // Also report pages discovered that aren't in our test list
+    const undocumentedLinks: string[] = [];
+    for (const link of discoveredLinks) {
+      const isKnown = ROUTES_TO_TEST.some(r => r.path === link);
+      if (!isKnown && !link.includes('/api/') && link.startsWith('/')) {
+        undocumentedLinks.push(link);
+      }
+    }
+
+    if (undocumentedLinks.length > 0) {
+      console.log(`\nℹ️  Found ${undocumentedLinks.length} undocumented route(s) in the UI:`);
+      undocumentedLinks.slice(0, 10).forEach(link => {
+        console.log(`  - ${link}`);
+      });
+      if (undocumentedLinks.length > 10) {
+        console.log(`  ... and ${undocumentedLinks.length - 10} more`);
+      }
+      console.log(`\nConsider adding these to ROUTES_TO_TEST for comprehensive coverage.\n`);
+    }
+  });
 });
