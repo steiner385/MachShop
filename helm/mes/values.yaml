@@ -1,0 +1,587 @@
+# Default values for MES Helm Chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration shared across all components
+global:
+  # Kubernetes namespace
+  namespace: mes-production
+
+  # Environment (development, staging, production)
+  environment: production
+
+  # Container registry settings
+  registry: docker.io/example
+  imagePullPolicy: Always
+  imagePullSecrets: []
+
+  # Storage class for persistent volumes
+  storageClass: standard
+
+  # Common labels applied to all resources
+  commonLabels:
+    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/part-of: mes
+
+# Microservices Configuration
+services:
+  # Auth Service
+  auth:
+    enabled: true
+    name: auth-service
+    replicas: 2
+    image: mes-auth
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+    env:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+
+  # Work Order Service
+  workOrder:
+    enabled: true
+    name: work-order-service
+    replicas: 2
+    image: mes-work-order
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Quality Service
+  quality:
+    enabled: true
+    name: quality-service
+    replicas: 2
+    image: mes-quality
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Material Service
+  material:
+    enabled: true
+    name: material-service
+    replicas: 2
+    image: mes-material
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Traceability Service
+  traceability:
+    enabled: true
+    name: traceability-service
+    replicas: 2
+    image: mes-traceability
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Resource Service
+  resource:
+    enabled: true
+    name: resource-service
+    replicas: 2
+    image: mes-resource
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Reporting Service
+  reporting:
+    enabled: true
+    name: reporting-service
+    replicas: 2
+    image: mes-reporting
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Integration Service
+  integration:
+    enabled: true
+    name: integration-service
+    replicas: 2
+    image: mes-integration
+    tag: latest
+    port: 3000
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+# PostgreSQL Database Configuration
+postgresql:
+  enabled: true
+  version: "14-alpine"
+  image: postgres
+
+  # Auth Database
+  auth:
+    enabled: true
+    database: mes_auth
+    username: mes_auth_user
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Work Order Database
+  workOrder:
+    enabled: true
+    database: mes_work_order
+    username: mes_work_order_user
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Quality Database
+  quality:
+    enabled: true
+    database: mes_quality
+    username: mes_quality_user
+    persistence:
+      enabled: true
+      size: 15Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Material Database
+  material:
+    enabled: true
+    database: mes_material
+    username: mes_material_user
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Traceability Database
+  traceability:
+    enabled: true
+    database: mes_traceability
+    username: mes_traceability_user
+    persistence:
+      enabled: true
+      size: 25Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Resource Database
+  resource:
+    enabled: true
+    database: mes_resource
+    username: mes_resource_user
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Reporting Database
+  reporting:
+    enabled: true
+    database: mes_reporting
+    username: mes_reporting_user
+    persistence:
+      enabled: true
+      size: 30Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  # Integration Database
+  integration:
+    enabled: true
+    database: mes_integration
+    username: mes_integration_user
+    persistence:
+      enabled: true
+      size: 15Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Kafka Configuration
+kafka:
+  enabled: true
+  replicas: 3
+  image: confluentinc/cp-kafka
+  version: 7.4.0
+
+  persistence:
+    enabled: true
+    size: 50Gi
+
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  config:
+    offsetsTopicReplicationFactor: 3
+    transactionStateLogReplicationFactor: 3
+    transactionStateLogMinIsr: 2
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+    autoCreateTopicsEnable: true
+    logRetentionHours: 168
+    logSegmentBytes: 1073741824
+
+  # External access configuration
+  external:
+    enabled: false
+    type: LoadBalancer
+
+# ZooKeeper Configuration
+zookeeper:
+  enabled: true
+  replicas: 3
+  image: confluentinc/cp-zookeeper
+  version: 7.4.0
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Redis Configuration
+redis:
+  enabled: true
+  image: redis
+  version: 7-alpine
+  replicas: 1
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  config:
+    maxmemory: "2gb"
+    maxmemoryPolicy: "allkeys-lru"
+    appendonly: "yes"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+  # Hostnames
+  hosts:
+    - api.mes-production.example.com
+    - mes-api.example.com
+
+  # TLS/SSL configuration
+  tls:
+    enabled: true
+    secretName: mes-tls-secret
+
+  # Path routing
+  paths:
+    auth: /api/auth
+    workOrder: /api/work-orders
+    quality: /api/quality
+    material: /api/materials
+    traceability: /api/traceability
+    resource: /api/resources
+    reporting: /api/reports
+    integration: /api/integrations
+
+# ConfigMap settings
+configMaps:
+  # Main application config
+  app:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    LOG_FORMAT: json
+    ENABLE_CORS: "true"
+    API_RATE_LIMIT: "1000"
+    DB_POOL_MIN: "2"
+    DB_POOL_MAX: "10"
+    KAFKA_TOPIC: "mes-events"
+    REDIS_DB: "0"
+    REDIS_TTL: "3600"
+
+  # Feature flags
+  features:
+    FEATURE_DIGITAL_WORK_INSTRUCTIONS: "true"
+    FEATURE_ELECTRONIC_SIGNATURES: "true"
+    FEATURE_FAI_REPORTS: "true"
+    FEATURE_SERIALIZATION: "true"
+    FEATURE_ADVANCED_PLANNING: "true"
+    FEATURE_PREDICTIVE_MAINTENANCE: "false"
+    FEATURE_AI_QUALITY_PREDICTION: "false"
+
+# Secrets configuration (references only - actual values created externally)
+secrets:
+  # JWT secret for authentication
+  jwt:
+    secretName: mes-secrets
+    key: jwt-secret
+
+  # Database connection strings
+  database:
+    auth:
+      secretName: auth-db-secret
+      key: database-url
+    workOrder:
+      secretName: work-order-db-secret
+      key: database-url
+    quality:
+      secretName: quality-db-secret
+      key: database-url
+    material:
+      secretName: material-db-secret
+      key: database-url
+    traceability:
+      secretName: traceability-db-secret
+      key: database-url
+    resource:
+      secretName: resource-db-secret
+      key: database-url
+    reporting:
+      secretName: reporting-db-secret
+      key: database-url
+    integration:
+      secretName: integration-db-secret
+      key: database-url
+
+# Monitoring Configuration
+monitoring:
+  # Prometheus
+  prometheus:
+    enabled: false
+    serviceMonitor:
+      enabled: false
+      interval: 30s
+    port: 9090
+
+  # Grafana
+  grafana:
+    enabled: false
+    adminPassword: changeme
+    dashboards:
+      enabled: false
+
+# Network Policies
+networkPolicies:
+  enabled: false
+  ingress:
+    enabled: true
+    allowExternal: true
+  egress:
+    enabled: true
+
+# RBAC Configuration
+rbac:
+  create: true
+  serviceAccount:
+    create: true
+    name: mes-service-account
+    annotations: {}
+
+# Pod Security
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# Node affinity and tolerations
+affinity: {}
+tolerations: []
+nodeSelector: {}
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Priority class
+priorityClassName: ""
+
+# Service mesh integration (Istio)
+serviceMesh:
+  enabled: false
+  istio:
+    enabled: false
+    mtls: false

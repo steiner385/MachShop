@@ -1,0 +1,328 @@
+// Authentication Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Authentication Service (Port 3008)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-auth"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+// ============================================================================
+// Authentication & Authorization Models
+// ============================================================================
+
+/// User authentication credentials and basic profile
+/// This service owns ONLY authentication-related data
+/// Personnel details (skills, certifications) are owned by Resource Service
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   // Bcrypt hashed password
+
+  // Basic profile (for display purposes only)
+  firstName    String?
+  lastName     String?
+
+  // Account status
+  isActive     Boolean  @default(true)
+  isLocked     Boolean  @default(false)
+  lockedUntil  DateTime?
+  failedLoginAttempts Int @default(0)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
+
+  // Metadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations (owned by this service)
+  refreshTokens      RefreshToken[]
+  apiTokens          APIToken[]
+  sessions           UserSession[]
+  authAuditLogs      AuthAuditLog[]
+  passwordHistory    PasswordHistory[]
+  mfaSettings        MFASettings?
+
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
+  @@index([lastLoginAt])
+  @@map("users")
+}
+
+/// JWT Refresh Tokens (for token rotation)
+model RefreshToken {
+  id            String   @id @default(cuid())
+  userId        String
+  token         String   @unique  // Hashed refresh token
+  expiresAt     DateTime
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+  revokedReason String?
+
+  // Device/client information
+  deviceId      String?
+  userAgent     String?
+  ipAddress     String?
+
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("refresh_tokens")
+}
+
+/// API Tokens for machine-to-machine authentication (integrations)
+model APIToken {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String   // Human-readable name (e.g., "ERP Integration")
+  description   String?
+
+  tokenHash     String   @unique  // Hashed API token (never store plaintext)
+  tokenPrefix   String   // First 8 chars for identification (e.g., "mes_prod_")
+
+  // Permissions and scope
+  scopes        String[]  // Array of permission scopes
+  isActive      Boolean   @default(true)
+
+  // Expiration
+  expiresAt     DateTime?  // Null = no expiration
+
+  // Usage tracking
+  lastUsedAt    DateTime?
+  usageCount    Int       @default(0)
+
+  // Rate limiting
+  rateLimit     Int?      // Requests per minute (null = no limit)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([tokenPrefix])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@map("api_tokens")
+}
+
+/// Active user sessions (for session management and concurrent login tracking)
+model UserSession {
+  id            String   @id @default(cuid())
+  userId        String
+  sessionToken  String   @unique  // Hashed session identifier
+
+  // Session metadata
+  ipAddress     String
+  userAgent     String?
+  deviceId      String?
+  location      String?  // Geo-location (city, country)
+
+  // Session lifecycle
+  expiresAt     DateTime
+  lastActivityAt DateTime @default(now())
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@index([lastActivityAt])
+  @@map("user_sessions")
+}
+
+/// Password history (for password policy enforcement - no reuse of last N passwords)
+model PasswordHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  passwordHash  String   // Previous password hash
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("password_history")
+}
+
+/// Multi-Factor Authentication settings
+model MFASettings {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+
+  // TOTP (Time-based One-Time Password)
+  isTOTPEnabled Boolean  @default(false)
+  totpSecret    String?  // Encrypted TOTP secret
+  totpBackupCodes String[] // Encrypted backup codes
+
+  // SMS MFA
+  isSMSEnabled  Boolean  @default(false)
+  smsPhone      String?  // Encrypted phone number
+
+  // Email MFA
+  isEmailEnabled Boolean @default(false)
+
+  // Hardware token (YubiKey, etc.)
+  isHardwareTokenEnabled Boolean @default(false)
+  hardwareTokenIds      String[]  // Registered hardware token IDs
+
+  // MFA enforcement
+  mfaEnforced   Boolean  @default(false)
+  mfaEnforcedAt DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_settings")
+}
+
+/// Authentication audit log (security events)
+model AuthAuditLog {
+  id            String   @id @default(cuid())
+  userId        String?  // Null for failed login attempts
+  username      String?  // For failed login attempts
+
+  // Event details
+  eventType     AuthEventType
+  eventStatus   AuthEventStatus
+  eventMessage  String?
+
+  // Request context
+  ipAddress     String
+  userAgent     String?
+  location      String?
+
+  // Additional metadata
+  metadata      Json?    // Flexible field for event-specific data
+
+  timestamp     DateTime @default(now())
+
+  // Relations
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([eventStatus])
+  @@index([timestamp])
+  @@index([ipAddress])
+  @@map("auth_audit_logs")
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  MFA_ENABLED
+  MFA_DISABLED
+  MFA_VERIFIED
+  MFA_FAILED
+  TOKEN_CREATED
+  TOKEN_REVOKED
+  TOKEN_EXPIRED
+  SESSION_CREATED
+  SESSION_EXPIRED
+  SESSION_TERMINATED
+  SUSPICIOUS_ACTIVITY
+  PERMISSION_DENIED
+}
+
+enum AuthEventStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+  INFO
+}
+
+// ============================================================================
+// Roles & Permissions (Future: Phase 7 - Advanced RBAC)
+// Currently basic role strings stored in User model
+// Phase 7 will introduce proper RBAC with capabilities
+// ============================================================================
+
+/// Role definitions (placeholder for Phase 7)
+/// Currently roles are stored as string array in User model
+/// This table will be populated in Phase 7: Advanced RBAC
+model Role {
+  id          String   @id @default(cuid())
+  roleCode    String   @unique
+  roleName    String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+/// Permission definitions (placeholder for Phase 7)
+model Permission {
+  id          String   @id @default(cuid())
+  permissionCode String @unique
+  permissionName String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

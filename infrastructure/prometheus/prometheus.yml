@@ -1,0 +1,145 @@
+# Prometheus Configuration
+# Phase 2, Task 2.2: Metrics Collection for MES Microservices
+
+global:
+  scrape_interval: 15s  # Scrape targets every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'mes-local'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files (for alerting rules)
+# rule_files:
+#   - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Kong API Gateway metrics
+  - job_name: 'kong'
+    static_configs:
+      - targets: ['kong:8001']
+        labels:
+          service: 'kong-gateway'
+    metrics_path: '/metrics'
+
+  # Microservices - Node.js metrics
+  # These will be available once microservices implement Prometheus client
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:3008']
+        labels:
+          service: 'auth-service'
+          category: 'authentication'
+    metrics_path: '/metrics'
+
+  - job_name: 'work-order-service'
+    static_configs:
+      - targets: ['work-order-service:3009']
+        labels:
+          service: 'work-order-service'
+          category: 'production'
+    metrics_path: '/metrics'
+
+  - job_name: 'quality-service'
+    static_configs:
+      - targets: ['quality-service:3010']
+        labels:
+          service: 'quality-service'
+          category: 'quality'
+    metrics_path: '/metrics'
+
+  - job_name: 'material-service'
+    static_configs:
+      - targets: ['material-service:3011']
+        labels:
+          service: 'material-service'
+          category: 'material'
+    metrics_path: '/metrics'
+
+  - job_name: 'traceability-service'
+    static_configs:
+      - targets: ['traceability-service:3012']
+        labels:
+          service: 'traceability-service'
+          category: 'traceability'
+    metrics_path: '/metrics'
+
+  - job_name: 'resource-service'
+    static_configs:
+      - targets: ['resource-service:3013']
+        labels:
+          service: 'resource-service'
+          category: 'resources'
+    metrics_path: '/metrics'
+
+  - job_name: 'reporting-service'
+    static_configs:
+      - targets: ['reporting-service:3014']
+        labels:
+          service: 'reporting-service'
+          category: 'analytics'
+    metrics_path: '/metrics'
+
+  - job_name: 'integration-service'
+    static_configs:
+      - targets: ['integration-service:3015']
+        labels:
+          service: 'integration-service'
+          category: 'integration'
+    metrics_path: '/metrics'
+
+  # Kafka exporter (requires kafka-exporter container)
+  # - job_name: 'kafka'
+  #   static_configs:
+  #     - targets: ['kafka-exporter:9308']
+  #       labels:
+  #         service: 'kafka'
+
+  # PostgreSQL exporter (requires postgres-exporter containers)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgresql'
+
+  # Redis exporter (requires redis-exporter container)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis'
+
+  # Elasticsearch exporter (requires elasticsearch-exporter container)
+  # - job_name: 'elasticsearch'
+  #   static_configs:
+  #     - targets: ['elasticsearch-exporter:9114']
+  #       labels:
+  #         service: 'elasticsearch'
+
+  # Docker container metrics (requires cAdvisor)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #       labels:
+  #         service: 'cadvisor'
+
+  # Node exporter for host metrics (requires node-exporter)
+  # - job_name: 'node-exporter'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #       labels:
+  #         service: 'node-exporter'

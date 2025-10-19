@@ -1,0 +1,332 @@
+import React, { useEffect, useState } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Input,
+  Select,
+  Space,
+  Tag,
+  Typography,
+  message,
+  Tooltip,
+} from 'antd';
+import {
+  PlusOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  ApartmentOutlined,
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { getAllProcessSegments } from '@/api/processSegment';
+import { useProcessSegmentStore } from '@/store/processSegmentStore';
+import type { ProcessSegment, ProcessSegmentType } from '@/types/processSegment';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+
+/**
+ * Process Segment List Page
+ * Displays all process segments with filtering and search capabilities
+ */
+
+const ProcessSegmentListPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { processSegments, setProcessSegments, setLoading, loading } = useProcessSegmentStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<ProcessSegmentType | undefined>();
+  const [levelFilter, setLevelFilter] = useState<number | undefined>();
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | undefined>();
+
+  useEffect(() => {
+    fetchProcessSegments();
+  }, []);
+
+  const fetchProcessSegments = async () => {
+    try {
+      setLoading(true);
+      const segments = await getAllProcessSegments({
+        segmentType: typeFilter,
+        level: levelFilter,
+        isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
+        searchTerm,
+      });
+      setProcessSegments(segments);
+    } catch (error) {
+      message.error('Failed to load process segments');
+      console.error('Error fetching process segments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    fetchProcessSegments();
+  };
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setTypeFilter(undefined);
+    setLevelFilter(undefined);
+    setStatusFilter(undefined);
+  };
+
+  const formatDuration = (seconds?: number): string => {
+    if (!seconds) return '-';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
+  const getTypeColor = (type: ProcessSegmentType): string => {
+    const colors: Record<ProcessSegmentType, string> = {
+      PRODUCTION: 'blue',
+      QUALITY: 'green',
+      MATERIAL_HANDLING: 'orange',
+      MAINTENANCE: 'purple',
+      SETUP: 'cyan',
+      CLEANING: 'geekblue',
+      PACKAGING: 'magenta',
+      TESTING: 'lime',
+      REWORK: 'red',
+      OTHER: 'default',
+    };
+    return colors[type] || 'default';
+  };
+
+  const columns: ColumnsType<ProcessSegment> = [
+    {
+      title: 'Code',
+      dataIndex: 'segmentCode',
+      key: 'segmentCode',
+      width: 120,
+      fixed: 'left',
+      render: (code: string, record: ProcessSegment) => (
+        <a onClick={() => navigate(`/process-segments/${record.id}`)}>{code}</a>
+      ),
+    },
+    {
+      title: 'Name',
+      dataIndex: 'segmentName',
+      key: 'segmentName',
+      width: 200,
+    },
+    {
+      title: 'Type',
+      dataIndex: 'segmentType',
+      key: 'segmentType',
+      width: 140,
+      render: (type: ProcessSegmentType) => (
+        <Tag color={getTypeColor(type)}>{type.replace(/_/g, ' ')}</Tag>
+      ),
+      filters: [
+        { text: 'Production', value: 'PRODUCTION' },
+        { text: 'Quality', value: 'QUALITY' },
+        { text: 'Material Handling', value: 'MATERIAL_HANDLING' },
+        { text: 'Maintenance', value: 'MAINTENANCE' },
+        { text: 'Setup', value: 'SETUP' },
+        { text: 'Testing', value: 'TESTING' },
+        { text: 'Other', value: 'OTHER' },
+      ],
+      onFilter: (value, record) => record.segmentType === value,
+    },
+    {
+      title: 'Level',
+      dataIndex: 'level',
+      key: 'level',
+      width: 80,
+      render: (level: number) => (
+        <Tooltip title="Hierarchy depth">
+          <Tag icon={<ApartmentOutlined />}>{level}</Tag>
+        </Tooltip>
+      ),
+      sorter: (a, b) => a.level - b.level,
+    },
+    {
+      title: 'Duration',
+      dataIndex: 'duration',
+      key: 'duration',
+      width: 100,
+      render: (duration: number) => (
+        <Tooltip title="Standard operation duration">
+          <Space size="small">
+            <ClockCircleOutlined />
+            <Text>{formatDuration(duration)}</Text>
+          </Space>
+        </Tooltip>
+      ),
+      sorter: (a, b) => (a.duration || 0) - (b.duration || 0),
+    },
+    {
+      title: 'Setup Time',
+      dataIndex: 'setupTime',
+      key: 'setupTime',
+      width: 100,
+      render: (setupTime: number) => formatDuration(setupTime),
+    },
+    {
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+      width: 80,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      width: 90,
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'success' : 'default'}>{isActive ? 'Active' : 'Inactive'}</Tag>
+      ),
+      filters: [
+        { text: 'Active', value: true },
+        { text: 'Inactive', value: false },
+      ],
+      onFilter: (value, record) => record.isActive === value,
+    },
+    {
+      title: 'Approval',
+      dataIndex: 'requiresApproval',
+      key: 'requiresApproval',
+      width: 120,
+      render: (requiresApproval: boolean, record: ProcessSegment) => {
+        if (!requiresApproval) {
+          return <Tag>No Approval Needed</Tag>;
+        }
+        return record.approvedAt ? (
+          <Tag color="success">Approved</Tag>
+        ) : (
+          <Tag color="warning">Pending</Tag>
+        );
+      },
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+      render: (desc: string) => (
+        <Tooltip title={desc}>
+          <Text type="secondary">{desc || '-'}</Text>
+        </Tooltip>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Title level={2} style={{ margin: 0 }}>
+              <ApartmentOutlined style={{ marginRight: 8 }} />
+              Process Segments
+            </Title>
+            <Text type="secondary">
+              Manufacturing routes and operation definitions (ISA-95 compliant)
+            </Text>
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/process-segments/create')}
+          >
+            Create Process Segment
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <Space size="middle" wrap>
+            <Input
+              placeholder="Search by code or name"
+              prefix={<SearchOutlined />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onPressEnter={handleSearch}
+              style={{ width: 250 }}
+            />
+
+            <Select
+              placeholder="Filter by type"
+              value={typeFilter}
+              onChange={setTypeFilter}
+              allowClear
+              style={{ width: 180 }}
+            >
+              <Option value="PRODUCTION">Production</Option>
+              <Option value="QUALITY">Quality</Option>
+              <Option value="MATERIAL_HANDLING">Material Handling</Option>
+              <Option value="MAINTENANCE">Maintenance</Option>
+              <Option value="SETUP">Setup</Option>
+              <Option value="TESTING">Testing</Option>
+              <Option value="OTHER">Other</Option>
+            </Select>
+
+            <Select
+              placeholder="Filter by level"
+              value={levelFilter}
+              onChange={setLevelFilter}
+              allowClear
+              style={{ width: 150 }}
+            >
+              {[1, 2, 3, 4, 5].map((level) => (
+                <Option key={level} value={level}>
+                  Level {level}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Filter by status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              allowClear
+              style={{ width: 150 }}
+            >
+              <Option value="active">Active</Option>
+              <Option value="inactive">Inactive</Option>
+            </Select>
+
+            <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+              Search
+            </Button>
+
+            <Button icon={<ReloadOutlined />} onClick={handleReset}>
+              Reset
+            </Button>
+          </Space>
+        </Card>
+
+        {/* Table */}
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={processSegments}
+            loading={loading}
+            rowKey="id"
+            scroll={{ x: 1400 }}
+            pagination={{
+              pageSize: 20,
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} process segments`,
+            }}
+          />
+        </Card>
+      </Space>
+    </div>
+  );
+};
+
+export default ProcessSegmentListPage;

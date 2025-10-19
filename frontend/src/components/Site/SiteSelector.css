@@ -1,0 +1,151 @@
+/**
+ * Site Selector Styles
+ * Sprint 3: Frontend Site Context
+ */
+
+/* Container */
+.site-selector-container {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Main select component */
+.site-selector {
+  font-size: 14px;
+}
+
+.site-selector .ant-select-selector {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.site-selector:hover .ant-select-selector {
+  border-color: #40a9ff;
+}
+
+.site-selector-focused .ant-select-selector {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Dropdown */
+.site-selector-dropdown {
+  border-radius: 6px;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+              0 6px 16px 0 rgba(0, 0, 0, 0.08),
+              0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.site-selector-dropdown .ant-select-item {
+  padding: 8px 12px;
+}
+
+/* Site option layout */
+.site-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.site-option-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.site-option-icon {
+  color: #1890ff;
+  font-size: 16px;
+}
+
+.site-option-name {
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.site-option-code {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+}
+
+.site-option-location {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+}
+
+/* Inactive site */
+.site-option-inactive .site-option-name {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.site-option-inactive .site-option-icon {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.site-option-inactive-badge {
+  font-size: 11px;
+  color: #ff4d4f;
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  border-radius: 4px;
+  padding: 0 6px;
+  line-height: 18px;
+}
+
+/* Hover state */
+.site-selector-dropdown .ant-select-item-option:hover .site-option-icon {
+  color: #40a9ff;
+}
+
+/* Selected state */
+.site-selector-dropdown .ant-select-item-option-selected {
+  background-color: #e6f7ff;
+}
+
+.site-selector-dropdown .ant-select-item-option-selected .site-option-icon {
+  color: #1890ff;
+}
+
+.site-selector-dropdown .ant-select-item-option-selected .site-option-name {
+  font-weight: 600;
+  color: #1890ff;
+}
+
+/* Disabled state */
+.site-selector-dropdown .ant-select-item-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.site-selector-dropdown .ant-select-item-option-disabled:hover {
+  background-color: transparent;
+}
+
+/* Loading spinner */
+.site-selector .anticon-loading {
+  color: #1890ff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .site-selector {
+    min-width: 150px !important;
+  }
+
+  .site-option-location {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-selector {
+    min-width: 120px !important;
+  }
+
+  .site-option-code {
+    display: none;
+  }
+}

@@ -1,0 +1,633 @@
+# MES System - Docker Compose for Local Development
+# This compose file sets up the complete MES system for local development
+# including all 8 microservices, databases, Kafka, Redis, and monitoring
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Databases (Database Per Service Pattern)
+  # =============================================================================
+
+  postgres-auth:
+    image: postgres:14-alpine
+    container_name: mes-postgres-auth
+    environment:
+      POSTGRES_DB: mes_auth
+      POSTGRES_USER: ${POSTGRES_AUTH_USER:-mes_auth_user}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-dev_password_auth}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER:-mes_auth_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-work-order:
+    image: postgres:14-alpine
+    container_name: mes-postgres-work-order
+    environment:
+      POSTGRES_DB: mes_work_order
+      POSTGRES_USER: ${POSTGRES_WORK_ORDER_USER:-mes_work_order_user}
+      POSTGRES_PASSWORD: ${POSTGRES_WORK_ORDER_PASSWORD:-dev_password_work_order}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-work-order-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_WORK_ORDER_USER:-mes_work_order_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-quality:
+    image: postgres:14-alpine
+    container_name: mes-postgres-quality
+    environment:
+      POSTGRES_DB: mes_quality
+      POSTGRES_USER: ${POSTGRES_QUALITY_USER:-mes_quality_user}
+      POSTGRES_PASSWORD: ${POSTGRES_QUALITY_PASSWORD:-dev_password_quality}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-quality-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_QUALITY_USER:-mes_quality_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-material:
+    image: postgres:14-alpine
+    container_name: mes-postgres-material
+    environment:
+      POSTGRES_DB: mes_material
+      POSTGRES_USER: ${POSTGRES_MATERIAL_USER:-mes_material_user}
+      POSTGRES_PASSWORD: ${POSTGRES_MATERIAL_PASSWORD:-dev_password_material}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-material-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MATERIAL_USER:-mes_material_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-traceability:
+    image: postgres:14-alpine
+    container_name: mes-postgres-traceability
+    environment:
+      POSTGRES_DB: mes_traceability
+      POSTGRES_USER: ${POSTGRES_TRACEABILITY_USER:-mes_traceability_user}
+      POSTGRES_PASSWORD: ${POSTGRES_TRACEABILITY_PASSWORD:-dev_password_traceability}
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-traceability-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TRACEABILITY_USER:-mes_traceability_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-resource:
+    image: postgres:14-alpine
+    container_name: mes-postgres-resource
+    environment:
+      POSTGRES_DB: mes_resource
+      POSTGRES_USER: ${POSTGRES_RESOURCE_USER:-mes_resource_user}
+      POSTGRES_PASSWORD: ${POSTGRES_RESOURCE_PASSWORD:-dev_password_resource}
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-resource-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_RESOURCE_USER:-mes_resource_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-reporting:
+    image: postgres:14-alpine
+    container_name: mes-postgres-reporting
+    environment:
+      POSTGRES_DB: mes_reporting
+      POSTGRES_USER: ${POSTGRES_REPORTING_USER:-mes_reporting_user}
+      POSTGRES_PASSWORD: ${POSTGRES_REPORTING_PASSWORD:-dev_password_reporting}
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres-reporting-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_REPORTING_USER:-mes_reporting_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  postgres-integration:
+    image: postgres:14-alpine
+    container_name: mes-postgres-integration
+    environment:
+      POSTGRES_DB: mes_integration
+      POSTGRES_USER: ${POSTGRES_INTEGRATION_USER:-mes_integration_user}
+      POSTGRES_PASSWORD: ${POSTGRES_INTEGRATION_PASSWORD:-dev_password_integration}
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-integration-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INTEGRATION_USER:-mes_integration_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  # =============================================================================
+  # Event Streaming Infrastructure
+  # =============================================================================
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: mes-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: mes-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mes-network
+
+  # =============================================================================
+  # Cache Infrastructure
+  # =============================================================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: mes-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mes-network
+
+  # =============================================================================
+  # MES Microservices
+  # =============================================================================
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: auth
+    container_name: mes-auth-service
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_AUTH_USER:-mes_auth_user}:${POSTGRES_AUTH_PASSWORD:-dev_password_auth}@postgres-auth:5432/mes_auth?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: auth-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  work-order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: work-order
+    container_name: mes-work-order-service
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_WORK_ORDER_USER:-mes_work_order_user}:${POSTGRES_WORK_ORDER_PASSWORD:-dev_password_work_order}@postgres-work-order:5432/mes_work_order?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: work-order-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-work-order:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  quality-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: quality
+    container_name: mes-quality-service
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://${POSTGRES_QUALITY_USER:-mes_quality_user}:${POSTGRES_QUALITY_PASSWORD:-dev_password_quality}@postgres-quality:5432/mes_quality?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: quality-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres-quality:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  material-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: material
+    container_name: mes-material-service
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://${POSTGRES_MATERIAL_USER:-mes_material_user}:${POSTGRES_MATERIAL_PASSWORD:-dev_password_material}@postgres-material:5432/mes_material?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: material-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres-material:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  traceability-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: traceability
+    container_name: mes-traceability-service
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://${POSTGRES_TRACEABILITY_USER:-mes_traceability_user}:${POSTGRES_TRACEABILITY_PASSWORD:-dev_password_traceability}@postgres-traceability:5432/mes_traceability?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: traceability-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres-traceability:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  resource-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: resource
+    container_name: mes-resource-service
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DATABASE_URL: postgresql://${POSTGRES_RESOURCE_USER:-mes_resource_user}:${POSTGRES_RESOURCE_PASSWORD:-dev_password_resource}@postgres-resource:5432/mes_resource?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: resource-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3006:3006"
+    depends_on:
+      postgres-resource:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: reporting
+    container_name: mes-reporting-service
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DATABASE_URL: postgresql://${POSTGRES_REPORTING_USER:-mes_reporting_user}:${POSTGRES_REPORTING_PASSWORD:-dev_password_reporting}@postgres-reporting:5432/mes_reporting?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: reporting-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3007:3007"
+    depends_on:
+      postgres-reporting:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  integration-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: integration
+    container_name: mes-integration-service
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      DATABASE_URL: postgresql://${POSTGRES_INTEGRATION_USER:-mes_integration_user}:${POSTGRES_INTEGRATION_PASSWORD:-dev_password_integration}@postgres-integration:5432/mes_integration?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: integration-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "3008:3008"
+    depends_on:
+      postgres-integration:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # Frontend Application
+  # =============================================================================
+
+  # NOTE: Frontend service temporarily disabled - running natively with npm run dev:frontend
+  # Uncomment when frontend Dockerfile is created in ./frontend directory
+  #
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: mes-frontend
+  #   environment:
+  #     VITE_API_URL: http://localhost:8080/api
+  #     VITE_AUTH_SERVICE_URL: http://localhost:3001
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend/src:/app/src
+  #     - ./frontend/public:/app/public
+  #   networks:
+  #     - mes-network
+  #   restart: unless-stopped
+
+  # =============================================================================
+  # API Gateway / Load Balancer
+  # =============================================================================
+
+  nginx:
+    image: nginx:alpine
+    container_name: mes-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - work-order-service
+      - quality-service
+      - material-service
+      - traceability-service
+      - resource-service
+      - reporting-service
+      - integration-service
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # Monitoring Infrastructure
+  # =============================================================================
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: mes-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: mes-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - mes-network
+    restart: unless-stopped
+
+# =============================================================================
+# Volumes
+# =============================================================================
+
+volumes:
+  # Database volumes
+  postgres-auth-data:
+  postgres-work-order-data:
+  postgres-quality-data:
+  postgres-material-data:
+  postgres-traceability-data:
+  postgres-resource-data:
+  postgres-reporting-data:
+  postgres-integration-data:
+
+  # Event streaming volumes
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+
+  # Cache volume
+  redis-data:
+
+  # Monitoring volumes
+  prometheus-data:
+  grafana-data:
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  mes-network:
+    driver: bridge

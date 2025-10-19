@@ -1,0 +1,85 @@
+# Alert Rules for MES System
+
+groups:
+  - name: mes_alerts
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: ServiceDown
+        expr: up{job=~"mes-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MES Service {{ $labels.service }} is down"
+          description: "{{ $labels.service }} has been down for more than 1 minute."
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} is experiencing high error rate (>5%)"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.service }}"
+          description: "95th percentile response time is above 1 second"
+
+      # Database connection issues
+      - alert: DatabaseConnectionHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections on {{ $labels.database }}"
+          description: "Database {{ $labels.database }} has {{ $value }} connections"
+
+      # Kafka lag
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer lag is {{ $value }} messages"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.pod }}"
+          description: "Memory usage is above 90%"
+
+      # CPU usage
+      - alert: HighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.pod }}"
+          description: "CPU usage is above 90%"
+
+      # Pod restart
+      - alert: PodRestarting
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} is restarting"
+          description: "Pod has restarted {{ $value }} times in the last 15 minutes"

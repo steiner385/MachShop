@@ -12,10 +12,12 @@ const router = express.Router();
 router.get('/inspections',
   requireQualityAccess,
   asyncHandler(async (req, res) => {
-    // Mock response
+    // Mock response - matches frontend InspectionListResponse interface
     res.status(200).json({
-      data: [],
-      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      inspections: [],
+      total: 0,
+      page: 1,
+      limit: 20
     });
   })
 );
@@ -44,10 +46,12 @@ router.post('/inspections',
 router.get('/ncrs',
   requireQualityAccess,
   asyncHandler(async (req, res) => {
-    // Mock response
+    // Mock response - matches frontend NCRListResponse interface
     res.status(200).json({
-      data: [],
-      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      ncrs: [],
+      total: 0,
+      page: 1,
+      limit: 20
     });
   })
 );

@@ -1,0 +1,29 @@
+{
+  "name": "@mes/events",
+  "version": "1.0.0",
+  "description": "Shared event library for MES microservices - Kafka event definitions and utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublish": "npm run build"
+  },
+  "keywords": [
+    "mes",
+    "events",
+    "kafka",
+    "microservices",
+    "event-driven"
+  ],
+  "author": "MES Team",
+  "license": "MIT",
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
+  }
+}

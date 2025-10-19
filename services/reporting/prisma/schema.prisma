@@ -1,0 +1,706 @@
+// Reporting Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Reporting Service (Port 3006)
+// Bounded Context: Dashboards, KPIs, scheduled reports, aggregated analytics
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-reporting"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("REPORTING_DATABASE_URL")
+}
+
+// ============================================================================
+// KPI Definitions & Calculations
+// ============================================================================
+
+model KPIDefinition {
+  id              String   @id @default(cuid())
+  kpiCode         String   @unique
+  kpiName         String
+  description     String?  @db.Text
+  category        KPICategory
+
+  // Calculation details
+  calculationFormula String  @db.Text
+  dataSource      String    // Which services/tables to aggregate from
+  aggregationType AggregationType
+
+  // Target/thresholds
+  targetValue     Float?
+  warningThreshold Float?
+  criticalThreshold Float?
+
+  // Units
+  unit            String?
+  isPercentage    Boolean   @default(false)
+
+  // Display
+  displayFormat   String?   // Number format, decimals, etc.
+  chartType       ChartType?
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  calculations    KPICalculation[]
+  dashboardWidgets DashboardWidget[]
+
+  @@index([kpiCode])
+  @@index([category])
+  @@map("kpi_definitions")
+}
+
+enum KPICategory {
+  PRODUCTION
+  QUALITY
+  INVENTORY
+  MAINTENANCE
+  LABOR
+  COST
+  DELIVERY
+  SAFETY
+}
+
+enum AggregationType {
+  SUM
+  AVERAGE
+  COUNT
+  MIN
+  MAX
+  PERCENTAGE
+  RATIO
+  CUSTOM
+}
+
+enum ChartType {
+  LINE
+  BAR
+  PIE
+  GAUGE
+  SPARKLINE
+  TREND
+  TABLE
+}
+
+model KPICalculation {
+  id              String   @id @default(cuid())
+  kpiDefinitionId String
+
+  // Time period
+  periodType      PeriodType
+  periodStart     DateTime
+  periodEnd       DateTime
+
+  // Calculated value
+  value           Float
+  previousValue   Float?
+  targetValue     Float?
+
+  // Trend analysis
+  trendDirection  TrendDirection?
+  percentChange   Float?
+
+  // Dimensions (drill-down attributes)
+  siteId          String?
+  areaId          String?
+  workCenterId    String?
+  productId       String?
+
+  // Cached dimension names (for display)
+  siteName        String?
+  areaName        String?
+  workCenterName  String?
+  productName     String?
+
+  // Metadata
+  calculatedAt    DateTime  @default(now())
+  dataPointCount  Int?      // Number of records aggregated
+
+  // Relations
+  kpiDefinition   KPIDefinition @relation(fields: [kpiDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([kpiDefinitionId])
+  @@index([periodType, periodStart, periodEnd])
+  @@index([siteId])
+  @@index([workCenterId])
+  @@map("kpi_calculations")
+}
+
+enum PeriodType {
+  HOURLY
+  SHIFT
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum TrendDirection {
+  UP
+  DOWN
+  FLAT
+}
+
+// ============================================================================
+// Dashboard Definitions
+// ============================================================================
+
+model Dashboard {
+  id              String   @id @default(cuid())
+  dashboardCode   String   @unique
+  dashboardName   String
+  description     String?  @db.Text
+  category        DashboardCategory
+
+  // Access control
+  isPublic        Boolean   @default(false)
+  allowedRoles    String[]  // Role codes that can access
+  ownerId         String?   // User ID from Auth Service
+
+  // Layout
+  layoutConfig    Json      // Grid layout configuration
+  refreshInterval Int?      // Auto-refresh in seconds
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  widgets         DashboardWidget[]
+
+  @@index([dashboardCode])
+  @@index([category])
+  @@map("dashboards")
+}
+
+enum DashboardCategory {
+  EXECUTIVE
+  PRODUCTION
+  QUALITY
+  INVENTORY
+  MAINTENANCE
+  CUSTOM
+}
+
+model DashboardWidget {
+  id              String   @id @default(cuid())
+  dashboardId     String
+  widgetName      String
+  widgetType      WidgetType
+
+  // KPI or custom query
+  kpiDefinitionId String?
+  customQuery     String?   @db.Text
+
+  // Position & size (grid layout)
+  positionX       Int
+  positionY       Int
+  width           Int       @default(1)
+  height          Int       @default(1)
+
+  // Display configuration
+  displayConfig   Json      // Chart options, colors, thresholds, etc.
+
+  // Time range
+  timeRangeType   TimeRangeType @default(LAST_24_HOURS)
+  customStartDate DateTime?
+  customEndDate   DateTime?
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  dashboard       Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  kpiDefinition   KPIDefinition? @relation(fields: [kpiDefinitionId], references: [id])
+
+  @@index([dashboardId])
+  @@map("dashboard_widgets")
+}
+
+enum WidgetType {
+  KPI_GAUGE
+  KPI_TREND
+  CHART_LINE
+  CHART_BAR
+  CHART_PIE
+  TABLE
+  METRIC_CARD
+  ALERT_LIST
+  CUSTOM
+}
+
+enum TimeRangeType {
+  LAST_HOUR
+  LAST_4_HOURS
+  LAST_8_HOURS
+  LAST_24_HOURS
+  LAST_7_DAYS
+  LAST_30_DAYS
+  THIS_WEEK
+  THIS_MONTH
+  THIS_QUARTER
+  THIS_YEAR
+  CUSTOM
+}
+
+// ============================================================================
+// Report Templates & Scheduled Reports
+// ============================================================================
+
+model ReportTemplate {
+  id              String   @id @default(cuid())
+  reportCode      String   @unique
+  reportName      String
+  description     String?  @db.Text
+  category        ReportCategory
+
+  // Report definition
+  reportType      ReportType
+  dataQuery       String    @db.Text  // SQL or query definition
+
+  // Parameters
+  parameters      Json?     // Array of parameter definitions
+
+  // Output format
+  outputFormats   OutputFormat[] // Supported output formats
+
+  // Layout template
+  templateConfig  Json      // Report layout, headers, footers, etc.
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  schedules       ReportSchedule[]
+  executions      ReportExecution[]
+
+  @@index([reportCode])
+  @@index([category])
+  @@map("report_templates")
+}
+
+enum ReportCategory {
+  PRODUCTION
+  QUALITY
+  INVENTORY
+  TRACEABILITY
+  COMPLIANCE
+  FINANCIAL
+  CUSTOM
+}
+
+enum ReportType {
+  TABULAR
+  SUMMARY
+  TREND
+  COMPARISON
+  EXCEPTION
+  CUSTOM
+}
+
+enum OutputFormat {
+  PDF
+  EXCEL
+  CSV
+  JSON
+  HTML
+}
+
+model ReportSchedule {
+  id              String   @id @default(cuid())
+  reportTemplateId String
+  scheduleName    String
+
+  // Schedule configuration
+  frequency       ScheduleFrequency
+  cronExpression  String?   // For custom schedules
+
+  // Time window
+  startDate       DateTime
+  endDate         DateTime?
+
+  // Parameters
+  parameters      Json?     // Report parameter values
+
+  // Output
+  outputFormat    OutputFormat @default(PDF)
+
+  // Distribution
+  recipientEmails String[]
+  recipientUserIds String[] // User IDs from Auth Service
+
+  // Storage
+  saveToPath      String?
+
+  // Status
+  isActive        Boolean   @default(true)
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  reportTemplate  ReportTemplate @relation(fields: [reportTemplateId], references: [id], onDelete: Cascade)
+  executions      ReportExecution[]
+
+  @@index([reportTemplateId])
+  @@index([nextRunAt])
+  @@map("report_schedules")
+}
+
+enum ScheduleFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  CUSTOM
+}
+
+model ReportExecution {
+  id              String   @id @default(cuid())
+  reportTemplateId String
+  reportScheduleId String?  // Null if ad-hoc execution
+  executionNumber String   @unique @default(cuid())
+
+  // Execution details
+  requestedById   String    // User ID from Auth Service
+  parameters      Json?     // Parameter values used
+
+  // Output
+  outputFormat    OutputFormat
+  outputFilePath  String?
+  outputFileSize  Int?      // Bytes
+
+  // Time tracking
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  durationSeconds Int?
+
+  // Status
+  status          ExecutionStatus @default(RUNNING)
+  errorMessage    String?   @db.Text
+  rowCount        Int?
+
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  reportTemplate  ReportTemplate @relation(fields: [reportTemplateId], references: [id])
+  reportSchedule  ReportSchedule? @relation(fields: [reportScheduleId], references: [id])
+
+  @@index([reportTemplateId])
+  @@index([reportScheduleId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("report_executions")
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================================================
+// Aggregated Metrics (Materialized Views)
+// ============================================================================
+
+/// Production metrics aggregated by shift/day
+model ProductionMetric {
+  id              String   @id @default(cuid())
+
+  // Time dimension
+  metricDate      DateTime
+  shift           String?
+
+  // Location dimension
+  siteId          String
+  areaId          String?
+  workCenterId    String?
+
+  // Product dimension
+  productId       String?
+
+  // Cached dimension names
+  siteName        String?
+  workCenterName  String?
+  productName     String?
+
+  // Production metrics
+  plannedProduction     Int
+  actualProduction      Int
+  scrapCount            Int
+  reworkCount           Int
+  onTimeCompletion      Int
+  lateCompletion        Int
+
+  // Time metrics (minutes)
+  availableTime         Float
+  plannedDowntime       Float
+  unplannedDowntime     Float
+  setupTime             Float
+  runTime               Float
+  idleTime              Float
+
+  // OEE components (percentages)
+  availability          Float?
+  performance           Float?
+  quality               Float?
+  oee                   Float?
+
+  // Labor metrics
+  laborHoursPlanned     Float?
+  laborHoursActual      Float?
+  laborEfficiency       Float?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([metricDate, shift, siteId, workCenterId, productId])
+  @@index([metricDate])
+  @@index([siteId])
+  @@index([workCenterId])
+  @@map("production_metrics")
+}
+
+/// Quality metrics aggregated by day/week
+model QualityMetric {
+  id              String   @id @default(cuid())
+
+  // Time dimension
+  metricDate      DateTime
+  periodType      PeriodType @default(DAILY)
+
+  // Location dimension
+  siteId          String
+
+  // Product dimension
+  productId       String?
+
+  // Cached dimension names
+  siteName        String?
+  productName     String?
+
+  // Quality metrics
+  inspectionCount       Int
+  passCount             Int
+  failCount             Int
+  ncrCount              Int
+
+  // Defect tracking
+  totalDefects          Int
+  criticalDefects       Int
+  majorDefects          Int
+  minorDefects          Int
+
+  // Rates (percentages)
+  firstPassYield        Float?
+  overallYield          Float?
+  defectRate            Float?
+
+  // Cost impact
+  scrapCost             Float?
+  reworkCost            Float?
+  totalQualityCost      Float?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([metricDate, periodType, siteId, productId])
+  @@index([metricDate])
+  @@index([siteId])
+  @@map("quality_metrics")
+}
+
+/// Inventory metrics aggregated by day
+model InventoryMetric {
+  id              String   @id @default(cuid())
+
+  // Time dimension
+  metricDate      DateTime
+
+  // Location dimension
+  siteId          String
+  locationId      String?
+
+  // Product dimension
+  productId       String?
+
+  // Cached dimension names
+  siteName        String?
+  productName     String?
+
+  // Inventory levels
+  onHandQuantity        Float
+  availableQuantity     Float
+  reservedQuantity      Float
+  allocatedQuantity     Float
+
+  // Valuation
+  inventoryValue        Float?
+  averageCost           Float?
+
+  // Transactions (for the day)
+  receipts              Float
+  issues                Float
+  transfers             Float
+  adjustments           Float
+
+  // Turnover metrics
+  daysOnHand            Float?
+  turnoverRate          Float?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([metricDate, siteId, locationId, productId])
+  @@index([metricDate])
+  @@index([siteId])
+  @@map("inventory_metrics")
+}
+
+// ============================================================================
+// Alert Definitions
+// ============================================================================
+
+model AlertRule {
+  id              String   @id @default(cuid())
+  ruleName        String
+  description     String?  @db.Text
+  category        AlertCategory
+
+  // Trigger condition
+  kpiDefinitionId String?
+  condition       String    @db.Text  // Threshold condition
+  severity        AlertSeverity @default(WARNING)
+
+  // Notification
+  notifyEmails    String[]
+  notifyUserIds   String[]  // User IDs from Auth Service
+  notifyChannels  String[]  // Slack, Teams, etc.
+
+  // Throttling
+  cooldownMinutes Int       @default(60)
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  alerts          Alert[]
+
+  @@index([category])
+  @@map("alert_rules")
+}
+
+enum AlertCategory {
+  PRODUCTION
+  QUALITY
+  INVENTORY
+  MAINTENANCE
+  SAFETY
+  SYSTEM
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+  EMERGENCY
+}
+
+model Alert {
+  id              String   @id @default(cuid())
+  alertRuleId     String
+  alertNumber     String   @unique @default(cuid())
+
+  // Alert details
+  severity        AlertSeverity
+  title           String
+  message         String   @db.Text
+
+  // Context
+  triggeredValue  Float?
+  thresholdValue  Float?
+
+  // Dimensions
+  siteId          String?
+  workCenterId    String?
+
+  // Status
+  status          AlertStatus @default(ACTIVE)
+  acknowledgedAt  DateTime?
+  acknowledgedById String?   // User ID from Auth Service
+  resolvedAt      DateTime?
+  resolvedById    String?    // User ID from Auth Service
+
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  alertRule       AlertRule @relation(fields: [alertRuleId], references: [id])
+
+  @@index([alertRuleId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+  @@map("alerts")
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

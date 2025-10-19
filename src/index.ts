@@ -1,3 +1,7 @@
+// Initialize OpenTelemetry tracing first (before any other imports)
+import { initializeTracing } from './utils/tracing';
+initializeTracing();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -9,6 +13,7 @@ import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { requestLogger } from './middleware/requestLogger';
+import { metricsMiddleware, setupMetricsEndpoint } from './middleware/metrics';
 
 // Import route handlers
 import authRoutes from './routes/auth';
@@ -18,6 +23,32 @@ import materialRoutes from './routes/materials';
 import traceabilityRoutes from './routes/traceability';
 import equipmentRoutes from './routes/equipment';
 import dashboardRoutes from './routes/dashboard';
+import workInstructionRoutes from './routes/workInstructions';
+import uploadRoutes from './routes/upload';
+import signatureRoutes from './routes/signatures';
+import faiRoutes from './routes/fai';
+import serializationRoutes from './routes/serialization';
+import integrationRoutes from './routes/integrationRoutes';
+import b2mRoutes from './routes/b2mRoutes';
+import l2EquipmentRoutes from './routes/l2EquipmentRoutes';
+import historianRoutes from './routes/historianRoutes';
+import personnelRoutes from './routes/personnel';
+import processSegmentRoutes from './routes/processSegments';
+import productRoutes from './routes/products';
+import productionScheduleRoutes from './routes/productionSchedules';
+import workOrderExecutionRoutes from './routes/workOrderExecution';
+import routingRoutes from './routes/routings';
+
+// Aerospace integration routes
+import maximoRoutes from './routes/maximoRoutes';
+import indysoftRoutes from './routes/indysoftRoutes';
+import covalentRoutes from './routes/covalentRoutes';
+import shopFloorConnectRoutes from './routes/shopFloorConnectRoutes';
+import predatorPDMRoutes from './routes/predatorPDMRoutes';
+import predatorDNCRoutes from './routes/predatorDNCRoutes';
+import cmmRoutes from './routes/cmmRoutes';
+
+import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
 // import * as openApiSpec from '../openapi.yaml';
@@ -76,15 +107,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Request logging
 app.use(requestLogger);
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: config.env,
-  });
-});
+// Observability middleware - Prometheus metrics
+app.use(metricsMiddleware);
+
+// Setup metrics and health endpoints
+setupMetricsEndpoint(app);
 
 // API documentation - commented out for now
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
@@ -105,6 +132,33 @@ apiRouter.use('/quality', authMiddleware, qualityRoutes);
 apiRouter.use('/materials', authMiddleware, materialRoutes);
 apiRouter.use('/traceability', authMiddleware, traceabilityRoutes);
 apiRouter.use('/equipment', authMiddleware, equipmentRoutes);
+apiRouter.use('/personnel', authMiddleware, personnelRoutes);
+apiRouter.use('/process-segments', authMiddleware, processSegmentRoutes);
+apiRouter.use('/products', authMiddleware, productRoutes);
+apiRouter.use('/production-schedules', authMiddleware, productionScheduleRoutes);
+apiRouter.use('/work-order-execution', authMiddleware, workOrderExecutionRoutes);
+apiRouter.use('/routings', authMiddleware, routingRoutes);
+apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
+apiRouter.use('/upload', authMiddleware, uploadRoutes);
+apiRouter.use('/signatures', authMiddleware, signatureRoutes);
+apiRouter.use('/fai', authMiddleware, faiRoutes);
+apiRouter.use('/serialization', authMiddleware, serializationRoutes);
+apiRouter.use('/integrations', authMiddleware, integrationRoutes);
+apiRouter.use('/b2m', authMiddleware, b2mRoutes);
+apiRouter.use('/l2-equipment', authMiddleware, l2EquipmentRoutes);
+apiRouter.use('/historian', authMiddleware, historianRoutes);
+
+// Aerospace integration routes
+apiRouter.use('/maximo', authMiddleware, maximoRoutes);
+apiRouter.use('/indysoft', authMiddleware, indysoftRoutes);
+apiRouter.use('/covalent', authMiddleware, covalentRoutes);
+apiRouter.use('/shop-floor-connect', authMiddleware, shopFloorConnectRoutes);
+apiRouter.use('/predator-pdm', authMiddleware, predatorPDMRoutes);
+apiRouter.use('/predator-dnc', authMiddleware, predatorDNCRoutes);
+apiRouter.use('/cmm', authMiddleware, cmmRoutes);
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
 
 // Mount API routes
 app.use('/api/v1', apiRouter);
@@ -123,12 +177,25 @@ app.use(errorHandler);
 
 // Start server
 const PORT = config.port;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info(`MES API Server started on port ${PORT}`, {
     environment: config.env,
     port: PORT,
     nodeVersion: process.version,
   });
+
+  // Initialize Integration Manager (ERP/PLM integrations)
+  // Skip integration manager in test environment to prevent segfault in E2E tests
+  if (!isTest) {
+    try {
+      await initializeIntegrationManager();
+      logger.info('Integration Manager initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize Integration Manager:', error);
+    }
+  } else {
+    logger.info('Integration Manager initialization skipped (test environment)');
+  }
 });
 
 // Graceful shutdown

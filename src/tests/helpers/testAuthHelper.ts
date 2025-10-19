@@ -18,7 +18,7 @@ export const TEST_USERS = {
     username: 'admin',
     password: 'password123',
     email: 'admin@mes.com',
-    roles: ['Plant Manager', 'System Admin'],
+    roles: ['Plant Manager', 'System Administrator'],
     permissions: [
       'workorders.read', 'workorders.write', 'workorders.delete',
       'quality.read', 'quality.write',
@@ -58,7 +58,23 @@ export async function setupTestAuth(page: Page, user: keyof typeof TEST_USERS = 
   });
   
   // First, get a valid auth token by logging in through the API
-  const response = await page.request.post('http://localhost:5178/api/v1/auth/login', {
+  // Support three modes:
+  // 1. Direct Auth Service: Use AUTH_SERVICE_URL if set (for microservice testing)
+  // 2. E2E Test: Use frontend proxy on port 5278 (realistic browser flow)
+  // 3. Development: Use frontend proxy on port 5178
+  const authServiceURL = process.env.AUTH_SERVICE_URL;
+  const isE2ETest = process.env.NODE_ENV === 'test' || process.env.FRONTEND_PORT === '5278';
+  const frontendURL = isE2ETest ? 'http://localhost:5278' : 'http://localhost:5178';
+
+  // Prefer direct Auth Service URL if specified, otherwise use frontend proxy
+  const baseURL = authServiceURL || frontendURL;
+  const authEndpoint = authServiceURL
+    ? `${authServiceURL}/api/v1/auth/login`  // Direct to Auth Service
+    : `${baseURL}/api/v1/auth/login`;        // Through frontend proxy
+
+  console.log(`[TEST AUTH] Using auth endpoint: ${authEndpoint}`);
+
+  const response = await page.request.post(authEndpoint, {
     data: {
       username: testUser.username,
       password: testUser.password

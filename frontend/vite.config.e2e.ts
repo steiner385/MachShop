@@ -23,6 +23,10 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: ['e2e.mes.com', 'localhost'],
     historyApiFallback: true,
+    hmr: false, // Disable HMR for E2E tests to prevent page reloads during test execution
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**', '**/dist-e2e/**']
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3101',

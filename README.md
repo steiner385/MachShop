@@ -1,16 +1,23 @@
 # Manufacturing Execution System (MES)
 ## Jet Engine Component Manufacturing
 
-A comprehensive Manufacturing Execution System designed for aerospace manufacturing, providing complete production management, quality control, and traceability for jet engine components.
+A comprehensive Manufacturing Execution System designed for aerospace manufacturing, providing production management, quality control, and traceability for jet engine components.
+
+**Current Status:** Active Development - Core features implemented with ongoing sprint-based enhancements.
 
 ## 🚀 Features
 
-### Core Manufacturing Capabilities
-- **Work Order Management**: Complete production lifecycle management
-- **Quality Control**: Inspection plans, measurements, and non-conformance management
-- **Material Traceability**: Full genealogy tracking from raw materials to finished components
-- **Equipment Management**: Resource scheduling and maintenance tracking
-- **Real-time Monitoring**: Live production dashboards and KPI tracking
+### Implemented Core Capabilities
+- **Work Order Management**: Production lifecycle management and execution tracking
+- **Quality Control**: Inspection plans, FAI reports, measurements, and NCR management
+- **Material Traceability**: Genealogy tracking and material transaction management
+- **Routing Management**: Multi-site routing with dependencies and lifecycle management (Sprint 4)
+- **Electronic Signatures**: 21 CFR Part 11 compliant signature capture
+- **Digital Work Instructions**: Versioned work instructions with rich-text editing
+- **Equipment Management**: ISA-95 compliant equipment hierarchy and tracking
+- **Process Segments**: Reusable process definitions with ISA-95 compliance
+- **Personnel Management**: Skills, certifications, and work center assignments
+- **Production Scheduling**: Schedule management and constraint tracking
 
 ### Compliance & Security
 - **AS9100 Aerospace Quality Standard** compliance
@@ -18,10 +25,12 @@ A comprehensive Manufacturing Execution System designed for aerospace manufactur
 - **Role-based Access Control** with comprehensive audit trails
 - **Data Encryption** at rest and in transit
 
-### Integration Capabilities
-- **ERP Integration**: SAP, Oracle, and other enterprise systems
-- **PLM Integration**: Engineering data synchronization
-- **Equipment Integration**: SCADA/OPC connectivity
+### Integration Capabilities (Framework Implemented)
+- **Integration Framework**: Adapter pattern for external systems
+- **Supported Integrations**: Oracle Fusion, IBM Maximo, Teamcenter, ShopFloor Connect, Predator DNC/PDM, Covalent, Indysoft
+- **ISA-95 B2M Integration**: Business-to-Manufacturing messaging
+- **Equipment Integration**: Proficy Historian, L2 Equipment adapters
+- **CMM/QIF Support**: Quality measurement data exchange
 - **API-First Design**: RESTful APIs with OpenAPI specification
 
 ## 🛠️ Technology Stack
@@ -29,9 +38,9 @@ A comprehensive Manufacturing Execution System designed for aerospace manufactur
 ### Backend
 - **Runtime**: Node.js 18+ with TypeScript
 - **Framework**: Express.js with comprehensive middleware
-- **Database**: PostgreSQL 15 with time-series support
+- **Database**: PostgreSQL 15 with Prisma ORM (93 models, 4,199 lines schema)
 - **Caching**: Redis for session management and performance
-- **Message Queue**: Apache Kafka for event-driven architecture
+- **Event Bus**: Apache Kafka for event-driven architecture (dependency installed)
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
@@ -45,10 +54,11 @@ A comprehensive Manufacturing Execution System designed for aerospace manufactur
 - **API Tests**: Supertest for endpoint validation
 
 ### DevOps
-- **Containerization**: Docker with multi-stage builds
-- **Orchestration**: Kubernetes for production deployment
-- **CI/CD**: GitHub Actions with automated testing
-- **Monitoring**: Prometheus, Grafana, and ELK stack
+- **Containerization**: Docker with multi-stage builds (docker-compose.yml configured)
+- **Orchestration**: Kubernetes configurations available (k8s/, helm/)
+- **CI/CD**: GitHub Actions workflows configured (.github/)
+- **Monitoring**: OpenTelemetry instrumentation, Prometheus, Grafana (configs available)
+- **Observability**: Distributed tracing with Jaeger support
 
 ## 📋 Prerequisites
 
@@ -93,10 +103,12 @@ npm run db:seed
 npm run dev
 ```
 
-The API will be available at http://localhost:3000
+The system will start:
+- **Backend API**: http://localhost:3001
+- **Frontend UI**: http://localhost:5173
 
 ### 6. API Documentation
-Visit http://localhost:3000/api-docs for interactive API documentation
+Visit http://localhost:3001/api-docs for interactive API documentation
 
 ## 🧪 Testing
 
@@ -119,38 +131,71 @@ npm run test:coverage
 
 ### API Documentation
 - **OpenAPI Spec**: `/openapi.yaml`
-- **Interactive Docs**: http://localhost:3000/api-docs
+- **Interactive Docs**: http://localhost:3001/api-docs
 
 ### Project Documentation
-- **Requirements**: `REQUIREMENTS.md`
-- **Use Cases**: `USE_CASES.md`
-- **Test Cases**: `TEST_CASES.md`
-- **Architecture**: `SYSTEM_ARCHITECTURE.md`
-- **Technology Stack**: `TECHNOLOGY_STACK.md`
+- **Requirements**: `docs/REQUIREMENTS.md`
+- **Use Cases**: `docs/USE_CASES.md`
+- **Test Cases**: `docs/TEST_CASES.md`
+- **Architecture**: `docs/SYSTEM_ARCHITECTURE.md`
+- **Technology Stack**: `docs/TECHNOLOGY_STACK.md`
+- **Implementation Roadmap**: `docs/MES_IMPLEMENTATION_ROADMAP.md`
+
+### Sprint Documentation
+- **Sprint Progress**: `docs/sprints/`
+- **Latest**: Sprint 4 completed (Multi-site Routing Management with enhancements)
+
+### Deployment Documentation
+- **Deployment Guide**: `docs/deployment/DEPLOYMENT_GUIDE.md`
+- **Docker Quick Start**: `docs/deployment/DOCKER_QUICK_START.md`
+- **Database Migration**: `docs/deployment/DATABASE_MIGRATION_GUIDE.md`
 
 ## 🏗️ Architecture
 
-### System Overview
+### System Overview (Hybrid Monolith + Microservices)
 ```
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Frontend      │  │   API Gateway   │  │   Microservices │
-│   (React)       │──│   (Express)     │──│   (Node.js)     │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-                              │
-                     ┌────────┼────────┐
-                     │        │        │
-              ┌──────▼───┐ ┌──▼───┐ ┌──▼────┐
-              │PostgreSQL│ │Redis │ │Kafka  │
-              │          │ │      │ │       │
-              └──────────┘ └──────┘ └───────┘
+┌──────────────────────┐
+│   Frontend (React)   │  Port: 5173
+│   Vite Dev Server    │
+└──────────┬───────────┘
+           │ HTTP API Calls
+           ▼
+┌──────────────────────┐
+│  Backend API         │  Port: 3001
+│  (Express Monolith)  │
+│  ─────────────────   │
+│  • Work Orders       │
+│  • Quality/NCRs      │
+│  • Materials         │
+│  • Traceability      │
+│  • Routing           │
+│  • Process Segments  │
+│  • Equipment         │
+│  • Personnel         │
+│  • FAI Reports       │
+│  • Work Instructions │
+│  • Signatures        │
+│  • Integration Svc   │
+└──────────┬───────────┘
+           │
+    ┌──────┴──────┬──────────┐
+    ▼             ▼          ▼
+┌─────────┐  ┌────────┐  ┌────────┐
+│PostgreSQL  │Redis   │  │Kafka   │
+│(Primary DB)│(Cache) │  │(Events)│
+│93 Models   │Session │  │Planned │
+└─────────┘  └────────┘  └────────┘
 ```
 
-### Microservices Architecture
-- **Work Order Service**: Production management
-- **Quality Service**: Quality control and compliance
-- **Material Service**: Inventory and traceability
-- **Equipment Service**: Resource management
-- **Integration Service**: External system connectivity
+**Note**: Microservices architecture is partially implemented in `/services` directory with plans for full migration. Current deployment uses monolithic backend with shared database.
+
+### Database Schema (ISA-95 Compliant)
+- **93 Prisma Models** across 4,199 lines
+- **Equipment Hierarchy**: Enterprise → Site → Area → WorkCenter → WorkUnit → Equipment
+- **Personnel Hierarchy**: Classes, qualifications, certifications, skills
+- **Material Hierarchy**: Classes, definitions, lots, sublots, genealogy
+- **Process Segments**: ISA-95 routing and process definitions
+- **Product Definitions**: Parts, BOMs, specifications, configurations
 
 ## 🔒 Security
 
@@ -174,28 +219,37 @@ npm run test:coverage
 
 ## 🚀 Deployment
 
-### Docker Deployment
+### Local Development (Recommended)
+```bash
+# Start both backend and frontend
+npm run dev
+
+# Backend runs on port 3001
+# Frontend runs on port 5173
+```
+
+### Docker Deployment (Available)
 ```bash
 # Build and run with Docker Compose
 docker-compose up -d
 ```
 
-### Kubernetes Deployment
+### Kubernetes Deployment (Configurations Available)
 ```bash
-# Deploy to Kubernetes
+# Deploy to Kubernetes (when ready for production)
 kubectl apply -f k8s/
 ```
 
 ### Production Configuration
-See `DEPLOYMENT.md` for detailed production deployment instructions.
+See `docs/deployment/DEPLOYMENT_GUIDE.md` for detailed production deployment instructions.
 
 ## 📊 Monitoring
 
 ### Health Checks
 - **API Health**: `GET /health`
-- **Database**: Connection pool monitoring
-- **Redis**: Cache performance metrics
-- **Kafka**: Message queue health
+- **Database**: Connection pool monitoring via Prisma
+- **Redis**: Cache performance metrics (when configured)
+- **OpenTelemetry**: Distributed tracing instrumentation (available)
 
 ### Metrics
 - Application performance metrics
@@ -242,25 +296,35 @@ This project is proprietary software. All rights reserved.
 - **Security Issues**: security@company.com
 - **General Support**: support@company.com
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Implementation Status
 
-### Current Version (1.0.0)
-- ✅ Core manufacturing workflows
-- ✅ Quality management system
-- ✅ Material traceability
-- ✅ Basic reporting
+### Completed (Sprint 1-4)
+- ✅ ISA-95 compliant database schema (93 models)
+- ✅ Core manufacturing workflows (Work Orders, Quality, Materials)
+- ✅ Material traceability and genealogy tracking
+- ✅ Equipment hierarchy and management
+- ✅ Personnel management with certifications
+- ✅ Process segment definitions
+- ✅ Digital work instructions with versioning
+- ✅ Electronic signatures (21 CFR Part 11)
+- ✅ FAI (First Article Inspection) reports
+- ✅ Multi-site routing management with dependencies (Sprint 4)
+- ✅ Production scheduling framework
+- ✅ Integration framework (12+ adapter types)
 
-### Upcoming Features (1.1.0)
-- 🔄 Advanced analytics and ML insights
-- 🔄 Mobile application support
-- 🔄 Enhanced ERP integrations
-- 🔄 Workflow automation
+### In Progress
+- 🔄 Microservices migration (services/ directory scaffolded)
+- 🔄 Advanced analytics dashboards
+- 🔄 Real-time shop floor data collection
+- 🔄 OEE calculation and monitoring
 
-### Future Releases
+### Planned (Sprint 5+)
+- 📋 Advanced scheduling optimization
+- 📋 Mobile application support
 - 📋 IoT sensor integration
 - 📋 Predictive maintenance
-- 📋 Advanced scheduling optimization
-- 📋 Blockchain traceability
+- 📋 Complete microservices deployment
+- 📋 Cloud-native production deployment
 
 ---
 

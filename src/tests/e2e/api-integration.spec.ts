@@ -5,9 +5,9 @@ let authToken: string;
 
 test.describe('API Integration Tests', () => {
   test.beforeAll(async () => {
-    // Create API request context - use backend server directly
+    // Create API request context - use E2E backend server (port 3101)
     apiContext = await request.newContext({
-      baseURL: 'http://localhost:3001/api/v1',
+      baseURL: 'http://localhost:3101/api/v1',
     });
 
     // Login to get auth token
@@ -18,18 +18,16 @@ test.describe('API Integration Tests', () => {
       }
     });
 
-    // Add better error handling and logging
+    // Fail fast if API login fails - don't use mock tokens
     if (!loginResponse.ok()) {
       const errorText = await loginResponse.text();
-      console.log('Login failed. Status:', loginResponse.status());
-      console.log('Error response:', errorText);
-      
-      // For now, skip tests if API is not available
-      authToken = 'mock-token-for-testing';
-      console.log('Using mock token since API login failed');
-      return;
+      throw new Error(
+        `API login failed during test setup. Status: ${loginResponse.status()}. ` +
+        `Response: ${errorText}. ` +
+        `Ensure E2E backend is running on port 3101.`
+      );
     }
-    
+
     const loginData = await loginResponse.json();
     authToken = loginData.token;
     expect(authToken).toBeDefined();
@@ -48,23 +46,11 @@ test.describe('API Integration Tests', () => {
         }
       });
 
-      // Check if API is available
-      if (!response.ok()) {
-        console.log('API not available, skipping test. Status:', response.status());
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
-        
-        // Mark test as skipped rather than failed
-        test.skip(response.status() === 404, 'API endpoint not implemented yet');
-        return;
-      }
-
+      expect(response.ok()).toBeTruthy();
       const data = await response.json();
-      
+
       expect(data.token).toBeDefined();
       expect(data.message).toBeDefined();
-      // Note: The actual API response might not include refreshToken and user details
-      // Only test what we know exists
     });
 
     test('should reject invalid credentials', async () => {

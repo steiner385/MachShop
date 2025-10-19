@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Layout, 
   Card, 
@@ -35,9 +35,13 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, error, clearError } = useAuthStore();
   const location = useLocation();
-  
+  const navigate = useNavigate();
+
   const state = location.state as LocationState;
-  const from = state?.from?.pathname || '/dashboard';
+  // Check for redirect URL in query parameters first, then fall back to state
+  const searchParams = new URLSearchParams(location.search);
+  const redirectUrl = searchParams.get('redirect');
+  const from = redirectUrl || state?.from?.pathname || '/dashboard';
 
   // Redirect if already authenticated
   // Show loading state briefly to avoid flash of 404 during redirect
@@ -58,14 +62,15 @@ const LoginPage: React.FC = () => {
     try {
       setIsLoading(true);
       clearError();
-      
+
       await login({
         username: values.username,
         password: values.password,
         rememberMe: values.rememberMe,
       });
-      
-      // Navigation will happen automatically due to auth state change
+
+      // Navigate to the intended destination after successful login
+      navigate(from, { replace: true });
     } catch (error) {
       // Error is handled by the auth store
       console.error('Login failed:', error);

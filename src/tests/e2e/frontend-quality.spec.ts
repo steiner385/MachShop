@@ -193,11 +193,11 @@ test.describe('Frontend Quality Monitoring', () => {
       await collapseButton.click();
       await page.waitForTimeout(500);
       
-      // Test menu navigation
-      await page.getByText('Work Orders').click();
+      // Test menu navigation - use Ant Design menu item class selector
+      await page.locator('.ant-menu-item').filter({ hasText: 'Work Orders' }).click();
       await page.waitForLoadState('networkidle');
-      
-      await page.getByText('Dashboard').click();
+
+      await page.locator('.ant-menu-item').filter({ hasText: 'Dashboard' }).click();
       await page.waitForLoadState('networkidle');
       
       const criticalWarnings = consoleMonitor.getCriticalWarnings();

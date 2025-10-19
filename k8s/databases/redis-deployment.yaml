@@ -1,0 +1,242 @@
+###############################################################################
+# Redis Deployment for MES Reference Data Cache
+# Phase 2, Task 2.3: Database Per Service Pattern
+#
+# Redis is used for distributed caching of reference data across services
+###############################################################################
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: mes-production
+  labels:
+    app: redis
+    tier: cache
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: redis
+  selector:
+    app: redis
+
+---
+# Redis Deployment (can be upgraded to StatefulSet for persistence)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: mes-production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: cache
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --maxmemory
+            - "2gb"
+            - --maxmemory-policy
+            - "allkeys-lru"
+            - --save
+            - "900 1"
+            - --save
+            - "300 10"
+            - --save
+            - "60 10000"
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+
+---
+# Redis Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: mes-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+###############################################################################
+# Redis Sentinel (optional - for high availability)
+###############################################################################
+
+# Uncomment below for Redis Sentinel setup with automatic failover
+
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: redis-sentinel-config
+#   namespace: mes-production
+# data:
+#   sentinel.conf: |
+#     port 26379
+#     sentinel monitor mymaster redis-0.redis.mes-production.svc.cluster.local 6379 2
+#     sentinel down-after-milliseconds mymaster 5000
+#     sentinel parallel-syncs mymaster 1
+#     sentinel failover-timeout mymaster 10000
+
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: redis-sentinel
+#   namespace: mes-production
+# spec:
+#   type: ClusterIP
+#   clusterIP: None
+#   ports:
+#     - port: 26379
+#       targetPort: 26379
+#       protocol: TCP
+#       name: sentinel
+#   selector:
+#     app: redis-sentinel
+
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: redis-sentinel
+#   namespace: mes-production
+# spec:
+#   serviceName: redis-sentinel
+#   replicas: 3
+#   selector:
+#     matchLabels:
+#       app: redis-sentinel
+#   template:
+#     metadata:
+#       labels:
+#         app: redis-sentinel
+#     spec:
+#       containers:
+#         - name: sentinel
+#           image: redis:7-alpine
+#           command:
+#             - redis-sentinel
+#             - /etc/redis/sentinel.conf
+#           ports:
+#             - containerPort: 26379
+#               name: sentinel
+#           volumeMounts:
+#             - name: config
+#               mountPath: /etc/redis
+#           resources:
+#             requests:
+#               memory: "128Mi"
+#               cpu: "100m"
+#             limits:
+#               memory: "256Mi"
+#               cpu: "200m"
+#       volumes:
+#         - name: config
+#           configMap:
+#             name: redis-sentinel-config
+
+---
+###############################################################################
+# Redis Commander (optional - for monitoring and debugging)
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-commander
+  namespace: mes-production
+  labels:
+    app: redis-commander
+    tier: monitoring
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: http
+  selector:
+    app: redis-commander
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-commander
+  namespace: mes-production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-commander
+  template:
+    metadata:
+      labels:
+        app: redis-commander
+        tier: monitoring
+    spec:
+      containers:
+        - name: redis-commander
+          image: rediscommander/redis-commander:latest
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: REDIS_HOSTS
+              value: "production:redis:6379"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

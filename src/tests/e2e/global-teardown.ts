@@ -86,9 +86,10 @@ async function cleanupTestDatabase() {
 
 async function cleanupAuthFiles() {
   console.log('Cleaning up authentication files...');
-  
-  const authDir = path.join(__dirname, '.auth');
-  
+
+  // Auth files are in project root, not test directory
+  const authDir = path.join(process.cwd(), '.auth');
+
   if (fs.existsSync(authDir)) {
     try {
       fs.rmSync(authDir, { recursive: true, force: true });

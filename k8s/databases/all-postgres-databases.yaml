@@ -1,0 +1,922 @@
+###############################################################################
+# All MES PostgreSQL Databases - StatefulSets
+# Phase 2, Task 2.3: Database Per Service Pattern
+#
+# This file contains StatefulSet configurations for all 8 microservice databases
+#
+# Apply with:
+#   kubectl apply -f k8s/databases/all-postgres-databases.yaml
+#
+# Services:
+#  - Auth Service        (port 5432)
+#  - Work Order Service  (port 5433)
+#  - Quality Service     (port 5434)
+#  - Material Service    (port 5435)
+#  - Traceability Service(port 5436)
+#  - Resource Service    (port 5437)
+#  - Reporting Service   (port 5438)
+#  - Integration Service (port 5439)
+###############################################################################
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mes-production
+
+---
+###############################################################################
+# 1. AUTH SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-auth
+  namespace: mes-production
+  labels:
+    app: postgres-auth
+    service: auth
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-auth
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-auth
+  namespace: mes-production
+spec:
+  serviceName: postgres-auth
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-auth
+  template:
+    metadata:
+      labels:
+        app: postgres-auth
+        service: auth
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_auth"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-auth-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-auth-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-auth-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-auth-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-auth-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_auth_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 2. WORK ORDER SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-work-order
+  namespace: mes-production
+  labels:
+    app: postgres-work-order
+    service: work-order
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5433
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-work-order
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-work-order
+  namespace: mes-production
+spec:
+  serviceName: postgres-work-order
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-work-order
+  template:
+    metadata:
+      labels:
+        app: postgres-work-order
+        service: work-order
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_work_order"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-work-order-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-work-order-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-work-order-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-work-order-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 50Gi  # Larger for work order data
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-work-order-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_wo_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 3. QUALITY SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-quality
+  namespace: mes-production
+  labels:
+    app: postgres-quality
+    service: quality
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5434
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-quality
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-quality
+  namespace: mes-production
+spec:
+  serviceName: postgres-quality
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-quality
+  template:
+    metadata:
+      labels:
+        app: postgres-quality
+        service: quality
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_quality"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-quality-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-quality-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-quality-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-quality-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 30Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-quality-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_quality_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 4. MATERIAL SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-material
+  namespace: mes-production
+  labels:
+    app: postgres-material
+    service: material
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5435
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-material
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-material
+  namespace: mes-production
+spec:
+  serviceName: postgres-material
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-material
+  template:
+    metadata:
+      labels:
+        app: postgres-material
+        service: material
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_material"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-material-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-material-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-material-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-material-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 40Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-material-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_material_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 5. TRACEABILITY SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-traceability
+  namespace: mes-production
+  labels:
+    app: postgres-traceability
+    service: traceability
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5436
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-traceability
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-traceability
+  namespace: mes-production
+spec:
+  serviceName: postgres-traceability
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-traceability
+  template:
+    metadata:
+      labels:
+        app: postgres-traceability
+        service: traceability
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_traceability"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-traceability-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-traceability-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-traceability-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-traceability-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 100Gi  # Large for genealogy data
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-traceability-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_trace_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 6. RESOURCE SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-resource
+  namespace: mes-production
+  labels:
+    app: postgres-resource
+    service: resource
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5437
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-resource
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-resource
+  namespace: mes-production
+spec:
+  serviceName: postgres-resource
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-resource
+  template:
+    metadata:
+      labels:
+        app: postgres-resource
+        service: resource
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_resource"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-resource-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-resource-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-resource-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-resource-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 20Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-resource-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_resource_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 7. REPORTING SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-reporting
+  namespace: mes-production
+  labels:
+    app: postgres-reporting
+    service: reporting
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5438
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-reporting
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-reporting
+  namespace: mes-production
+spec:
+  serviceName: postgres-reporting
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-reporting
+  template:
+    metadata:
+      labels:
+        app: postgres-reporting
+        service: reporting
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_reporting"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-reporting-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-reporting-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-reporting-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-reporting-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 50Gi  # Large for aggregated data
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-reporting-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_reporting_user
+  password: CHANGE_ME_IN_PRODUCTION
+
+---
+###############################################################################
+# 8. INTEGRATION SERVICE DATABASE
+###############################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-integration
+  namespace: mes-production
+  labels:
+    app: postgres-integration
+    service: integration
+    tier: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5439
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres-integration
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-integration
+  namespace: mes-production
+spec:
+  serviceName: postgres-integration
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-integration
+  template:
+    metadata:
+      labels:
+        app: postgres-integration
+        service: integration
+        tier: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "mes_integration"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-integration-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-integration-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-integration-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-integration-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 20Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-integration-secret
+  namespace: mes-production
+type: Opaque
+stringData:
+  username: mes_integration_user
+  password: CHANGE_ME_IN_PRODUCTION

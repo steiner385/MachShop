@@ -369,29 +369,29 @@ test.describe('Material Traceability', () => {
     // Test empty search
     const searchButton = page.locator('button:has-text("Search")');
     await searchButton.click();
-    
+
     // Wait and see if any validation appears
     await page.waitForTimeout(500);
-    
+
     // Test invalid serial number format
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('INVALID-FORMAT');
     await searchButton.click();
-    
+
     await page.waitForTimeout(1000);
-    
-    // Look for no results message
-    const noResultsMessage = page.locator('text=No traceability data found');
+
+    // Look for no results message - use h3 selector to avoid ambiguity with span text
+    const noResultsMessage = page.locator('h3').filter({ hasText: 'No traceability data found' });
     if (await noResultsMessage.isVisible()) {
       await expect(noResultsMessage).toBeVisible();
     }
-    
+
     // Test non-existent serial number
     await searchInput.fill('SN-NONEXISTENT-999');
     await searchButton.click();
-    
+
     await page.waitForTimeout(1000);
-    
+
     // Verify no results or that search interface still works
     if (await noResultsMessage.isVisible()) {
       await expect(noResultsMessage).toBeVisible();

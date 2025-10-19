@@ -1,5 +1,11 @@
 import { apiClient } from './apiClient';
 
+// Date Range Filter
+export interface DateRangeFilter {
+  startDate?: string;
+  endDate?: string;
+}
+
 // Dashboard KPI Data
 export interface DashboardKPIs {
   activeWorkOrders: number;
@@ -58,19 +64,25 @@ export interface QualityTrends {
 export const dashboardApi = {
   /**
    * Get overall KPI metrics for the dashboard
+   * @param startDate - Optional start date for filtering (ISO format)
+   * @param endDate - Optional end date for filtering (ISO format)
    */
-  async getKPIs(): Promise<DashboardKPIs> {
-    const response = await apiClient.get<DashboardKPIs>('/dashboard/kpis');
+  async getKPIs(startDate?: string, endDate?: string): Promise<DashboardKPIs> {
+    const response = await apiClient.get<DashboardKPIs>('/dashboard/kpis', {
+      params: { startDate, endDate },
+    });
     return response.data;
   },
 
   /**
    * Get recent work orders for dashboard display
    * @param limit - Number of recent work orders to return (default: 5)
+   * @param startDate - Optional start date for filtering (ISO format)
+   * @param endDate - Optional end date for filtering (ISO format)
    */
-  async getRecentWorkOrders(limit: number = 5): Promise<RecentWorkOrder[]> {
+  async getRecentWorkOrders(limit: number = 5, startDate?: string, endDate?: string): Promise<RecentWorkOrder[]> {
     const response = await apiClient.get<RecentWorkOrder[]>('/dashboard/recent-work-orders', {
-      params: { limit },
+      params: { limit, startDate, endDate },
     });
     return response.data;
   },
@@ -88,17 +100,25 @@ export const dashboardApi = {
 
   /**
    * Get production efficiency metrics (OEE, FPY, On-Time Delivery)
+   * @param startDate - Optional start date for filtering (ISO format)
+   * @param endDate - Optional end date for filtering (ISO format)
    */
-  async getEfficiencyMetrics(): Promise<EfficiencyMetrics> {
-    const response = await apiClient.get<EfficiencyMetrics>('/dashboard/efficiency');
+  async getEfficiencyMetrics(startDate?: string, endDate?: string): Promise<EfficiencyMetrics> {
+    const response = await apiClient.get<EfficiencyMetrics>('/dashboard/efficiency', {
+      params: { startDate, endDate },
+    });
     return response.data;
   },
 
   /**
    * Get quality trend statistics
+   * @param startDate - Optional start date for filtering (ISO format)
+   * @param endDate - Optional end date for filtering (ISO format)
    */
-  async getQualityTrends(): Promise<QualityTrends> {
-    const response = await apiClient.get<QualityTrends>('/dashboard/quality-trends');
+  async getQualityTrends(startDate?: string, endDate?: string): Promise<QualityTrends> {
+    const response = await apiClient.get<QualityTrends>('/dashboard/quality-trends', {
+      params: { startDate, endDate },
+    });
     return response.data;
   },
 };

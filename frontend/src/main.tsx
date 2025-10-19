@@ -9,6 +9,7 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import App from './App';
 import { AuthProvider } from '@/store/AuthStore';
+import { SiteProvider } from '@/contexts/SiteContext';
 import '@/styles/index.css';
 
 // Configure dayjs plugins
@@ -110,7 +111,9 @@ const AppWrapper: React.FC = () => {
         >
           <ConfigProvider theme={antdTheme}>
             <AuthProvider>
-              <App />
+              <SiteProvider>
+                <App />
+              </SiteProvider>
             </AuthProvider>
           </ConfigProvider>
         </BrowserRouter>

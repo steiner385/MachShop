@@ -1,0 +1,13 @@
+-- AlterEnum
+-- This migration adds more than one value to an enum.
+-- With PostgreSQL versions 11 and earlier, this is not possible
+-- in a single migration. This can be worked around by creating
+-- multiple migrations, each migration adding only one value to
+-- the enum.
+
+
+ALTER TYPE "IntegrationType" ADD VALUE 'DNC';
+ALTER TYPE "IntegrationType" ADD VALUE 'SFC';
+ALTER TYPE "IntegrationType" ADD VALUE 'SKILLS';
+ALTER TYPE "IntegrationType" ADD VALUE 'CALIBRATION';
+ALTER TYPE "IntegrationType" ADD VALUE 'PDM';

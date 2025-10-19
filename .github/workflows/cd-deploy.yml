@@ -1,0 +1,249 @@
+name: CD - Deploy to Kubernetes
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  HELM_VERSION: '3.12.0'
+  KUBECTL_VERSION: '1.28.0'
+
+jobs:
+  # Determine deployment environment
+  determine-environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      namespace: ${{ steps.set-env.outputs.namespace }}
+    steps:
+      - name: Set environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "namespace=mes-${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "namespace=mes-production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "namespace=mes-staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "namespace=mes-dev" >> $GITHUB_OUTPUT
+          fi
+
+  # Deploy to Kubernetes using Helm
+  deploy:
+    name: Deploy to ${{ needs.determine-environment.outputs.environment }}
+    needs: [determine-environment]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+      url: https://api.mes-${{ needs.determine-environment.outputs.environment }}.example.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Kubernetes Context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ needs.determine-environment.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create database secrets
+        run: |
+          # Check if secrets already exist
+          if ! kubectl get secret mes-secrets -n ${{ needs.determine-environment.outputs.namespace }} &> /dev/null; then
+            kubectl create secret generic mes-secrets \
+              --from-literal=jwt-secret=${{ secrets.JWT_SECRET }} \
+              -n ${{ needs.determine-environment.outputs.namespace }}
+          fi
+
+          # Create database URL secrets for each service
+          SERVICES=("auth" "work-order" "quality" "material" "traceability" "resource" "reporting" "integration")
+          for SERVICE in "${SERVICES[@]}"; do
+            SECRET_NAME="${SERVICE}-db-secret"
+            if ! kubectl get secret $SECRET_NAME -n ${{ needs.determine-environment.outputs.namespace }} &> /dev/null; then
+              DB_URL_SECRET_NAME="DB_URL_$(echo $SERVICE | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
+              kubectl create secret generic $SECRET_NAME \
+                --from-literal=database-url="${!DB_URL_SECRET_NAME}" \
+                -n ${{ needs.determine-environment.outputs.namespace }}
+            fi
+          done
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install mes ./helm/mes \
+            --namespace ${{ needs.determine-environment.outputs.namespace }} \
+            --set global.environment=${{ needs.determine-environment.outputs.environment }} \
+            --set global.registry=${{ secrets.DOCKER_REGISTRY }} \
+            --set ingress.hosts[0]=api.mes-${{ needs.determine-environment.outputs.environment }}.example.com \
+            --set services.auth.tag=${{ github.sha }} \
+            --set services.workOrder.tag=${{ github.sha }} \
+            --set services.quality.tag=${{ github.sha }} \
+            --set services.material.tag=${{ github.sha }} \
+            --set services.traceability.tag=${{ github.sha }} \
+            --set services.resource.tag=${{ github.sha }} \
+            --set services.reporting.tag=${{ github.sha }} \
+            --set services.integration.tag=${{ github.sha }} \
+            --wait \
+            --timeout 10m
+
+      - name: Run database migrations
+        run: |
+          SERVICES=("auth" "work-order" "quality" "material" "traceability" "resource" "reporting" "integration")
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "Running migrations for $SERVICE service..."
+            POD=$(kubectl get pods -n ${{ needs.determine-environment.outputs.namespace }} \
+              -l app=${SERVICE}-service -o jsonpath='{.items[0].metadata.name}')
+
+            if [ ! -z "$POD" ]; then
+              kubectl exec -n ${{ needs.determine-environment.outputs.namespace }} $POD -- \
+                npx prisma migrate deploy || echo "Migration failed for $SERVICE"
+            fi
+          done
+
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl wait --for=condition=available --timeout=600s \
+            deployment --all -n ${{ needs.determine-environment.outputs.namespace }}
+
+      - name: Run smoke tests
+        run: |
+          # Get Ingress URL
+          INGRESS_URL="https://api.mes-${{ needs.determine-environment.outputs.environment }}.example.com"
+
+          # Wait for ingress to be ready
+          sleep 30
+
+          # Test health endpoints
+          curl -f $INGRESS_URL/api/auth/health || exit 1
+          curl -f $INGRESS_URL/api/work-orders/health || exit 1
+          curl -f $INGRESS_URL/api/quality/health || exit 1
+          curl -f $INGRESS_URL/api/materials/health || exit 1
+          curl -f $INGRESS_URL/api/traceability/health || exit 1
+          curl -f $INGRESS_URL/api/resources/health || exit 1
+          curl -f $INGRESS_URL/api/reports/health || exit 1
+          curl -f $INGRESS_URL/api/integrations/health || exit 1
+
+      - name: Verify deployment
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get deployments -n ${{ needs.determine-environment.outputs.namespace }}
+
+          echo ""
+          echo "=== Pod Status ==="
+          kubectl get pods -n ${{ needs.determine-environment.outputs.namespace }}
+
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get svc -n ${{ needs.determine-environment.outputs.namespace }}
+
+          echo ""
+          echo "=== Ingress Status ==="
+          kubectl get ingress -n ${{ needs.determine-environment.outputs.namespace }}
+
+  # Rollback on failure
+  rollback:
+    name: Rollback Deployment
+    needs: [determine-environment, deploy]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Configure Kubernetes Context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Rollback Helm release
+        run: |
+          helm rollback mes \
+            --namespace ${{ needs.determine-environment.outputs.namespace }} \
+            --wait
+
+      - name: Notify rollback
+        uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          payload: |
+            {
+              "text": ":warning: MES Deployment Rollback",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*MES Deployment Rolled Back*\n*Environment*: `${{ needs.determine-environment.outputs.environment }}`\n*Commit*: `${{ github.sha }}`\n*Reason*: Deployment failed smoke tests"
+                  }
+                }
+              ]
+            }
+
+  # Deployment notification
+  notify:
+    name: Notify Deployment Status
+    needs: [determine-environment, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          payload: |
+            {
+              "text": "MES Deployment ${{ needs.deploy.result == 'success' && ':white_check_mark: Successful' || ':x: Failed' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*MES Deployment*: ${{ needs.deploy.result == 'success' && ':white_check_mark: Successful' || ':x: Failed' }}\n*Environment*: `${{ needs.determine-environment.outputs.environment }}`\n*Namespace*: `${{ needs.determine-environment.outputs.namespace }}`\n*Commit*: `${{ github.sha }}`\n*Author*: ${{ github.actor }}\n*URL*: https://api.mes-${{ needs.determine-environment.outputs.environment }}.example.com"
+                  }
+                }
+              ]
+            }
+
+  # Production approval gate
+  production-approval:
+    name: Approve Production Deployment
+    needs: [determine-environment]
+    if: needs.determine-environment.outputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-approval
+    steps:
+      - name: Manual approval required
+        run: echo "Production deployment approved"

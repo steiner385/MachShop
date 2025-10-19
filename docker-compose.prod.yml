@@ -1,0 +1,359 @@
+# MES System - Docker Compose Production Overrides
+# This file provides production-specific configurations
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Databases - Production Configuration
+  # =============================================================================
+
+  postgres-auth:
+    restart: always
+    command: postgres -c max_connections=100 -c shared_buffers=256MB -c effective_cache_size=1GB -c maintenance_work_mem=64MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-work-order:
+    restart: always
+    command: postgres -c max_connections=150 -c shared_buffers=512MB -c effective_cache_size=2GB -c maintenance_work_mem=128MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  postgres-quality:
+    restart: always
+    command: postgres -c max_connections=150 -c shared_buffers=512MB -c effective_cache_size=2GB -c maintenance_work_mem=128MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  postgres-material:
+    restart: always
+    command: postgres -c max_connections=150 -c shared_buffers=512MB -c effective_cache_size=2GB -c maintenance_work_mem=128MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  postgres-traceability:
+    restart: always
+    command: postgres -c max_connections=200 -c shared_buffers=1GB -c effective_cache_size=3GB -c maintenance_work_mem=256MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.75'
+          memory: 1G
+
+  postgres-resource:
+    restart: always
+    command: postgres -c max_connections=100 -c shared_buffers=256MB -c effective_cache_size=1GB -c maintenance_work_mem=64MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-reporting:
+    restart: always
+    command: postgres -c max_connections=200 -c shared_buffers=1GB -c effective_cache_size=4GB -c maintenance_work_mem=256MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  postgres-integration:
+    restart: always
+    command: postgres -c max_connections=150 -c shared_buffers=512MB -c effective_cache_size=2GB -c maintenance_work_mem=128MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=100 -c random_page_cost=1.1 -c effective_io_concurrency=200
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # =============================================================================
+  # Event Streaming - Production Configuration
+  # =============================================================================
+
+  zookeeper:
+    restart: always
+    environment:
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 60
+      ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT: 3
+      ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL: 24
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  kafka:
+    restart: always
+    environment:
+      KAFKA_NUM_NETWORK_THREADS: 3
+      KAFKA_NUM_IO_THREADS: 8
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_LOG_CLEANUP_POLICY: delete
+      KAFKA_COMPRESSION_TYPE: snappy
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # =============================================================================
+  # Cache - Production Configuration
+  # =============================================================================
+
+  redis:
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2.5G
+        reservations:
+          cpus: '0.5'
+          memory: 2G
+
+  # =============================================================================
+  # MES Microservices - Production Configuration
+  # =============================================================================
+
+  auth-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []  # Remove source code mounts for production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      replicas: 2
+
+  work-order-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+
+  quality-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+
+  material-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+
+  traceability-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+
+  resource-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      replicas: 2
+
+  reporting-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.75'
+          memory: 1G
+      replicas: 2
+
+  integration-service:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+
+  # =============================================================================
+  # Frontend - Production Configuration
+  # =============================================================================
+
+  frontend:
+    restart: always
+    environment:
+      NODE_ENV: production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # =============================================================================
+  # NGINX - Production Configuration
+  # =============================================================================
+
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # =============================================================================
+  # Monitoring - Production Configuration
+  # =============================================================================
+
+  prometheus:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  grafana:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M

@@ -1,0 +1,124 @@
+{
+  "dashboard": {
+    "title": "MES System Overview",
+    "tags": ["mes", "manufacturing", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"mes-services\"}",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 4},
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"mes-services\"}[5m])",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8}
+      },
+      {
+        "id": 3,
+        "title": "Error Rate (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"mes-services\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"mes-services\"}[5m]) * 100",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8}
+      },
+      {
+        "id": 4,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"mes-services\"}[5m]))",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8}
+      },
+      {
+        "id": 5,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{namespace=\"mes-production\"} / container_spec_memory_limit_bytes{namespace=\"mes-production\"} * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8}
+      },
+      {
+        "id": 6,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{namespace=\"mes-production\"}[5m]) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8}
+      },
+      {
+        "id": 7,
+        "title": "Database Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "{{database}}"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8}
+      },
+      {
+        "id": 8,
+        "title": "Kafka Consumer Lag",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kafka_consumer_lag",
+            "legendFormat": "{{consumer_group}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 28, "w": 24, "h": 8}
+      }
+    ]
+  }
+}

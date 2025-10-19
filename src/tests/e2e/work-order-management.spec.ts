@@ -25,19 +25,26 @@ test.describe('Work Order Management', () => {
   });
 
   test('should filter work orders by status', async ({ page }) => {
-    // Click status filter dropdown (select by placeholder)
-    await page.locator('text=Status').click();
-    
-    // Select "In Progress" status
-    await page.locator('text=In Progress').click();
-    
+    // Find the status filter dropdown (Ant Design Select component in the filter bar)
+    // Look for the select/combobox in the toolbar area before the table
+    const statusFilter = page.locator('.ant-select').first();
+
+    // Click to open the dropdown
+    await statusFilter.click();
+
+    // Wait for dropdown to open
+    await page.waitForTimeout(500);
+
+    // Select "In Progress" from the dropdown options
+    await page.locator('.ant-select-item').filter({ hasText: /^In Progress$/i }).click();
+
     // Wait for filtering to complete
     await page.waitForTimeout(1000);
-    
+
     // Verify only in-progress work orders are shown if any exist
     const tableRows = page.locator('.ant-table-tbody tr');
     const rowCount = await tableRows.count();
-    
+
     if (rowCount > 0) {
       // Check that status tags contain "In Progress" if there are results
       const statusTags = page.locator('.ant-tag');
@@ -92,20 +99,24 @@ test.describe('Work Order Management', () => {
     // Look for a work order with CREATED status (displayed as "CREATED")
     const tableRows = page.locator('.ant-table-tbody tr');
     const rowCount = await tableRows.count();
-    
+
     let foundCreatedOrder = false;
-    
+
     for (let i = 0; i < rowCount; i++) {
       const row = tableRows.nth(i);
-      const statusTag = row.locator('.ant-tag');
-      
+      // Get only the first ant-tag (status tag) to avoid ambiguity with priority tag
+      const statusTag = row.locator('.ant-tag').first();
+
       if (await statusTag.isVisible()) {
         const statusText = await statusTag.textContent();
         if (statusText?.includes('CREATED')) {
-          // Look for release button (PlayCircleOutlined icon)
-          const releaseButton = row.locator('button').filter({ has: page.locator('[aria-label="play-circle"]') });
-          
-          if (await releaseButton.isVisible()) {
+          // Look for release button (PlayCircleOutlined icon) - find all buttons in row
+          const buttons = row.locator('button');
+          const buttonCount = await buttons.count();
+
+          // Look for the third button (eye, edit, then play-circle/release)
+          if (buttonCount >= 3) {
+            const releaseButton = buttons.nth(2);
             await releaseButton.click();
             foundCreatedOrder = true;
             break;
@@ -113,14 +124,14 @@ test.describe('Work Order Management', () => {
         }
       }
     }
-    
+
     if (!foundCreatedOrder) {
       // If no CREATED work order found, just verify the page loads correctly
       await expect(page.locator('h2')).toContainText('Work Orders');
       console.log('No CREATED work orders found to release');
       return;
     }
-    
+
     // Since release functionality may not be fully implemented,
     // just verify the button click worked
     await page.waitForTimeout(1000);

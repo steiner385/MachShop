@@ -1,0 +1,92 @@
+apiVersion: v2
+name: mes
+description: A Helm chart for Manufacturing Execution System (MES) - Complete microservices deployment
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+version: 1.0.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+appVersion: "1.0.0"
+
+# Keywords for searching
+keywords:
+  - mes
+  - manufacturing
+  - erp
+  - microservices
+  - quality
+  - traceability
+  - work-order
+  - inventory
+
+# Project maintainers
+maintainers:
+  - name: MES Team
+    email: devops@example.com
+
+# Project URLs
+home: https://github.com/example/mes
+sources:
+  - https://github.com/example/mes
+
+# Dependencies - External charts this chart depends on
+dependencies:
+  # PostgreSQL databases could be managed via external chart
+  # - name: postgresql
+  #   version: "12.x.x"
+  #   repository: https://charts.bitnami.com/bitnami
+  #   condition: postgresql.enabled
+
+  # Redis could be managed via external chart
+  # - name: redis
+  #   version: "17.x.x"
+  #   repository: https://charts.bitnami.com/bitnami
+  #   condition: redis.enabled
+
+  # Kafka could be managed via Strimzi operator
+  # - name: strimzi-kafka-operator
+  #   version: "0.38.x"
+  #   repository: https://strimzi.io/charts/
+  #   condition: kafka.enabled
+
+# Icon for the chart
+icon: https://example.com/mes-icon.png
+
+# Annotations
+annotations:
+  # Category
+  category: Manufacturing
+
+  # Licenses
+  licenses: MIT
+
+  # Images
+  images: |
+    - name: mes-auth
+      image: docker.io/example/mes-auth:1.0.0
+    - name: mes-work-order
+      image: docker.io/example/mes-work-order:1.0.0
+    - name: mes-quality
+      image: docker.io/example/mes-quality:1.0.0
+    - name: mes-material
+      image: docker.io/example/mes-material:1.0.0
+    - name: mes-traceability
+      image: docker.io/example/mes-traceability:1.0.0
+    - name: mes-resource
+      image: docker.io/example/mes-resource:1.0.0
+    - name: mes-reporting
+      image: docker.io/example/mes-reporting:1.0.0
+    - name: mes-integration
+      image: docker.io/example/mes-integration:1.0.0
+    - name: postgres
+      image: docker.io/postgres:14-alpine
+    - name: redis
+      image: docker.io/redis:7-alpine
+    - name: kafka
+      image: docker.io/confluentinc/cp-kafka:7.4.0
+    - name: zookeeper
+      image: docker.io/confluentinc/cp-zookeeper:7.4.0

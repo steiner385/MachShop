@@ -1,0 +1,104 @@
+# Prometheus configuration for MES System (Docker Compose)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'mes-local'
+    environment: 'development'
+
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alert-rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # MES Microservices
+  - job_name: 'mes-auth-service'
+    static_configs:
+      - targets: ['auth-service:3001']
+        labels:
+          service: 'auth'
+          component: 'microservice'
+
+  - job_name: 'mes-work-order-service'
+    static_configs:
+      - targets: ['work-order-service:3002']
+        labels:
+          service: 'work-order'
+          component: 'microservice'
+
+  - job_name: 'mes-quality-service'
+    static_configs:
+      - targets: ['quality-service:3003']
+        labels:
+          service: 'quality'
+          component: 'microservice'
+
+  - job_name: 'mes-material-service'
+    static_configs:
+      - targets: ['material-service:3004']
+        labels:
+          service: 'material'
+          component: 'microservice'
+
+  - job_name: 'mes-traceability-service'
+    static_configs:
+      - targets: ['traceability-service:3005']
+        labels:
+          service: 'traceability'
+          component: 'microservice'
+
+  - job_name: 'mes-resource-service'
+    static_configs:
+      - targets: ['resource-service:3006']
+        labels:
+          service: 'resource'
+          component: 'microservice'
+
+  - job_name: 'mes-reporting-service'
+    static_configs:
+      - targets: ['reporting-service:3007']
+        labels:
+          service: 'reporting'
+          component: 'microservice'
+
+  - job_name: 'mes-integration-service'
+    static_configs:
+      - targets: ['integration-service:3008']
+        labels:
+          service: 'integration'
+          component: 'microservice'
+
+  # PostgreSQL databases (if postgres_exporter is configured)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-auth:5432', 'postgres-work-order:5432', 'postgres-quality:5432', 'postgres-material:5432', 'postgres-traceability:5432', 'postgres-resource:5432', 'postgres-reporting:5432', 'postgres-integration:5432']
+        labels:
+          component: 'database'
+
+  # Kafka
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+        labels:
+          component: 'messaging'
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          component: 'cache'
+
+  # NGINX
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+        labels:
+          component: 'gateway'

@@ -1,0 +1,424 @@
+# MES System Ingress Configuration
+# Exposes the MES API services to external traffic via HTTP/HTTPS
+# Uses NGINX Ingress Controller
+
+# PREREQUISITES:
+# 1. Install NGINX Ingress Controller:
+#    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+#
+# 2. Create TLS certificate (for HTTPS):
+#    kubectl create secret tls mes-tls-secret \
+#      --namespace=mes-production \
+#      --cert=path/to/tls.crt \
+#      --key=path/to/tls.key
+#
+# 3. Or use cert-manager for automatic Let's Encrypt certificates:
+#    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+---
+# Main Ingress for MES API Gateway
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mes-api-ingress
+  namespace: mes-production
+  labels:
+    app: mes
+    component: ingress
+  annotations:
+    # Ingress class
+    kubernetes.io/ingress.class: "nginx"
+
+    # SSL/TLS Configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # CORS Configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "Content-Length,Content-Range"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+
+    # Rate Limiting (1000 requests per minute per IP)
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # Timeout Configuration
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+
+    # Request Size Limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Load Balancing
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+
+    # Security Headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+
+    # Health Check
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30s"
+
+spec:
+  tls:
+  - hosts:
+    - api.mes-production.example.com
+    - mes-api.example.com
+    secretName: mes-tls-secret
+
+  rules:
+  # Main API domain
+  - host: api.mes-production.example.com
+    http:
+      paths:
+      # Auth Service Routes
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 3000
+
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 3000
+
+      # Work Order Service Routes
+      - path: /api/work-orders
+        pathType: Prefix
+        backend:
+          service:
+            name: work-order-service
+            port:
+              number: 3000
+
+      - path: /api/operations
+        pathType: Prefix
+        backend:
+          service:
+            name: work-order-service
+            port:
+              number: 3000
+
+      # Quality Service Routes
+      - path: /api/quality
+        pathType: Prefix
+        backend:
+          service:
+            name: quality-service
+            port:
+              number: 3000
+
+      - path: /api/inspections
+        pathType: Prefix
+        backend:
+          service:
+            name: quality-service
+            port:
+              number: 3000
+
+      - path: /api/fai
+        pathType: Prefix
+        backend:
+          service:
+            name: quality-service
+            port:
+              number: 3000
+
+      - path: /api/ncr
+        pathType: Prefix
+        backend:
+          service:
+            name: quality-service
+            port:
+              number: 3000
+
+      # Material Service Routes
+      - path: /api/materials
+        pathType: Prefix
+        backend:
+          service:
+            name: material-service
+            port:
+              number: 3000
+
+      - path: /api/inventory
+        pathType: Prefix
+        backend:
+          service:
+            name: material-service
+            port:
+              number: 3000
+
+      - path: /api/lots
+        pathType: Prefix
+        backend:
+          service:
+            name: material-service
+            port:
+              number: 3000
+
+      # Traceability Service Routes
+      - path: /api/traceability
+        pathType: Prefix
+        backend:
+          service:
+            name: traceability-service
+            port:
+              number: 3000
+
+      - path: /api/serialization
+        pathType: Prefix
+        backend:
+          service:
+            name: traceability-service
+            port:
+              number: 3000
+
+      - path: /api/genealogy
+        pathType: Prefix
+        backend:
+          service:
+            name: traceability-service
+            port:
+              number: 3000
+
+      # Resource Service Routes
+      - path: /api/resources
+        pathType: Prefix
+        backend:
+          service:
+            name: resource-service
+            port:
+              number: 3000
+
+      - path: /api/equipment
+        pathType: Prefix
+        backend:
+          service:
+            name: resource-service
+            port:
+              number: 3000
+
+      - path: /api/maintenance
+        pathType: Prefix
+        backend:
+          service:
+            name: resource-service
+            port:
+              number: 3000
+
+      # Reporting Service Routes
+      - path: /api/reports
+        pathType: Prefix
+        backend:
+          service:
+            name: reporting-service
+            port:
+              number: 3000
+
+      - path: /api/dashboards
+        pathType: Prefix
+        backend:
+          service:
+            name: reporting-service
+            port:
+              number: 3000
+
+      - path: /api/analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: reporting-service
+            port:
+              number: 3000
+
+      # Integration Service Routes
+      - path: /api/integrations
+        pathType: Prefix
+        backend:
+          service:
+            name: integration-service
+            port:
+              number: 3000
+
+      - path: /api/sync
+        pathType: Prefix
+        backend:
+          service:
+            name: integration-service
+            port:
+              number: 3000
+
+      # Health Check Endpoint (can route to any service)
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 3000
+
+---
+# Alternative Ingress for Internal Access (no TLS)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mes-api-ingress-internal
+  namespace: mes-production
+  labels:
+    app: mes
+    component: ingress
+    access: internal
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: mes-api-internal.mes-production.svc.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 3000
+
+---
+# TLS Certificate using cert-manager (Let's Encrypt)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mes-api-cert
+  namespace: mes-production
+spec:
+  secretName: mes-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - api.mes-production.example.com
+  - mes-api.example.com
+
+---
+# ClusterIssuer for Let's Encrypt (Production)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # You must replace this email address with your own.
+    # Let's Encrypt will use this to contact you about expiring
+    # certificates, and issues related to your account.
+    email: devops@example.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource that will be used to store the account's private key.
+      name: letsencrypt-prod-issuer-account-key
+    # Add a single challenge solver, HTTP01 using nginx
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+# ClusterIssuer for Let's Encrypt (Staging - for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    email: devops@example.com
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging-issuer-account-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+# Network Policy for Ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-network-policy
+  namespace: mes-production
+spec:
+  podSelector:
+    matchLabels:
+      component: microservice
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow traffic from within the namespace (service-to-service)
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3000
+
+---
+# USAGE NOTES:
+#
+# 1. Update DNS records to point to your ingress controller's external IP:
+#    kubectl get svc -n ingress-nginx ingress-nginx-controller
+#
+# 2. Create DNS A records:
+#    api.mes-production.example.com -> EXTERNAL_IP
+#    mes-api.example.com -> EXTERNAL_IP
+#
+# 3. Test the ingress:
+#    curl https://api.mes-production.example.com/health
+#    curl https://api.mes-production.example.com/api/auth/health
+#
+# 4. Monitor ingress logs:
+#    kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
+#
+# 5. Check certificate status:
+#    kubectl get certificate -n mes-production
+#    kubectl describe certificate mes-api-cert -n mes-production
+#
+# 6. View ingress details:
+#    kubectl describe ingress mes-api-ingress -n mes-production
+#
+# 7. Test rate limiting:
+#    for i in {1..110}; do curl https://api.mes-production.example.com/health; done
+#
+# SECURITY CONSIDERATIONS:
+# - Replace wildcard CORS origin (*) with specific domains in production
+# - Implement authentication at ingress level using oauth2-proxy or similar
+# - Use Web Application Firewall (WAF) for additional security
+# - Enable ModSecurity for NGINX Ingress
+# - Implement DDoS protection
+# - Regular security audits and penetration testing
+# - Monitor for unusual traffic patterns
+# - Keep ingress controller updated

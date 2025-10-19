@@ -5,109 +5,1513 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Manufacturing Sites
+// ============================================================================
+// ISA-95 Equipment Hierarchy Models (Task 1.1)
+// Complete 6-level hierarchy: Enterprise → Site → Area → WorkCenter → WorkUnit → Equipment
+// ============================================================================
+
+// Enterprise (Top level of ISA-95 hierarchy)
+model Enterprise {
+  id             String   @id @default(cuid())
+  enterpriseCode String   @unique
+  enterpriseName String
+  description    String?  @db.Text
+  headquarters   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  sites Site[] // One enterprise has many sites
+
+  @@map("enterprises")
+}
+
+// Manufacturing Sites (ISA-95 Level 2)
 model Site {
-  id        String   @id @default(cuid())
-  siteCode  String   @unique
-  siteName  String
-  location  String?
+  id           String   @id @default(cuid())
+  siteCode     String   @unique
+  siteName     String
+  location     String?
+  enterpriseId String? // Link to Enterprise for ISA-95 hierarchy
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  enterprise          Enterprise?            @relation(fields: [enterpriseId], references: [id])
+  routings            Routing[] // NEW: Routes defined for this site
+  partAvailability    PartSiteAvailability[] // NEW: Parts that can be made here
+  processSegments     ProcessSegment[] // NEW: Site-specific process segments
+  workOrders          WorkOrder[]
+  equipment           Equipment[]
+  ncrs                NCR[]
+  areas               Area[] // ISA-95 hierarchy: Site → Areas
+  productionSchedules ProductionSchedule[] // Production schedules for this site
+
+  @@index([enterpriseId])
+  @@map("sites")
+}
+
+// Production Areas (ISA-95 Level 2)
+model Area {
+  id          String   @id @default(cuid())
+  areaCode    String   @unique
+  areaName    String
+  description String?
+  siteId      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  site        Site         @relation(fields: [siteId], references: [id])
+  workCenters WorkCenter[]
+  equipment   Equipment[]
+
+  @@index([siteId])
+  @@map("areas")
+}
+
+// Users and Authentication
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String    @unique
+  firstName    String?
+  lastName     String?
+  passwordHash String
+  isActive     Boolean   @default(true)
+  roles        String[]
+  permissions  String[]
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // ISA-95 Personnel fields
+  employeeNumber   String?   @unique // Unique employee identifier
+  personnelClassId String? // Link to PersonnelClass
+  hireDate         DateTime?
+  terminationDate  DateTime?
+  phone            String?
+  emergencyContact String?
+  emergencyPhone   String?
+  department       String?
+  supervisorId     String? // Self-referential for reporting hierarchy
+  costCenter       String?
+  laborRate        Float? // Cost per hour
+
+  // Relations
+  createdWorkOrders  WorkOrder[]         @relation("CreatedBy")
+  assignedWorkOrders WorkOrder[]         @relation("AssignedTo")
+  qualityInspections QualityInspection[]
+  ncrReports         NCR[]               @relation("CreatedBy")
+  assignedNcrs       NCR[]               @relation("AssignedTo")
+  equipmentLogs      EquipmentLog[]
+  auditLogs          AuditLog[]
+
+  // Digital Work Instructions relations
+  createdWorkInstructions   WorkInstruction[]              @relation("WorkInstructionCreatedBy")
+  updatedWorkInstructions   WorkInstruction[]              @relation("WorkInstructionUpdatedBy")
+  approvedWorkInstructions  WorkInstruction[]              @relation("WorkInstructionApprovedBy")
+  workInstructionExecutions WorkInstructionExecution[]     @relation("WIExecutionOperator")
+  signedStepExecutions      WorkInstructionStepExecution[] @relation("WIStepExecutionSignedBy")
+
+  // Electronic Signature relations
+  electronicSignatures  ElectronicSignature[] @relation("ElectronicSignatureUser")
+  invalidatedSignatures ElectronicSignature[] @relation("ElectronicSignatureInvalidatedBy")
+
+  // ISA-95 Personnel relations
+  personnelClass        PersonnelClass?                 @relation(fields: [personnelClassId], references: [id])
+  supervisor            User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
+  subordinates          User[]                          @relation("SupervisorRelation")
+  certifications        PersonnelCertification[]
+  skills                PersonnelSkillAssignment[]
+  workCenterAssignments PersonnelWorkCenterAssignment[]
+  availability          PersonnelAvailability[]
+
+  // Task 1.7: Production Dispatching & Execution relations
+  dispatchedWorkOrders   DispatchLog[]     @relation("DispatchAssignedTo")
+  workPerformanceRecords WorkPerformance[] @relation("WorkPerformancePersonnel")
+
+  @@index([employeeNumber])
+  @@index([personnelClassId])
+  @@index([supervisorId])
+  @@map("users")
+}
+
+// ISA-95 Personnel Hierarchy Models
+
+// Personnel Classification (Operator, Technician, Engineer, Supervisor, Manager)
+model PersonnelClass {
+  id            String   @id @default(cuid())
+  classCode     String   @unique // OPR, TECH, ENG, SUPV, MGR
+  className     String // Operator, Technician, Engineer, etc.
+  description   String?  @db.Text
+  level         Int // Hierarchy level (1=Manager, 5=Operator)
+  parentClassId String? // For hierarchical classifications
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  parentClass    PersonnelClass?          @relation("PersonnelClassHierarchy", fields: [parentClassId], references: [id])
+  childClasses   PersonnelClass[]         @relation("PersonnelClassHierarchy")
+  personnel      User[]
+  qualifications PersonnelQualification[]
+
+  @@index([parentClassId])
+  @@index([level])
+  @@map("personnel_classes")
+}
+
+// Qualification Definitions (Certifications, Licenses, Training)
+model PersonnelQualification {
+  id                   String            @id @default(cuid())
+  qualificationCode    String            @unique
+  qualificationName    String
+  description          String?           @db.Text
+  qualificationType    QualificationType // CERTIFICATION, LICENSE, TRAINING, SKILL
+  issuingOrganization  String? // Who issues this qualification
+  validityPeriodMonths Int? // How long is it valid (null = no expiration)
+  requiresRenewal      Boolean           @default(false)
+  personnelClassId     String? // Required for this personnel class
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Relations
+  personnelClass PersonnelClass?          @relation(fields: [personnelClassId], references: [id])
+  certifications PersonnelCertification[]
+
+  @@index([personnelClassId])
+  @@index([qualificationType])
+  @@map("personnel_qualifications")
+}
+
+enum QualificationType {
+  CERTIFICATION // Professional certifications (CNC Operator, QA Inspector)
+  LICENSE // Government licenses (Forklift, Crane)
+  TRAINING // Training courses (Safety, Software)
+  SKILL // Skill assessments
+}
+
+// Personnel Certifications (Individual certifications with expiration tracking)
+model PersonnelCertification {
+  id                  String              @id @default(cuid())
+  personnelId         String
+  qualificationId     String
+  certificationNumber String? // Certificate number from issuing org
+  issuedDate          DateTime
+  expirationDate      DateTime?
+  status              CertificationStatus @default(ACTIVE)
+  attachmentUrls      String[] // Scanned certificates, documents
+  verifiedBy          String? // Who verified this certification
+  verifiedAt          DateTime?
+  notes               String?             @db.Text
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  personnel     User                   @relation(fields: [personnelId], references: [id])
+  qualification PersonnelQualification @relation(fields: [qualificationId], references: [id])
+
+  @@unique([personnelId, qualificationId])
+  @@index([personnelId])
+  @@index([qualificationId])
+  @@index([expirationDate])
+  @@index([status])
+  @@map("personnel_certifications")
+}
+
+enum CertificationStatus {
+  ACTIVE // Currently valid
+  EXPIRED // Past expiration date
+  SUSPENDED // Temporarily suspended
+  REVOKED // Permanently revoked
+  PENDING // Awaiting verification
+}
+
+// Skill Definitions (Competencies for specific tasks)
+model PersonnelSkill {
+  id            String        @id @default(cuid())
+  skillCode     String        @unique
+  skillName     String
+  description   String?       @db.Text
+  skillCategory SkillCategory
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  skillAssignments PersonnelSkillAssignment[]
+
+  @@index([skillCategory])
+  @@map("personnel_skills")
+}
+
+enum SkillCategory {
+  MACHINING // CNC programming, manual machining
+  WELDING // TIG, MIG, stick welding
+  INSPECTION // CMM, manual inspection
+  ASSEMBLY // Assembly operations
+  PROGRAMMING // Software, PLC programming
+  MAINTENANCE // Equipment maintenance
+  QUALITY // Quality control techniques
+  SAFETY // Safety procedures
+  MANAGEMENT // Management and leadership
+  OTHER // Other skills
+}
+
+// Personnel Skill Assignments (Competency matrix: personnel → skills with levels 1-5)
+model PersonnelSkillAssignment {
+  id              String          @id @default(cuid())
+  personnelId     String
+  skillId         String
+  competencyLevel CompetencyLevel // 1=Novice, 2=Advanced Beginner, 3=Competent, 4=Proficient, 5=Expert
+  assessedBy      String? // Who assessed this skill
+  assessedAt      DateTime?
+  lastUsedDate    DateTime? // Last time skill was used in production
+  certifiedDate   DateTime? // Date certified at this level
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  personnel User           @relation(fields: [personnelId], references: [id])
+  skill     PersonnelSkill @relation(fields: [skillId], references: [id])
+
+  @@unique([personnelId, skillId])
+  @@index([personnelId])
+  @@index([skillId])
+  @@index([competencyLevel])
+  @@map("personnel_skill_assignments")
+}
+
+enum CompetencyLevel {
+  NOVICE // Level 1: Basic knowledge, requires supervision
+  ADVANCED_BEGINNER // Level 2: Can perform with guidance
+  COMPETENT // Level 3: Can work independently
+  PROFICIENT // Level 4: Deep understanding, can train others
+  EXPERT // Level 5: Recognized expert, sets standards
+}
+
+// Personnel Work Center Assignments (Many-to-many: personnel can work at multiple work centers)
+model PersonnelWorkCenterAssignment {
+  id            String    @id @default(cuid())
+  personnelId   String
+  workCenterId  String
+  isPrimary     Boolean   @default(false) // Is this their primary work center?
+  effectiveDate DateTime  @default(now())
+  endDate       DateTime?
+  certifiedDate DateTime? // Date certified to work at this center
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  personnel  User       @relation(fields: [personnelId], references: [id])
+  workCenter WorkCenter @relation(fields: [workCenterId], references: [id])
+
+  @@unique([personnelId, workCenterId])
+  @@index([personnelId])
+  @@index([workCenterId])
+  @@index([effectiveDate])
+  @@map("personnel_work_center_assignments")
+}
+
+// Personnel Availability (Shift schedules, time off, availability calendar)
+model PersonnelAvailability {
+  id               String           @id @default(cuid())
+  personnelId      String
+  availabilityType AvailabilityType
+  startDateTime    DateTime
+  endDateTime      DateTime
+  shiftCode        String? // SHIFT_A, SHIFT_B, SHIFT_C, etc.
+  isRecurring      Boolean          @default(false)
+  recurrenceRule   String? // iCalendar RRULE format
+  reason           String? // Reason for time off
+  approvedBy       String?
+  approvedAt       DateTime?
+  notes            String?          @db.Text
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  personnel User @relation(fields: [personnelId], references: [id])
+
+  @@index([personnelId])
+  @@index([startDateTime])
+  @@index([availabilityType])
+  @@map("personnel_availability")
+}
+
+enum AvailabilityType {
+  AVAILABLE // Scheduled to work
+  VACATION // Vacation time
+  SICK_LEAVE // Sick leave
+  TRAINING // Training/development
+  MEETING // Meetings
+  UNAVAILABLE // Other unavailability
+}
+
+// ISA-95 Material Hierarchy Models (Task 1.3)
+
+// Material Classification (Raw Materials, WIP, Finished Goods, Consumables, etc.)
+model MaterialClass {
+  id            String  @id @default(cuid())
+  classCode     String  @unique // RAW, WIP, FG, CONS, PACK, TOOL
+  className     String // Raw Material, Work In Progress, Finished Goods, etc.
+  description   String? @db.Text
+  level         Int // Hierarchy level (1=top, 5=most specific)
+  parentClassId String? // For hierarchical classifications
+
+  // Material attributes
+  requiresLotTracking    Boolean @default(true) // Whether this class requires lot/batch tracking
+  requiresSerialTracking Boolean @default(false) // Whether individual items are serialized
+  requiresExpirationDate Boolean @default(false) // Whether expiration tracking is required
+  shelfLifeDays          Int? // Default shelf life in days (null = no expiration)
+
+  // Material handling
+  storageRequirements  String? @db.Text // Temperature, humidity, special storage
+  handlingInstructions String? @db.Text // Safety, handling procedures
+
+  // Status
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  workOrders WorkOrder[]
-  equipment  Equipment[]
-  ncrs       NCR[]
+  parentClass  MaterialClass?       @relation("MaterialClassHierarchy", fields: [parentClassId], references: [id])
+  childClasses MaterialClass[]      @relation("MaterialClassHierarchy")
+  materials    MaterialDefinition[]
 
-  @@map("sites")
+  @@index([parentClassId])
+  @@index([level])
+  @@map("material_classes")
 }
 
-// Users and Authentication
-model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  email       String   @unique
-  firstName   String?
-  lastName    String?
-  passwordHash String
-  isActive    Boolean  @default(true)
-  roles       String[]
-  permissions String[]
-  lastLoginAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Material Definition (Material Master Data)
+model MaterialDefinition {
+  id              String  @id @default(cuid())
+  materialNumber  String  @unique // Part number / material code
+  materialName    String // Material name/description
+  description     String? @db.Text
+  materialClassId String // Link to MaterialClass
+
+  // Units and measurements
+  baseUnitOfMeasure      String // EA, LB, KG, M, FT, etc.
+  alternateUnitOfMeasure String? // Secondary UOM
+  conversionFactor       Float? // Conversion from base to alternate UOM
+
+  // Material attributes
+  materialType  MaterialType // RAW_MATERIAL, COMPONENT, ASSEMBLY, etc.
+  materialGrade String? // Grade, alloy, specification (e.g., '6061-T6', '304SS')
+  specification String? // Industry spec (ASTM, AMS, MIL-SPEC)
+
+  // Inventory management
+  minimumStock    Float? // Minimum stock level
+  reorderPoint    Float? // Reorder point
+  reorderQuantity Float? // Economic order quantity
+  leadTimeDays    Int? // Lead time for procurement
+
+  // Lot/batch management
+  requiresLotTracking  Boolean @default(true)
+  lotNumberFormat      String? // Format template for lot numbers
+  defaultShelfLifeDays Int? // Shelf life in days
+
+  // Cost
+  standardCost Float? // Standard cost per base UOM
+  currency     String? @default("USD")
+
+  // Quality
+  requiresInspection  Boolean @default(false)
+  inspectionFrequency String? // 100%, SAMPLE, FIRST_LAST
+
+  // Supplier information
+  primarySupplierId  String?
+  supplierPartNumber String?
+
+  // References
+  drawingNumber String?
+  revision      String?
+  msdsUrl       String? // Material Safety Data Sheet URL
+  imageUrl      String?
+
+  // Status
+  isActive              Boolean   @default(true)
+  isPhantom             Boolean   @default(false) // Phantom BOM items
+  isObsolete            Boolean   @default(false)
+  obsoleteDate          DateTime?
+  replacementMaterialId String? // Replacement if obsolete
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  createdWorkOrders      WorkOrder[]       @relation("CreatedBy")
-  assignedWorkOrders     WorkOrder[]       @relation("AssignedTo")
-  qualityInspections     QualityInspection[]
-  ncrReports            NCR[]             @relation("CreatedBy")
-  assignedNcrs          NCR[]             @relation("AssignedTo")
-  equipmentLogs         EquipmentLog[]
-  auditLogs             AuditLog[]
+  materialClass       MaterialClass        @relation(fields: [materialClassId], references: [id])
+  replacementMaterial MaterialDefinition?  @relation("MaterialReplacement", fields: [replacementMaterialId], references: [id])
+  replacedMaterials   MaterialDefinition[] @relation("MaterialReplacement")
+  properties          MaterialProperty[]
+  lots                MaterialLot[]
 
-  @@map("users")
+  @@index([materialClassId])
+  @@index([materialType])
+  @@index([isActive])
+  @@index([materialNumber])
+  @@map("material_definitions")
 }
 
-// Parts and Materials
+enum MaterialType {
+  RAW_MATERIAL // Raw materials (bar stock, sheet metal, chemicals)
+  COMPONENT // Purchased components (fasteners, bearings, electronics)
+  SUBASSEMBLY // Manufactured subassemblies
+  ASSEMBLY // Final assemblies
+  FINISHED_GOODS // Finished products ready for shipment
+  WIP // Work in progress
+  CONSUMABLE // Consumables (cutting tools, fluids, PPE)
+  PACKAGING // Packaging materials
+  TOOLING // Tooling and fixtures
+  MAINTENANCE // Maintenance supplies
+}
+
+// Material Properties (Specifications, composition, physical properties)
+model MaterialProperty {
+  id            String               @id @default(cuid())
+  materialId    String
+  propertyName  String // Hardness, Density, Composition, Tensile Strength, etc.
+  propertyType  MaterialPropertyType // PHYSICAL, CHEMICAL, MECHANICAL, THERMAL, etc.
+  propertyValue String // Value or range
+  propertyUnit  String? // Unit of measure for the property
+
+  // Specification details
+  testMethod   String? // ASTM E18, ISO 6892, etc.
+  nominalValue Float?
+  minValue     Float?
+  maxValue     Float?
+
+  // Metadata
+  isRequired Boolean  @default(false) // Is this property required for lot acceptance?
+  isCritical Boolean  @default(false) // Critical to part performance
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  material MaterialDefinition @relation(fields: [materialId], references: [id])
+
+  @@unique([materialId, propertyName])
+  @@index([materialId])
+  @@index([propertyType])
+  @@map("material_properties")
+}
+
+enum MaterialPropertyType {
+  PHYSICAL // Density, melting point, dimensions
+  CHEMICAL // Composition, purity, pH
+  MECHANICAL // Tensile strength, hardness, elasticity
+  THERMAL // Thermal conductivity, expansion coefficient
+  ELECTRICAL // Conductivity, resistance
+  OPTICAL // Color, transparency, reflectivity
+  REGULATORY // RoHS, REACH, Conflict Minerals
+  OTHER // Other properties
+}
+
+// Material Lots (Batch/Lot tracking for full traceability)
+model MaterialLot {
+  id         String @id @default(cuid())
+  lotNumber  String @unique // Unique lot/batch number
+  materialId String // Link to MaterialDefinition
+
+  // Lot identification
+  supplierLotNumber   String? // Supplier's lot/batch number
+  purchaseOrderNumber String? // PO number
+  heatNumber          String? // Heat number (for metals)
+  serialNumber        String? // Serial number (if serialized)
+
+  // Quantities
+  originalQuantity Float // Original received quantity
+  currentQuantity  Float // Current available quantity
+  unitOfMeasure    String // UOM for quantities
+
+  // Location
+  location    String? // Storage location (bin, rack, shelf)
+  warehouseId String? // Warehouse/storage facility
+
+  // Dates and expiration
+  manufactureDate DateTime? // Date manufactured by supplier
+  receivedDate    DateTime // Date received into inventory
+  expirationDate  DateTime? // Expiration date
+  shelfLifeDays   Int? // Shelf life in days
+  firstUsedDate   DateTime? // First time lot was issued
+  lastUsedDate    DateTime? // Last time lot was issued
+
+  // Status and state
+  status           MaterialLotStatus @default(AVAILABLE)
+  state            MaterialLotState  @default(RECEIVED)
+  isQuarantined    Boolean           @default(false)
+  quarantineReason String?           @db.Text
+  quarantinedAt    DateTime?
+
+  // Quality
+  qualityStatus     QualityLotStatus @default(PENDING)
+  inspectionId      String? // Link to quality inspection
+  certificationUrls String[] // Mill certs, CoC, test reports
+
+  // Supplier information
+  supplierId       String?
+  supplierName     String?
+  manufacturerId   String?
+  manufacturerName String?
+  countryOfOrigin  String?
+
+  // Cost
+  unitCost  Float?
+  totalCost Float?
+  currency  String? @default("USD")
+
+  // Traceability
+  parentLotId String? // Parent lot (if split from another lot)
+  isSplit     Boolean @default(false) // Was this lot split from another?
+  isMerged    Boolean @default(false) // Was this lot merged from multiple lots?
+
+  // Metadata
+  notes            String?  @db.Text
+  customAttributes Json? // Flexible JSON for additional attributes
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  material          MaterialDefinition     @relation(fields: [materialId], references: [id])
+  parentLot         MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
+  childLots         MaterialLot[]          @relation("LotGenealogy")
+  sublots           MaterialSublot[]
+  stateHistory      MaterialStateHistory[]
+  genealogyAsParent MaterialLotGenealogy[] @relation("ParentLot")
+  genealogyAsChild  MaterialLotGenealogy[] @relation("ChildLot")
+
+  @@index([materialId])
+  @@index([lotNumber])
+  @@index([status])
+  @@index([state])
+  @@index([expirationDate])
+  @@index([qualityStatus])
+  @@index([parentLotId])
+  @@map("material_lots")
+}
+
+enum MaterialLotStatus {
+  AVAILABLE // Available for use
+  RESERVED // Reserved for specific work order
+  IN_USE // Currently being consumed
+  DEPLETED // Completely consumed
+  QUARANTINED // On hold, cannot be used
+  EXPIRED // Past expiration date
+  REJECTED // Failed quality inspection
+  RETURNED // Returned to supplier
+  SCRAPPED // Scrapped/disposed
+}
+
+enum MaterialLotState {
+  RECEIVED // Received into inventory
+  INSPECTED // Quality inspection completed
+  APPROVED // Approved for use
+  ISSUED // Issued to production
+  IN_PROCESS // Being consumed in production
+  CONSUMED // Fully consumed
+  RETURNED // Returned to inventory
+  DISPOSED // Disposed/scrapped
+}
+
+enum QualityLotStatus {
+  PENDING // Awaiting inspection
+  IN_INSPECTION // Currently being inspected
+  APPROVED // Passed inspection
+  REJECTED // Failed inspection
+  CONDITIONAL // Conditionally approved (use as-is, rework)
+}
+
+// Material Sublots (Split/merge operations for lot management)
+model MaterialSublot {
+  id           String @id @default(cuid())
+  sublotNumber String @unique
+  parentLotId  String // Parent MaterialLot
+
+  // Split/merge tracking
+  operationType SublotOperationType // SPLIT, MERGE
+  quantity      Float // Quantity in this sublot
+  unitOfMeasure String
+
+  // Destination/purpose
+  workOrderId String? // If issued to specific work order
+  operationId String? // If issued to specific operation
+  reservedFor String? // Reserved for specific purpose
+
+  // Location
+  location String?
+
+  // Status
+  status   MaterialLotStatus @default(AVAILABLE)
+  isActive Boolean           @default(true)
+
+  // Traceability
+  splitReason String? @db.Text // Reason for split
+  createdById String? // User who performed split
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parentLot MaterialLot @relation(fields: [parentLotId], references: [id])
+
+  @@index([parentLotId])
+  @@index([sublotNumber])
+  @@index([workOrderId])
+  @@map("material_sublots")
+}
+
+enum SublotOperationType {
+  SPLIT // Lot was split into smaller quantities
+  MERGE // Multiple lots/sublots merged together
+  TRANSFER // Transferred to different location
+  REWORK // Reworked material
+}
+
+// Material Lot Genealogy (Parent-child relationships for full material traceability)
+model MaterialLotGenealogy {
+  id          String @id @default(cuid())
+  parentLotId String // Parent lot (consumed material)
+  childLotId  String // Child lot (produced material)
+
+  // Relationship details
+  relationshipType GenealogyRelationType // CONSUMED_BY, PRODUCED_FROM, REWORKED_TO, etc.
+  quantityConsumed Float // Quantity of parent consumed
+  quantityProduced Float? // Quantity of child produced
+  unitOfMeasure    String
+
+  // Context
+  workOrderId String? // Work order where transformation occurred
+  operationId String? // Specific operation
+  processDate DateTime // When transformation occurred
+
+  // Traceability
+  operatorId String? // Operator who performed transformation
+  notes      String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  parentLot MaterialLot @relation("ParentLot", fields: [parentLotId], references: [id])
+  childLot  MaterialLot @relation("ChildLot", fields: [childLotId], references: [id])
+
+  @@unique([parentLotId, childLotId, processDate])
+  @@index([parentLotId])
+  @@index([childLotId])
+  @@index([workOrderId])
+  @@index([processDate])
+  @@map("material_lot_genealogy")
+}
+
+enum GenealogyRelationType {
+  CONSUMED_BY // Parent material consumed to create child
+  PRODUCED_FROM // Child material produced from parent
+  REWORKED_TO // Material reworked into different lot
+  BLENDED_WITH // Materials blended together
+  SPLIT_FROM // Child split from parent lot
+  MERGED_INTO // Multiple lots merged into one
+  TRANSFERRED_TO // Lot transferred/repacked
+}
+
+// Material State History (Track state transitions for lifecycle management)
+model MaterialStateHistory {
+  id    String @id @default(cuid())
+  lotId String
+
+  // State transition
+  previousState  MaterialLotState? // Previous state (null for initial state)
+  newState       MaterialLotState // New state
+  previousStatus MaterialLotStatus? // Previous status
+  newStatus      MaterialLotStatus? // New status
+
+  // Transition details
+  reason         String?             @db.Text // Reason for state change
+  transitionType StateTransitionType // MANUAL, AUTOMATIC, SYSTEM
+
+  // Context
+  quantity      Float? // Quantity involved in transition
+  unitOfMeasure String?
+  workOrderId   String? // Related work order
+  operationId   String? // Related operation
+  inspectionId  String? // Related inspection
+
+  // User and timestamp
+  changedById String? // User who triggered change
+  changedAt   DateTime @default(now())
+
+  // Location
+  fromLocation String? // Source location
+  toLocation   String? // Destination location
+
+  // Quality
+  qualityNotes String? @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Additional metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  lot MaterialLot @relation(fields: [lotId], references: [id])
+
+  @@index([lotId])
+  @@index([changedAt])
+  @@index([newState])
+  @@index([newStatus])
+  @@map("material_state_history")
+}
+
+enum StateTransitionType {
+  MANUAL // User-initiated transition
+  AUTOMATIC // System-triggered based on rules
+  SYSTEM // System maintenance/cleanup
+  SCHEDULED // Scheduled transition (e.g., expiration)
+  INTEGRATION // Triggered by external system integration
+}
+
+// ISA-95 Process Segment Models (Task 1.4)
+// Process Segments define the "recipe" or "how-to" instructions for production operations
+
+// Process Segment (Manufacturing operation definitions)
+model ProcessSegment {
+  id          String  @id @default(cuid())
+  segmentCode String  @unique // Unique code (e.g., "OP-010-MILL", "OP-020-INSPECT")
+  segmentName String // Name of the process segment
+  description String? @db.Text
+
+  // NEW: Multi-site support
+  siteId              String? // NULL = global/standard operation, NOT NULL = site-specific
+  isStandardOperation Boolean @default(false) // Can be reused across routes?
+
+  // Hierarchy support
+  level           Int     @default(1) // Hierarchy level (1=top-level operation, 5=detailed step)
+  parentSegmentId String? // Parent process segment for hierarchical operations
+
+  // Segment classification
+  segmentType ProcessSegmentType // PRODUCTION, QUALITY, MATERIAL_HANDLING, MAINTENANCE, etc.
+  category    String? // Additional categorization (MACHINING, ASSEMBLY, INSPECTION)
+
+  // Timing and capacity
+  duration     Int? // Standard duration in seconds
+  setupTime    Int? // Setup time in seconds
+  teardownTime Int? // Teardown time in seconds
+  minCycleTime Int? // Minimum cycle time
+  maxCycleTime Int? // Maximum cycle time
+
+  // Version control
+  version        String    @default("1.0")
+  effectiveDate  DateTime?
+  expirationDate DateTime?
+
+  // Status
+  isActive         Boolean   @default(true)
+  requiresApproval Boolean   @default(false)
+  approvedBy       String?
+  approvedAt       DateTime?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parentSegment   ProcessSegment?                     @relation("ProcessSegmentHierarchy", fields: [parentSegmentId], references: [id])
+  childSegments   ProcessSegment[]                    @relation("ProcessSegmentHierarchy")
+  site            Site?                               @relation(fields: [siteId], references: [id]) // NEW: Site-specific segments
+  routingSteps    RoutingStep[] // NEW: Used in routing steps
+  parameters      ProcessSegmentParameter[]
+  dependencies    ProcessSegmentDependency[]          @relation("DependentSegment")
+  prerequisiteFor ProcessSegmentDependency[]          @relation("PrerequisiteSegment")
+  personnelSpecs  PersonnelSegmentSpecification[]
+  equipmentSpecs  EquipmentSegmentSpecification[]
+  materialSpecs   MaterialSegmentSpecification[]
+  assetSpecs      PhysicalAssetSegmentSpecification[]
+  bomItems        BOMItem[] // BOM items linked to this process segment
+
+  @@index([parentSegmentId])
+  @@index([segmentType])
+  @@index([level])
+  @@index([isActive])
+  @@index([siteId]) // NEW: Index for site filtering
+  @@index([isStandardOperation]) // NEW: Index for standard operations
+  @@map("process_segments")
+}
+
+enum ProcessSegmentType {
+  PRODUCTION // Production operations (machining, assembly, fabrication)
+  QUALITY // Quality control and inspection
+  MATERIAL_HANDLING // Material movement, loading, unloading
+  MAINTENANCE // Preventive/corrective maintenance
+  SETUP // Setup and changeover
+  CLEANING // Cleaning and sanitation
+  PACKAGING // Packaging operations
+  TESTING // Testing and validation
+  REWORK // Rework operations
+  OTHER // Other process types
+}
+
+// Process Segment Parameters (Input/output parameters and their values)
+model ProcessSegmentParameter {
+  id        String @id @default(cuid())
+  segmentId String
+
+  // Parameter definition
+  parameterName String // Speed, Feed, Temperature, Pressure, etc.
+  parameterType ParameterType // INPUT, OUTPUT, SET_POINT, MEASURED
+  dataType      ParameterDataType // NUMBER, STRING, BOOLEAN, ENUM
+
+  // Value specification
+  defaultValue  String? // Default value
+  unitOfMeasure String? // Unit (RPM, IPM, °F, PSI, etc.)
+
+  // Constraints
+  minValue      Float? // Minimum allowed value
+  maxValue      Float? // Maximum allowed value
+  allowedValues String[] // For enum types
+
+  // Requirements
+  isRequired           Boolean @default(false)
+  isCritical           Boolean @default(false) // Critical quality parameter
+  requiresVerification Boolean @default(false)
+
+  // Display
+  displayOrder Int?
+  notes        String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, parameterName])
+  @@index([segmentId])
+  @@index([parameterType])
+  @@map("process_segment_parameters")
+}
+
+enum ParameterType {
+  INPUT // Input parameter (set before operation starts)
+  OUTPUT // Output parameter (measured after operation)
+  SET_POINT // Target/set point value
+  MEASURED // Measured/actual value during operation
+  CALCULATED // Calculated value
+}
+
+enum ParameterDataType {
+  NUMBER // Numeric value
+  STRING // Text value
+  BOOLEAN // True/false
+  ENUM // Selection from allowed values
+  DATE // Date/time
+  JSON // Complex JSON object
+}
+
+// Process Segment Dependencies (Prerequisites and sequencing rules)
+model ProcessSegmentDependency {
+  id                    String @id @default(cuid())
+  dependentSegmentId    String // Segment that has the dependency
+  prerequisiteSegmentId String // Segment that must be completed first
+
+  // Dependency details
+  dependencyType DependencyType // MUST_COMPLETE, MUST_START, OVERLAP_ALLOWED
+  timingType     DependencyTimingType // FINISH_TO_START, START_TO_START, etc.
+
+  // Timing constraints
+  lagTime  Int? // Minimum time delay (seconds)
+  leadTime Int? // Maximum time gap (seconds)
+
+  // Conditions
+  condition  String? @db.Text // Optional condition (e.g., "if quality_check = PASS")
+  isOptional Boolean @default(false) // Can this dependency be overridden?
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  dependentSegment    ProcessSegment @relation("DependentSegment", fields: [dependentSegmentId], references: [id], onDelete: Cascade)
+  prerequisiteSegment ProcessSegment @relation("PrerequisiteSegment", fields: [prerequisiteSegmentId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentSegmentId, prerequisiteSegmentId])
+  @@index([dependentSegmentId])
+  @@index([prerequisiteSegmentId])
+  @@map("process_segment_dependencies")
+}
+
+enum DependencyType {
+  MUST_COMPLETE // Prerequisite must complete before dependent can start
+  MUST_START // Prerequisite must start before dependent can start
+  OVERLAP_ALLOWED // Can overlap, but prerequisite must start first
+  PARALLEL // Can run in parallel
+}
+
+enum DependencyTimingType {
+  FINISH_TO_START // Prerequisite finish → Dependent start (most common)
+  START_TO_START // Both start at same time
+  FINISH_TO_FINISH // Both finish at same time
+  START_TO_FINISH // Prerequisite start → Dependent finish
+}
+
+// Personnel Segment Specification (Required personnel for process segment)
+model PersonnelSegmentSpecification {
+  id        String @id @default(cuid())
+  segmentId String
+
+  // Personnel requirements
+  personnelClassId  String? // Required personnel class
+  skillId           String? // Required skill
+  minimumCompetency CompetencyLevel? // Minimum competency level required
+
+  // Certification requirements
+  requiredCertifications String[] // Array of required certification IDs
+
+  // Quantity
+  quantity   Int     @default(1) // Number of personnel required
+  isOptional Boolean @default(false)
+
+  // Role definition
+  roleName        String? // Role in this operation (Operator, Inspector, etc.)
+  roleDescription String? @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([personnelClassId])
+  @@map("personnel_segment_specifications")
+}
+
+// Equipment Segment Specification (Required equipment for process segment)
+model EquipmentSegmentSpecification {
+  id        String @id @default(cuid())
+  segmentId String
+
+  // Equipment requirements
+  equipmentClass      EquipmentClass? // Required equipment class
+  equipmentType       String? // Specific equipment type
+  specificEquipmentId String? // Specific equipment ID (if required)
+
+  // Capability requirements
+  requiredCapabilities String[] // Array of required capabilities
+  minimumCapacity      Float? // Minimum capacity requirement
+
+  // Quantity
+  quantity   Int     @default(1) // Number of equipment units required
+  isOptional Boolean @default(false)
+
+  // Usage
+  setupRequired Boolean @default(false)
+  setupTime     Int? // Setup time in seconds
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([equipmentClass])
+  @@map("equipment_segment_specifications")
+}
+
+// Material Segment Specification (Required materials for process segment)
+model MaterialSegmentSpecification {
+  id        String @id @default(cuid())
+  segmentId String
+
+  // Material requirements
+  materialDefinitionId String? // Specific material definition
+  materialClassId      String? // Or material class (if any from class acceptable)
+  materialType         MaterialType? // Or material type
+
+  // Quantity
+  quantity        Float // Required quantity
+  unitOfMeasure   String // UOM
+  consumptionType ConsumptionType // PER_UNIT, PER_BATCH, FIXED
+
+  // Quality requirements
+  requiredProperties  String[] // Array of required property IDs
+  qualityRequirements String?  @db.Text // Specific quality requirements
+
+  // Flexibility
+  isOptional       Boolean @default(false)
+  allowSubstitutes Boolean @default(false)
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([materialDefinitionId])
+  @@map("material_segment_specifications")
+}
+
+enum ConsumptionType {
+  PER_UNIT // Consumed per unit produced
+  PER_BATCH // Consumed per batch
+  FIXED // Fixed amount regardless of quantity
+  SETUP // Consumed during setup only
+}
+
+// Physical Asset Segment Specification (Tooling, fixtures, consumables)
+model PhysicalAssetSegmentSpecification {
+  id        String @id @default(cuid())
+  segmentId String
+
+  // Asset identification
+  assetType PhysicalAssetType // TOOLING, FIXTURE, GAUGE, CONSUMABLE, PPE
+  assetCode String? // Asset identifier/code
+  assetName String // Asset name/description
+
+  // Specifications
+  specifications Json? // Asset specifications (size, tolerance, etc.)
+
+  // Quantity
+  quantity   Int     @default(1)
+  isOptional Boolean @default(false)
+
+  // Calibration requirements (for gauges/measuring equipment)
+  requiresCalibration Boolean @default(false)
+  calibrationInterval Int? // Days between calibration
+
+  // Lifecycle
+  estimatedLifeCycles Int? // Number of uses before replacement
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([assetType])
+  @@map("physical_asset_segment_specifications")
+}
+
+enum PhysicalAssetType {
+  TOOLING // Cutting tools, drill bits, end mills
+  FIXTURE // Work holding fixtures, jigs
+  GAUGE // Measuring gauges, micrometers, calipers
+  CONSUMABLE // Cutting fluid, sandpaper, cleaning supplies
+  PPE // Personal protective equipment
+  MOLD // Molds and dies
+  PATTERN // Patterns and templates
+  SOFTWARE // Software tools (CAM, inspection programs)
+  OTHER // Other physical assets
+}
+
+// ============================================================================
+// ISA-95 Product Definition Models (Task 1.5)
+// ============================================================================
+
+// Product Types (ISA-95 Classification)
+enum ProductType {
+  MADE_TO_STOCK // MTS: Build ahead, stock inventory
+  MADE_TO_ORDER // MTO: Build only when customer orders
+  ENGINEER_TO_ORDER // ETO: Custom engineering for each order
+  CONFIGURE_TO_ORDER // CTO: Configure standard product to customer specs
+  ASSEMBLE_TO_ORDER // ATO: Assemble from standard modules
+}
+
+// Product Lifecycle States
+enum ProductLifecycleState {
+  DESIGN // Initial design phase
+  PROTOTYPE // Prototype development
+  PILOT_PRODUCTION // Pilot/trial production
+  PRODUCTION // Active production
+  MATURE // Mature product, stable production
+  PHASE_OUT // Being phased out
+  OBSOLETE // Obsolete, no longer produced
+  ARCHIVED // Archived for historical reference
+}
+
+// Product Configuration Types
+enum ConfigurationType {
+  STANDARD // Standard configuration (no options)
+  VARIANT // Predefined variant (e.g., small/medium/large)
+  CUSTOM // Fully custom configuration
+  CONFIGURABLE // Configurable with defined options
+}
+
+// Specification Types
+enum SpecificationType {
+  PHYSICAL // Physical dimensions, weight, size
+  CHEMICAL // Chemical composition, material properties
+  MECHANICAL // Strength, hardness, durability
+  ELECTRICAL // Voltage, current, power ratings
+  PERFORMANCE // Speed, capacity, throughput
+  REGULATORY // Compliance requirements (FDA, ISO, etc.)
+  ENVIRONMENTAL // Temperature, humidity, IP rating
+  SAFETY // Safety requirements and certifications
+  QUALITY // Quality standards and requirements
+  OTHER // Other specification types
+}
+
+// Parts and Materials (Enhanced with ISA-95 Product Definition)
 model Part {
-  id              String   @id @default(cuid())
-  partNumber      String   @unique
-  partName        String
-  description     String?
-  partType        String
-  unitOfMeasure   String
-  drawingNumber   String?
-  revision        String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String  @id @default(cuid())
+  partNumber  String  @unique
+  partName    String
+  description String? @db.Text
+
+  // ISA-95 Product Classification
+  partType       String // COMPONENT, ASSEMBLY, RAW_MATERIAL, etc. (legacy field)
+  productType    ProductType           @default(MADE_TO_STOCK)
+  lifecycleState ProductLifecycleState @default(PRODUCTION)
+
+  // Units and measurements
+  unitOfMeasure String
+  weight        Float?
+  weightUnit    String? // LB, KG, OZ, G
+
+  // Engineering data
+  drawingNumber String?
+  revision      String?
+  cadModelUrl   String? // CAD file location
+
+  // Product lifecycle tracking
+  releaseDate       DateTime? // Date released to production
+  obsoleteDate      DateTime? // Date marked obsolete
+  replacementPartId String? // Replacement part if obsolete
+
+  // Manufacturing attributes
+  makeOrBuy       String? @default("MAKE") // MAKE, BUY, PHANTOM
+  leadTimeDays    Int? // Manufacturing lead time
+  lotSizeMin      Int? // Minimum lot size
+  lotSizeMultiple Int? // Lot size multiple
+
+  // Cost and pricing
+  standardCost Float?
+  targetCost   Float?
+  currency     String? @default("USD")
+
+  // Flags
+  isActive       Boolean @default(true)
+  isConfigurable Boolean @default(false) // Can be configured with options
+  requiresFAI    Boolean @default(false) // Requires First Article Inspection
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workOrders         WorkOrder[]
-  bomItems           BOMItem[]         @relation("ParentPart")
-  componentItems     BOMItem[]         @relation("ComponentPart")
-  qualityPlans       QualityPlan[]
-  inventoryItems     Inventory[]
-  serializedParts    SerializedPart[]
+  replacementPart  Part?                  @relation("PartReplacement", fields: [replacementPartId], references: [id])
+  replacedParts    Part[]                 @relation("PartReplacement")
+  workOrders       WorkOrder[]
+  bomItems         BOMItem[]              @relation("ParentPart")
+  componentItems   BOMItem[]              @relation("ComponentPart")
+  qualityPlans     QualityPlan[]
+  inventoryItems   Inventory[]
+  serializedParts  SerializedPart[]
+  specifications   ProductSpecification[]
+  configurations   ProductConfiguration[]
+  lifecycleHistory ProductLifecycle[]
+  scheduleEntries  ScheduleEntry[] // Schedule entries for this part
 
+  // NEW: Multi-site routing relations
+  routings         Routing[] // Routes for this part at different sites
+  siteAvailability PartSiteAvailability[] // Sites that can manufacture this part
+
+  // Task 1.8: ISA-95 B2M Integration relations
+  productionScheduleRequests ProductionScheduleRequest[]
+  erpMaterialTransactions    ERPMaterialTransaction[]
+
+  // Task 1.9: ISA-95 L2 Equipment Integration relations
+  equipmentMaterialMovements EquipmentMaterialMovement[]
+
+  @@index([productType])
+  @@index([lifecycleState])
+  @@index([isActive])
+  @@index([partNumber])
   @@map("parts")
 }
 
-// Bill of Materials
+// NEW: PartSiteAvailability - Track which sites can manufacture which parts
+model PartSiteAvailability {
+  id     String @id @default(cuid())
+  partId String
+  siteId String
+
+  // Availability attributes
+  isPreferred Boolean @default(false) // Is this the preferred site for this part?
+  isActive    Boolean @default(true) // Can this site currently manufacture this part?
+
+  // Site-specific manufacturing data
+  leadTimeDays   Int? // Manufacturing lead time at this site
+  minimumLotSize Int? // Minimum production lot size
+  maximumLotSize Int? // Maximum production lot size
+
+  // Cost data (site-specific)
+  standardCost Float? // Standard cost to manufacture at this site
+  setupCost    Float? // Setup cost at this site
+
+  // Dates
+  effectiveDate  DateTime? // When site became capable
+  expirationDate DateTime? // When site capability expires
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@unique([partId, siteId]) // One record per part-site combination
+  @@index([siteId])
+  @@index([isActive])
+  @@map("part_site_availability")
+}
+
+// Bill of Materials (Enhanced with ISA-95 Process Segment Integration)
 model BOMItem {
-  id           String  @id @default(cuid())
-  parentPartId String
+  id              String @id @default(cuid())
+  parentPartId    String
   componentPartId String
-  quantity     Float
+
+  // Quantity and usage
+  quantity      Float
   unitOfMeasure String
-  sequence     Int?
-  isActive     Boolean @default(true)
+  scrapFactor   Float? @default(0) // Expected scrap percentage (0-100)
+
+  // Assembly and positioning
+  sequence            Int? // Assembly sequence
+  findNumber          String? // Find number on assembly drawing
+  referenceDesignator String? // Electronic component reference (R1, C2, U3, etc.)
+
+  // Manufacturing process linkage (ISA-95 integration)
+  processSegmentId String? // Link to ProcessSegment for this BOM item
+  operationNumber  Int? // Operation where this component is consumed
+
+  // Lifecycle management
+  effectiveDate DateTime? // When this BOM item becomes effective
+  obsoleteDate  DateTime? // When this BOM item becomes obsolete
+  ecoNumber     String? // Engineering Change Order number
+
+  // Component attributes
+  isOptional Boolean @default(false) // Optional component (for configurations)
+  isCritical Boolean @default(false) // Critical to product function
+  notes      String? @db.Text
+
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parentPart     Part            @relation("ParentPart", fields: [parentPartId], references: [id])
+  componentPart  Part            @relation("ComponentPart", fields: [componentPartId], references: [id])
+  processSegment ProcessSegment? @relation(fields: [processSegmentId], references: [id])
+
+  @@index([parentPartId])
+  @@index([componentPartId])
+  @@index([processSegmentId])
+  @@index([effectiveDate])
+  @@map("bom_items")
+}
+
+// Product Specification (Technical specifications and requirements)
+model ProductSpecification {
+  id                String            @id @default(cuid())
+  partId            String
+  specificationName String
+  specificationType SpecificationType
+
+  // Specification details
+  specificationValue String? @db.Text // Text value or description
+  nominalValue       Float? // Numeric nominal value
+  minValue           Float? // Minimum acceptable value
+  maxValue           Float? // Maximum acceptable value
+  unitOfMeasure      String? // Unit for numeric values
+
+  // Testing and verification
+  testMethod          String? @db.Text // How to test/verify (ASTM, ISO, MIL-SPEC)
+  inspectionFrequency String? // 100%, SAMPLE, FIRST_LAST, PER_LOT
+  isCritical          Boolean @default(false) // Critical specification
+  isRegulatory        Boolean @default(false) // Required for regulatory compliance
+
+  // Documentation
+  documentReferences String[] // Reference documents (drawings, specs, standards)
+  notes              String?  @db.Text
+
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([specificationType])
+  @@index([isCritical])
+  @@map("product_specifications")
+}
+
+// Product Configuration (Variant and option management)
+model ProductConfiguration {
+  id                String            @id @default(cuid())
+  partId            String
+  configurationName String
+  configurationType ConfigurationType
+
+  // Configuration details
+  description       String? @db.Text
+  configurationCode String? // Short code (e.g., "STD", "PREM", "DEL")
+
+  // Variant attributes (JSON for flexibility)
+  // Example: { "size": "Large", "color": "Blue", "voltage": "220V" }
+  attributes Json?
+
+  // Pricing and cost impact
+  priceModifier Float? @default(0) // Price adjustment (+/- amount)
+  costModifier  Float? @default(0) // Cost adjustment (+/- amount)
+
+  // Lead time impact
+  leadTimeDelta Int? @default(0) // Lead time adjustment in days
+
+  // Availability
+  isAvailable   Boolean   @default(true)
+  effectiveDate DateTime?
+  obsoleteDate  DateTime?
+
+  // Sales and marketing
+  isDefault     Boolean @default(false) // Default configuration
+  marketingName String? // Customer-facing name
+  imageUrl      String?
+
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  part    Part                  @relation(fields: [partId], references: [id], onDelete: Cascade)
+  options ConfigurationOption[]
+
+  @@index([partId])
+  @@index([configurationType])
+  @@index([isDefault])
+  @@map("product_configurations")
+}
+
+// Configuration Options (Options and features for configurable products)
+model ConfigurationOption {
+  id              String  @id @default(cuid())
+  configurationId String
+  optionName      String
+  optionCode      String? // Short code (e.g., "EXT-WARR", "PWR-SUP-220V")
+  description     String? @db.Text
+
+  // Option details
+  optionCategory String? // Category (SIZE, COLOR, FEATURE, ACCESSORY)
+  optionValue    String? // Selected value
+  isRequired     Boolean @default(false)
+  isDefault      Boolean @default(false)
+
+  // BOM impact (parts added/removed for this option)
+  addedPartIds   String[] // Parts added when option selected
+  removedPartIds String[] // Parts removed when option selected
+
+  // Cost and pricing impact
+  priceModifier Float? @default(0)
+  costModifier  Float? @default(0)
+
+  // Metadata
+  displayOrder Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
-  parentPart    Part @relation("ParentPart", fields: [parentPartId], references: [id])
-  componentPart Part @relation("ComponentPart", fields: [componentPartId], references: [id])
+  configuration ProductConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
 
-  @@map("bom_items")
+  @@index([configurationId])
+  @@map("configuration_options")
+}
+
+// Product Lifecycle (Lifecycle state history and transitions)
+model ProductLifecycle {
+  id     String @id @default(cuid())
+  partId String
+
+  // Lifecycle state transition
+  previousState  ProductLifecycleState?
+  newState       ProductLifecycleState
+  transitionDate DateTime               @default(now())
+
+  // Transition details
+  reason     String?   @db.Text
+  ecoNumber  String? // Engineering Change Order
+  approvedBy String? // User ID who approved transition
+  approvedAt DateTime?
+
+  // Notifications and impact
+  notificationsSent Boolean @default(false)
+  impactAssessment  String? @db.Text // Impact of state change
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Additional metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([newState])
+  @@index([transitionDate])
+  @@map("product_lifecycle")
 }
 
 // Work Orders
 model WorkOrder {
-  id                String           @id @default(cuid())
-  workOrderNumber   String           @unique
+  id                String            @id @default(cuid())
+  workOrderNumber   String            @unique
   partId            String
-  partNumber        String?          // Denormalized for performance
+  partNumber        String? // Denormalized for performance
   quantity          Int
-  quantityCompleted Int              @default(0)
-  quantityScrapped  Int              @default(0)
+  quantityCompleted Int               @default(0)
+  quantityScrapped  Int               @default(0)
   priority          WorkOrderPriority
   status            WorkOrderStatus
   dueDate           DateTime?
@@ -120,19 +1524,41 @@ model WorkOrder {
   actualStartDate   DateTime?
   completedAt       DateTime?
   actualEndDate     DateTime?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   // Relations
-  part             Part               @relation(fields: [partId], references: [id])
-  site             Site?              @relation(fields: [siteId], references: [id])
-  createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
-  assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
-  routing          Routing?           @relation(fields: [routingId], references: [id])
-  operations       WorkOrderOperation[]
-  qualityInspections QualityInspection[]
+  part                 Part                  @relation(fields: [partId], references: [id])
+  site                 Site?                 @relation(fields: [siteId], references: [id])
+  createdBy            User                  @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo           User?                 @relation("AssignedTo", fields: [assignedToId], references: [id])
+  routing              Routing?              @relation(fields: [routingId], references: [id])
+  operations           WorkOrderOperation[]
+  qualityInspections   QualityInspection[]
   materialTransactions MaterialTransaction[]
-  ncrs             NCR[]
+  ncrs                 NCR[]
+  scheduleEntry        ScheduleEntry? // Schedule entry that created this work order (1:1)
+
+  // Task 1.7: Production Dispatching & Execution relations
+  statusHistory   WorkOrderStatusHistory[]
+  dispatchLogs    DispatchLog[]
+  workPerformance WorkPerformance[]
+  variances       ProductionVariance[]
+
+  // Task 1.8: ISA-95 B2M Integration relations
+  productionScheduleRequests   ProductionScheduleRequest[]
+  productionPerformanceActuals ProductionPerformanceActual[]
+  erpMaterialTransactions      ERPMaterialTransaction[]
+
+  // Task 1.9: ISA-95 L2 Equipment Integration relations
+  equipmentDataCollections   EquipmentDataCollection[]
+  equipmentCommands          EquipmentCommand[]
+  equipmentMaterialMovements EquipmentMaterialMovement[]
+  processDataCollections     ProcessDataCollection[]
+
+  // QIF (Quality Information Framework) relations
+  qifMeasurementPlans   QIFMeasurementPlan[]
+  qifMeasurementResults QIFMeasurementResult[]
 
   @@map("work_orders")
 }
@@ -153,76 +1579,218 @@ enum WorkOrderStatus {
   ON_HOLD
 }
 
+// Routing Lifecycle States (NEW for multi-site routing)
+enum RoutingLifecycleState {
+  DRAFT // Being created/edited
+  REVIEW // Under review for approval
+  RELEASED // Approved, ready for use
+  PRODUCTION // Currently in use for manufacturing
+  OBSOLETE // No longer used, kept for historical reference
+}
+
 // Routing and Operations
 model Routing {
+  id             String                @id @default(cuid())
+  routingNumber  String                @unique
+  partId         String? // Temporarily nullable for migration - will be required after data migration
+  siteId         String? // Temporarily nullable for migration - will be required after data migration
+  version        String                @default("1.0") // NEW: Version control
+  lifecycleState RoutingLifecycleState @default(DRAFT) // NEW: State management
+  description    String?               @db.Text
+
+  // Route attributes
+  isPrimaryRoute Boolean   @default(false) // NEW: Is this the preferred route for this part at this site?
+  isActive       Boolean   @default(true)
+  effectiveDate  DateTime? // NEW: When route becomes active
+  expirationDate DateTime? // NEW: When route expires
+
+  // Approval tracking
+  approvedBy String?
+  approvedAt DateTime?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  notes     String?  @db.Text
+
+  // Relations
+  part            Part?              @relation(fields: [partId], references: [id])
+  site            Site?              @relation(fields: [siteId], references: [id])
+  steps           RoutingStep[] // NEW: Replaces operations
+  operations      RoutingOperation[] // DEPRECATED: Keep for backward compatibility during migration
+  workOrders      WorkOrder[]
+  scheduleEntries ScheduleEntry[] // Schedule entries using this routing
+
+  // Indexes
+  @@unique([partId, siteId, version]) // NEW: One route per part+site+version
+  @@index([siteId])
+  @@index([partId])
+  @@index([lifecycleState])
+  @@index([isActive])
+  @@map("routings")
+}
+
+model RoutingOperation {
+  id              String   @id @default(cuid())
+  routingId       String
+  operationNumber Int
+  operationName   String
+  description     String?
+  setupTime       Float?
+  cycleTime       Float?
+  workCenterId    String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  routing      Routing              @relation(fields: [routingId], references: [id])
+  workCenter   WorkCenter?          @relation(fields: [workCenterId], references: [id])
+  workOrderOps WorkOrderOperation[]
+
+  @@map("routing_operations")
+}
+
+// NEW: RoutingStep - Replaces RoutingOperation for multi-site routing
+// Links routing to ProcessSegment for operation reuse
+model RoutingStep {
+  id               String  @id @default(cuid())
+  routingId        String
+  stepNumber       Int // Sequence: 10, 20, 30, 40... (allows inserts between steps)
+  processSegmentId String // KEY: Links to standard operation
+  workCenterId     String? // Optional: specific work center assignment
+
+  // Timing overrides (optional, defaults come from ProcessSegment)
+  setupTimeOverride    Int? // Seconds - overrides ProcessSegment.setupTime
+  cycleTimeOverride    Int? // Seconds - overrides ProcessSegment.duration
+  teardownTimeOverride Int? // Seconds - overrides ProcessSegment.teardownTime
+
+  // Step attributes
+  isOptional          Boolean @default(false) // Can this step be skipped?
+  isQualityInspection Boolean @default(false) // Is this a quality checkpoint?
+  isCriticalPath      Boolean @default(false) // Is this on critical path for scheduling?
+
+  // Instructions
+  stepInstructions String? @db.Text // Additional instructions specific to this route
+  notes            String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  routing             Routing                 @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  processSegment      ProcessSegment          @relation(fields: [processSegmentId], references: [id])
+  workCenter          WorkCenter?             @relation(fields: [workCenterId], references: [id])
+  dependencies        RoutingStepDependency[] @relation("DependentStep")
+  prerequisites       RoutingStepDependency[] @relation("PrerequisiteStep")
+  workOrderOperations WorkOrderOperation[] // When work orders are created from this route
+
+  // Indexes
+  @@unique([routingId, stepNumber]) // One step number per route
+  @@index([routingId])
+  @@index([processSegmentId])
+  @@index([workCenterId])
+  @@map("routing_steps")
+}
+
+// NEW: RoutingStepDependency - Define sequencing rules between routing steps
+model RoutingStepDependency {
+  id                 String @id @default(cuid())
+  dependentStepId    String // Step that has the dependency
+  prerequisiteStepId String // Step that must complete first
+
+  // Dependency details
+  dependencyType DependencyType // MUST_COMPLETE, MUST_START, OVERLAP_ALLOWED
+  timingType     DependencyTimingType // FINISH_TO_START, START_TO_START, etc.
+
+  // Timing constraints
+  lagTime  Int? // Minimum time delay (seconds) after prerequisite
+  leadTime Int? // Maximum time gap (seconds) allowed
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  dependentStep    RoutingStep @relation("DependentStep", fields: [dependentStepId], references: [id], onDelete: Cascade)
+  prerequisiteStep RoutingStep @relation("PrerequisiteStep", fields: [prerequisiteStepId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@unique([dependentStepId, prerequisiteStepId])
+  @@index([dependentStepId])
+  @@index([prerequisiteStepId])
+  @@map("routing_step_dependencies")
+}
+
+// Work Centers (ISA-95 Level 3)
+model WorkCenter {
   id          String   @id @default(cuid())
-  routingNumber String @unique
-  partId      String?
+  name        String   @unique
   description String?
+  capacity    Float?
+  areaId      String? // Link to Area for ISA-95 hierarchy
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  operations  RoutingOperation[]
-  workOrders  WorkOrder[]
+  area                 Area?                           @relation(fields: [areaId], references: [id])
+  workUnits            WorkUnit[] // ISA-95 hierarchy: WorkCenter → WorkUnits
+  operations           RoutingOperation[]
+  routingSteps         RoutingStep[] // NEW: Multi-site routing steps assigned to this work center
+  equipment            Equipment[]
+  personnelAssignments PersonnelWorkCenterAssignment[]
+  scheduleEntries      ScheduleEntry[] // Schedule entries assigned to this work center
 
-  @@map("routings")
+  // Task 1.7: Production Dispatching & Execution relations
+  dispatchLogs DispatchLog[] @relation("DispatchWorkCenter")
+
+  @@index([areaId])
+  @@map("work_centers")
 }
 
-model RoutingOperation {
-  id             String   @id @default(cuid())
-  routingId      String
-  operationNumber Int
-  operationName  String
-  description    String?
-  setupTime      Float?
-  cycleTime      Float?
-  workCenterId   String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  routing       Routing            @relation(fields: [routingId], references: [id])
-  workCenter    WorkCenter?        @relation(fields: [workCenterId], references: [id])
-  workOrderOps  WorkOrderOperation[]
-
-  @@map("routing_operations")
-}
-
-model WorkCenter {
+// Work Units (ISA-95 Level 5 - below WorkCenter)
+model WorkUnit {
   id           String   @id @default(cuid())
-  name         String   @unique
-  description  String?
-  capacity     Float?
+  workUnitCode String   @unique
+  workUnitName String
+  description  String?  @db.Text
+  workCenterId String
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
-  operations   RoutingOperation[]
-  equipment    Equipment[]
+  workCenter WorkCenter  @relation(fields: [workCenterId], references: [id])
+  equipment  Equipment[] // Work units contain equipment
 
-  @@map("work_centers")
+  @@index([workCenterId])
+  @@map("work_units")
 }
 
 model WorkOrderOperation {
-  id                String                    @id @default(cuid())
-  workOrderId       String
+  id                 String                   @id @default(cuid())
+  workOrderId        String
   routingOperationId String
-  status            WorkOrderOperationStatus
-  quantity          Int
-  quantityCompleted Int                      @default(0)
-  quantityScrap     Int                      @default(0)
-  startedAt         DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  status             WorkOrderOperationStatus
+  quantity           Int
+  quantityCompleted  Int                      @default(0)
+  quantityScrap      Int                      @default(0)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   // Relations
-  workOrder         WorkOrder         @relation(fields: [workOrderId], references: [id])
-  routingOperation  RoutingOperation  @relation(fields: [routingOperationId], references: [id])
+  workOrder        WorkOrder        @relation(fields: [workOrderId], references: [id])
+  routingOperation RoutingOperation @relation(fields: [routingOperationId], references: [id])
+
+  // Task 1.7: Production Dispatching & Execution relations
+  workPerformance WorkPerformance[]
+  variances       ProductionVariance[]
+  RoutingStep     RoutingStep?         @relation(fields: [routingStepId], references: [id])
+  routingStepId   String?
 
   @@map("work_order_operations")
 }
@@ -232,6 +1800,474 @@ enum WorkOrderOperationStatus {
   IN_PROGRESS
   COMPLETED
   SKIPPED
+}
+
+// ============================================================================
+// ISA-95 Production Scheduling Models (Task 1.6)
+// Production Scheduling is the higher-level planning layer that determines
+// WHAT to produce, WHEN, and in WHAT QUANTITIES based on demand and constraints.
+// Schedules get "dispatched" to become work orders for execution.
+// ============================================================================
+
+// Schedule State (ISA-95 compliant)
+enum ScheduleState {
+  FORECAST // Tentative plan, not committed
+  RELEASED // Approved plan, ready for dispatch
+  DISPATCHED // Work orders created, execution started
+  RUNNING // Active execution in progress
+  COMPLETED // All entries dispatched and completed
+  CLOSED // Final state, archived
+}
+
+// Schedule Priority
+enum SchedulePriority {
+  URGENT // Highest priority (customer critical, expedite)
+  HIGH // High priority (hot orders, committed dates)
+  NORMAL // Normal priority (standard lead time)
+  LOW // Low priority (fill-in work, off-season)
+}
+
+// Constraint Type
+enum ConstraintType {
+  CAPACITY // Work center capacity constraint
+  MATERIAL // Material availability constraint
+  PERSONNEL // Personnel/labor availability constraint
+  EQUIPMENT // Equipment availability constraint
+  DATE // Date/deadline constraint
+  CUSTOM // Custom business rule constraint
+}
+
+// Production Schedule (Master schedule container)
+model ProductionSchedule {
+  id             String  @id @default(cuid())
+  scheduleNumber String  @unique // SCH-2025-0001
+  scheduleName   String // "January 2025 Production Schedule"
+  description    String? @db.Text
+
+  // Schedule period
+  periodStart DateTime // Schedule period start date
+  periodEnd   DateTime // Schedule period end date
+  periodType  String   @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY
+
+  // Site/facility
+  siteId String? // Link to Site
+  areaId String? // Optional: specific area
+
+  // State management
+  state          ScheduleState @default(FORECAST)
+  stateChangedAt DateTime      @default(now())
+  stateChangedBy String? // User who changed state
+
+  // Planning details
+  priority   SchedulePriority @default(NORMAL)
+  plannedBy  String? // User who created schedule
+  approvedBy String? // User who approved schedule
+  approvedAt DateTime?
+
+  // Dispatch tracking
+  dispatchedCount Int @default(0) // Number of entries dispatched
+  totalEntries    Int @default(0) // Total schedule entries
+
+  // Status flags
+  isLocked         Boolean @default(false) // Prevent modifications
+  isFeasible       Boolean @default(true) // Feasibility check result
+  feasibilityNotes String? @db.Text // Feasibility analysis notes
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Flexible JSON for custom data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  site         Site?                  @relation(fields: [siteId], references: [id])
+  entries      ScheduleEntry[]
+  stateHistory ScheduleStateHistory[]
+
+  @@index([siteId])
+  @@index([state])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("production_schedules")
+}
+
+// Schedule Entry (Individual schedule line items)
+model ScheduleEntry {
+  id          String @id @default(cuid())
+  scheduleId  String
+  entryNumber Int // Line number in schedule
+
+  // Product details
+  partId      String
+  partNumber  String // Denormalized for performance
+  description String? @db.Text
+
+  // Quantities
+  plannedQuantity    Float // Quantity to produce
+  dispatchedQuantity Float  @default(0) // Quantity dispatched to work orders
+  completedQuantity  Float  @default(0) // Quantity completed
+  unitOfMeasure      String @default("EA")
+
+  // Dates
+  plannedStartDate DateTime // When production should start
+  plannedEndDate   DateTime // When production should complete
+  actualStartDate  DateTime? // When dispatched/started
+  actualEndDate    DateTime? // When completed
+
+  // Priority and sequencing
+  priority       SchedulePriority @default(NORMAL)
+  sequenceNumber Int? // Sequence within schedule
+
+  // Planning details
+  estimatedDuration Int? // Estimated duration in hours
+  workCenterId      String? // Preferred work center
+  routingId         String? // Manufacturing route
+
+  // Constraints
+  customerOrder   String? // Customer order reference
+  customerDueDate DateTime? // Customer required date
+  salesOrder      String? // Sales order number
+
+  // Dispatch tracking
+  isDispatched Boolean   @default(false) // Has been dispatched
+  dispatchedAt DateTime? // When dispatched
+  dispatchedBy String? // User who dispatched
+  workOrderId  String?   @unique // Created work order (1:1 relationship)
+
+  // Status
+  isCancelled     Boolean   @default(false)
+  cancelledAt     DateTime?
+  cancelledReason String?   @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Flexible JSON for custom data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  schedule    ProductionSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  part        Part                 @relation(fields: [partId], references: [id])
+  workOrder   WorkOrder?           @relation(fields: [workOrderId], references: [id])
+  workCenter  WorkCenter?          @relation(fields: [workCenterId], references: [id])
+  routing     Routing?             @relation(fields: [routingId], references: [id])
+  constraints ScheduleConstraint[]
+
+  @@unique([scheduleId, entryNumber])
+  @@index([scheduleId])
+  @@index([partId])
+  @@index([plannedStartDate])
+  @@index([plannedEndDate])
+  @@index([priority])
+  @@index([isDispatched])
+  @@index([workOrderId])
+  @@map("schedule_entries")
+}
+
+// Schedule Constraint (Constraints affecting schedule feasibility)
+model ScheduleConstraint {
+  id      String @id @default(cuid())
+  entryId String // Link to ScheduleEntry
+
+  // Constraint details
+  constraintType ConstraintType
+  constraintName String // Brief name
+  description    String?        @db.Text
+
+  // Constraint specifics
+  resourceId   String? // Work center, equipment, material ID
+  resourceType String? // WORK_CENTER, EQUIPMENT, MATERIAL, PERSONNEL
+
+  // Availability
+  requiredQuantity  Float? // Required amount
+  availableQuantity Float? // Available amount
+  unitOfMeasure     String?
+
+  // Date constraints
+  constraintDate DateTime? // Critical date (due date, availability date)
+  leadTimeDays   Int? // Lead time required
+
+  // Violation tracking
+  isViolated        Boolean @default(false) // Is this constraint currently violated?
+  violationSeverity String? // LOW, MEDIUM, HIGH, CRITICAL
+  violationMessage  String? @db.Text
+
+  // Resolution
+  isResolved      Boolean   @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolutionNotes String?   @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Additional constraint data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  entry ScheduleEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+  @@index([constraintType])
+  @@index([isViolated])
+  @@index([constraintDate])
+  @@map("schedule_constraints")
+}
+
+// Schedule State History (Audit trail of state transitions)
+model ScheduleStateHistory {
+  id         String @id @default(cuid())
+  scheduleId String
+
+  // State transition
+  previousState  ScheduleState? // Previous state (null for initial)
+  newState       ScheduleState // New state
+  transitionDate DateTime       @default(now())
+
+  // Transition details
+  reason    String? @db.Text // Reason for state change
+  changedBy String? // User ID who changed state
+
+  // Impact tracking
+  entriesAffected   Int? // Number of entries affected
+  notificationsSent Boolean @default(false)
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json? // Additional metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  schedule ProductionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([newState])
+  @@index([transitionDate])
+  @@map("schedule_state_history")
+}
+
+// ============================================================================
+// ISA-95 Production Dispatching & Execution (Task 1.7)
+// Production Dispatching & Execution is the shop floor execution layer that:
+// - Releases work orders to the shop floor (dispatching)
+// - Tracks real-time work order status transitions
+// - Captures actual performance data (labor, materials, equipment time)
+// - Calculates variances between planned and actual performance
+// ============================================================================
+
+// Work Order Status History (Audit trail for work order status transitions)
+model WorkOrderStatusHistory {
+  id          String @id @default(cuid())
+  workOrderId String
+
+  // Status transition
+  previousStatus WorkOrderStatus? // Previous status (null if first transition)
+  newStatus      WorkOrderStatus // New status
+  transitionDate DateTime         @default(now())
+
+  // Transition details
+  reason    String? @db.Text // Reason for status change
+  changedBy String? // User ID who made the change
+  notes     String? @db.Text
+
+  // Context at time of transition
+  quantityAtTransition Int? // Quantity completed at this transition
+  scrapAtTransition    Int? // Scrap quantity at this transition
+
+  // Metadata
+  metadata  Json? // Additional metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([newStatus])
+  @@index([transitionDate])
+  @@map("work_order_status_history")
+}
+
+// Dispatch Log (Tracks work order dispatch events to shop floor)
+model DispatchLog {
+  id          String @id @default(cuid())
+  workOrderId String
+
+  // Dispatch details
+  dispatchedAt   DateTime @default(now())
+  dispatchedBy   String? // User ID who dispatched
+  dispatchedFrom String? // Source (e.g., "Production Schedule SCH-2025-01")
+
+  // Assignment
+  assignedToId     String? // Personnel assigned
+  workCenterId     String? // Work center assigned
+  priorityOverride WorkOrderPriority? // Priority override at dispatch
+
+  // Timing
+  expectedStartDate DateTime? // Expected start date
+  expectedEndDate   DateTime? // Expected completion date
+
+  // Status at dispatch
+  quantityDispatched Int // Quantity being dispatched
+  materialReserved   Boolean @default(false) // Materials reserved?
+  toolingReserved    Boolean @default(false) // Tooling reserved?
+
+  // Notes
+  dispatchNotes String? @db.Text
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  workOrder  WorkOrder   @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  assignedTo User?       @relation("DispatchAssignedTo", fields: [assignedToId], references: [id])
+  workCenter WorkCenter? @relation("DispatchWorkCenter", fields: [workCenterId], references: [id])
+
+  @@index([workOrderId])
+  @@index([dispatchedAt])
+  @@index([assignedToId])
+  @@index([workCenterId])
+  @@map("dispatch_logs")
+}
+
+// Work Performance Record Type
+enum WorkPerformanceType {
+  LABOR // Labor/personnel time
+  MATERIAL // Material consumption
+  EQUIPMENT // Equipment/machine time
+  QUALITY // Quality yield performance
+  SETUP // Setup time performance
+  DOWNTIME // Downtime tracking
+}
+
+// Work Performance (Actual performance data captured during execution)
+model WorkPerformance {
+  id          String  @id @default(cuid())
+  workOrderId String
+  operationId String? // WorkOrderOperation if operation-level tracking
+
+  // Performance type
+  performanceType WorkPerformanceType
+
+  // Timing
+  recordedAt DateTime @default(now())
+  recordedBy String? // User ID who recorded
+
+  // Labor performance (when performanceType = LABOR)
+  personnelId     String? // Personnel who performed work
+  laborHours      Float? // Actual hours worked
+  laborCost       Float? // Actual labor cost
+  laborEfficiency Float? // Efficiency % (standard hrs / actual hrs * 100)
+
+  // Material performance (when performanceType = MATERIAL)
+  partId           String? // Part/material consumed
+  quantityConsumed Float? // Actual quantity consumed
+  quantityPlanned  Float? // Planned quantity
+  materialVariance Float? // Variance (planned - actual)
+  unitCost         Float? // Cost per unit
+  totalCost        Float? // Total material cost
+
+  // Equipment performance (when performanceType = EQUIPMENT)
+  equipmentId      String? // Equipment used
+  setupTime        Float? // Actual setup time (minutes)
+  runTime          Float? // Actual run time (minutes)
+  plannedSetupTime Float? // Planned setup time
+  plannedRunTime   Float? // Planned run time
+
+  // Quality performance (when performanceType = QUALITY)
+  quantityProduced Int? // Total quantity produced
+  quantityGood     Int? // Good quantity
+  quantityScrap    Int? // Scrap quantity
+  quantityRework   Int? // Rework quantity
+  yieldPercentage  Float? // Yield % (good / total * 100)
+  scrapReason      String? @db.Text
+
+  // Downtime (when performanceType = DOWNTIME)
+  downtimeMinutes  Float? // Downtime duration
+  downtimeReason   String? @db.Text // Reason for downtime
+  downtimeCategory String? // Category (breakdown, changeover, etc.)
+
+  // General
+  notes     String?  @db.Text
+  metadata  Json? // Additional flexible data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workOrder WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  operation WorkOrderOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  personnel User?               @relation("WorkPerformancePersonnel", fields: [personnelId], references: [id])
+
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([performanceType])
+  @@index([recordedAt])
+  @@index([personnelId])
+  @@map("work_performance")
+}
+
+// Variance Type
+enum VarianceType {
+  QUANTITY // Quantity variance (planned vs actual quantity)
+  TIME // Time variance (scheduled vs actual duration)
+  COST // Cost variance (standard vs actual cost)
+  EFFICIENCY // Efficiency variance (standard hours vs actual hours)
+  YIELD // Yield variance (expected yield vs actual yield)
+  MATERIAL // Material usage variance
+}
+
+// Production Variance (Calculated variances between planned and actual)
+model ProductionVariance {
+  id          String  @id @default(cuid())
+  workOrderId String
+  operationId String? // WorkOrderOperation if operation-level
+
+  // Variance identification
+  varianceType VarianceType
+  varianceName String // Descriptive name
+
+  // Planned values
+  plannedValue    Float // Planned/standard value
+  actualValue     Float // Actual value
+  variance        Float // Variance (planned - actual, or actual - planned depending on type)
+  variancePercent Float // Variance as percentage
+
+  // Favorable/Unfavorable
+  isFavorable Boolean @default(false) // Is variance favorable?
+
+  // Cost impact
+  costImpact Float? // Dollar impact of variance
+
+  // Analysis
+  rootCause        String? @db.Text // Root cause analysis
+  correctiveAction String? @db.Text // Corrective action taken
+  responsibleParty String? // Who is responsible
+
+  // Timing
+  calculatedAt DateTime  @default(now())
+  periodStart  DateTime? // Period covered
+  periodEnd    DateTime?
+
+  // Status
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workOrder WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  operation WorkOrderOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([varianceType])
+  @@index([isFavorable])
+  @@index([calculatedAt])
+  @@map("production_variances")
 }
 
 // Quality Management
@@ -247,9 +2283,9 @@ model QualityPlan {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  part           Part                @relation(fields: [partId], references: [id])
+  part            Part                    @relation(fields: [partId], references: [id])
   characteristics QualityCharacteristic[]
-  inspections    QualityInspection[]
+  inspections     QualityInspection[]
 
   @@map("quality_plans")
 }
@@ -270,7 +2306,7 @@ model QualityCharacteristic {
   updatedAt        DateTime             @updatedAt
 
   // Relations
-  plan         QualityPlan    @relation(fields: [planId], references: [id])
+  plan         QualityPlan          @relation(fields: [planId], references: [id])
   measurements QualityMeasurement[]
 
   @@map("quality_characteristics")
@@ -284,24 +2320,24 @@ enum QualityToleranceType {
 }
 
 model QualityInspection {
-  id             String                @id @default(cuid())
-  inspectionNumber String              @unique
-  workOrderId    String
-  planId         String
-  inspectorId    String
-  status         QualityInspectionStatus
-  result         QualityInspectionResult?
-  quantity       Int
-  startedAt      DateTime?
-  completedAt    DateTime?
-  notes          String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  id               String                   @id @default(cuid())
+  inspectionNumber String                   @unique
+  workOrderId      String
+  planId           String
+  inspectorId      String
+  status           QualityInspectionStatus
+  result           QualityInspectionResult?
+  quantity         Int
+  startedAt        DateTime?
+  completedAt      DateTime?
+  notes            String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
   // Relations
-  workOrder    WorkOrder           @relation(fields: [workOrderId], references: [id])
-  plan         QualityPlan         @relation(fields: [planId], references: [id])
-  inspector    User                @relation(fields: [inspectorId], references: [id])
+  workOrder    WorkOrder            @relation(fields: [workOrderId], references: [id])
+  plan         QualityPlan          @relation(fields: [planId], references: [id])
+  inspector    User                 @relation(fields: [inspectorId], references: [id])
   measurements QualityMeasurement[]
   ncrs         NCR[]
 
@@ -331,7 +2367,7 @@ model QualityMeasurement {
   createdAt        DateTime @default(now())
 
   // Relations
-  inspection    QualityInspection     @relation(fields: [inspectionId], references: [id])
+  inspection     QualityInspection     @relation(fields: [inspectionId], references: [id])
   characteristic QualityCharacteristic @relation(fields: [characteristicId], references: [id])
 
   @@map("quality_measurements")
@@ -339,34 +2375,34 @@ model QualityMeasurement {
 
 // Non-Conformance Reports
 model NCR {
-  id              String          @id @default(cuid())
-  ncrNumber       String          @unique
-  workOrderId     String?
-  inspectionId    String?
-  siteId          String?
-  partNumber      String
-  operation       String?
-  defectType      String
-  description     String
-  severity        NCRSeverity
-  status          NCRStatus
-  quantity        Int
-  createdById     String
-  assignedToId    String?
-  dueDate         DateTime?
-  rootCause       String?
+  id               String      @id @default(cuid())
+  ncrNumber        String      @unique
+  workOrderId      String?
+  inspectionId     String?
+  siteId           String?
+  partNumber       String
+  operation        String?
+  defectType       String
+  description      String
+  severity         NCRSeverity
+  status           NCRStatus
+  quantity         Int
+  createdById      String
+  assignedToId     String?
+  dueDate          DateTime?
+  rootCause        String?
   correctiveAction String?
   preventiveAction String?
-  closedAt        DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  closedAt         DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   // Relations
-  createdBy    User               @relation("CreatedBy", fields: [createdById], references: [id])
-  assignedTo   User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
-  inspection   QualityInspection? @relation(fields: [inspectionId], references: [id])
-  workOrder    WorkOrder?         @relation(fields: [workOrderId], references: [id])
-  site         Site?              @relation(fields: [siteId], references: [id])
+  createdBy  User               @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  inspection QualityInspection? @relation(fields: [inspectionId], references: [id])
+  workOrder  WorkOrder?         @relation(fields: [workOrderId], references: [id])
+  site       Site?              @relation(fields: [siteId], references: [id])
 
   @@map("ncrs")
 }
@@ -384,47 +2420,153 @@ enum NCRStatus {
   CLOSED
 }
 
-// Equipment Management
+// Equipment Management (ISA-95 Levels 4-5: Work Units and Equipment)
 model Equipment {
-  id              String   @id @default(cuid())
-  equipmentNumber String   @unique
+  id              String  @id @default(cuid())
+  equipmentNumber String  @unique
   name            String
   description     String?
-  manufacturer    String?
-  model           String?
-  serialNumber    String?
-  workCenterId    String?
-  siteId          String?
-  status          EquipmentStatus
-  utilizationRate Float?   @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+
+  // ISA-95 Classification
+  equipmentClass EquipmentClass // PRODUCTION, MAINTENANCE, QUALITY, MATERIAL_HANDLING, LABORATORY
+  equipmentType  String? // Specific type: CNC_MILL, LATHE, PRESS, etc.
+  equipmentLevel Int            @default(1) // Hierarchy level (1=top, 5=bottom)
+
+  // Hierarchy support
+  parentEquipmentId String? // Self-referential for equipment hierarchy
+
+  // Physical attributes
+  manufacturer   String?
+  model          String?
+  serialNumber   String?
+  installDate    DateTime?
+  commissionDate DateTime?
+
+  // Location in ISA-95 hierarchy
+  siteId       String?
+  areaId       String?
+  workCenterId String?
+  workUnitId   String? // Link to WorkUnit for ISA-95 hierarchy
+
+  // Current status
+  status         EquipmentStatus
+  currentState   EquipmentState  @default(IDLE)
+  stateChangedAt DateTime        @default(now())
+
+  // Performance metrics
+  utilizationRate Float? @default(0) // 0-100%
+  availability    Float? @default(0) // 0-100%
+  performance     Float? @default(0) // 0-100%
+  quality         Float? @default(0) // 0-100%
+  oee             Float? @default(0) // Overall Equipment Effectiveness (0-100%)
+
+  // Capacity
+  ratedCapacity   Float? // Units per hour
+  currentCapacity Float? // Current effective capacity
+
+  // Metadata
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workCenter  WorkCenter?    @relation(fields: [workCenterId], references: [id])
-  site        Site?          @relation(fields: [siteId], references: [id])
-  logs        EquipmentLog[]
+  parentEquipment Equipment?                @relation("EquipmentHierarchy", fields: [parentEquipmentId], references: [id])
+  childEquipment  Equipment[]               @relation("EquipmentHierarchy")
+  workUnit        WorkUnit?                 @relation(fields: [workUnitId], references: [id])
+  workCenter      WorkCenter?               @relation(fields: [workCenterId], references: [id])
+  area            Area?                     @relation(fields: [areaId], references: [id])
+  site            Site?                     @relation(fields: [siteId], references: [id])
+  capabilities    EquipmentCapability[] // Equipment capabilities
+  logs            EquipmentLog[]
+  stateHistory    EquipmentStateHistory[]
+  performanceData EquipmentPerformanceLog[]
 
+  // Task 1.8: ISA-95 B2M Integration relations
+  productionScheduleRequests ProductionScheduleRequest[]
+
+  // Task 1.9: ISA-95 L2 Equipment Integration relations
+  equipmentDataCollections   EquipmentDataCollection[]
+  equipmentCommands          EquipmentCommand[]
+  equipmentMaterialMovements EquipmentMaterialMovement[]
+  processDataCollections     ProcessDataCollection[]
+
+  // Aerospace integrations
+  maintenanceWorkOrders MaintenanceWorkOrder[]
+
+  @@index([parentEquipmentId])
+  @@index([workUnitId])
+  @@index([workCenterId])
+  @@index([areaId])
+  @@index([siteId])
+  @@index([currentState])
+  @@index([equipmentClass])
   @@map("equipment")
 }
 
+// ISA-95 Equipment Classes
+enum EquipmentClass {
+  PRODUCTION // Production equipment (CNC, mills, lathes)
+  MAINTENANCE // Maintenance equipment
+  QUALITY // Quality inspection equipment (CMM, calipers)
+  MATERIAL_HANDLING // Forklifts, conveyors, AGVs
+  LABORATORY // Lab equipment
+  STORAGE // Storage systems
+  ASSEMBLY // Assembly stations
+}
+
+// Equipment Status (Availability for work)
 enum EquipmentStatus {
-  AVAILABLE
-  IN_USE
-  OPERATIONAL
-  MAINTENANCE
-  DOWN
-  RETIRED
+  AVAILABLE // Equipment is available for production
+  IN_USE // Currently being used
+  OPERATIONAL // Running normally
+  MAINTENANCE // Under maintenance
+  DOWN // Not operational
+  RETIRED // Decommissioned
+}
+
+// ISA-95 Equipment States (for OEE calculation)
+enum EquipmentState {
+  IDLE // Equipment is on but not producing
+  RUNNING // Actively producing
+  BLOCKED // Cannot work due to downstream issues
+  STARVED // Cannot work due to lack of upstream materials
+  FAULT // Equipment fault/error
+  MAINTENANCE // Planned maintenance
+  SETUP // Setup/changeover
+  EMERGENCY // Emergency stop
+}
+
+// Equipment Capability (ISA-95 Task 1.1)
+// Defines what operations/processes equipment can perform
+model EquipmentCapability {
+  id             String    @id @default(cuid())
+  equipmentId    String
+  capabilityType String // OPERATION, PROCESS, QUALITY_CHECK, STORAGE, ASSEMBLY
+  capability     String // Specific capability: "CNC_MILLING", "3_AXIS_MACHINING", "INSPECTION"
+  description    String?   @db.Text
+  parameters     Json? // Capability parameters (speeds, feeds, tolerances, precision)
+  certifiedDate  DateTime?
+  expiryDate     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([capabilityType])
+  @@index([capability])
+  @@map("equipment_capabilities")
 }
 
 model EquipmentLog {
-  id          String            @id @default(cuid())
+  id          String           @id @default(cuid())
   equipmentId String
   logType     EquipmentLogType
   description String
   userId      String?
-  loggedAt    DateTime          @default(now())
+  loggedAt    DateTime         @default(now())
 
   // Relations
   equipment Equipment @relation(fields: [equipmentId], references: [id])
@@ -441,9 +2583,111 @@ enum EquipmentLogType {
   USAGE
 }
 
+// Equipment State History (for OEE calculation and analysis)
+model EquipmentStateHistory {
+  id            String          @id @default(cuid())
+  equipmentId   String
+  previousState EquipmentState?
+  newState      EquipmentState
+  reason        String?         @db.Text // Reason for state change
+  changedBy     String? // User ID or system identifier
+
+  // Timestamps for duration calculation
+  stateStartTime DateTime  @default(now())
+  stateEndTime   DateTime? // Null until next state change
+  duration       Int? // Duration in seconds (calculated on state end)
+
+  // Context
+  workOrderId String? // If related to a work order
+  operationId String? // If related to an operation
+  downtime    Boolean @default(false) // Whether this counts as downtime for OEE
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId])
+  @@index([stateStartTime])
+  @@index([newState])
+  @@map("equipment_state_history")
+}
+
+// Equipment Performance Log (OEE tracking)
+// OEE = Availability × Performance × Quality
+model EquipmentPerformanceLog {
+  id          String @id @default(cuid())
+  equipmentId String
+
+  // Time period for this measurement
+  periodStart DateTime
+  periodEnd   DateTime
+  periodType  PerformancePeriodType @default(SHIFT) // HOUR, SHIFT, DAY, WEEK, MONTH
+
+  // Availability = (Operating Time / Planned Production Time) × 100%
+  plannedProductionTime Int // Seconds
+  operatingTime         Int // Seconds (excludes planned downtime)
+  downtime              Int // Seconds (unplanned downtime)
+  availability          Float // Percentage (0-100)
+
+  // Performance = (Ideal Cycle Time × Total Count / Operating Time) × 100%
+  idealCycleTime     Float? // Seconds per unit
+  actualCycleTime    Float? // Seconds per unit
+  totalUnitsProduced Int // Total units produced
+  targetProduction   Int? // Target units for the period
+  performance        Float // Percentage (0-100)
+
+  // Quality = (Good Units / Total Units) × 100%
+  goodUnits     Int // Units that passed quality
+  rejectedUnits Int // Units that failed quality
+  scrapUnits    Int // Units scrapped
+  reworkUnits   Int // Units requiring rework
+  quality       Float // Percentage (0-100)
+
+  // Overall Equipment Effectiveness
+  oee Float // Availability × Performance × Quality (0-100)
+
+  // Context
+  workOrderId String? // If related to specific work order
+  partId      String? // If producing specific part
+  operatorId  String? // Primary operator during period
+
+  // Calculated metrics
+  teep            Float? // Total Effective Equipment Performance (includes planned downtime)
+  utilizationRate Float? // Actual use vs available time
+
+  // Notes and flags
+  notes        String? @db.Text
+  hasAnomalies Boolean @default(false) // Flag for unusual readings
+
+  // Metadata
+  createdAt    DateTime @default(now())
+  calculatedAt DateTime @default(now())
+
+  // Relations
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId])
+  @@index([periodStart])
+  @@index([periodType])
+  @@index([oee])
+  @@map("equipment_performance_logs")
+}
+
+enum PerformancePeriodType {
+  HOUR
+  SHIFT
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
+}
+
 // Inventory and Materials
 model Inventory {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   partId        String
   location      String
   lotNumber     String?
@@ -452,31 +2696,31 @@ model Inventory {
   unitCost      Float?
   receivedDate  DateTime?
   expiryDate    DateTime?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
-  part         Part                   @relation(fields: [partId], references: [id])
+  part         Part                  @relation(fields: [partId], references: [id])
   transactions MaterialTransaction[]
 
   @@map("inventory")
 }
 
 model MaterialTransaction {
-  id            String                    @id @default(cuid())
-  inventoryId   String
-  workOrderId   String?
+  id              String                  @id @default(cuid())
+  inventoryId     String
+  workOrderId     String?
   transactionType MaterialTransactionType
-  quantity      Float
-  unitOfMeasure String
-  reference     String?
+  quantity        Float
+  unitOfMeasure   String
+  reference       String?
   transactionDate DateTime                @default(now())
-  createdAt     DateTime                  @default(now())
+  createdAt       DateTime                @default(now())
 
   // Relations
-  inventory  Inventory  @relation(fields: [inventoryId], references: [id])
-  workOrder  WorkOrder? @relation(fields: [workOrderId], references: [id])
+  inventory Inventory  @relation(fields: [inventoryId], references: [id])
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
 
   @@map("material_transactions")
 }
@@ -491,34 +2735,36 @@ enum MaterialTransactionType {
 
 // Serialized Parts and Traceability
 model SerializedPart {
-  id             String   @id @default(cuid())
-  serialNumber   String   @unique
-  partId         String
-  workOrderId    String?
-  lotNumber      String?
-  status         String
+  id              String    @id @default(cuid())
+  serialNumber    String    @unique
+  partId          String
+  workOrderId     String?
+  lotNumber       String?
+  status          String
   currentLocation String?
   manufactureDate DateTime?
-  shipDate       DateTime?
-  customerInfo   String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  shipDate        DateTime?
+  customerInfo    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
-  part        Part              @relation(fields: [partId], references: [id])
-  genealogy   PartGenealogy[]   @relation("ParentPart")
-  components  PartGenealogy[]   @relation("ComponentPart")
+  part                  Part                   @relation(fields: [partId], references: [id])
+  genealogy             PartGenealogy[]        @relation("ParentPart")
+  components            PartGenealogy[]        @relation("ComponentPart")
+  inspectionRecords     InspectionRecord[]
+  qifMeasurementResults QIFMeasurementResult[]
 
   @@map("serialized_parts")
 }
 
 model PartGenealogy {
-  id                String   @id @default(cuid())
-  parentPartId      String
-  componentPartId   String
-  assemblyDate      DateTime?
-  assemblyOperator  String?
-  createdAt         DateTime @default(now())
+  id               String    @id @default(cuid())
+  parentPartId     String
+  componentPartId  String
+  assemblyDate     DateTime?
+  assemblyOperator String?
+  createdAt        DateTime  @default(now())
 
   // Relations
   parentPart    SerializedPart @relation("ParentPart", fields: [parentPartId], references: [id])
@@ -527,21 +2773,1427 @@ model PartGenealogy {
   @@map("part_genealogy")
 }
 
+// Digital Work Instructions (Phase 1 - Sprint 1)
+model WorkInstruction {
+  id              String                @id @default(cuid())
+  title           String
+  description     String?               @db.Text
+  partId          String? // Optional link to Part
+  operationId     String? // Optional link to RoutingOperation
+  version         String                @default("1.0.0")
+  status          WorkInstructionStatus @default(DRAFT)
+  effectiveDate   DateTime?
+  supersededDate  DateTime?
+  ecoNumber       String? // Engineering Change Order number
+  approvedById    String?
+  approvedAt      DateTime?
+  approvalHistory Json? // Array of approval/rejection history entries
+  createdById     String
+  updatedById     String
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  // Relations
+  createdBy  User                  @relation("WorkInstructionCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User                  @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User?                 @relation("WorkInstructionApprovedBy", fields: [approvedById], references: [id])
+  steps      WorkInstructionStep[]
+
+  @@index([status])
+  @@index([partId])
+  @@map("work_instructions")
+}
+
+enum WorkInstructionStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  REJECTED
+  SUPERSEDED
+  ARCHIVED
+}
+
+model WorkInstructionStep {
+  id                String   @id @default(cuid())
+  workInstructionId String
+  stepNumber        Int
+  title             String
+  content           String   @db.Text
+  imageUrls         String[] // Array of image URLs (S3/MinIO paths)
+  videoUrls         String[] // Array of video URLs
+  attachmentUrls    String[] // PDF, CAD files, etc.
+  estimatedDuration Int? // Estimated time in seconds
+  isCritical        Boolean  @default(false) // Critical quality step
+  requiresSignature Boolean  @default(false)
+  dataEntryFields   Json? // JSON schema for data entry (measurements, selections)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  workInstruction WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  @@unique([workInstructionId, stepNumber])
+  @@index([workInstructionId])
+  @@map("work_instruction_steps")
+}
+
+// Work Instruction Execution (track operator progress)
+model WorkInstructionExecution {
+  id                String                         @id @default(cuid())
+  workInstructionId String
+  workOrderId       String
+  operationId       String? // WorkOrderOperation
+  operatorId        String
+  currentStepNumber Int                            @default(1)
+  status            WorkInstructionExecutionStatus @default(IN_PROGRESS)
+  startedAt         DateTime                       @default(now())
+  completedAt       DateTime?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+
+  // Relations
+  operator       User                           @relation("WIExecutionOperator", fields: [operatorId], references: [id])
+  stepExecutions WorkInstructionStepExecution[]
+
+  @@index([workOrderId])
+  @@index([operatorId])
+  @@map("work_instruction_executions")
+}
+
+enum WorkInstructionExecutionStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+model WorkInstructionStepExecution {
+  id          String    @id @default(cuid())
+  executionId String
+  stepNumber  Int
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, SKIPPED
+  dataEntered Json? // Captured data (measurements, selections)
+  notes       String?   @db.Text
+  signedById  String?
+  signedAt    DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  execution WorkInstructionExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  signedBy  User?                    @relation("WIStepExecutionSignedBy", fields: [signedById], references: [id])
+
+  @@unique([executionId, stepNumber])
+  @@index([executionId])
+  @@map("work_instruction_step_executions")
+}
+
+// Electronic Signatures (21 CFR Part 11 Compliant)
+model ElectronicSignature {
+  id               String                   @id @default(cuid())
+  signatureType    ElectronicSignatureType // Type of signature (BASIC, ADVANCED, QUALIFIED)
+  signatureLevel   ElectronicSignatureLevel // Level of verification required
+  userId           String // User who signed
+  signedEntityType String // Table name (work_instructions, work_instruction_steps, ncrs, etc.)
+  signedEntityId   String // Record ID being signed
+  signatureReason  String? // Optional: approval, review, verification
+  signatureData    Json // Encrypted signature data (hash, biometric template)
+  ipAddress        String // IP address of signer
+  userAgent        String // Browser/device info
+  timestamp        DateTime                 @default(now())
+
+  // Biometric data (optional)
+  biometricType     BiometricType? // FINGERPRINT, FACIAL, IRIS, VOICE
+  biometricTemplate String? // Encrypted biometric template
+  biometricScore    Float? // Match confidence score (0-1)
+
+  // Verification and integrity
+  signatureHash      String // SHA-256 hash of signature data
+  isValid            Boolean   @default(true)
+  invalidatedAt      DateTime?
+  invalidatedById    String?
+  invalidationReason String?
+
+  // Metadata
+  signedDocument Json? // Snapshot of signed document at time of signature
+  certificateId  String? // Digital certificate ID (for qualified signatures)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user          User  @relation("ElectronicSignatureUser", fields: [userId], references: [id])
+  invalidatedBy User? @relation("ElectronicSignatureInvalidatedBy", fields: [invalidatedById], references: [id])
+
+  @@index([userId])
+  @@index([signedEntityType, signedEntityId])
+  @@index([timestamp])
+  @@map("electronic_signatures")
+}
+
+enum ElectronicSignatureType {
+  BASIC // Simple username/password
+  ADVANCED // Multi-factor authentication
+  QUALIFIED // Digital certificate + biometric
+}
+
+enum ElectronicSignatureLevel {
+  OPERATOR // Operator performing work
+  SUPERVISOR // Supervisor review
+  QUALITY // Quality inspector approval
+  ENGINEER // Engineering approval
+  MANAGER // Manager approval
+}
+
+enum BiometricType {
+  FINGERPRINT
+  FACIAL
+  IRIS
+  VOICE
+  NONE
+}
+
+// AS9102 First Article Inspection (FAI) - Sprint 3
+model FAIReport {
+  id            String    @id @default(cuid())
+  faiNumber     String    @unique
+  partId        String
+  workOrderId   String?
+  inspectionId  String?
+  status        FAIStatus @default(IN_PROGRESS)
+  revisionLevel String? // AS9102 revision (Rev C)
+
+  // Form 1 - Part Number Accountability
+  form1Data Json? // Part number, drawing, revision, etc.
+
+  // Form 2 - Product Accountability
+  form2Data Json? // Manufacturer info, purchase order, etc.
+
+  // Metadata
+  createdById  String?
+  reviewedById String?
+  approvedById String?
+  reviewedAt   DateTime?
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  characteristics       FAICharacteristic[]
+  qifMeasurementPlans   QIFMeasurementPlan[]
+  qifMeasurementResults QIFMeasurementResult[]
+
+  @@index([partId])
+  @@index([status])
+  @@map("fai_reports")
+}
+
+enum FAIStatus {
+  IN_PROGRESS
+  REVIEW
+  APPROVED
+  REJECTED
+  SUPERSEDED
+}
+
+// AS9102 Form 3 - Characteristic Accountability
+model FAICharacteristic {
+  id                   String @id @default(cuid())
+  faiReportId          String
+  characteristicNumber Int
+
+  // Characteristic details
+  characteristic String // Description
+  specification  String // Drawing/spec requirement
+  requirement    String? // Specific requirement text
+
+  // GD&T and tolerance
+  toleranceType String? // BILATERAL, UNILATERAL_PLUS, etc.
+  nominalValue  Float?
+  upperLimit    Float?
+  lowerLimit    Float?
+  unitOfMeasure String?
+
+  // Inspection method
+  inspectionMethod    String? // CMM, Manual, Gage, etc.
+  inspectionFrequency String? // 100%, Sample, First/Last
+
+  // Measurement results
+  measuredValues Json // Array of measured values
+  actualValue    Float? // Actual measured value
+  deviation      Float? // Deviation from nominal
+  result         String? // PASS, FAIL, N/A
+
+  // Verification
+  notes        String?   @db.Text
+  verifiedById String?
+  verifiedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  faiReport FAIReport @relation(fields: [faiReportId], references: [id], onDelete: Cascade)
+
+  @@unique([faiReportId, characteristicNumber])
+  @@index([faiReportId])
+  @@map("fai_characteristics")
+}
+
 // Audit Trail
 model AuditLog {
-  id          String   @id @default(cuid())
-  tableName   String
-  recordId    String
-  action      String
-  oldValues   Json?
-  newValues   Json?
-  userId      String?
-  ipAddress   String?
-  userAgent   String?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  tableName String
+  recordId  String
+  action    String
+  oldValues Json?
+  newValues Json?
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
 
   // Relations
   user User? @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
+}
+
+// Aerospace Integration Models (IBM Maximo, Indysoft, Covalent, SFC, Predator PDM/DNC)
+
+// IBM Maximo CMMS - Maintenance Work Orders
+model MaintenanceWorkOrder {
+  id                      String    @id @default(cuid())
+  externalWorkOrderNumber String    @unique // Maximo work order number
+  description             String
+  workType                String // PM, CM, CAL, INSP, PROJ
+  status                  String // WAPPR, APPR, INPRG, COMP, CLOSE, CAN
+  equipmentId             String?
+  scheduledStart          DateTime?
+  scheduledFinish         DateTime?
+  actualStart             DateTime?
+  actualFinish            DateTime?
+  priority                Int       @default(3)
+  failureCode             String?
+  problemCode             String?
+  causeCode               String?
+  remedyCode              String?
+  lastSyncedAt            DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  // Relations
+  equipment Equipment? @relation(fields: [equipmentId], references: [id])
+
+  @@index([externalWorkOrderNumber])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("maintenance_work_orders")
+}
+
+// Indysoft - Measurement Equipment (Gauges)
+model MeasurementEquipment {
+  id                   String    @id @default(cuid())
+  externalGaugeId      String?   @unique // Indysoft gauge ID
+  description          String
+  manufacturer         String?
+  model                String?
+  serialNumber         String?
+  gaugeType            String // CMM, Micrometer, Caliper, etc.
+  measurementType      String // Length, Angle, Temperature, etc.
+  measurementRange     String?
+  resolution           Float?
+  accuracy             Float?
+  location             String?
+  calibrationFrequency Int? // Days
+  lastCalibrationDate  DateTime?
+  nextCalibrationDate  DateTime?
+  calibrationStatus    String    @default("IN_CAL") // IN_CAL, OUT_OF_CAL, DUE, OVERDUE, QUARANTINE
+  isActive             Boolean   @default(true)
+  lastSyncedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  inspectionRecords          InspectionRecord[]
+  operationGaugeRequirements OperationGaugeRequirement[]
+  qifMeasurementResults      QIFMeasurementResult[]
+
+  @@index([externalGaugeId])
+  @@index([calibrationStatus])
+  @@index([nextCalibrationDate])
+  @@map("measurement_equipment")
+}
+
+// Inspection Records - Links measurements to parts and gauges
+model InspectionRecord {
+  id                     String   @id @default(cuid())
+  serializedPartId       String?
+  measurementEquipmentId String?
+  characteristic         String // What was measured
+  nominalValue           Float
+  actualValue            Float
+  lowerTolerance         Float
+  upperTolerance         Float
+  unit                   String
+  result                 String // PASS, FAIL
+  inspectionDate         DateTime @default(now())
+  createdAt              DateTime @default(now())
+
+  // Relations
+  serializedPart       SerializedPart?       @relation(fields: [serializedPartId], references: [id])
+  measurementEquipment MeasurementEquipment? @relation(fields: [measurementEquipmentId], references: [id])
+
+  @@index([serializedPartId])
+  @@index([measurementEquipmentId])
+  @@index([result])
+  @@map("inspection_records")
+}
+
+// Shop Floor Connect - CNC Program Version Control
+model CNCProgram {
+  id                 String    @id @default(cuid())
+  externalProgramId  String?   @unique // SFC program ID
+  programName        String
+  partNumber         String
+  operationCode      String
+  revision           String
+  revisionDate       DateTime
+  status             String // DRAFT, APPROVED, RELEASED, OBSOLETE, QUARANTINE
+  machineType        String?
+  postProcessor      String?
+  toolList           String?
+  setupSheetUrl      String?
+  approvedBy         String?
+  approvalDate       DateTime?
+  ecoNumber          String?
+  effectiveDate      DateTime?
+  firstPieceRequired Boolean   @default(false)
+  firstPieceApproved Boolean   @default(false)
+  firstPieceDate     DateTime?
+  programUrl         String?
+  stepAP242Url       String? // Model-Based Enterprise 3D model
+  pmiDataUrl         String? // Product Manufacturing Information
+  teamcenterItemId   String?
+  lastSyncedAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  programDownloadLogs ProgramDownloadLog[]
+
+  @@index([programName])
+  @@index([partNumber])
+  @@index([status])
+  @@index([revision])
+  @@map("cnc_programs")
+}
+
+// Predator DNC - Program Download Audit Trail
+model ProgramDownloadLog {
+  id                  String   @id @default(cuid())
+  programId           String?
+  programName         String
+  revision            String
+  machineId           String
+  operatorBadgeNumber String
+  workOrderNumber     String?
+  downloadDate        DateTime @default(now())
+  authorized          Boolean
+  authorizationMethod String // AUTO, MANUAL_OVERRIDE, SFC_AUTHORIZED
+  createdAt           DateTime @default(now())
+
+  // Relations
+  cncProgram CNCProgram? @relation(fields: [programId], references: [id])
+
+  @@index([programName])
+  @@index([machineId])
+  @@index([operatorBadgeNumber])
+  @@index([downloadDate])
+  @@map("program_download_logs")
+}
+
+// Predator DNC - Authorization Handshake Results
+model ProgramLoadAuthorization {
+  id                  String   @id @default(cuid())
+  authorizationId     String   @unique // Unique authorization ID
+  operatorBadgeNumber String
+  machineId           String
+  programName         String
+  programRevision     String
+  partNumber          String
+  workOrderNumber     String?
+  authorized          Boolean
+  authorizationDate   DateTime @default(now())
+
+  // Validation Results
+  operatorAuthenticated Boolean
+  workOrderValid        Boolean
+  certificationValid    Boolean
+  programVersionValid   Boolean
+  gaugeCalibrationValid Boolean
+
+  // Failure Details
+  failureReasons    String? @db.Text
+  validationDetails Json?
+
+  // Audit Trail
+  supervisorNotified  Boolean @default(false)
+  overrideReason      String?
+  electronicSignature String?
+
+  createdAt DateTime @default(now())
+
+  @@index([authorizationId])
+  @@index([operatorBadgeNumber])
+  @@index([machineId])
+  @@index([authorized])
+  @@index([authorizationDate])
+  @@map("program_load_authorizations")
+}
+
+// Operation Gauge Requirements - Which gauges required for each operation
+model OperationGaugeRequirement {
+  id                     String   @id @default(cuid())
+  partNumber             String
+  operationCode          String
+  measurementEquipmentId String
+  required               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+
+  // Relations
+  measurementEquipment MeasurementEquipment @relation(fields: [measurementEquipmentId], references: [id])
+
+  @@unique([partNumber, operationCode, measurementEquipmentId])
+  @@index([partNumber])
+  @@index([operationCode])
+  @@map("operation_gauge_requirements")
+}
+
+// System Alerts - For authorization failures and critical events
+model Alert {
+  id         String    @id @default(cuid())
+  alertType  String // AUTHORIZATION_FAILURE, GAUGE_OUT_OF_CAL, CERTIFICATION_EXPIRED, etc.
+  severity   String // LOW, MEDIUM, HIGH, CRITICAL
+  message    String
+  details    Json?
+  resolved   Boolean   @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([alertType])
+  @@index([severity])
+  @@index([resolved])
+  @@index([createdAt])
+  @@map("alerts")
+}
+
+// ERP/PLM Integration Framework (Sprint 5)
+model IntegrationConfig {
+  id          String          @id @default(cuid())
+  name        String          @unique // 'oracle_ebs', 'oracle_fusion', 'teamcenter'
+  displayName String // User-friendly name
+  type        IntegrationType // ERP, PLM, CMMS, etc.
+  enabled     Boolean         @default(true)
+  config      Json // Encrypted connection details (baseUrl, credentials, etc.)
+
+  // Health monitoring
+  lastSync       DateTime?
+  lastSyncStatus String? // SUCCESS, FAILED, PARTIAL
+  lastError      String?   @db.Text
+  errorCount     Int       @default(0)
+
+  // Statistics
+  totalSyncs   Int @default(0)
+  successCount Int @default(0)
+  failureCount Int @default(0)
+
+  // Sync schedule (cron expressions)
+  syncSchedule Json? // { parts: '0 2 * * *', workOrders: '*/30 * * * *' }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  logs                         IntegrationLog[]
+  productionScheduleRequests   ProductionScheduleRequest[]
+  productionPerformanceActuals ProductionPerformanceActual[]
+  erpMaterialTransactions      ERPMaterialTransaction[]
+  personnelInfoExchanges       PersonnelInfoExchange[]
+
+  @@index([name])
+  @@index([type])
+  @@index([enabled])
+  @@map("integration_configs")
+}
+
+enum IntegrationType {
+  ERP // Oracle EBS, Oracle Fusion, SAP
+  PLM // Teamcenter, Windchill
+  CMMS // IBM Maximo, SAP PM
+  WMS // Warehouse Management System
+  QMS // Quality Management System
+  HISTORIAN // GE Proficy, OSIsoft PI, etc.
+  DNC // Predator DNC, Cimco DNC
+  SFC // Shop Floor Connect
+  SKILLS // Covalent Skills Tracking
+  CALIBRATION // Indysoft Gauge Calibration
+  PDM // Predator PDM, Production Data Management
+  CMM // CMM (Coordinate Measuring Machine) - PC-DMIS, Calypso
+  CUSTOM // Custom integration
+}
+
+model IntegrationLog {
+  id       String @id @default(cuid())
+  configId String
+
+  // Operation details
+  operation String // 'sync_parts', 'sync_work_orders', 'confirm_production', etc.
+  direction IntegrationDirection // INBOUND (external → MES), OUTBOUND (MES → external)
+  status    IntegrationLogStatus
+
+  // Processing statistics
+  recordCount  Int @default(0) // Total records processed
+  successCount Int @default(0) // Successfully processed
+  errorCount   Int @default(0) // Failed records
+  duration     Int // Processing time in milliseconds
+
+  // Request/Response
+  requestData  Json? // Request payload (truncated if large)
+  responseData Json? // Response payload (truncated if large)
+
+  // Error details
+  errors  Json? // Array of error objects
+  details Json? // Additional metadata
+
+  // Timestamps
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  config IntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([operation])
+  @@map("integration_logs")
+}
+
+enum IntegrationDirection {
+  INBOUND // Data coming from external system to MES
+  OUTBOUND // Data going from MES to external system
+  BIDIRECTIONAL
+}
+
+enum IntegrationLogStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  PARTIAL // Some records succeeded, some failed
+  TIMEOUT
+  CANCELLED
+}
+
+// ============================================================================
+// ISA-95 B2M (Business to Manufacturing) Integration Models (Task 1.8)
+// ============================================================================
+// Standard message formats for Level 3 (MES) ↔ Level 4 (ERP) integration
+// Following ISA-95 Part 3 specification for production operations management
+
+// Production Schedule Request/Response
+model ProductionScheduleRequest {
+  id        String @id @default(cuid())
+  messageId String @unique // External system message ID
+  configId  String // Which integration config
+
+  // Schedule metadata
+  scheduleType       ScheduleType // MASTER, DETAILED, DISPATCH
+  priority           SchedulePriority
+  requestedBy        String // ERP user/system
+  requestedDate      DateTime         @default(now())
+  effectiveStartDate DateTime
+  effectiveEndDate   DateTime
+
+  // Work order references
+  workOrderId         String? // MES work order (if created)
+  externalWorkOrderId String // ERP work order reference
+
+  // Production details
+  partId        String?
+  partNumber    String? // ERP part number reference
+  quantity      Float
+  unitOfMeasure String
+  dueDate       DateTime
+
+  // Resource requirements
+  workCenterId          String?
+  equipmentRequirements Json? // Required equipment/tooling
+  personnelRequirements Json? // Skill/certification requirements
+  materialRequirements  Json? // BOM/materials needed
+
+  // Processing status
+  status           B2MMessageStatus
+  processedAt      DateTime?
+  errorMessage     String?          @db.Text
+  validationErrors Json?
+
+  // Message payload
+  requestPayload  Json // Full ISA-95 message
+  responsePayload Json? // Response sent back
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  config     IntegrationConfig           @relation(fields: [configId], references: [id], onDelete: Cascade)
+  workOrder  WorkOrder?                  @relation(fields: [workOrderId], references: [id])
+  part       Part?                       @relation(fields: [partId], references: [id])
+  workCenter Equipment?                  @relation(fields: [workCenterId], references: [id])
+  response   ProductionScheduleResponse?
+
+  @@index([configId])
+  @@index([status])
+  @@index([externalWorkOrderId])
+  @@index([requestedDate])
+  @@map("production_schedule_requests")
+}
+
+model ProductionScheduleResponse {
+  id        String @id @default(cuid())
+  requestId String @unique // Link back to request
+  messageId String @unique // Response message ID
+
+  // Response details
+  accepted           Boolean // Can MES fulfill?
+  confirmedStartDate DateTime?
+  confirmedEndDate   DateTime?
+  confirmedQuantity  Float?
+
+  // Rejection/modification reasons
+  rejectionReason String? @db.Text
+  modifications   Json? // What changed from request
+  constraints     Json? // Capacity/material constraints
+
+  // Alternative proposals
+  proposedStartDate DateTime?
+  proposedEndDate   DateTime?
+  proposedQuantity  Float?
+
+  // Response metadata
+  respondedBy String
+  respondedAt DateTime  @default(now())
+  sentToERP   Boolean   @default(false)
+  sentAt      DateTime?
+
+  // Message payload
+  responsePayload Json // Full ISA-95 response
+
+  // Audit
+  createdAt DateTime @default(now())
+
+  // Relations
+  request ProductionScheduleRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([respondedAt])
+  @@map("production_schedule_responses")
+}
+
+// Production Performance Actuals (MES → ERP)
+model ProductionPerformanceActual {
+  id        String @id @default(cuid())
+  messageId String @unique
+  configId  String
+
+  // Work order reference
+  workOrderId         String
+  externalWorkOrderId String // ERP work order reference
+  operationId         String?
+
+  // Performance period
+  reportingPeriodStart DateTime
+  reportingPeriodEnd   DateTime
+
+  // Production quantities
+  quantityProduced Float // Total produced
+  quantityGood     Float // Passed quality
+  quantityScrap    Float
+  quantityRework   Float
+  yieldPercentage  Float?
+
+  // Time actuals
+  setupTimeActual  Float? // Minutes
+  runTimeActual    Float? // Minutes
+  downtimeActual   Float? // Minutes
+  laborHoursActual Float? // Hours
+
+  // Cost actuals
+  laborCostActual    Float?
+  materialCostActual Float?
+  overheadCostActual Float?
+  totalCostActual    Float?
+
+  // Variances (calculated)
+  quantityVariance   Float?
+  timeVariance       Float?
+  costVariance       Float?
+  efficiencyVariance Float?
+
+  // Personnel/equipment actuals
+  personnelActuals Json? // Who worked on it
+  equipmentActuals Json? // Equipment used
+  materialActuals  Json? // Materials consumed
+
+  // Processing status
+  status          B2MMessageStatus
+  sentToERP       Boolean          @default(false)
+  sentAt          DateTime?
+  erpConfirmation String? // ERP confirmation number
+  errorMessage    String?          @db.Text
+
+  // Message payload
+  messagePayload Json // Full ISA-95 message
+
+  // Audit
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  config    IntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder         @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([workOrderId])
+  @@index([externalWorkOrderId])
+  @@index([status])
+  @@index([sentToERP])
+  @@index([reportingPeriodStart])
+  @@map("production_performance_actuals")
+}
+
+// ERP Material Transaction Exchange (Bidirectional)
+model ERPMaterialTransaction {
+  id        String @id @default(cuid())
+  messageId String @unique
+  configId  String
+
+  // Transaction metadata
+  transactionType ERPTransactionType
+  direction       IntegrationDirection
+  transactionDate DateTime             @default(now())
+
+  // Material reference
+  partId         String? // MES part
+  externalPartId String // ERP part number
+
+  // Location references
+  fromLocation        String? // Source warehouse/location
+  toLocation          String? // Destination
+  workOrderId         String? // Associated work order
+  externalWorkOrderId String?
+
+  // Quantity details
+  quantity      Float
+  unitOfMeasure String
+  lotNumber     String?
+  serialNumber  String?
+
+  // Cost/valuation
+  unitCost  Float?
+  totalCost Float?
+  currency  String? @default("USD")
+
+  // Transaction codes
+  movementType String // ISSUE, RECEIPT, RETURN, TRANSFER, etc.
+  reasonCode   String?
+
+  // Processing status
+  status           B2MMessageStatus
+  processedAt      DateTime?
+  erpTransactionId String? // ERP confirmation
+  errorMessage     String?          @db.Text
+
+  // Message payload
+  messagePayload Json
+
+  // Audit
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  config    IntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  part      Part?             @relation(fields: [partId], references: [id])
+  workOrder WorkOrder?        @relation(fields: [workOrderId], references: [id])
+
+  @@index([configId])
+  @@index([transactionType])
+  @@index([status])
+  @@index([externalPartId])
+  @@index([transactionDate])
+  @@map("erp_material_transactions")
+}
+
+// Personnel Information Exchange (Bidirectional)
+model PersonnelInfoExchange {
+  id        String @id @default(cuid())
+  messageId String @unique
+  configId  String
+
+  // Personnel reference
+  personnelId         String? // MES personnel
+  externalPersonnelId String // ERP employee ID
+
+  // Action type
+  actionType PersonnelActionType
+  direction  IntegrationDirection
+
+  // Personnel details
+  firstName      String?
+  lastName       String?
+  email          String?
+  employeeNumber String?
+  department     String?
+  jobTitle       String?
+
+  // Skills and certifications
+  skills         Json? // Skill codes and levels
+  certifications Json? // Certification details
+  qualifications Json? // Training records
+
+  // Availability/scheduling
+  shiftCode     String?
+  workCalendar  String?
+  availableFrom DateTime?
+  availableTo   DateTime?
+
+  // Status
+  employmentStatus String? // ACTIVE, INACTIVE, TERMINATED
+  lastWorkDate     DateTime?
+
+  // Processing status
+  status       B2MMessageStatus
+  processedAt  DateTime?
+  errorMessage String?          @db.Text
+
+  // Message payload
+  messagePayload Json
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  config IntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([actionType])
+  @@index([status])
+  @@index([externalPersonnelId])
+  @@index([personnelId])
+  @@map("personnel_info_exchanges")
+}
+
+// Supporting Enums for ISA-95 B2M Integration
+enum ScheduleType {
+  MASTER // Long-term production schedule
+  DETAILED // Short-term detailed schedule
+  DISPATCH // Real-time shop floor dispatch
+}
+
+enum B2MMessageStatus {
+  PENDING // Waiting to be processed
+  VALIDATED // Passed validation
+  PROCESSING // Being processed
+  PROCESSED // Successfully processed
+  SENT // Sent to external system
+  CONFIRMED // Confirmed by external system
+  FAILED // Processing failed
+  REJECTED // Rejected by business rules
+  TIMEOUT // Processing timeout
+}
+
+enum ERPTransactionType {
+  ISSUE // Material issued to production
+  RECEIPT // Material received from vendor/production
+  RETURN // Material returned to inventory
+  TRANSFER // Transfer between locations
+  ADJUSTMENT // Inventory adjustment
+  SCRAP // Material scrapped
+  CONSUMPTION // Backflush consumption
+}
+
+enum PersonnelActionType {
+  CREATE // New employee
+  UPDATE // Update employee info
+  DEACTIVATE // Deactivate employee
+  SKILL_UPDATE // Update skills/certifications
+  SCHEDULE_UPDATE // Update availability/schedule
+}
+
+// ============================================================================
+// Task 1.9: ISA-95 Level 2 (Equipment) Integration Model
+// ============================================================================
+// Models for real-time equipment integration per ISA-95 Part 3
+// Supports OPC UA, MTConnect, MQTT protocols for equipment data collection,
+// command/response, and material movement tracking
+
+// Equipment Data Collection - Real-time data from equipment sensors
+model EquipmentDataCollection {
+  id                  String             @id @default(cuid())
+  equipmentId         String
+  dataCollectionType  DataCollectionType
+  collectionTimestamp DateTime           @default(now())
+
+  // Data point identification
+  dataPointName String // e.g., "SpindleSpeed", "Temperature", "Pressure"
+  dataPointId   String? // OPC UA NodeId, MTConnect DataItemId
+
+  // Value storage (use appropriate field based on data type)
+  numericValue Float?
+  stringValue  String?
+  booleanValue Boolean?
+  jsonValue    Json? // For complex structured data
+
+  // Units and metadata
+  unitOfMeasure String?
+  quality       String? // GOOD, BAD, UNCERTAIN (OPC UA quality codes)
+
+  // Process context
+  workOrderId     String?
+  operationId     String?
+  productionRunId String?
+
+  // Equipment state at collection time
+  equipmentState String? // RUNNING, IDLE, SETUP, MAINTENANCE
+
+  // Data source protocol
+  protocol      String? // OPC_UA, MTCONNECT, MQTT, MODBUS
+  sourceAddress String? // Equipment endpoint/address
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  equipment Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([dataCollectionType])
+  @@index([collectionTimestamp])
+  @@index([workOrderId])
+  @@index([dataPointName])
+  @@map("equipment_data_collections")
+}
+
+// Equipment Command - Commands sent to equipment with response tracking
+model EquipmentCommand {
+  id            String        @id @default(cuid())
+  equipmentId   String
+  commandType   CommandType
+  commandStatus CommandStatus @default(PENDING)
+
+  // Command details
+  commandName    String // e.g., "START_PRODUCTION", "STOP", "LOAD_PROGRAM"
+  commandPayload Json? // Command parameters
+
+  // Process context
+  workOrderId String?
+  operationId String?
+
+  // Timing
+  issuedAt       DateTime  @default(now())
+  sentAt         DateTime?
+  acknowledgedAt DateTime?
+  completedAt    DateTime?
+
+  // Response tracking
+  responsePayload Json? // Equipment response data
+  responseCode    String? // Success/error code
+  responseMessage String? @db.Text
+
+  // Timeout and retry
+  timeoutSeconds Int @default(30)
+  retryCount     Int @default(0)
+  maxRetries     Int @default(3)
+
+  // Command priority
+  priority Int @default(5) // 1=highest, 10=lowest
+
+  // Issued by
+  issuedBy String
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  equipment Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([commandType])
+  @@index([commandStatus])
+  @@index([workOrderId])
+  @@index([issuedAt])
+  @@index([priority])
+  @@map("equipment_commands")
+}
+
+// Equipment Material Movement - Material tracking through equipment
+model EquipmentMaterialMovement {
+  id          String @id @default(cuid())
+  equipmentId String
+
+  // Material identification
+  partId       String?
+  partNumber   String
+  lotNumber    String?
+  serialNumber String?
+
+  // Movement details
+  movementType  String // LOAD, UNLOAD, CONSUME, PRODUCE, SCRAP
+  quantity      Float
+  unitOfMeasure String
+
+  // Timing
+  movementTimestamp DateTime @default(now())
+
+  // Process context
+  workOrderId String?
+  operationId String?
+
+  // Location within equipment
+  fromLocation String? // e.g., "Magazine_1", "Station_A"
+  toLocation   String? // e.g., "Spindle", "Station_B"
+
+  // Material condition
+  qualityStatus String? // GOOD, HOLD, REJECT, SCRAP
+
+  // Traceability
+  upstreamTraceId   String? // Link to previous movement
+  downstreamTraceId String? // Link to next movement
+
+  // Recorded by
+  recordedBy String // SYSTEM, OPERATOR, EQUIPMENT
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  // Relations
+  equipment Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  part      Part?      @relation(fields: [partId], references: [id])
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([partId])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@index([workOrderId])
+  @@index([movementTimestamp])
+  @@index([movementType])
+  @@map("equipment_material_movements")
+}
+
+// Process Data Collection - Process parameters during production runs
+model ProcessDataCollection {
+  id          String @id @default(cuid())
+  equipmentId String
+
+  // Process identification
+  processName       String // e.g., "Milling", "Drilling", "Heat_Treatment"
+  processStepNumber Int?
+
+  // Timing
+  startTimestamp DateTime
+  endTimestamp   DateTime?
+  duration       Float? // Duration in seconds
+
+  // Process context
+  workOrderId  String?
+  operationId  String?
+  partNumber   String?
+  lotNumber    String?
+  serialNumber String?
+
+  // Process parameters (collected during run)
+  parameters Json // Key-value pairs of process parameters
+
+  // Process results
+  quantityProduced Float?
+  quantityGood     Float?
+  quantityScrap    Float?
+
+  // Quality metrics
+  inSpecCount    Int?
+  outOfSpecCount Int?
+
+  // Equipment state during process
+  averageUtilization Float? // 0-100%
+  peakUtilization    Float? // 0-100%
+
+  // Alarms and events during process
+  alarmCount         Int @default(0)
+  criticalAlarmCount Int @default(0)
+
+  // Process signature (for validation)
+  operatorId   String?
+  supervisorId String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  equipment Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([processName])
+  @@index([workOrderId])
+  @@index([startTimestamp])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@map("process_data_collections")
+}
+
+// Supporting Enums for ISA-95 L2 Equipment Integration
+enum DataCollectionType {
+  SENSOR // Sensor reading (temperature, pressure, etc.)
+  ALARM // Equipment alarm
+  EVENT // Equipment event (state change, cycle complete)
+  MEASUREMENT // Measurement result (dimension, weight)
+  STATUS // Status indicator (running, idle, error)
+  PERFORMANCE // Performance metric (OEE, cycle time)
+}
+
+enum CommandType {
+  START // Start production/process
+  STOP // Stop production/process
+  PAUSE // Pause production/process
+  RESUME // Resume from pause
+  RESET // Reset equipment
+  CONFIGURE // Configure equipment parameters
+  LOAD_PROGRAM // Load NC program/recipe
+  UNLOAD_PROGRAM // Unload NC program/recipe
+  DIAGNOSTIC // Run diagnostic test
+  CALIBRATE // Calibrate equipment
+  EMERGENCY_STOP // Emergency stop
+}
+
+enum CommandStatus {
+  PENDING // Command created, not yet sent
+  SENT // Command sent to equipment
+  ACKNOWLEDGED // Equipment acknowledged command
+  EXECUTING // Command being executed
+  COMPLETED // Command completed successfully
+  FAILED // Command failed
+  TIMEOUT // Command timed out
+  CANCELLED // Command cancelled
+}
+
+// ============================================================================
+// QIF (Quality Information Framework) Integration Models
+// ============================================================================
+// Models for QIF 3.0 measurement plan and results storage
+// Supports CMM integration, AS9102 FAI reports, and dimensional metrology
+
+// QIF Measurement Plan - Inspection plan (what to measure)
+model QIFMeasurementPlan {
+  id        String @id @default(cuid())
+  qifPlanId String @unique // External QIF plan ID
+
+  // Part identification
+  partNumber   String
+  partRevision String
+  planVersion  String
+
+  // Plan metadata
+  planName    String?
+  description String?  @db.Text
+  createdDate DateTime @default(now())
+  createdBy   String?
+
+  // QIF document  
+  qifXmlContent String @db.Text // Full QIF XML document
+  qifVersion    String @default("3.0.0")
+
+  // Characteristics summary
+  characteristicCount Int @default(0)
+
+  // Links to related data
+  workOrderId String?
+  faiReportId String?
+
+  // Status
+  status       String  @default("ACTIVE") // ACTIVE, OBSOLETE, SUPERSEDED
+  supersededBy String? // ID of replacement plan
+
+  // Audit
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  workOrder          WorkOrder?             @relation(fields: [workOrderId], references: [id])
+  faiReport          FAIReport?             @relation(fields: [faiReportId], references: [id])
+  characteristics    QIFCharacteristic[]
+  measurementResults QIFMeasurementResult[]
+
+  @@index([partNumber])
+  @@index([partRevision])
+  @@index([qifPlanId])
+  @@index([workOrderId])
+  @@index([faiReportId])
+  @@index([status])
+  @@map("qif_measurement_plans")
+}
+
+// QIF Characteristic - Individual characteristics from measurement plan
+model QIFCharacteristic {
+  id                   String @id @default(cuid())
+  qifMeasurementPlanId String
+  characteristicId     String // QIF characteristic ID
+
+  // Characteristic identification
+  balloonNumber      String? // Balloon/Feature number
+  characteristicName String?
+  description        String? @db.Text
+
+  // Tolerances
+  nominalValue   Float?
+  upperTolerance Float?
+  lowerTolerance Float?
+  toleranceType  String? // BILATERAL, UNILATERAL, GEOMETRIC
+
+  // GD&T information
+  gdtType             String? // POSITION, FLATNESS, PERPENDICULARITY, etc.
+  datumReferenceFrame String? // "A|B|C"
+  materialCondition   String? // MMC, LMC, RFS
+
+  // Measurement method
+  measurementMethod String?
+  samplingRequired  Boolean @default(false)
+  sampleSize        Int?
+
+  // Metadata
+  sequenceNumber Int?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  qifMeasurementPlan QIFMeasurementPlan @relation(fields: [qifMeasurementPlanId], references: [id], onDelete: Cascade)
+  measurements       QIFMeasurement[]
+
+  @@index([qifMeasurementPlanId])
+  @@index([characteristicId])
+  @@index([balloonNumber])
+  @@map("qif_characteristics")
+}
+
+// QIF Measurement Result - Actual measurement results (from CMM, inspection)
+model QIFMeasurementResult {
+  id                   String  @id @default(cuid())
+  qifResultsId         String  @unique // External QIF results ID
+  qifMeasurementPlanId String? // Link to plan (optional)
+
+  // Part identification
+  partNumber   String
+  serialNumber String?
+  lotNumber    String?
+
+  // Inspection metadata
+  inspectionDate DateTime
+  inspectedBy    String
+  inspectionType String? // FAI, IN_PROCESS, FINAL, RECEIVING
+
+  // Overall status
+  overallStatus String // PASS, FAIL, CONDITIONAL
+
+  // Measurement summary
+  totalMeasurements  Int @default(0)
+  passedMeasurements Int @default(0)
+  failedMeasurements Int @default(0)
+
+  // QIF document
+  qifXmlContent String @db.Text // Full QIF XML results document
+  qifVersion    String @default("3.0.0")
+
+  // Links to related data
+  workOrderId         String?
+  serializedPartId    String?
+  faiReportId         String?
+  measurementDeviceId String? // CMM or gauge used
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  qifMeasurementPlan QIFMeasurementPlan?   @relation(fields: [qifMeasurementPlanId], references: [id])
+  workOrder          WorkOrder?            @relation(fields: [workOrderId], references: [id])
+  serializedPart     SerializedPart?       @relation(fields: [serializedPartId], references: [id])
+  faiReport          FAIReport?            @relation(fields: [faiReportId], references: [id])
+  measurementDevice  MeasurementEquipment? @relation(fields: [measurementDeviceId], references: [id])
+  measurements       QIFMeasurement[]
+
+  @@index([qifResultsId])
+  @@index([qifMeasurementPlanId])
+  @@index([partNumber])
+  @@index([serialNumber])
+  @@index([inspectionDate])
+  @@index([overallStatus])
+  @@index([workOrderId])
+  @@index([faiReportId])
+  @@map("qif_measurement_results")
+}
+
+// QIF Measurement - Individual characteristic measurement
+model QIFMeasurement {
+  id                     String  @id @default(cuid())
+  qifMeasurementResultId String
+  qifCharacteristicId    String? // Link to characteristic
+
+  // Measurement identification
+  characteristicId String // QIF characteristic ID reference
+  balloonNumber    String?
+
+  // Measured value
+  measuredValue Float
+  deviation     Float?
+
+  // Status
+  status String // PASS, FAIL, OUT_OF_TOLERANCE
+
+  // Measurement details
+  measurementDate   DateTime?
+  measuredBy        String?
+  measurementDevice String?
+
+  // Uncertainty
+  uncertainty  Float?
+  uncertaintyK Float? // Coverage factor (k=2 for 95%)
+
+  // Metadata
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  // Relations
+  qifMeasurementResult QIFMeasurementResult @relation(fields: [qifMeasurementResultId], references: [id], onDelete: Cascade)
+  qifCharacteristic    QIFCharacteristic?   @relation(fields: [qifCharacteristicId], references: [id])
+
+  @@index([qifMeasurementResultId])
+  @@index([qifCharacteristicId])
+  @@index([characteristicId])
+  @@index([status])
+  @@map("qif_measurements")
 }

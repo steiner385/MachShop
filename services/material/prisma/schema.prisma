@@ -1,0 +1,400 @@
+// Material Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Material Service (Port 3003)
+// Bounded Context: Material master data, inventory, lot/batch tracking, serialization
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-material"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MATERIAL_DATABASE_URL")
+}
+
+// ============================================================================
+// Material Master Data Models
+// ============================================================================
+
+model Part {
+  id              String   @id @default(cuid())
+  partNumber      String   @unique
+  partName        String
+  description     String?  @db.Text
+  revision        String?
+
+  // Cross-service references
+  materialClassId String?  // Reference to MaterialClass (internal)
+  supplierId      String?  // Reference to external supplier
+
+  // Part attributes
+  unitOfMeasure   String   @default("EA")
+  materialType    String?
+  standardCost    Float?
+  weight          Float?
+  weightUnit      String?
+
+  // Inventory management
+  minimumStock    Float?
+  reorderPoint    Float?
+  leadTimeDays    Int?
+
+  // Tracking requirements
+  requiresLotTracking      Boolean @default(true)
+  requiresSerialTracking   Boolean @default(false)
+  requiresExpirationDate   Boolean @default(false)
+  defaultShelfLifeDays     Int?
+
+  // Status
+  isActive        Boolean  @default(true)
+  isObsolete      Boolean  @default(false)
+  obsoleteDate    DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  bom             BOMItem[] @relation("ParentPart")
+  bomComponents   BOMItem[] @relation("ChildPart")
+  inventory       Inventory[]
+  lots            MaterialLot[]
+  serializedParts SerializedPart[]
+  transactions    MaterialTransaction[]
+
+  @@index([partNumber])
+  @@index([materialType])
+  @@index([isActive])
+  @@map("parts")
+}
+
+model BOMItem {
+  id              String   @id @default(cuid())
+  parentPartId    String
+  childPartId     String
+  quantity        Float
+  unitOfMeasure   String   @default("EA")
+  findNumber      String?
+  referenceDesignator String?
+  notes           String?  @db.Text
+  isActive        Boolean  @default(true)
+  effectiveDate   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  parentPart      Part     @relation("ParentPart", fields: [parentPartId], references: [id])
+  childPart       Part     @relation("ChildPart", fields: [childPartId], references: [id])
+
+  @@unique([parentPartId, childPartId])
+  @@index([parentPartId])
+  @@index([childPartId])
+  @@map("bom_items")
+}
+
+// ============================================================================
+// Inventory & Transaction Models
+// ============================================================================
+
+model Inventory {
+  id              String   @id @default(cuid())
+  partId          String
+  locationId      String   // Reference to Resource Service Location
+  lotNumber       String?
+
+  // Quantities
+  quantityOnHand  Float
+  quantityAvailable Float
+  quantityReserved Float    @default(0)
+  quantityAllocated Float   @default(0)
+
+  // Status
+  status          InventoryStatus @default(AVAILABLE)
+
+  // Last updated
+  lastUpdatedAt   DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  part            Part     @relation(fields: [partId], references: [id])
+
+  @@unique([partId, locationId, lotNumber])
+  @@index([partId])
+  @@index([locationId])
+  @@index([status])
+  @@map("inventory")
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  RESERVED
+  QUARANTINED
+  EXPIRED
+  SCRAPPED
+}
+
+model MaterialTransaction {
+  id              String   @id @default(cuid())
+  transactionNumber String @unique
+  partId          String
+  lotNumber       String?
+
+  // Transaction details
+  transactionType TransactionType
+  quantity        Float
+  unitOfMeasure   String
+
+  // Locations (cross-service references)
+  fromLocation    String?
+  toLocation      String?
+
+  // References
+  workOrderId     String?  // Reference to Work Order Service
+  referenceNumber String?
+
+  // Cost
+  unitCost        Float?
+  totalCost       Float?
+
+  // Timestamps
+  transactionDate DateTime @default(now())
+  createdById     String   // User ID reference
+  createdAt       DateTime @default(now())
+
+  // Relations
+  part            Part     @relation(fields: [partId], references: [id])
+
+  @@index([partId])
+  @@index([lotNumber])
+  @@index([transactionType])
+  @@index([transactionDate])
+  @@map("material_transactions")
+}
+
+enum TransactionType {
+  RECEIPT
+  ISSUE
+  TRANSFER
+  ADJUSTMENT
+  SCRAP
+  RETURN
+  CYCLE_COUNT
+}
+
+// ============================================================================
+// Lot/Batch Tracking Models
+// ============================================================================
+
+model MaterialLot {
+  id              String   @id @default(cuid())
+  lotNumber       String   @unique
+  partId          String
+
+  // Lot details
+  quantity        Float
+  quantityRemaining Float
+  unitOfMeasure   String
+
+  // Supplier info (cross-service reference)
+  supplierId      String?
+  supplierLotNumber String?
+
+  // Dates
+  receivedDate    DateTime
+  manufactureDate DateTime?
+  expirationDate  DateTime?
+
+  // Quality
+  qualityStatus   LotQualityStatus @default(APPROVED)
+  inspectionId    String?  // Reference to Quality Service
+
+  // Traceability
+  certificateUrls String[]
+  msdsUrls        String[]
+
+  // Status
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  part            Part     @relation(fields: [partId], references: [id])
+  sublots         MaterialSublot[]
+  genealogy       MaterialLotGenealogy[] @relation("ParentLot")
+  childGenealogy  MaterialLotGenealogy[] @relation("ChildLot")
+
+  @@index([partId])
+  @@index([lotNumber])
+  @@index([qualityStatus])
+  @@index([expirationDate])
+  @@map("material_lots")
+}
+
+enum LotQualityStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  QUARANTINED
+  ON_HOLD
+}
+
+model MaterialSublot {
+  id              String   @id @default(cuid())
+  parentLotId     String
+  sublotNumber    String   @unique
+  quantity        Float
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relations
+  parentLot       MaterialLot @relation(fields: [parentLotId], references: [id])
+
+  @@index([parentLotId])
+  @@map("material_sublots")
+}
+
+model MaterialLotGenealogy {
+  id              String   @id @default(cuid())
+  parentLotId     String
+  childLotId      String
+  quantity        Float
+  relationship    GenealogyRelationship
+  createdAt       DateTime @default(now())
+
+  // Relations
+  parentLot       MaterialLot @relation("ParentLot", fields: [parentLotId], references: [id])
+  childLot        MaterialLot @relation("ChildLot", fields: [childLotId], references: [id])
+
+  @@unique([parentLotId, childLotId])
+  @@index([parentLotId])
+  @@index([childLotId])
+  @@map("material_lot_genealogy")
+}
+
+enum GenealogyRelationship {
+  SPLIT
+  MERGE
+  CONSUMED
+  PRODUCED
+}
+
+// ============================================================================
+// Serialization Models
+// ============================================================================
+
+model SerializedPart {
+  id              String   @id @default(cuid())
+  serialNumber    String   @unique
+  partId          String
+  lotNumber       String?
+
+  // Cross-service references
+  workOrderId     String?  // Reference to Work Order Service
+  locationId      String?  // Reference to Resource Service
+
+  // Status
+  status          SerialStatus @default(IN_PRODUCTION)
+
+  // Dates
+  manufactureDate DateTime?
+  shipDate        DateTime?
+
+  // Customer/order info
+  customerOrder   String?
+  customerName    String?
+
+  // Traceability
+  genealogyTree   Json?    // Cached genealogy for performance
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  part            Part     @relation(fields: [partId], references: [id])
+  genealogy       PartGenealogy[] @relation("ParentSerial")
+  childGenealogy  PartGenealogy[] @relation("ChildSerial")
+
+  @@index([partId])
+  @@index([lotNumber])
+  @@index([workOrderId])
+  @@index([status])
+  @@map("serialized_parts")
+}
+
+enum SerialStatus {
+  IN_PRODUCTION
+  COMPLETED
+  SHIPPED
+  IN_SERVICE
+  RETURNED
+  SCRAPPED
+}
+
+model PartGenealogy {
+  id              String   @id @default(cuid())
+  parentSerialId  String
+  childSerialId   String
+  relationship    String   // ASSEMBLY, COMPONENT, REPLACEMENT
+  quantity        Float    @default(1)
+  installedAt     DateTime?
+  removedAt       DateTime?
+  workOrderId     String?  // Reference to Work Order Service
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relations
+  parentSerial    SerializedPart @relation("ParentSerial", fields: [parentSerialId], references: [id])
+  childSerial     SerializedPart @relation("ChildSerial", fields: [childSerialId], references: [id])
+
+  @@unique([parentSerialId, childSerialId])
+  @@index([parentSerialId])
+  @@index([childSerialId])
+  @@index([workOrderId])
+  @@map("part_genealogy")
+}
+
+model SerialNumberRange {
+  id              String   @id @default(cuid())
+  rangePrefix     String
+  currentNumber   Int
+  startNumber     Int
+  endNumber       Int?
+  format          String   // Format template: e.g. "SN-{YYYYMMDD}-{####}"
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([rangePrefix])
+  @@map("serial_number_ranges")
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

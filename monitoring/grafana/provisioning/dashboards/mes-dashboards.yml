@@ -1,0 +1,15 @@
+# Grafana dashboard provisioning configuration
+
+apiVersion: 1
+
+providers:
+  - name: 'MES Dashboards'
+    orgId: 1
+    folder: 'MES'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

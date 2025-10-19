@@ -151,6 +151,16 @@ export const traceabilityApi = {
   },
 
   /**
+   * Get backward traceability - find all materials/components used to make a product
+   */
+  async getBackwardTraceability(serialNumber: string): Promise<any> {
+    const response = await apiClient.get<any>(
+      `/traceability/backward/${serialNumber}`
+    );
+    return response.data;
+  },
+
+  /**
    * Search for traceability records with filters
    */
   async searchTraceability(

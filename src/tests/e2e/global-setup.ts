@@ -309,8 +309,8 @@ async function clearTestData() {
 async function authenticateTestUser() {
   console.log('Authenticating test user...');
   
-  // Ensure auth directory exists
-  const authDir = path.join(__dirname, '.auth');
+  // Ensure auth directory exists (in project root, not test directory)
+  const authDir = path.join(process.cwd(), '.auth');
   if (!fs.existsSync(authDir)) {
     fs.mkdirSync(authDir, { recursive: true });
   }
@@ -448,9 +448,9 @@ async function authenticateTestUser() {
       throw new Error('Authentication setup failed - invalid auth state');
     }
     
-    // Save authenticated state
-    await context.storageState({ 
-      path: path.join(__dirname, '.auth/user.json') 
+    // Save authenticated state to project root (matching playwright.config.ts expectation)
+    await context.storageState({
+      path: path.join(process.cwd(), '.auth/user.json')
     });
     
     console.log('Authentication completed and state saved');
@@ -459,9 +459,9 @@ async function authenticateTestUser() {
     console.log('Page URL:', page.url());
     
     // Take screenshot for debugging
-    await page.screenshot({ 
-      path: path.join(__dirname, '.auth/auth-failure.png'),
-      fullPage: true 
+    await page.screenshot({
+      path: path.join(process.cwd(), '.auth/auth-failure.png'),
+      fullPage: true
     });
     
     throw error;

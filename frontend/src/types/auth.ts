@@ -77,6 +77,14 @@ export const PERMISSIONS = {
   WORKORDERS_DELETE: 'workorders.delete',
   WORKORDERS_RELEASE: 'workorders.release',
 
+  // Work Instruction permissions
+  WORKINSTRUCTIONS_READ: 'workinstructions.read',
+  WORKINSTRUCTIONS_CREATE: 'workinstructions.create',
+  WORKINSTRUCTIONS_UPDATE: 'workinstructions.update',
+  WORKINSTRUCTIONS_DELETE: 'workinstructions.delete',
+  WORKINSTRUCTIONS_APPROVE: 'workinstructions.approve',
+  WORKINSTRUCTIONS_EXECUTE: 'workinstructions.execute',
+
   // Quality permissions
   QUALITY_READ: 'quality.read',
   QUALITY_CREATE: 'quality.create',

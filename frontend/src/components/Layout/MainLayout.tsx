@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Layout, 
-  Menu, 
-  Avatar, 
-  Dropdown, 
-  Space, 
-  Typography, 
+import {
+  Layout,
+  Menu,
+  Avatar,
+  Dropdown,
+  Space,
+  Typography,
   Badge,
   Button,
   Tooltip
@@ -15,6 +15,7 @@ import {
   DashboardOutlined,
   FileTextOutlined,
   QrcodeOutlined,
+  BarcodeOutlined,
   ToolOutlined,
   SettingOutlined,
   UserOutlined,
@@ -23,11 +24,20 @@ import {
   MenuUnfoldOutlined,
   BellOutlined,
   ApartmentOutlined,
-  ExperimentOutlined
+  ExperimentOutlined,
+  BookOutlined,
+  SafetyOutlined,
+  FileSearchOutlined,
+  CloudServerOutlined,
+  CalendarOutlined,
+  InboxOutlined,
+  TeamOutlined,
+  ControlOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/AuthStore';
-import { ConditionalRender } from '@/components/Auth/ProtectedRoute';
 import { ROLES, PERMISSIONS } from '@/types/auth';
+import Breadcrumbs from '@/components/Navigation/Breadcrumbs';
+import { SiteSelector } from '@/components/Site/SiteSelector';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -42,6 +52,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Improved Navigation Structure - Sprint 1
+  // Organized into logical groupings based on user workflows
   const menuItems = [
     {
       key: '/dashboard',
@@ -49,49 +61,142 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       label: 'Dashboard',
     },
     {
-      key: '/workorders',
-      icon: <FileTextOutlined />,
-      label: 'Work Orders',
-      permissions: [PERMISSIONS.WORKORDERS_READ],
-    },
-    {
-      key: '/quality',
-      icon: <ExperimentOutlined />,
-      label: 'Quality',
-      roles: [ROLES.QUALITY_ENGINEER, ROLES.QUALITY_INSPECTOR],
+      type: 'group',
+      label: 'PRODUCTION',
       children: [
         {
-          key: '/quality',
-          label: 'Overview',
+          key: '/workorders',
+          icon: <FileTextOutlined />,
+          label: 'Work Orders',
+          permissions: [PERMISSIONS.WORKORDERS_READ],
         },
         {
-          key: '/quality/inspections',
-          label: 'Inspections',
+          key: '/process-segments',
+          icon: <ApartmentOutlined />,
+          label: 'Process Segments',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.PLANT_MANAGER],
         },
         {
-          key: '/quality/ncrs',
-          label: 'NCRs',
-          roles: [ROLES.QUALITY_ENGINEER],
+          key: '/routings',
+          icon: <ControlOutlined />,
+          label: 'Routings',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.PLANT_MANAGER],
+        },
+        {
+          key: '/scheduling',
+          icon: <CalendarOutlined />,
+          label: 'Scheduling',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.PLANT_MANAGER],
         },
       ],
     },
     {
-      key: '/traceability',
-      icon: <QrcodeOutlined />,
-      label: 'Traceability',
-      permissions: [PERMISSIONS.TRACEABILITY_READ],
+      type: 'group',
+      label: 'QUALITY',
+      children: [
+        {
+          key: '/quality/inspections',
+          icon: <ExperimentOutlined />,
+          label: 'Inspections',
+          roles: [ROLES.QUALITY_ENGINEER, ROLES.QUALITY_INSPECTOR],
+        },
+        {
+          key: '/quality/ncrs',
+          icon: <FileSearchOutlined />,
+          label: 'NCRs',
+          roles: [ROLES.QUALITY_ENGINEER],
+        },
+        {
+          key: '/fai',
+          icon: <SafetyOutlined />,
+          label: 'FAI Reports',
+          roles: [ROLES.QUALITY_ENGINEER, ROLES.QUALITY_INSPECTOR],
+        },
+        {
+          key: '/signatures',
+          icon: <SafetyOutlined />,
+          label: 'Signatures',
+          roles: [ROLES.QUALITY_ENGINEER, ROLES.QUALITY_INSPECTOR],
+        },
+      ],
     },
     {
-      key: '/equipment',
-      icon: <ToolOutlined />,
-      label: 'Equipment',
-      roles: [ROLES.MAINTENANCE_TECHNICIAN, ROLES.PLANT_MANAGER],
+      type: 'group',
+      label: 'MATERIALS',
+      children: [
+        {
+          key: '/materials',
+          icon: <InboxOutlined />,
+          label: 'Materials',
+          permissions: [PERMISSIONS.MATERIALS_READ],
+        },
+        {
+          key: '/traceability',
+          icon: <QrcodeOutlined />,
+          label: 'Traceability',
+          permissions: [PERMISSIONS.TRACEABILITY_READ],
+        },
+      ],
+    },
+    {
+      type: 'group',
+      label: 'PERSONNEL',
+      children: [
+        {
+          key: '/personnel',
+          icon: <TeamOutlined />,
+          label: 'Personnel',
+          roles: [ROLES.PLANT_MANAGER, ROLES.SYSTEM_ADMIN],
+        },
+      ],
+    },
+    {
+      type: 'group',
+      label: 'EQUIPMENT & TOOLS',
+      children: [
+        {
+          key: '/equipment',
+          icon: <ToolOutlined />,
+          label: 'Equipment',
+          roles: [ROLES.MAINTENANCE_TECHNICIAN, ROLES.PLANT_MANAGER],
+        },
+        {
+          key: '/serialization',
+          icon: <BarcodeOutlined />,
+          label: 'Serialization',
+          permissions: [PERMISSIONS.TRACEABILITY_READ],
+        },
+      ],
+    },
+    {
+      key: '/work-instructions',
+      icon: <BookOutlined />,
+      label: 'Work Instructions',
+      permissions: [PERMISSIONS.WORKINSTRUCTIONS_READ],
+    },
+    {
+      type: 'group',
+      label: 'ADMINISTRATION',
+      children: [
+        {
+          key: '/integrations',
+          icon: <CloudServerOutlined />,
+          label: 'Integrations',
+          roles: [ROLES.PLANT_MANAGER, ROLES.SYSTEM_ADMIN],
+        },
+        {
+          key: '/admin',
+          icon: <ControlOutlined />,
+          label: 'Admin',
+          roles: [ROLES.SYSTEM_ADMIN],
+        },
+      ],
     },
   ];
 
   const getSelectedKeys = () => {
     const path = location.pathname;
-    
+
     // Handle nested routes
     if (path.startsWith('/quality/')) {
       return [path];
@@ -99,7 +204,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     if (path.startsWith('/workorders/')) {
       return ['/workorders'];
     }
-    
+    if (path.startsWith('/process-segments')) {
+      return ['/process-segments'];
+    }
+    if (path.startsWith('/work-instructions')) {
+      return ['/work-instructions'];
+    }
+    if (path.startsWith('/integrations')) {
+      return ['/integrations'];
+    }
+
     return [path];
   };
 
@@ -163,7 +277,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           acc.push({
             ...menuItem,
             children: filteredChildren,
-            type: 'group',
           });
         }
       } else {
@@ -291,6 +404,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </div>
 
           <Space size="middle">
+            {/* Site Selector */}
+            <SiteSelector size="middle" showIcon={true} />
+
             {/* Notifications */}
             <Badge count={3} size="small">
               <Button
@@ -338,6 +454,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             overflow: 'auto',
           }}
         >
+          <Breadcrumbs />
           {children}
         </Content>
       </Layout>

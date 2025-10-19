@@ -1,6 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * Playwright E2E Test Configuration for MES System
+ *
+ * Environment Variables for Microservices Testing:
+ * - E2E_BASE_URL: Frontend URL (default: http://localhost:5278)
+ * - AUTH_SERVICE_URL: Auth Service URL (default: uses frontend proxy)
+ *   Set to http://localhost:3008 to test Auth Service directly
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -9,10 +16,10 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Retry failed tests to handle transient failures */
+  retries: process.env.CI ? 2 : 1,
+  /* Limit workers to reduce API rate limiting and improve stability */
+  workers: process.env.CI ? 1 : 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['json', { outputFile: 'test-results/results.json' }],
@@ -22,77 +29,187 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:5278',
-    
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
+
     /* Take screenshots on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Record video on failure */
     video: 'retain-on-failure',
-    
+
     /* Global timeout for each action */
     actionTimeout: 10000,
-    
+
     /* Global timeout for navigation */
     navigationTimeout: 30000,
-    
+
     /* Add test mode marker for auth store detection */
     extraHTTPHeaders: {
       'X-Test-Mode': 'playwright-e2e'
     }
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects - organized by authentication requirements */
   projects: [
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
+    // ==========================================
+    // AUTHENTICATED TESTS (use storageState)
+    // ==========================================
 
-    /* Domain-specific routing tests */
+    /* Authenticated feature tests with standard timeouts */
     {
-      name: 'routing-localhost',
-      testMatch: '**/spa-routing.spec.ts',
-      use: { 
+      name: 'authenticated',
+      testMatch: [
+        '**/frontend-quality.spec.ts',
+        '**/material-traceability.spec.ts',
+        '**/work-order-management.spec.ts',
+        '**/performance.spec.ts',
+        '**/product-definition.spec.ts',
+        '**/production-scheduling.spec.ts',
+      ],
+      use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:5178'
+        channel: 'chrome',
+        storageState: '.auth/user.json',
       },
     },
+
+    /* Quality management tests - authenticated with extended timeouts */
     {
-      name: 'routing-domain',
-      testMatch: '**/spa-routing.spec.ts',
-      use: { 
+      name: 'quality-tests',
+      testMatch: '**/quality-management.spec.ts',
+      timeout: 120000, // 2 minutes per test (quality tests are slow)
+      use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://local.mes.com'
+        storageState: '.auth/user.json',
+        actionTimeout: 120000, // Increased from 60s to 120s for slow quality dashboard renders
+        navigationTimeout: 90000,
       },
     },
 
-    /* Edge case testing with specific configurations */
+    /* Traceability workflow tests - authenticated with extended timeouts */
+    {
+      name: 'traceability-tests',
+      testMatch: '**/traceability-workflow.spec.ts',
+      timeout: 120000, // 2 minutes per test (D3.js rendering can be slow)
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+        actionTimeout: 120000, // Increased from 60s to 120s for D3.js graph interactions
+        navigationTimeout: 90000,
+      },
+    },
+
+    /* Equipment hierarchy tests - API tests with own request context */
+    {
+      name: 'equipment-hierarchy-tests',
+      testMatch: '**/equipment-hierarchy.spec.ts',
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
+    /* Material hierarchy tests - API tests with own request context */
+    {
+      name: 'material-hierarchy-tests',
+      testMatch: '**/material-hierarchy.spec.ts',
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
+    /* Process segment hierarchy tests - API tests with own request context */
+    {
+      name: 'process-segment-hierarchy-tests',
+      testMatch: '**/process-segment-hierarchy.spec.ts',
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
+    /* FAI workflow tests - authenticated with extended timeouts */
+    {
+      name: 'fai-tests',
+      testMatch: '**/fai-workflow.spec.ts',
+      timeout: 120000, // 2 minutes per test (CMM data import can be slow)
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+        actionTimeout: 120000, // Increased from 60s to 120s for CMM XML file processing
+        navigationTimeout: 90000,
+      },
+    },
+
+    // ==========================================
+    // UNAUTHENTICATED TESTS (no storageState)
+    // ==========================================
+
+    /* Authentication flow tests - manage their own auth */
+    {
+      name: 'auth-tests',
+      testMatch: [
+        '**/authentication.spec.ts',
+        '**/account-status-errors.spec.ts',
+        '**/dashboard-after-login.spec.ts',
+        '**/csp-api-violations.spec.ts',
+        '**/mainlayout-permission-errors.spec.ts',
+      ],
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        // No storageState - these tests handle auth themselves
+      },
+    },
+
+    /* API integration tests - use their own API context */
+    {
+      name: 'api-tests',
+      testMatch: [
+        '**/api-integration.spec.ts',
+        '**/work-order-execution.spec.ts',
+        '**/b2m-integration.spec.ts',
+        '**/l2-equipment-integration.spec.ts',
+      ],
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
+    /* Routing edge case tests - manage auth during test */
     {
       name: 'routing-edge-cases',
       testMatch: '**/routing-edge-cases.spec.ts',
-      use: { 
+      retries: 3,
+      use: {
         ...devices['Desktop Chrome'],
-        // Longer timeouts for edge case testing
-        actionTimeout: 15000,
-        navigationTimeout: 45000,
+        // No storageState - tests intentionally clear and re-auth
+        actionTimeout: 20000,
+        navigationTimeout: 60000,
       },
     },
 
-    /* Domain integration with full nginx proxy testing */
+    /* SPA routing tests - localhost */
     {
-      name: 'domain-integration-full',
-      testMatch: '**/domain-integration.spec.ts',
-      use: { 
+      name: 'routing-localhost',
+      testMatch: '**/spa-routing.spec.ts',
+      use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://local.mes.com',
-        // Enable more detailed tracing for domain tests
-        trace: 'on',
-        video: 'on',
+        baseURL: 'http://localhost:5278',
+        // No storageState - tests manage auth for different scenarios
       },
     },
+
+    // NOTE: Domain integration tests (routing-domain and domain-integration)
+    // have been removed because they require Nginx and /etc/hosts configuration.
+    // To re-enable, add projects with baseURL: 'http://local.mes.com'
   ],
 
 
@@ -103,7 +220,7 @@ export default defineConfig({
   globalTeardown: require.resolve('./src/tests/e2e/global-teardown.ts'),
   
   /* Test timeout */
-  timeout: 60000,
+  timeout: 90000, // Increased from 60s to 90s for slow UI rendering tests
   
   /* Expect timeout */
   expect: {

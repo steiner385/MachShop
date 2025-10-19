@@ -129,3 +129,5 @@ pnpm-lock.yaml
 
 # Husky
 .husky/_
+# Playwright authentication state
+.auth/

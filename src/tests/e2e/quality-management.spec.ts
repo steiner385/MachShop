@@ -3,8 +3,8 @@ import { navigateAuthenticated, setupTestAuth, waitForAuthReady } from '../helpe
 
 test.describe('Quality Management', () => {
   test.beforeEach(async ({ page }) => {
-    // Use admin user which has quality permissions
-    await navigateAuthenticated(page, '/quality', 'admin');
+    // Use Quality Engineer user which has quality permissions
+    await navigateAuthenticated(page, '/quality', 'qualityEngineer');
     
     // Wait for the page to load - check for multiple possible selectors
     try {
@@ -66,8 +66,8 @@ test.describe('Quality Management', () => {
   });
 
   test('should create new inspection', async ({ page }) => {
-    await page.goto('/quality/inspections');
-    
+    await navigateAuthenticated(page, '/quality/inspections', 'qualityEngineer');
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -120,8 +120,8 @@ test.describe('Quality Management', () => {
   });
 
   test('should record inspection measurements', async ({ page }) => {
-    await page.goto('/quality/inspections');
-    
+    await navigateAuthenticated(page, '/quality/inspections', 'qualityEngineer');
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -163,7 +163,7 @@ test.describe('Quality Management', () => {
 
   test('should validate measurement inputs', async ({ page }) => {
     await page.goto('/quality/inspections');
-    
+
     // Wait for page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -204,7 +204,7 @@ test.describe('Quality Management', () => {
 
   test('should create non-conformance report from failed inspection', async ({ page }) => {
     await page.goto('/quality/inspections');
-    
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -321,7 +321,7 @@ test.describe('Quality Management', () => {
   test('should display statistical process control charts', async ({ page }) => {
     // Test the inspections page which is more likely to be implemented
     await page.goto('/quality/inspections');
-    
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -364,8 +364,8 @@ test.describe('Quality Management', () => {
       if (await table.isVisible()) {
         await expect(table).toBeVisible();
         
-        // Look for view all link
-        const viewAllLink = page.locator('text=View All');
+        // Look for view all link (use .first() since there may be multiple "View All" links)
+        const viewAllLink = page.locator('text=View All').first();
         if (await viewAllLink.isVisible()) {
           await viewAllLink.click();
           
@@ -417,7 +417,7 @@ test.describe('Quality Management', () => {
 
   test('should filter and search inspections', async ({ page }) => {
     await page.goto('/quality/inspections');
-    
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     
@@ -468,7 +468,7 @@ test.describe('Quality Management', () => {
 
   test('should validate quality measurement limits', async ({ page }) => {
     await page.goto('/quality/inspections');
-    
+
     // Wait for inspections page to load
     await expect(page.locator('h2:has-text("Quality Inspections")')).toBeVisible();
     

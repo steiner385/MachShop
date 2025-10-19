@@ -1,0 +1,320 @@
+# MES System ConfigMaps
+# Shared configuration for all microservices
+
+---
+# Main Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mes-config
+  namespace: mes-production
+  labels:
+    app: mes
+    component: configuration
+data:
+  # Environment
+  NODE_ENV: "production"
+
+  # Logging Configuration
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  LOG_PRETTY_PRINT: "false"
+
+  # Application Settings
+  ENABLE_CORS: "true"
+  CORS_ORIGIN: "*"
+  API_RATE_LIMIT: "1000"
+  API_RATE_WINDOW: "60000"
+
+  # Database Connection Pool
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+  DB_CONNECTION_TIMEOUT: "30000"
+  DB_IDLE_TIMEOUT: "10000"
+
+  # Kafka Configuration
+  KAFKA_BROKERS: "kafka-0.kafka:9092,kafka-1.kafka:9092,kafka-2.kafka:9092"
+  KAFKA_TOPIC: "mes-events"
+  KAFKA_GROUP_ID_PREFIX: "mes"
+  KAFKA_SESSION_TIMEOUT: "30000"
+  KAFKA_HEARTBEAT_INTERVAL: "3000"
+  KAFKA_MAX_RETRY_TIME: "30000"
+  KAFKA_INITIAL_RETRY_TIME: "300"
+  KAFKA_RETRIES: "5"
+  KAFKA_AUTO_COMMIT: "false"
+  KAFKA_FROM_BEGINNING: "false"
+
+  # Redis Configuration
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_KEY_PREFIX: "mes:"
+  REDIS_TTL: "3600"
+  REDIS_MAX_RETRIES: "3"
+  REDIS_RETRY_DELAY: "1000"
+
+  # Service Discovery - Internal Service URLs
+  AUTH_SERVICE_URL: "http://auth-service:3000"
+  WORK_ORDER_SERVICE_URL: "http://work-order-service:3000"
+  QUALITY_SERVICE_URL: "http://quality-service:3000"
+  MATERIAL_SERVICE_URL: "http://material-service:3000"
+  TRACEABILITY_SERVICE_URL: "http://traceability-service:3000"
+  RESOURCE_SERVICE_URL: "http://resource-service:3000"
+  REPORTING_SERVICE_URL: "http://reporting-service:3000"
+  INTEGRATION_SERVICE_URL: "http://integration-service:3000"
+
+  # Feature Flags
+  FEATURE_DIGITAL_WORK_INSTRUCTIONS: "true"
+  FEATURE_ELECTRONIC_SIGNATURES: "true"
+  FEATURE_FAI_REPORTS: "true"
+  FEATURE_SERIALIZATION: "true"
+  FEATURE_ADVANCED_PLANNING: "true"
+  FEATURE_PREDICTIVE_MAINTENANCE: "false"
+  FEATURE_AI_QUALITY_PREDICTION: "false"
+  FEATURE_BLOCKCHAIN_TRACEABILITY: "false"
+
+  # API Gateway Configuration
+  API_GATEWAY_HOST: "0.0.0.0"
+  API_GATEWAY_PORT: "8080"
+  API_GATEWAY_TIMEOUT: "30000"
+
+  # Security Settings
+  JWT_EXPIRATION: "8h"
+  JWT_REFRESH_EXPIRATION: "7d"
+  BCRYPT_ROUNDS: "10"
+  SESSION_TIMEOUT: "3600000"
+  MAX_LOGIN_ATTEMPTS: "5"
+  LOCKOUT_DURATION: "900000"
+
+  # File Upload Settings
+  MAX_FILE_SIZE: "52428800"
+  ALLOWED_FILE_TYPES: "pdf,jpg,jpeg,png,csv,xlsx"
+  UPLOAD_PATH: "/app/uploads"
+
+  # Batch Processing
+  BATCH_SIZE: "100"
+  BATCH_INTERVAL: "5000"
+  MAX_BATCH_SIZE: "1000"
+
+  # Health Check Configuration
+  HEALTH_CHECK_INTERVAL: "30000"
+  HEALTH_CHECK_TIMEOUT: "5000"
+
+  # Metrics & Monitoring
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  METRICS_PATH: "/metrics"
+  TRACING_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "0.1"
+
+  # Timezone
+  TZ: "America/New_York"
+
+---
+# Service-Specific Configuration for Auth Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: mes-production
+  labels:
+    app: auth
+    component: configuration
+data:
+  SERVICE_NAME: "auth-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-auth-service"
+  PASSWORD_MIN_LENGTH: "8"
+  PASSWORD_REQUIRE_UPPERCASE: "true"
+  PASSWORD_REQUIRE_LOWERCASE: "true"
+  PASSWORD_REQUIRE_NUMBER: "true"
+  PASSWORD_REQUIRE_SPECIAL: "true"
+  MFA_ENABLED: "false"
+  LDAP_ENABLED: "false"
+  SSO_ENABLED: "false"
+
+---
+# Service-Specific Configuration for Work Order Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: work-order-service-config
+  namespace: mes-production
+  labels:
+    app: work-order
+    component: configuration
+data:
+  SERVICE_NAME: "work-order-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-work-order-service"
+  AUTO_GENERATE_WO_NUMBER: "true"
+  WO_NUMBER_PREFIX: "WO"
+  WO_NUMBER_PADDING: "6"
+  DEFAULT_PRIORITY: "NORMAL"
+  AUTO_SCHEDULE_ENABLED: "true"
+  CAPACITY_CHECK_ENABLED: "true"
+
+---
+# Service-Specific Configuration for Quality Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quality-service-config
+  namespace: mes-production
+  labels:
+    app: quality
+    component: configuration
+data:
+  SERVICE_NAME: "quality-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-quality-service"
+  AUTO_CREATE_INSPECTION_PLANS: "true"
+  STATISTICAL_PROCESS_CONTROL: "true"
+  SPC_SAMPLE_SIZE: "30"
+  CONTROL_LIMIT_SIGMA: "3"
+  FAI_REQUIRED_SIGNATURES: "2"
+  NCR_AUTO_WORKFLOW: "true"
+
+---
+# Service-Specific Configuration for Material Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: material-service-config
+  namespace: mes-production
+  labels:
+    app: material
+    component: configuration
+data:
+  SERVICE_NAME: "material-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-material-service"
+  AUTO_GENERATE_LOT_NUMBER: "true"
+  LOT_NUMBER_PREFIX: "LOT"
+  LOT_NUMBER_PADDING: "8"
+  FIFO_ENABLED: "true"
+  INVENTORY_REORDER_ENABLED: "true"
+  NEGATIVE_INVENTORY_ALLOWED: "false"
+
+---
+# Service-Specific Configuration for Traceability Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traceability-service-config
+  namespace: mes-production
+  labels:
+    app: traceability
+    component: configuration
+data:
+  SERVICE_NAME: "traceability-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-traceability-service"
+  AUTO_GENERATE_SERIAL: "true"
+  SERIAL_PREFIX: "SN"
+  SERIAL_PADDING: "10"
+  GENEALOGY_DEPTH: "10"
+  RETAIN_HISTORY_DAYS: "2555"
+  BLOCKCHAIN_ENABLED: "false"
+
+---
+# Service-Specific Configuration for Resource Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resource-service-config
+  namespace: mes-production
+  labels:
+    app: resource
+    component: configuration
+data:
+  SERVICE_NAME: "resource-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-resource-service"
+  MAINTENANCE_SCHEDULING: "true"
+  PREDICTIVE_MAINTENANCE: "false"
+  OEE_CALCULATION: "true"
+  OEE_INTERVAL: "3600000"
+  DOWNTIME_THRESHOLD: "300000"
+  UTILIZATION_TARGET: "85"
+
+---
+# Service-Specific Configuration for Reporting Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-service-config
+  namespace: mes-production
+  labels:
+    app: reporting
+    component: configuration
+data:
+  SERVICE_NAME: "reporting-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-reporting-service"
+  REPORT_RETENTION_DAYS: "365"
+  SCHEDULED_REPORTS_ENABLED: "true"
+  REPORT_CACHE_ENABLED: "true"
+  REPORT_CACHE_TTL: "3600"
+  MAX_REPORT_SIZE_MB: "50"
+  EXPORT_FORMATS: "pdf,csv,xlsx"
+
+---
+# Service-Specific Configuration for Integration Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: integration-service-config
+  namespace: mes-production
+  labels:
+    app: integration
+    component: configuration
+data:
+  SERVICE_NAME: "integration-service"
+  SERVICE_PORT: "3000"
+  KAFKA_CONSUMER_GROUP: "mes-integration-service"
+  ORACLE_EBS_ENABLED: "false"
+  ORACLE_FUSION_ENABLED: "false"
+  TEAMCENTER_ENABLED: "false"
+  SAP_ENABLED: "false"
+  SYNC_INTERVAL: "300000"
+  BATCH_SYNC_ENABLED: "true"
+  ERROR_RETRY_ATTEMPTS: "3"
+  ERROR_RETRY_DELAY: "5000"
+
+---
+# Database Configuration (Non-sensitive connection parameters)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-config
+  namespace: mes-production
+  labels:
+    app: mes
+    component: database-configuration
+data:
+  # PostgreSQL Configuration
+  POSTGRES_HOST_AUTH: "postgres-auth"
+  POSTGRES_HOST_WORK_ORDER: "postgres-work-order"
+  POSTGRES_HOST_QUALITY: "postgres-quality"
+  POSTGRES_HOST_MATERIAL: "postgres-material"
+  POSTGRES_HOST_TRACEABILITY: "postgres-traceability"
+  POSTGRES_HOST_RESOURCE: "postgres-resource"
+  POSTGRES_HOST_REPORTING: "postgres-reporting"
+  POSTGRES_HOST_INTEGRATION: "postgres-integration"
+
+  POSTGRES_PORT: "5432"
+
+  POSTGRES_DB_AUTH: "mes_auth"
+  POSTGRES_DB_WORK_ORDER: "mes_work_order"
+  POSTGRES_DB_QUALITY: "mes_quality"
+  POSTGRES_DB_MATERIAL: "mes_material"
+  POSTGRES_DB_TRACEABILITY: "mes_traceability"
+  POSTGRES_DB_RESOURCE: "mes_resource"
+  POSTGRES_DB_REPORTING: "mes_reporting"
+  POSTGRES_DB_INTEGRATION: "mes_integration"
+
+  # Connection Pool Settings
+  POSTGRES_MAX_CONNECTIONS: "100"
+  POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT: "60000"
+  POSTGRES_STATEMENT_TIMEOUT: "30000"

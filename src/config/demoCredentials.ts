@@ -38,7 +38,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'admin@mes.com',
     firstName: 'System',
     lastName: 'Administrator',
-    roles: ['Plant Manager', 'System Admin'],
+    roles: ['Plant Manager', 'System Administrator'],
     permissions: [
       'workorders.read', 'workorders.write', 'workorders.delete',
       'quality.read', 'quality.write',
@@ -72,7 +72,9 @@ export const DEMO_USERS: DemoUser[] = [
     lastName: 'Doe',
     roles: ['Production Operator'],
     permissions: [
-      'workorders.read'
+      'workorders.read',
+      'workinstructions.read', 'workinstructions.execute',
+      'traceability.read'
     ],
     description: 'Production operations - Work order viewing and basic operations',
     displayName: 'Production Operator'

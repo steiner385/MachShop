@@ -1,0 +1,879 @@
+// Resource Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Resource Service (Port 3005)
+// Bounded Context: ISA-95 Level 4 resource definitions - Equipment, Personnel, Products, Process Segments
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-resource"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("RESOURCE_DATABASE_URL")
+}
+
+// ============================================================================
+// Site & Location Hierarchy (ISA-95 Equipment Hierarchy)
+// ============================================================================
+
+/// Enterprise > Site > Area > Work Center > Work Unit
+/// Implements ISA-95 Part 2 Equipment Hierarchy Model
+
+model Site {
+  id          String  @id @default(cuid())
+  siteCode    String  @unique
+  siteName    String
+  description String? @db.Text
+
+  // Location details
+  address    String?
+  city       String?
+  state      String?
+  country    String?
+  postalCode String?
+  timezone   String  @default("UTC")
+
+  // Contact info
+  phoneNumber String?
+  email       String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  areas       Area[]
+  workCenters WorkCenter[]
+
+  @@index([siteCode])
+  @@index([isActive])
+  @@map("sites")
+}
+
+model Area {
+  id          String   @id @default(cuid())
+  siteId      String
+  areaCode    String
+  areaName    String
+  description String?  @db.Text
+  areaType    AreaType
+
+  // Hierarchy
+  parentAreaId String? // For nested areas
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  site        Site         @relation(fields: [siteId], references: [id])
+  parentArea  Area?        @relation("AreaHierarchy", fields: [parentAreaId], references: [id])
+  childAreas  Area[]       @relation("AreaHierarchy")
+  workCenters WorkCenter[]
+
+  @@unique([siteId, areaCode])
+  @@index([siteId])
+  @@index([parentAreaId])
+  @@map("areas")
+}
+
+enum AreaType {
+  PRODUCTION
+  STORAGE
+  STAGING
+  QUALITY_LAB
+  MAINTENANCE
+  SHIPPING_RECEIVING
+  OFFICE
+}
+
+model WorkCenter {
+  id             String  @id @default(cuid())
+  siteId         String
+  areaId         String?
+  workCenterCode String
+  workCenterName String
+  description    String? @db.Text
+
+  // ISA-95 Equipment Hierarchy
+  equipmentLevel EquipmentLevel @default(WORK_CENTER)
+  equipmentType  String? // CNC, PRESS, LATHE, ASSEMBLY_STATION, etc.
+
+  // Parent-child relationships (for equipment hierarchy)
+  parentWorkCenterId String?
+
+  // Capabilities
+  capabilities String[] // Array of capability codes
+
+  // Capacity
+  capacity    Float?
+  capacityUOM String? // Units: parts/hour, lbs/hour, etc.
+
+  // Status
+  status   WorkCenterStatus @default(AVAILABLE)
+  isActive Boolean          @default(true)
+
+  // Maintenance
+  lastMaintenanceDate DateTime?
+  nextMaintenanceDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  site                Site                @relation(fields: [siteId], references: [id])
+  area                Area?               @relation(fields: [areaId], references: [id])
+  parentWorkCenter    WorkCenter?         @relation("WorkCenterHierarchy", fields: [parentWorkCenterId], references: [id])
+  childWorkCenters    WorkCenter[]        @relation("WorkCenterHierarchy")
+  equipmentProperties EquipmentProperty[]
+  downtimeEvents      EquipmentDowntime[]
+
+  @@unique([siteId, workCenterCode])
+  @@index([siteId])
+  @@index([areaId])
+  @@index([status])
+  @@index([equipmentType])
+  @@map("work_centers")
+}
+
+enum EquipmentLevel {
+  ENTERPRISE
+  SITE
+  AREA
+  WORK_CENTER
+  WORK_UNIT
+  EQUIPMENT_MODULE
+}
+
+enum WorkCenterStatus {
+  AVAILABLE
+  IN_USE
+  DOWN
+  MAINTENANCE
+  SETUP
+  IDLE
+  DECOMMISSIONED
+}
+
+model EquipmentProperty {
+  id            String       @id @default(cuid())
+  workCenterId  String
+  propertyName  String
+  propertyValue String
+  propertyType  PropertyType
+  propertyUnit  String?
+  description   String?      @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workCenter WorkCenter @relation(fields: [workCenterId], references: [id], onDelete: Cascade)
+
+  @@unique([workCenterId, propertyName])
+  @@map("equipment_properties")
+}
+
+enum PropertyType {
+  PHYSICAL // Speed, feed rate, spindle power, etc.
+  CAPABILITY // Max part size, tolerance, etc.
+  SPECIFICATION // Model number, manufacturer, year, etc.
+  CALIBRATION // Last calibration date, due date, etc.
+}
+
+model EquipmentDowntime {
+  id             String @id @default(cuid())
+  workCenterId   String
+  downtimeNumber String @unique @default(cuid())
+
+  // Downtime details
+  downtimeType   DowntimeType
+  downtimeReason String
+  description    String?      @db.Text
+
+  // Time tracking
+  startTime       DateTime
+  endTime         DateTime?
+  durationMinutes Float?
+
+  // Personnel
+  reportedById String // User ID from Auth Service
+  resolvedById String? // User ID from Auth Service
+
+  // Status
+  status DowntimeStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workCenter WorkCenter @relation(fields: [workCenterId], references: [id])
+
+  @@index([workCenterId])
+  @@index([downtimeType])
+  @@index([status])
+  @@index([startTime])
+  @@map("equipment_downtime")
+}
+
+enum DowntimeType {
+  BREAKDOWN
+  PLANNED_MAINTENANCE
+  UNPLANNED_MAINTENANCE
+  SETUP_CHANGEOVER
+  NO_OPERATOR
+  NO_MATERIAL
+  NO_TOOLING
+  QUALITY_HOLD
+  OTHER
+}
+
+enum DowntimeStatus {
+  ACTIVE
+  RESOLVED
+  CANCELLED
+}
+
+// ============================================================================
+// Personnel & Skills
+// ============================================================================
+// Auth Service owns authentication, Resource Service owns personnel details
+
+model Personnel {
+  id             String @id @default(cuid())
+  userId         String @unique // Reference to Auth Service User
+  employeeNumber String @unique
+
+  // Name (duplicated from Auth Service for display)
+  firstName   String
+  lastName    String
+  displayName String?
+
+  // Contact
+  email            String
+  phoneNumber      String?
+  emergencyContact String?
+  emergencyPhone   String?
+
+  // Employment details
+  department      String?
+  jobTitle        String?
+  shift           ShiftType?
+  employmentType  EmploymentType @default(FULL_TIME)
+  hireDate        DateTime?
+  terminationDate DateTime?
+
+  // Site assignment
+  primarySiteId String?
+  primaryAreaId String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  skills          PersonnelSkill[]
+  certifications  PersonnelCertification[]
+  qualifications  PersonnelQualification[]
+  trainingRecords TrainingRecord[]
+
+  @@index([userId])
+  @@index([employeeNumber])
+  @@index([department])
+  @@index([isActive])
+  @@map("personnel")
+}
+
+enum ShiftType {
+  DAY
+  SWING
+  NIGHT
+  ROTATING
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+}
+
+model Skill {
+  id            String        @id @default(cuid())
+  skillCode     String        @unique
+  skillName     String
+  description   String?       @db.Text
+  skillCategory SkillCategory
+  isActive      Boolean       @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  personnelSkills       PersonnelSkill[]
+  operationRequirements OperationSkillRequirement[]
+
+  @@map("skills")
+}
+
+enum SkillCategory {
+  MACHINING
+  ASSEMBLY
+  INSPECTION
+  WELDING
+  PROGRAMMING
+  QUALITY
+  MAINTENANCE
+  SETUP
+  MATERIAL_HANDLING
+  ENGINEERING
+  SUPERVISION
+}
+
+model PersonnelSkill {
+  id               String           @id @default(cuid())
+  personnelId      String
+  skillId          String
+  proficiencyLevel ProficiencyLevel
+  acquiredDate     DateTime
+  expirationDate   DateTime?
+  verifiedById     String? // User ID from Auth Service
+  verifiedDate     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id])
+
+  @@unique([personnelId, skillId])
+  @@index([personnelId])
+  @@index([skillId])
+  @@map("personnel_skills")
+}
+
+enum ProficiencyLevel {
+  TRAINEE
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  INSTRUCTOR
+}
+
+model PersonnelCertification {
+  id                  String    @id @default(cuid())
+  personnelId         String
+  certificationName   String
+  certificationNumber String?
+  issuingOrganization String
+  issueDate           DateTime
+  expirationDate      DateTime?
+  documentUrl         String?
+  isActive            Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  @@index([personnelId])
+  @@index([expirationDate])
+  @@map("personnel_certifications")
+}
+
+model PersonnelQualification {
+  id                String    @id @default(cuid())
+  personnelId       String
+  qualificationType String // PROCESS, EQUIPMENT, MATERIAL, etc.
+  qualifiedFor      String // Part number, process code, equipment code
+  qualificationDate DateTime
+  qualifiedById     String // User ID from Auth Service
+  expirationDate    DateTime?
+  notes             String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  @@index([personnelId])
+  @@index([qualificationType])
+  @@map("personnel_qualifications")
+}
+
+model TrainingRecord {
+  id               String         @id @default(cuid())
+  personnelId      String
+  trainingName     String
+  trainingType     TrainingType
+  trainingDate     DateTime
+  completionStatus TrainingStatus @default(IN_PROGRESS)
+  score            Float?
+  passingScore     Float?
+  instructorName   String?
+  durationHours    Float?
+  certificateUrl   String?
+  notes            String?        @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  @@index([personnelId])
+  @@index([trainingType])
+  @@index([completionStatus])
+  @@map("training_records")
+}
+
+enum TrainingType {
+  ONBOARDING
+  SAFETY
+  TECHNICAL_SKILL
+  QUALITY_PROCEDURE
+  EQUIPMENT_OPERATION
+  SOFTWARE_TRAINING
+  REGULATORY_COMPLIANCE
+  REFRESHER
+}
+
+enum TrainingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================================================
+// Product Definitions (ISA-95 Product Definition Information)
+// ============================================================================
+
+model Product {
+  id          String  @id @default(cuid())
+  productCode String  @unique
+  productName String
+  description String? @db.Text
+  revision    String  @default("A")
+
+  // Product classification
+  productFamily String?
+  productLine   String?
+  productType   ProductType
+
+  // Manufacturing details
+  unitOfMeasure  String @default("EA")
+  standardCost   Float?
+  targetLeadTime Int? // Days
+
+  // Status
+  lifecycleStatus ProductLifecycleStatus @default(DEVELOPMENT)
+  isActive        Boolean                @default(true)
+  effectiveDate   DateTime?
+  obsoleteDate    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bomRevisions ProductBOM[]
+  routings     Routing[]
+
+  @@index([productCode])
+  @@index([productFamily])
+  @@index([lifecycleStatus])
+  @@map("products")
+}
+
+enum ProductType {
+  RAW_MATERIAL
+  PURCHASED_PART
+  MANUFACTURED_PART
+  SUBASSEMBLY
+  ASSEMBLY
+  FINISHED_GOOD
+}
+
+enum ProductLifecycleStatus {
+  CONCEPT
+  DEVELOPMENT
+  PILOT
+  PRODUCTION
+  MATURE
+  PHASE_OUT
+  OBSOLETE
+}
+
+model ProductBOM {
+  id             String    @id @default(cuid())
+  productId      String
+  revision       String    @default("1")
+  effectiveDate  DateTime
+  expirationDate DateTime?
+  isActive       Boolean   @default(true)
+  notes          String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product Product          @relation(fields: [productId], references: [id])
+  items   ProductBOMItem[]
+
+  @@unique([productId, revision])
+  @@index([productId])
+  @@map("product_boms")
+}
+
+model ProductBOMItem {
+  id                   String      @id @default(cuid())
+  bomId                String
+  itemNumber           Int
+  componentProductId   String // Reference to another Product
+  componentProductCode String? // Cached for display
+  quantity             Float
+  unitOfMeasure        String      @default("EA")
+  findNumber           String?
+  referenceDesignator  String?
+  itemType             BOMItemType @default(COMPONENT)
+  isOptional           Boolean     @default(false)
+  notes                String?     @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bom ProductBOM @relation(fields: [bomId], references: [id], onDelete: Cascade)
+
+  @@unique([bomId, itemNumber])
+  @@index([bomId])
+  @@index([componentProductId])
+  @@map("product_bom_items")
+}
+
+enum BOMItemType {
+  COMPONENT
+  SUBASSEMBLY
+  CONSUMABLE
+  HARDWARE
+  OPTIONAL
+}
+
+// ============================================================================
+// Process Segments (ISA-95 Part 2 Routing/Process Definitions)
+// ============================================================================
+
+model Routing {
+  id          String  @id @default(cuid())
+  productId   String
+  routingCode String
+  routingName String
+  revision    String  @default("1")
+  description String? @db.Text
+
+  // Routing details
+  routingType RoutingType @default(STANDARD)
+  isDefault   Boolean     @default(false)
+
+  // Status
+  isActive       Boolean   @default(true)
+  effectiveDate  DateTime
+  expirationDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product    Product     @relation(fields: [productId], references: [id])
+  operations Operation[]
+
+  @@unique([productId, routingCode, revision])
+  @@index([productId])
+  @@index([isActive])
+  @@map("routings")
+}
+
+enum RoutingType {
+  STANDARD
+  ALTERNATE
+  PROTOTYPE
+  REWORK
+}
+
+model Operation {
+  id              String  @id @default(cuid())
+  routingId       String
+  operationNumber Int
+  operationCode   String
+  operationName   String
+  description     String? @db.Text
+
+  // Work center assignment
+  workCenterId   String?
+  workCenterCode String? // Cached for display
+
+  // Alternative work centers
+  alternateWorkCenters String[] // Array of work center IDs
+
+  // Time standards
+  setupTime    Float? // Minutes
+  runTime      Float? // Minutes per unit
+  teardownTime Float? // Minutes
+
+  // Labor requirements
+  laborHours Float?
+  crewSize   Int?
+
+  // Sequence control
+  nextOperationId String? // For linear sequences
+  isParallel      Boolean @default(false)
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  routing             Routing                       @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  skillRequirements   OperationSkillRequirement[]
+  toolRequirements    OperationToolRequirement[]
+  qualityRequirements OperationQualityRequirement[]
+
+  @@unique([routingId, operationNumber])
+  @@index([routingId])
+  @@index([workCenterId])
+  @@map("operations")
+}
+
+model OperationSkillRequirement {
+  id                 String           @id @default(cuid())
+  operationId        String
+  skillId            String
+  minimumProficiency ProficiencyLevel @default(BASIC)
+  isRequired         Boolean          @default(true)
+
+  // Relations
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id])
+
+  @@unique([operationId, skillId])
+  @@map("operation_skill_requirements")
+}
+
+model OperationQualityRequirement {
+  id                  String                 @id @default(cuid())
+  operationId         String
+  requirementType     QualityRequirementType
+  description         String                 @db.Text
+  inspectionFrequency InspectionFrequency?
+  qualityPlanId       String? // Reference to Quality Service
+  isRequired          Boolean                @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@map("operation_quality_requirements")
+}
+
+enum QualityRequirementType {
+  IN_PROCESS_INSPECTION
+  FINAL_INSPECTION
+  FIRST_ARTICLE
+  SPC_MONITORING
+  VISUAL_INSPECTION
+  DIMENSIONAL_INSPECTION
+  FUNCTIONAL_TEST
+  PROOF_LOAD_TEST
+}
+
+enum InspectionFrequency {
+  EVERY_UNIT
+  FIRST_LAST
+  HOURLY
+  SHIFT
+  DAILY
+  SAMPLE_PLAN
+}
+
+// ============================================================================
+// Tooling Management
+// ============================================================================
+
+model Tool {
+  id          String   @id @default(cuid())
+  toolNumber  String   @unique
+  toolName    String
+  description String?  @db.Text
+  toolType    ToolType
+  toolFamily  String?
+
+  // Physical characteristics
+  manufacturer String?
+  modelNumber  String?
+  serialNumber String?
+
+  // Location
+  currentLocationId String?
+  currentSiteId     String?
+
+  // Status
+  status    ToolStatus    @default(AVAILABLE)
+  condition ToolCondition @default(GOOD)
+
+  // Lifecycle
+  acquisitionDate DateTime?
+  lastUsedDate    DateTime?
+  totalUsageHours Float?
+  usageCycles     Int?
+
+  // Maintenance
+  requiresCalibration      Boolean            @default(false)
+  calibrationFrequencyDays Int?
+  lastCalibrationDate      DateTime?
+  nextCalibrationDate      DateTime?
+  calibrationStatus        CalibrationStatus?
+
+  // Cost
+  purchaseCost    Float?
+  replacementCost Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  usageHistory          ToolUsageHistory[]
+  operationRequirements OperationToolRequirement[]
+
+  @@index([toolNumber])
+  @@index([toolType])
+  @@index([status])
+  @@map("tools")
+}
+
+enum ToolType {
+  CUTTING_TOOL
+  FIXTURE
+  JIG
+  GAUGE
+  DIE
+  MOLD
+  TEMPLATE
+  HAND_TOOL
+  POWER_TOOL
+  MEASURING_INSTRUMENT
+}
+
+enum ToolStatus {
+  AVAILABLE
+  IN_USE
+  RESERVED
+  MAINTENANCE
+  CALIBRATION
+  LOST
+  SCRAPPED
+}
+
+enum ToolCondition {
+  NEW
+  GOOD
+  FAIR
+  WORN
+  DAMAGED
+  BEYOND_REPAIR
+}
+
+enum CalibrationStatus {
+  CURRENT
+  DUE_SOON
+  OVERDUE
+  NOT_REQUIRED
+}
+
+model ToolUsageHistory {
+  id              String         @id @default(cuid())
+  toolId          String
+  workOrderId     String? // Reference to Work Order Service
+  workCenterId    String?
+  usedById        String // User ID from Auth Service
+  checkoutDate    DateTime
+  returnDate      DateTime?
+  usageHours      Float?
+  usageCycles     Int?
+  conditionBefore ToolCondition
+  conditionAfter  ToolCondition?
+  notes           String?        @db.Text
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  tool Tool @relation(fields: [toolId], references: [id])
+
+  @@index([toolId])
+  @@index([workOrderId])
+  @@map("tool_usage_history")
+}
+
+model OperationToolRequirement {
+  id              String    @id @default(cuid())
+  operationId     String
+  toolId          String?
+  toolType        ToolType? // Can specify by type instead of specific tool
+  toolDescription String?
+  quantity        Int       @default(1)
+  isRequired      Boolean   @default(true)
+
+  // Relations
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  Tool      Tool?     @relation(fields: [toolId], references: [id])
+
+  @@index([operationId])
+  @@index([toolId])
+  @@map("operation_tool_requirements")
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

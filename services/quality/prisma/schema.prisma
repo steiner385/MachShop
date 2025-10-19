@@ -1,0 +1,687 @@
+// Quality Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Quality Service (Port 3002)
+// Bounded Context: Quality planning, inspection, non-conformance, CAPA, FAI, and electronic signatures
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-quality"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("QUALITY_DATABASE_URL")
+}
+
+// ============================================================================
+// Quality Planning & Inspection Models
+// ============================================================================
+
+/// Quality Plan - Defines inspection requirements for a part/product
+model QualityPlan {
+  id              String   @id @default(cuid())
+  planNumber      String   @unique
+  planName        String
+  description     String?  @db.Text
+
+  // Cross-service references (IDs only, no FK constraints)
+  partId          String   // Reference to Resource Service Part
+  partNumber      String?  // Cached for display
+  routingOperationId String? // Reference to Resource Service RoutingOperation
+
+  // Plan details
+  inspectionType  InspectionType
+  samplingPlan    SamplingPlan
+  sampleSize      Int?
+  acceptanceLevel Float?
+
+  // Version control
+  version         String   @default("1.0")
+  isActive        Boolean  @default(true)
+  effectiveDate   DateTime?
+  expirationDate  DateTime?
+
+  // Audit
+  createdById     String   // User ID reference
+  updatedById     String   // User ID reference
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  characteristics QualityCharacteristic[]
+  inspections     QualityInspection[]
+
+  @@index([partId])
+  @@index([inspectionType])
+  @@index([isActive])
+  @@map("quality_plans")
+}
+
+enum InspectionType {
+  RECEIVING       // Incoming material inspection
+  IN_PROCESS      // During production
+  FINAL           // Final product inspection
+  AUDIT           // Quality audit
+  FIRST_ARTICLE   // FAI inspection
+  LAYOUT          // Full dimensional layout
+}
+
+enum SamplingPlan {
+  NONE            // 100% inspection
+  SAMPLE          // Sample inspection
+  SKIP_LOT        // Skip lot sampling
+  FIRST_LAST      // First and last piece only
+  STATISTICAL     // Statistical sampling (AQL)
+}
+
+/// Quality Characteristic - Individual measurement/attribute to inspect
+model QualityCharacteristic {
+  id              String   @id @default(cuid())
+  planId          String
+
+  // Characteristic details
+  characteristicNumber Int
+  characteristicName   String
+  description     String?  @db.Text
+  characteristicType CharacteristicType
+
+  // Specification
+  nominalValue    Float?
+  lowerTolerance  Float?
+  upperTolerance  Float?
+  unit            String?
+
+  // For attribute characteristics
+  acceptableCriteria String?   @db.Text
+  rejectionCriteria  String?   @db.Text
+
+  // Criticality
+  isCritical      Boolean  @default(false) // Critical characteristic
+  isMajor         Boolean  @default(false)
+  isMinor         Boolean  @default(false)
+
+  // Measurement method
+  measurementMethod   String?
+  measurementEquipment String?
+  testMethod          String?   // ASTM, ISO, etc.
+
+  // Frequency
+  inspectionFrequency InspectionFrequency @default(EACH)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  plan            QualityPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  measurements    QualityMeasurement[]
+
+  @@unique([planId, characteristicNumber])
+  @@index([planId])
+  @@index([characteristicType])
+  @@map("quality_characteristics")
+}
+
+enum CharacteristicType {
+  VARIABLE        // Continuous measurement (length, weight, etc.)
+  ATTRIBUTE       // Pass/fail, good/bad
+  VISUAL          // Visual inspection
+  FUNCTIONAL      // Functional test
+  DIMENSIONAL     // Dimensional measurement
+  COSMETIC        // Cosmetic/appearance
+}
+
+enum InspectionFrequency {
+  EACH            // Every piece
+  FIRST           // First piece only
+  LAST            // Last piece only
+  FIRST_LAST      // First and last
+  SAMPLE          // Sample based on plan
+  HOURLY          // Once per hour
+  SHIFT           // Once per shift
+  DAILY           // Once per day
+}
+
+/// Quality Inspection - Inspection instance
+model QualityInspection {
+  id              String   @id @default(cuid())
+  inspectionNumber String  @unique
+
+  // Cross-service references
+  planId          String
+  workOrderId     String?  // Reference to Work Order Service
+  partId          String   // Reference to Resource Service Part
+  lotNumber       String?  // Reference to Material Service MaterialLot
+  serialNumber    String?  // Reference to Material Service SerializedPart
+
+  // Inspection details
+  inspectionType  InspectionType
+  inspectionDate  DateTime
+  inspectorId     String   // User ID reference
+
+  // Results
+  status          InspectionStatus
+  result          InspectionResult
+  quantityInspected Int
+  quantityAccepted  Int
+  quantityRejected  Int
+
+  // NCR generation
+  ncrGenerated    Boolean  @default(false)
+  ncrId           String?  // Reference to NCR if generated
+
+  // Notes
+  notes           String?  @db.Text
+  attachmentUrls  String[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  plan            QualityPlan @relation(fields: [planId], references: [id])
+  measurements    QualityMeasurement[]
+  signatures      ElectronicSignature[]
+
+  @@index([planId])
+  @@index([workOrderId])
+  @@index([partId])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@index([inspectionType])
+  @@index([status])
+  @@index([result])
+  @@index([inspectionDate])
+  @@map("quality_inspections")
+}
+
+enum InspectionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InspectionResult {
+  PASS
+  FAIL
+  CONDITIONAL     // Pass with conditions
+  PENDING         // Awaiting review
+}
+
+/// Quality Measurement - Individual measurement data
+model QualityMeasurement {
+  id              String   @id @default(cuid())
+  inspectionId    String
+  characteristicId String
+
+  // Measurement value
+  measuredValue   Float?
+  measuredAttribute String? // For attribute characteristics
+  result          MeasurementResult
+
+  // Deviation
+  deviation       Float?   // Measured - Nominal
+  deviationPercent Float?
+
+  // Measurement details
+  measuredBy      String?  // User ID reference
+  measuredAt      DateTime @default(now())
+  measurementEquipment String?
+  measurementMethod    String?
+
+  // Notes
+  notes           String?  @db.Text
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  inspection      QualityInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  characteristic  QualityCharacteristic @relation(fields: [characteristicId], references: [id])
+
+  @@index([inspectionId])
+  @@index([characteristicId])
+  @@index([result])
+  @@map("quality_measurements")
+}
+
+enum MeasurementResult {
+  PASS
+  FAIL
+  WARNING         // Within tolerance but approaching limits
+  OUT_OF_SPEC     // Out of specification
+}
+
+// ============================================================================
+// Non-Conformance & CAPA Models
+// ============================================================================
+
+/// NCR - Non-Conformance Report
+model NCR {
+  id              String   @id @default(cuid())
+  ncrNumber       String   @unique
+
+  // Cross-service references
+  partId          String   // Reference to Resource Service Part
+  workOrderId     String?  // Reference to Work Order Service
+  supplierId      String?  // Reference to supplier (if supplier quality issue)
+  lotNumber       String?  // Reference to Material Service
+  serialNumber    String?  // Reference to Material Service
+
+  // NCR details
+  ncrType         NCRType
+  severity        NCRSeverity
+  status          NCRStatus
+
+  // Problem description
+  problemDescription  String   @db.Text
+  rootCause           String?  @db.Text
+  quantityAffected    Int
+
+  // Disposition
+  disposition     NCRDisposition?
+  dispositionDate DateTime?
+  dispositionBy   String?      // User ID reference
+  dispositionNotes String?     @db.Text
+
+  // Cost impact
+  scrapCost       Float?
+  reworkCost      Float?
+  totalCost       Float?
+
+  // Containment
+  containmentAction   String?  @db.Text
+  containmentDate     DateTime?
+
+  // Corrective action
+  correctiveAction    String?  @db.Text
+  correctiveActionDue DateTime?
+  correctiveActionComplete Boolean @default(false)
+  correctiveActionDate     DateTime?
+
+  // Preventive action
+  preventiveAction        String?  @db.Text
+  preventiveActionComplete Boolean @default(false)
+
+  // Audit
+  createdById     String   // User ID reference
+  assignedToId    String?  // User ID reference
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  signatures      ElectronicSignature[]
+
+  @@index([partId])
+  @@index([workOrderId])
+  @@index([ncrType])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ncrs")
+}
+
+enum NCRType {
+  INTERNAL        // Internal manufacturing issue
+  SUPPLIER        // Supplier quality issue
+  CUSTOMER        // Customer complaint
+  AUDIT           // Audit finding
+}
+
+enum NCRSeverity {
+  MINOR           // Minor cosmetic/non-functional
+  MAJOR           // Significant quality issue
+  CRITICAL        // Safety or critical function affected
+}
+
+enum NCRStatus {
+  OPEN
+  UNDER_REVIEW
+  DISPOSITION_PENDING
+  CORRECTIVE_ACTION
+  CLOSED
+  CANCELLED
+}
+
+enum NCRDisposition {
+  USE_AS_IS       // Accept as-is
+  REWORK          // Rework to bring to specification
+  SCRAP           // Scrap the material
+  RETURN          // Return to supplier
+  REPAIR          // Repair (deviation from spec)
+  SORT            // Sort and segregate
+}
+
+// ============================================================================
+// First Article Inspection (FAI) Models
+// ============================================================================
+
+/// FAI Report - First Article Inspection (AS9102 compliant)
+model FAIReport {
+  id              String   @id @default(cuid())
+  faiNumber       String   @unique
+
+  // Cross-service references
+  partId          String   // Reference to Resource Service Part
+  partNumber      String   // Cached
+  partRevision    String
+  serialNumber    String?  // Reference to Material Service
+
+  // FAI details
+  faiType         FAIType
+  reason          FAIReason
+  status          FAIStatus
+
+  // Dates
+  inspectionDate  DateTime
+  submittedDate   DateTime?
+  approvedDate    DateTime?
+
+  // Personnel (cross-service references)
+  inspectedBy     String   // User ID reference
+  submittedBy     String?  // User ID reference
+  approvedBy      String?  // User ID reference
+
+  // Results
+  result          FAIResult?
+  quantityInspected Int    @default(1)
+
+  // Documents
+  attachmentUrls  String[]
+  drawingUrls     String[]
+
+  // Notes
+  notes           String?  @db.Text
+  rejectionReason String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  characteristics FAICharacteristic[]
+  signatures      ElectronicSignature[]
+
+  @@index([partId])
+  @@index([faiType])
+  @@index([status])
+  @@index([inspectionDate])
+  @@map("fai_reports")
+}
+
+enum FAIType {
+  FULL            // Full dimensional layout
+  PARTIAL         // Partial FAI (specific characteristics)
+  DELTA           // Delta FAI (changes only)
+}
+
+enum FAIReason {
+  NEW_PART        // New part introduction
+  ENGINEERING_CHANGE // Engineering change
+  TOOLING_CHANGE  // New or modified tooling
+  PROCESS_CHANGE  // Manufacturing process change
+  SUPPLIER_CHANGE // New supplier
+  RELOCATION      // Manufacturing location change
+  PRODUCTION_BREAK // Production break > 2 years
+}
+
+enum FAIStatus {
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum FAIResult {
+  PASS
+  FAIL
+  CONDITIONAL
+}
+
+/// FAI Characteristic - Individual characteristic measurements in FAI
+model FAICharacteristic {
+  id              String   @id @default(cuid())
+  faiReportId     String
+  characteristicNumber Int
+
+  // Characteristic details
+  characteristicName   String
+  specification        String
+  nominalValue         Float?
+  lowerTolerance       Float?
+  upperTolerance       Float?
+  unit                 String?
+
+  // Measurement
+  measuredValue   Float
+  deviation       Float?
+  result          FAICharResult
+
+  // Measurement details
+  measurementMethod   String?
+  measurementEquipment String?
+
+  // Balloon number (drawing callout)
+  balloonNumber   String?
+
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relations
+  faiReport       FAIReport @relation(fields: [faiReportId], references: [id], onDelete: Cascade)
+
+  @@unique([faiReportId, characteristicNumber])
+  @@index([faiReportId])
+  @@index([result])
+  @@map("fai_characteristics")
+}
+
+enum FAICharResult {
+  PASS
+  FAIL
+  DEVIATION       // Out of spec but approved deviation
+}
+
+// ============================================================================
+// Electronic Signature Models (21 CFR Part 11 Compliant)
+// ============================================================================
+
+/// Electronic Signature - Digital signatures for quality records
+model ElectronicSignature {
+  id              String   @id @default(cuid())
+
+  // Signature details
+  signatureType   SignatureType
+  meaning         String           // Reviewed, Approved, Witnessed, etc.
+
+  // Signer (cross-service reference)
+  signedById      String           // User ID reference
+  signedByName    String           // Cached for audit
+  signedByTitle   String?
+
+  // Signature data
+  signedAt        DateTime         @default(now())
+  ipAddress       String
+  signatureHash   String           // Hash of signature data
+  signatureReason String?          @db.Text
+
+  // Record being signed (polymorphic)
+  recordType      String           // QualityInspection, NCR, FAIReport
+  recordId        String
+
+  // Verification
+  isVerified      Boolean          @default(false)
+  verificationCode String?
+
+  // Invalidation
+  isInvalidated   Boolean          @default(false)
+  invalidatedAt   DateTime?
+  invalidatedBy   String?          // User ID reference
+  invalidationReason String?       @db.Text
+
+  // Metadata
+  metadata        Json?
+  createdAt       DateTime         @default(now())
+
+  // Relations (polymorphic - use recordType + recordId)
+  inspection      QualityInspection? @relation(fields: [recordId], references: [id], onDelete: Cascade, map: "es_inspection_fk")
+  ncr             NCR?               @relation(fields: [recordId], references: [id], onDelete: Cascade, map: "es_ncr_fk")
+  faiReport       FAIReport?         @relation(fields: [recordId], references: [id], onDelete: Cascade, map: "es_fai_fk")
+
+  @@index([recordType, recordId])
+  @@index([signedById])
+  @@index([signedAt])
+  @@index([isInvalidated])
+  @@map("electronic_signatures")
+}
+
+enum SignatureType {
+  REVIEWED
+  APPROVED
+  WITNESSED
+  ACKNOWLEDGED
+  VERIFIED
+}
+
+// ============================================================================
+// QIF (Quality Information Framework) Integration Models
+// ============================================================================
+
+/// QIF Measurement Plan - Imported from CMM/measurement systems
+model QIFMeasurementPlan {
+  id              String   @id @default(cuid())
+  planId          String
+
+  // QIF details
+  qifVersion      String
+  qifFileUrl      String
+
+  // Cross-service references
+  partId          String   // Reference to Resource Service Part
+  partNumber      String   // Cached
+
+  // Import details
+  importedAt      DateTime @default(now())
+  importedBy      String   // User ID reference
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  characteristics QIFCharacteristic[]
+  results         QIFMeasurementResult[]
+
+  @@index([partId])
+  @@index([planId])
+  @@map("qif_measurement_plans")
+}
+
+/// QIF Characteristic - Individual characteristics from QIF
+model QIFCharacteristic {
+  id              String   @id @default(cuid())
+  qifPlanId       String
+  characteristicId String
+
+  // Characteristic details from QIF
+  characteristicName   String
+  characteristicType   String
+  nominalValue         Float?
+  upperTolerance       Float?
+  lowerTolerance       Float?
+  unit                 String?
+
+  // QIF-specific metadata
+  qifData         Json
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  qifPlan         QIFMeasurementPlan @relation(fields: [qifPlanId], references: [id], onDelete: Cascade)
+
+  @@index([qifPlanId])
+  @@index([characteristicId])
+  @@map("qif_characteristics")
+}
+
+/// QIF Measurement Result - CMM measurement results
+model QIFMeasurementResult {
+  id              String   @id @default(cuid())
+  qifPlanId       String
+  resultId        String
+
+  // Cross-service reference
+  inspectionId    String?  // Link to QualityInspection if applicable
+
+  // Measurement details
+  measuredAt      DateTime
+  measuredBy      String   // User ID reference
+  measurementEquipment String?
+
+  // Results data
+  resultDataUrl   String   // S3/MinIO URL to full QIF results file
+  resultSummary   Json     // Summary statistics
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  qifPlan         QIFMeasurementPlan @relation(fields: [qifPlanId], references: [id], onDelete: Cascade)
+  measurements    QIFMeasurement[]
+
+  @@index([qifPlanId])
+  @@index([inspectionId])
+  @@index([measuredAt])
+  @@map("qif_measurement_results")
+}
+
+/// QIF Measurement - Individual measurement data from CMM
+model QIFMeasurement {
+  id              String   @id @default(cuid())
+  resultId        String
+  characteristicId String
+
+  // Measurement value
+  measuredValue   Float
+  nominalValue    Float
+  deviation       Float
+  result          String   // PASS, FAIL
+
+  // QIF metadata
+  qifData         Json
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  measurementResult QIFMeasurementResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
+  @@index([characteristicId])
+  @@map("qif_measurements")
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

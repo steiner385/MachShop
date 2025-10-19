@@ -1,0 +1,175 @@
+================================================================================
+  MES (Manufacturing Execution System) has been installed!
+================================================================================
+
+Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+Release: {{ .Release.Name }}
+Namespace: {{ include "mes.namespace" . }}
+
+================================================================================
+  SERVICES DEPLOYED
+================================================================================
+
+The following microservices are now running:
+
+{{- if .Values.services.auth.enabled }}
+  ✓ Auth Service ({{ .Values.services.auth.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.workOrder.enabled }}
+  ✓ Work Order Service ({{ .Values.services.workOrder.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.quality.enabled }}
+  ✓ Quality Service ({{ .Values.services.quality.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.material.enabled }}
+  ✓ Material Service ({{ .Values.services.material.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.traceability.enabled }}
+  ✓ Traceability Service ({{ .Values.services.traceability.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.resource.enabled }}
+  ✓ Resource Service ({{ .Values.services.resource.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.reporting.enabled }}
+  ✓ Reporting Service ({{ .Values.services.reporting.replicas }} replicas)
+{{- end }}
+{{- if .Values.services.integration.enabled }}
+  ✓ Integration Service ({{ .Values.services.integration.replicas }} replicas)
+{{- end }}
+
+================================================================================
+  INFRASTRUCTURE
+================================================================================
+
+{{- if .Values.postgresql.enabled }}
+  ✓ PostgreSQL (8 independent databases)
+{{- end }}
+{{- if .Values.kafka.enabled }}
+  ✓ Kafka Cluster ({{ .Values.kafka.replicas }} brokers)
+{{- end }}
+{{- if .Values.zookeeper.enabled }}
+  ✓ ZooKeeper ({{ .Values.zookeeper.replicas }} nodes)
+{{- end }}
+{{- if .Values.redis.enabled }}
+  ✓ Redis Cache
+{{- end }}
+
+================================================================================
+  ACCESSING THE MES API
+================================================================================
+
+{{- if .Values.ingress.enabled }}
+The MES API is accessible via Ingress at:
+
+{{- range .Values.ingress.hosts }}
+  {{- if $.Values.ingress.tls.enabled }}
+  https://{{ . }}
+  {{- else }}
+  http://{{ . }}
+  {{- end }}
+{{- end }}
+
+API Endpoints:
+  - Auth: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.auth }}
+  - Work Orders: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.workOrder }}
+  - Quality: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.quality }}
+  - Materials: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.material }}
+  - Traceability: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.traceability }}
+  - Resources: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.resource }}
+  - Reports: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.reporting }}
+  - Integrations: {{ index .Values.ingress.hosts 0 }}{{ .Values.ingress.paths.integration }}
+
+{{- else }}
+Ingress is not enabled. To access services, use port-forwarding:
+
+  kubectl port-forward -n {{ include "mes.namespace" . }} svc/auth-service 3000:3000
+
+Then access at: http://localhost:3000
+{{- end }}
+
+================================================================================
+  NEXT STEPS
+================================================================================
+
+1. Verify all pods are running:
+
+   kubectl get pods -n {{ include "mes.namespace" . }}
+
+2. Check service status:
+
+   kubectl get svc -n {{ include "mes.namespace" . }}
+
+3. View logs for a specific service (example):
+
+   kubectl logs -n {{ include "mes.namespace" . }} -l app=auth-service -f
+
+4. Run database migrations (if not already done):
+
+   kubectl exec -it -n {{ include "mes.namespace" . }} \
+     deployment/auth-service -- npx prisma migrate deploy
+
+5. Create initial admin user (if needed):
+
+   kubectl exec -it -n {{ include "mes.namespace" . }} \
+     deployment/auth-service -- npm run seed
+
+{{- if .Values.monitoring.prometheus.enabled }}
+
+6. Access Prometheus metrics:
+
+   kubectl port-forward -n {{ include "mes.namespace" . }} \
+     svc/prometheus 9090:9090
+
+   Then visit: http://localhost:9090
+{{- end }}
+
+{{- if .Values.monitoring.grafana.enabled }}
+
+7. Access Grafana dashboards:
+
+   kubectl port-forward -n {{ include "mes.namespace" . }} \
+     svc/grafana 3000:3000
+
+   Then visit: http://localhost:3000
+   Default credentials: admin / {{ .Values.monitoring.grafana.adminPassword }}
+{{- end }}
+
+================================================================================
+  IMPORTANT SECURITY NOTES
+================================================================================
+
+{{- if not .Values.ingress.tls.enabled }}
+⚠️  WARNING: TLS is not enabled. Please enable TLS for production deployments!
+{{- end }}
+
+{{- if eq .Values.global.environment "development" }}
+⚠️  WARNING: This is a development deployment. Not suitable for production!
+{{- end }}
+
+{{- if .Values.monitoring.grafana.enabled }}
+{{- if eq .Values.monitoring.grafana.adminPassword "changeme" }}
+⚠️  WARNING: Grafana admin password is set to default! Please change it!
+{{- end }}
+{{- end }}
+
+🔐 Remember to:
+  - Rotate JWT secrets regularly
+  - Back up databases frequently
+  - Monitor resource usage
+  - Review security policies
+  - Keep images updated
+
+================================================================================
+  SUPPORT & DOCUMENTATION
+================================================================================
+
+  Documentation: https://docs.example.com/mes
+  GitHub: https://github.com/example/mes
+  Issues: https://github.com/example/mes/issues
+  Email: support@example.com
+
+================================================================================
+
+Thank you for using MES! Happy manufacturing! 🏭
+
+================================================================================

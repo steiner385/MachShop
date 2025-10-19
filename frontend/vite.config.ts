@@ -24,6 +24,55 @@ export default defineConfig({
     allowedHosts: ['local.mes.com', 'localhost'],
     historyApiFallback: true,
     proxy: {
+      // Auth Service - route authentication requests to monolith backend
+      '/api/v1/auth': {
+        target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Work Order Service - route work order requests to monolith backend
+      '/api/v1/workorders': {
+        target: process.env.WORK_ORDER_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Quality Service - route quality requests to monolith backend
+      '/api/v1/quality': {
+        target: process.env.QUALITY_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Material Service - route material requests to monolith backend
+      '/api/v1/material': {
+        target: process.env.MATERIAL_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Traceability Service - route traceability requests to monolith backend
+      '/api/v1/traceability': {
+        target: process.env.TRACEABILITY_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Resource Service - route resource requests to monolith backend
+      '/api/v1/resource': {
+        target: process.env.RESOURCE_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Reporting Service - route reporting requests to monolith backend
+      '/api/v1/reporting': {
+        target: process.env.REPORTING_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Integration Service - route integration requests to monolith backend
+      '/api/v1/integration': {
+        target: process.env.INTEGRATION_SERVICE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // All other API requests - route to monolith backend
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,

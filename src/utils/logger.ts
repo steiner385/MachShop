@@ -193,4 +193,48 @@ export const logStream = {
   }
 };
 
+// Helper functions for Logstash integration and distributed tracing
+export const logWithTrace = (level: string, message: string, traceId?: string, meta: any = {}) => {
+  logger.log(level, message, {
+    ...meta,
+    traceId,
+    correlationId: traceId, // For Logstash correlation
+  });
+};
+
+export const logHttpRequest = (req: any, statusCode: number, duration: number) => {
+  const traceId = req.headers['x-request-id'] || req.headers['x-trace-id'];
+  logger.info('HTTP Request', {
+    http: {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      statusCode,
+      duration,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    },
+    traceId,
+    correlationId: traceId,
+  });
+};
+
+export const logBusinessEvent = (
+  event: string,
+  entity: string,
+  entityId: string | number,
+  userId?: string | number,
+  meta: any = {}
+) => {
+  logger.info('Business event', {
+    audit: true,
+    event,
+    entity,
+    entityId,
+    userId,
+    timestamp: new Date().toISOString(),
+    ...meta,
+  });
+};
+
 export default logger;

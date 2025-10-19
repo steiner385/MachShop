@@ -4,8 +4,26 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
+    // Default to node environment for backend tests
     environment: 'node',
+    // Use jsdom for frontend React component tests
+    environmentMatchGlobs: [
+      ['frontend/**/*.test.{ts,tsx}', 'jsdom'],
+    ],
     setupFiles: ['./src/tests/setup.ts'],
+    // Only include .test.ts files (exclude Playwright .spec.ts files)
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      'frontend/src/**/*.test.{ts,tsx}',
+    ],
+    exclude: [
+      '**/node_modules/**',
+      'node_modules/**',
+      'frontend/node_modules/**',
+      'dist/**',
+      'src/tests/e2e/**',      // Exclude Playwright E2E tests
+      '**/*.spec.ts',          // Exclude all Playwright test files
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -44,6 +62,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Backend aliases
       '@': path.resolve(__dirname, './src'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@/services': path.resolve(__dirname, './src/services'),
@@ -51,7 +70,11 @@ export default defineConfig({
       '@/middleware': path.resolve(__dirname, './src/middleware'),
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/tests': path.resolve(__dirname, './src/tests')
+      '@/tests': path.resolve(__dirname, './src/tests'),
+      // Frontend aliases - for tests in frontend/src
+      '@/components': path.resolve(__dirname, './frontend/src/components'),
+      '@/store': path.resolve(__dirname, './frontend/src/store'),
+      '@/api': path.resolve(__dirname, './frontend/src/api'),
     }
   }
 });

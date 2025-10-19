@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import prisma from '../lib/database';
+import { traceabilityService } from '../services/TraceabilityService';
 import { requireProductionAccess, requireSiteAccess } from '../middleware/auth';
 import { asyncHandler, ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -16,6 +17,147 @@ const searchSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional()
 });
+
+const createGenealogySchema = z.object({
+  parentSerialNumber: z.string(),
+  componentSerialNumber: z.string(),
+  assemblyDate: z.string().datetime().optional(),
+  assemblyOperator: z.string().optional(),
+});
+
+// ===== SPRINT 4 ENHANCED TRACEABILITY APIS =====
+
+/**
+ * @route GET /api/v1/traceability/forward/:lotNumber
+ * @desc Forward traceability - Find all products made from a specific lot
+ * @access Private (Production Access Required)
+ */
+router.get('/forward/:lotNumber',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const { lotNumber } = req.params;
+
+    const result = await traceabilityService.getForwardTraceability(lotNumber);
+
+    logger.info('Forward traceability retrieved', {
+      userId: req.user?.id,
+      lotNumber,
+      productCount: result.totalProducts,
+    });
+
+    res.status(200).json(result);
+  })
+);
+
+/**
+ * @route GET /api/v1/traceability/backward/:serialNumber
+ * @desc Backward traceability - Find all materials/components used to make a product
+ * @access Private (Production Access Required)
+ */
+router.get('/backward/:serialNumber',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const { serialNumber } = req.params;
+
+    const result = await traceabilityService.getBackwardTraceability(serialNumber);
+
+    logger.info('Backward traceability retrieved', {
+      userId: req.user?.id,
+      serialNumber,
+      componentCount: result.totalComponents,
+    });
+
+    res.status(200).json(result);
+  })
+);
+
+/**
+ * @route GET /api/v1/traceability/genealogy-graph/:serialNumber
+ * @desc Get genealogy tree as graph (optimized for D3.js visualization)
+ * @access Private (Production Access Required)
+ */
+router.get('/genealogy-graph/:serialNumber',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const { serialNumber } = req.params;
+    const maxDepth = req.query.maxDepth
+      ? parseInt(req.query.maxDepth as string, 10)
+      : 10;
+
+    const graph = await traceabilityService.getGenealogyGraph(serialNumber, maxDepth);
+
+    logger.info('Genealogy graph generated', {
+      userId: req.user?.id,
+      serialNumber,
+      nodeCount: graph.nodes.length,
+      edgeCount: graph.edges.length,
+      maxDepth: graph.maxDepth,
+    });
+
+    res.status(200).json(graph);
+  })
+);
+
+/**
+ * @route POST /api/v1/traceability/genealogy
+ * @desc Create genealogy relationship between parts
+ * @access Private (Production Access Required)
+ */
+router.post('/genealogy',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const validationResult = createGenealogySchema.safeParse(req.body);
+    if (!validationResult.success) {
+      throw new ValidationError('Invalid genealogy data', validationResult.error.errors);
+    }
+
+    const { parentSerialNumber, componentSerialNumber, assemblyDate, assemblyOperator } =
+      validationResult.data;
+
+    const genealogy = await traceabilityService.createGenealogyRelationship(
+      parentSerialNumber,
+      componentSerialNumber,
+      assemblyDate ? new Date(assemblyDate) : undefined,
+      assemblyOperator
+    );
+
+    logger.info('Genealogy relationship created', {
+      userId: req.user?.id,
+      parentSerialNumber,
+      componentSerialNumber,
+      genealogyId: genealogy.id,
+    });
+
+    res.status(201).json(genealogy);
+  })
+);
+
+/**
+ * @route GET /api/v1/traceability/circular-check/:serialNumber
+ * @desc Check if genealogy has circular references
+ * @access Private (Production Access Required)
+ */
+router.get('/circular-check/:serialNumber',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const { serialNumber } = req.params;
+
+    const hasCircular = await traceabilityService.detectCircularReferences(serialNumber);
+
+    logger.info('Circular reference check', {
+      userId: req.user?.id,
+      serialNumber,
+      hasCircular,
+    });
+
+    res.status(200).json({
+      serialNumber,
+      hasCircularReferences: hasCircular,
+    });
+  })
+);
+
+// ===== LEGACY ENDPOINTS (Sprint 1-3) =====
 
 /**
  * Helper function to build genealogy tree recursively
@@ -94,13 +236,12 @@ router.get('/serial/:serialNumber',
           include: {
             routingOperation: {
               include: {
-                operation: true,
-                equipment: true
+                workCenter: true
               }
             }
           },
           orderBy: {
-            actualStartTime: 'asc'
+            startedAt: 'asc'
           }
         })
       : [];
@@ -115,7 +256,7 @@ router.get('/serial/:serialNumber',
           include: {
             inventory: {
               include: {
-                material: true
+                part: true
               }
             }
           }
@@ -141,15 +282,15 @@ router.get('/serial/:serialNumber',
       genealogy,
       manufacturingHistory: manufacturingHistory.map(op => ({
         id: op.id,
-        operationNumber: op.routingOperation.sequenceNumber.toString(),
-        operationName: op.routingOperation.operation.name,
+        operationNumber: op.routingOperation.operationNumber.toString(),
+        operationName: op.routingOperation.operationName,
         workOrderNumber: '', // Would need to join work order
-        machineId: op.routingOperation.equipment?.id,
-        machineName: op.routingOperation.equipment?.name,
+        machineId: op.routingOperation.workCenter?.id,
+        machineName: op.routingOperation.workCenter?.name,
         operatorId: op.operatorId || '',
         operatorName: '', // Would need to join user
-        startTime: op.actualStartTime?.toISOString() || '',
-        endTime: op.actualEndTime?.toISOString() || '',
+        startTime: op.startedAt?.toISOString() || '',
+        endTime: op.completedAt?.toISOString() || '',
         status: op.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
         notes: op.notes
       })),
@@ -157,9 +298,9 @@ router.get('/serial/:serialNumber',
         id: mt.id,
         certificateNumber: mt.reference || `CERT-${mt.id.slice(-8)}`,
         supplierName: '', // Would need supplier info
-        materialType: mt.inventory.material.name,
+        materialType: mt.inventory.part.partName,
         lotNumber: mt.inventory.lotNumber || '',
-        heatNumber: mt.inventory.heatNumber,
+        heatNumber: '', // heatNumber not available in Inventory model
         receivedDate: mt.inventory.receivedDate?.toISOString() || '',
         expiryDate: mt.inventory.expiryDate?.toISOString(),
         documentUrl: undefined
@@ -244,28 +385,27 @@ router.get('/history/:serialNumber',
       include: {
         routingOperation: {
           include: {
-            operation: true,
-            equipment: true
+            workCenter: true
           }
         },
         workOrder: true
       },
       orderBy: {
-        actualStartTime: 'asc'
+        startedAt: 'asc'
       }
     });
 
     const manufacturingHistory = operations.map(op => ({
       id: op.id,
-      operationNumber: op.routingOperation.sequenceNumber.toString(),
-      operationName: op.routingOperation.operation.name,
+      operationNumber: op.routingOperation.operationNumber.toString(),
+      operationName: op.routingOperation.operationName,
       workOrderNumber: op.workOrder.workOrderNumber,
-      machineId: op.routingOperation.equipment?.id,
-      machineName: op.routingOperation.equipment?.name,
+      machineId: op.routingOperation.workCenter?.id,
+      machineName: op.routingOperation.workCenter?.name,
       operatorId: op.operatorId || '',
       operatorName: '', // Would need to join user table
-      startTime: op.actualStartTime?.toISOString() || '',
-      endTime: op.actualEndTime?.toISOString() || '',
+      startTime: op.startedAt?.toISOString() || '',
+      endTime: op.completedAt?.toISOString() || '',
       status: op.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
       notes: op.notes
     }));
@@ -310,7 +450,7 @@ router.get('/certificates/:serialNumber',
       include: {
         inventory: {
           include: {
-            material: true
+            part: true
           }
         }
       }
@@ -320,9 +460,9 @@ router.get('/certificates/:serialNumber',
       id: mt.id,
       certificateNumber: mt.reference || `CERT-${mt.id.slice(-8)}`,
       supplierName: '', // Would need supplier relationship
-      materialType: mt.inventory.material.name,
+      materialType: mt.inventory.part.partName,
       lotNumber: mt.inventory.lotNumber || '',
-      heatNumber: mt.inventory.heatNumber,
+      heatNumber: '', // heatNumber not available in Inventory model
       receivedDate: mt.inventory.receivedDate?.toISOString() || '',
       expiryDate: mt.inventory.expiryDate?.toISOString(),
       documentUrl: undefined
@@ -390,11 +530,12 @@ router.get('/quality/:serialNumber',
 );
 
 /**
- * @route GET /api/v1/traceability/forward/:materialLot
- * @desc Forward traceability - find where a material lot was used
+ * @route GET /api/v1/traceability/forward-legacy/:materialLot
+ * @desc Forward traceability (legacy) - find where a material lot was used
  * @access Private
+ * @deprecated Use GET /forward/:lotNumber instead
  */
-router.get('/forward/:materialLot',
+router.get('/forward-legacy/:materialLot',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const { materialLot } = req.params;

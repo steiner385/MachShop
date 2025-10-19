@@ -1,0 +1,296 @@
+###############################################################################
+# Kafka StatefulSet for MES Event Streaming
+# Phase 2, Task 2.3: Database Per Service Pattern
+#
+# Kafka is used for cross-service event communication and cache synchronization
+###############################################################################
+
+---
+# Zookeeper Service (required by Kafka)
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: mes-production
+  labels:
+    app: zookeeper
+    tier: messaging
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 2181
+      targetPort: 2181
+      protocol: TCP
+      name: client
+    - port: 2888
+      targetPort: 2888
+      protocol: TCP
+      name: follower
+    - port: 3888
+      targetPort: 3888
+      protocol: TCP
+      name: election
+  selector:
+    app: zookeeper
+
+---
+# Zookeeper StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: mes-production
+spec:
+  serviceName: zookeeper
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+        tier: messaging
+    spec:
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.5.0
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 2888
+              name: follower
+            - containerPort: 3888
+              name: election
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+            - name: ZOOKEEPER_SYNC_LIMIT
+              value: "5"
+            - name: ZOOKEEPER_INIT_LIMIT
+              value: "10"
+            - name: ZOOKEEPER_MAX_CLIENT_CNXNS
+              value: "60"
+            - name: ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT
+              value: "3"
+            - name: ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL
+              value: "24"
+          volumeMounts:
+            - name: zookeeper-data
+              mountPath: /var/lib/zookeeper/data
+            - name: zookeeper-log
+              mountPath: /var/lib/zookeeper/log
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: zookeeper-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: zookeeper-log
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+# Kafka Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: mes-production
+  labels:
+    app: kafka
+    tier: messaging
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 9092
+      targetPort: 9092
+      protocol: TCP
+      name: kafka-internal
+    - port: 9093
+      targetPort: 9093
+      protocol: TCP
+      name: kafka-external
+  selector:
+    app: kafka
+
+---
+# Kafka StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: mes-production
+spec:
+  serviceName: kafka
+  replicas: 3  # 3 brokers for high availability
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+        tier: messaging
+    spec:
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.5.0
+          ports:
+            - containerPort: 9092
+              name: kafka-internal
+            - containerPort: 9093
+              name: kafka-external
+          env:
+            - name: KAFKA_BROKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: "zookeeper:2181"
+            - name: KAFKA_LISTENERS
+              value: "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093"
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: "INTERNAL://$(POD_NAME).kafka.mes-production.svc.cluster.local:9092,EXTERNAL://$(POD_NAME).kafka.mes-production.svc.cluster.local:9093"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: "INTERNAL"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "2"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_DEFAULT_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_MIN_INSYNC_REPLICAS
+              value: "2"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_LOG_RETENTION_HOURS
+              value: "168"  # 7 days
+            - name: KAFKA_LOG_RETENTION_BYTES
+              value: "1073741824"  # 1GB per topic
+            - name: KAFKA_LOG_SEGMENT_BYTES
+              value: "536870912"  # 512MB
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 50Gi  # Adjust based on expected event volume
+
+---
+# Kafka UI (optional - for monitoring)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: mes-production
+  labels:
+    app: kafka-ui
+    tier: monitoring
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: kafka-ui
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  namespace: mes-production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-ui
+  template:
+    metadata:
+      labels:
+        app: kafka-ui
+        tier: monitoring
+    spec:
+      containers:
+        - name: kafka-ui
+          image: provectuslabs/kafka-ui:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: KAFKA_CLUSTERS_0_NAME
+              value: "MES Production"
+            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+              value: "kafka-0.kafka.mes-production.svc.cluster.local:9092,kafka-1.kafka.mes-production.svc.cluster.local:9092,kafka-2.kafka.mes-production.svc.cluster.local:9092"
+            - name: KAFKA_CLUSTERS_0_ZOOKEEPER
+              value: "zookeeper:2181"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"

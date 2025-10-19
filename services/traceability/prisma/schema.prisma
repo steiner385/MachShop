@@ -1,0 +1,377 @@
+// Traceability Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Traceability Service (Port 3004)
+// Bounded Context: Genealogy tracking, forward/backward traceability, recall simulation
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-traceability"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TRACEABILITY_DATABASE_URL")
+}
+
+// ============================================================================
+// Traceability Event Log
+// ============================================================================
+// Immutable event log capturing all traceability-relevant events
+// Events are published from Material Service and Work Order Service via Kafka
+
+model TraceabilityEvent {
+  id              String   @id @default(cuid())
+  eventNumber     String   @unique @default(cuid())
+  eventType       TraceabilityEventType
+  eventTimestamp  DateTime @default(now())
+
+  // Entity references (cross-service)
+  partId          String?
+  partNumber      String?         // Cached for display
+  lotNumber       String?
+  serialNumber    String?
+  workOrderId     String?
+  workOrderNumber String?         // Cached for display
+  operationId     String?
+
+  // Location tracking
+  locationId      String?
+  locationName    String?         // Cached for display
+
+  // Personnel tracking
+  performedById   String?         // User ID from Auth Service
+  performedByName String?         // Cached for display
+
+  // Event details
+  quantity        Float?
+  unitOfMeasure   String?
+
+  // Parent-child relationships (for genealogy)
+  parentLotNumber    String?
+  parentSerialNumber String?
+  childLotNumber     String?
+  childSerialNumber  String?
+  relationship       String?      // ASSEMBLY, COMPONENT, CONSUMED, PRODUCED, SPLIT, MERGE
+
+  // Additional metadata
+  metadata        Json?           // Flexible field for event-specific data
+
+  createdAt       DateTime @default(now())
+
+  @@index([eventType])
+  @@index([eventTimestamp])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@index([workOrderNumber])
+  @@index([locationId])
+  @@map("traceability_events")
+}
+
+enum TraceabilityEventType {
+  // Material events
+  MATERIAL_RECEIVED
+  LOT_CREATED
+  LOT_SPLIT
+  LOT_MERGED
+  SERIAL_CREATED
+
+  // Production events
+  MATERIAL_ISSUED
+  MATERIAL_CONSUMED
+  PART_ASSEMBLED
+  COMPONENT_INSTALLED
+  COMPONENT_REMOVED
+  PART_COMPLETED
+
+  // Movement events
+  MATERIAL_TRANSFERRED
+  MATERIAL_SHIPPED
+
+  // Quality events
+  INSPECTION_PERFORMED
+  LOT_QUARANTINED
+  LOT_RELEASED
+  LOT_REJECTED
+
+  // Scrap/rework events
+  MATERIAL_SCRAPPED
+  MATERIAL_REWORKED
+}
+
+// ============================================================================
+// Materialized Genealogy Views
+// ============================================================================
+// Pre-computed genealogy graphs for fast forward/backward traceability queries
+// Refreshed periodically or on-demand from TraceabilityEvent log
+
+/// Lot-level genealogy (batch tracking)
+model LotGenealogy {
+  id              String   @id @default(cuid())
+  lotNumber       String
+  partId          String
+  partNumber      String           // Cached for display
+
+  // Genealogy tree (denormalized for performance)
+  parentLots      String[]         // Array of parent lot numbers
+  childLots       String[]         // Array of child lot numbers
+  ancestorLots    String[]         // All ancestors (recursive)
+  descendantLots  String[]         // All descendants (recursive)
+
+  // Associated serials (if lot was serialized)
+  serialNumbers   String[]
+
+  // Metadata
+  depth           Int              // Depth in genealogy tree (0 = root)
+  treeVersion     Int              // Version for cache invalidation
+
+  lastRefreshedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([lotNumber])
+  @@index([partNumber])
+  @@index([lastRefreshedAt])
+  @@map("lot_genealogy")
+}
+
+/// Serial-level genealogy (unit tracking)
+model SerialGenealogy {
+  id              String   @id @default(cuid())
+  serialNumber    String
+  partId          String
+  partNumber      String           // Cached for display
+  lotNumber       String?
+
+  // Genealogy tree (denormalized for performance)
+  parentSerials   String[]         // Array of parent serial numbers
+  childSerials    String[]         // Array of child serial numbers
+  ancestorSerials String[]         // All ancestors (recursive)
+  descendantSerials String[]       // All descendants (recursive)
+
+  // Component tracking (for assemblies)
+  assemblyPath    Json?            // Full assembly structure as nested JSON
+
+  // Work order traceability
+  workOrderIds    String[]         // All work orders involved in production
+  workOrderNumbers String[]        // Cached for display
+
+  // Location history
+  locationHistory Json[]           // Array of {locationId, timestamp, event}
+
+  // Metadata
+  depth           Int              // Depth in genealogy tree (0 = root)
+  treeVersion     Int              // Version for cache invalidation
+
+  lastRefreshedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([serialNumber])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([lastRefreshedAt])
+  @@map("serial_genealogy")
+}
+
+// ============================================================================
+// Recall Simulation
+// ============================================================================
+// Pre-computed recall impact analysis for fast "what-if" queries
+
+model RecallSimulation {
+  id              String   @id @default(cuid())
+  simulationNumber String  @unique @default(cuid())
+  simulationName  String
+
+  // Recall trigger criteria
+  criteriaType    RecallCriteriaType
+  partNumber      String?
+  lotNumber       String?
+  serialNumber    String?
+  dateRangeStart  DateTime?
+  dateRangeEnd    DateTime?
+  supplierId      String?          // External supplier reference
+  supplierLotNumber String?
+
+  // Simulation results (cached)
+  affectedLots        String[]     // All affected lot numbers
+  affectedSerials     String[]     // All affected serial numbers
+  affectedWorkOrders  String[]     // All affected work orders
+  affectedCustomers   String[]     // All affected customer orders
+
+  // Impact summary
+  totalUnitsAffected  Int
+  unitsShipped        Int
+  unitsInProduction   Int
+  unitsInInventory    Int
+  estimatedCost       Float?
+
+  // Detailed impact (JSON for flexibility)
+  impactDetails   Json             // Detailed breakdown by location, customer, etc.
+
+  // Simulation metadata
+  simulatedAt     DateTime @default(now())
+  simulatedById   String           // User ID from Auth Service
+  notes           String?  @db.Text
+
+  createdAt       DateTime @default(now())
+
+  @@index([criteriaType])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([simulatedAt])
+  @@map("recall_simulations")
+}
+
+enum RecallCriteriaType {
+  BY_PART
+  BY_LOT
+  BY_SERIAL
+  BY_DATE_RANGE
+  BY_SUPPLIER_LOT
+  BY_WORK_ORDER
+}
+
+// ============================================================================
+// Digital Thread
+// ============================================================================
+// Complete lifecycle view for a serial number (from cradle to grave)
+// Aggregates data from multiple services for comprehensive part history
+
+model DigitalThread {
+  id              String   @id @default(cuid())
+  serialNumber    String   @unique
+  partId          String
+  partNumber      String           // Cached for display
+  partRevision    String?
+
+  // Manufacturing lineage
+  lotNumber       String?
+  workOrderId     String?
+  workOrderNumber String?          // Cached for display
+  productionDate  DateTime?
+  productionLocation String?
+
+  // Genealogy summary
+  parentSerials   String[]         // Direct parents
+  childSerials    String[]         // Direct children
+  genealogyDepth  Int              // Depth in assembly tree
+
+  // Production history (timeline)
+  productionEvents Json[]          // Array of {timestamp, event, operation, workCenter, operator}
+
+  // Quality history
+  qualityInspections Json[]        // Array of {timestamp, inspectionId, result, inspector}
+  faiReportId     String?          // Reference to FAI report if applicable
+
+  // Material traceability
+  materialTransactions Json[]      // Array of {timestamp, type, quantity, location}
+
+  // Component history (for assemblies)
+  installedComponents Json[]       // Array of {serialNumber, partNumber, installedAt, installedBy}
+  removedComponents   Json[]       // Array of {serialNumber, partNumber, removedAt, removedBy, reason}
+
+  // Current status
+  currentStatus   DigitalThreadStatus
+  currentLocation String?
+  currentOwner    String?          // Customer or internal location
+
+  // Lifecycle dates
+  manufacturedAt  DateTime?
+  shippedAt       DateTime?
+  installedAt     DateTime?
+  retiredAt       DateTime?
+
+  // Metadata
+  lastRefreshedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([workOrderNumber])
+  @@index([currentStatus])
+  @@index([lastRefreshedAt])
+  @@map("digital_threads")
+}
+
+enum DigitalThreadStatus {
+  IN_PRODUCTION
+  IN_INSPECTION
+  COMPLETED
+  SHIPPED
+  IN_SERVICE
+  RETURNED
+  SCRAPPED
+  UNKNOWN
+}
+
+// ============================================================================
+// Traceability Query Cache
+// ============================================================================
+// Cache frequently executed traceability queries for performance
+
+model TraceabilityQueryCache {
+  id              String   @id @default(cuid())
+  queryHash       String   @unique  // Hash of query parameters
+  queryType       QueryCacheType
+
+  // Query parameters (for debugging/invalidation)
+  parameters      Json
+
+  // Cached results
+  results         Json
+  resultCount     Int
+
+  // Cache metadata
+  hitCount        Int      @default(0)
+  lastHitAt       DateTime?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  @@index([queryType])
+  @@index([expiresAt])
+  @@index([hitCount])
+  @@map("traceability_query_cache")
+}
+
+enum QueryCacheType {
+  FORWARD_TRACE_LOT
+  BACKWARD_TRACE_LOT
+  FORWARD_TRACE_SERIAL
+  BACKWARD_TRACE_SERIAL
+  WHERE_USED_QUERY
+  RECALL_IMPACT
+  DIGITAL_THREAD
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

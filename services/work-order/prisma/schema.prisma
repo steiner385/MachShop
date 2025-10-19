@@ -1,0 +1,745 @@
+// Work Order Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Work Order Service (Port 3001)
+// Bounded Context: Work order lifecycle, scheduling, dispatching, execution, and performance tracking
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-work-order"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("WORK_ORDER_DATABASE_URL")
+}
+
+// ============================================================================
+// Work Order Models
+// ============================================================================
+
+/// Work Order - Production job to manufacture a product
+model WorkOrder {
+  id              String @id @default(cuid())
+  workOrderNumber String @unique
+
+  // Cross-service references (IDs only, no FK constraints)
+  partId       String // Reference to Resource Service Part
+  partNumber   String? // Cached for display
+  siteId       String? // Reference to Resource Service Site
+  routingId    String? // Reference to Resource Service Routing
+  createdById  String // Reference to Auth Service User
+  assignedToId String? // Reference to Auth Service User
+
+  // Work order details
+  quantity          Int
+  quantityCompleted Int               @default(0)
+  quantityScrapped  Int               @default(0)
+  priority          WorkOrderPriority
+  status            WorkOrderStatus
+  dueDate           DateTime?
+  customerOrder     String?
+
+  // Timestamps
+  startedAt       DateTime?
+  actualStartDate DateTime?
+  completedAt     DateTime?
+  actualEndDate   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations (owned by this service)
+  operations      WorkOrderOperation[]
+  statusHistory   WorkOrderStatusHistory[]
+  dispatchLogs    DispatchLog[]
+  workPerformance WorkPerformance[]
+  variances       ProductionVariance[]
+  instructions    WorkInstruction[]
+
+  @@index([partId])
+  @@index([siteId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([createdById])
+  @@index([assignedToId])
+  @@map("work_orders")
+}
+
+enum WorkOrderPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum WorkOrderStatus {
+  CREATED
+  RELEASED
+  DISPATCHED
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+  CANCELLED
+  ON_HOLD
+}
+
+/// Work Order Operation - Individual operations within a work order
+model WorkOrderOperation {
+  id          String @id @default(cuid())
+  workOrderId String
+
+  // Cross-service reference
+  routingOperationId String // Reference to Resource Service RoutingOperation
+
+  // Operation details
+  operationNumber   String
+  operationName     String? // Cached for display
+  status            WorkOrderOperationStatus
+  quantity          Int
+  quantityCompleted Int                      @default(0)
+  quantityScrap     Int                      @default(0)
+
+  // Timestamps
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  workOrder       WorkOrder            @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workPerformance WorkPerformance[]
+  variances       ProductionVariance[]
+
+  @@index([workOrderId])
+  @@index([status])
+  @@map("work_order_operations")
+}
+
+enum WorkOrderOperationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+// ============================================================================
+// Production Scheduling Models (ISA-95 Task 1.6)
+// ============================================================================
+
+/// Production Schedule - Higher-level planning layer
+model ProductionSchedule {
+  id             String  @id @default(cuid())
+  scheduleNumber String  @unique
+  scheduleName   String
+  description    String? @db.Text
+
+  // Schedule period
+  periodStart DateTime
+  periodEnd   DateTime
+  periodType  String   @default("MONTHLY")
+
+  // Cross-service references
+  siteId String? // Reference to Resource Service Site
+  areaId String? // Reference to Resource Service Area
+
+  // State management
+  state          ScheduleState @default(FORECAST)
+  stateChangedAt DateTime      @default(now())
+  stateChangedBy String? // User ID reference
+
+  // Planning details
+  priority   SchedulePriority @default(NORMAL)
+  plannedBy  String? // User ID reference
+  approvedBy String? // User ID reference
+  approvedAt DateTime?
+
+  // Dispatch tracking
+  dispatchedCount Int @default(0)
+  totalEntries    Int @default(0)
+
+  // Status flags
+  isLocked         Boolean @default(false)
+  isFeasible       Boolean @default(true)
+  feasibilityNotes String? @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  entries      ScheduleEntry[]
+  constraints  ScheduleConstraint[]
+  stateHistory ScheduleStateHistory[]
+
+  @@index([siteId])
+  @@index([state])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("production_schedules")
+}
+
+enum ScheduleState {
+  FORECAST
+  RELEASED
+  DISPATCHED
+  RUNNING
+  COMPLETED
+  CLOSED
+}
+
+enum SchedulePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+/// Schedule Entry - Individual items in production schedule
+model ScheduleEntry {
+  id          String @id @default(cuid())
+  scheduleId  String
+  entryNumber Int
+
+  // Cross-service references
+  partId       String // Reference to Resource Service Part
+  partNumber   String // Cached for display
+  workCenterId String? // Reference to Resource Service WorkCenter
+  routingId    String? // Reference to Resource Service Routing
+
+  // Product details
+  description String? @db.Text
+
+  // Quantities
+  plannedQuantity    Float
+  dispatchedQuantity Float  @default(0)
+  completedQuantity  Float  @default(0)
+  unitOfMeasure      String @default("EA")
+
+  // Dates
+  plannedStartDate DateTime
+  plannedEndDate   DateTime
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+
+  // Priority and sequencing
+  priority          SchedulePriority @default(NORMAL)
+  sequenceNumber    Int?
+  estimatedDuration Int? // Hours
+
+  // Constraints
+  customerOrder   String?
+  customerDueDate DateTime?
+  salesOrder      String?
+
+  // Dispatch tracking
+  isDispatched Boolean   @default(false)
+  dispatchedAt DateTime?
+  dispatchedBy String? // User ID reference
+  workOrderId  String?   @unique
+
+  // Status
+  isCancelled     Boolean   @default(false)
+  cancelledAt     DateTime?
+  cancelledReason String?   @db.Text
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  schedule ProductionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, entryNumber])
+  @@index([scheduleId])
+  @@index([partId])
+  @@index([isDispatched])
+  @@index([plannedStartDate])
+  @@map("schedule_entries")
+}
+
+/// Schedule Constraint - Constraints on production schedule
+model ScheduleConstraint {
+  id         String @id @default(cuid())
+  scheduleId String
+
+  // Constraint details
+  constraintType ConstraintType
+  constraintName String
+  description    String?        @db.Text
+
+  // Constraint parameters
+  resourceId      String? // Work center, equipment, personnel
+  resourceType    String? // WORK_CENTER, EQUIPMENT, PERSONNEL
+  capacityLimit   Float?
+  timeWindowStart DateTime?
+  timeWindowEnd   DateTime?
+
+  // Constraint enforcement
+  isHard           Boolean @default(true)
+  violationPenalty Float?
+
+  // Status
+  isActive  Boolean  @default(true)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  schedule ProductionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([constraintType])
+  @@map("schedule_constraints")
+}
+
+enum ConstraintType {
+  CAPACITY // Resource capacity limit
+  AVAILABILITY // Resource availability window
+  PRECEDENCE // Task ordering constraint
+  DEADLINE // Must complete by date
+  MATERIAL // Material availability
+  SETUP // Setup time requirement
+  SKILL // Skill requirement
+}
+
+/// Schedule State History - Audit trail of schedule state changes
+model ScheduleStateHistory {
+  id         String @id @default(cuid())
+  scheduleId String
+
+  // State transition
+  previousState  ScheduleState?
+  newState       ScheduleState
+  transitionDate DateTime       @default(now())
+
+  // Transition details
+  reason    String? @db.Text
+  changedBy String? // User ID reference
+  notes     String? @db.Text
+
+  // Metadata
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  schedule ProductionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([newState])
+  @@index([transitionDate])
+  @@map("schedule_state_history")
+}
+
+// ============================================================================
+// Work Order Status & Execution Tracking (ISA-95 Task 1.7)
+// ============================================================================
+
+/// Work Order Status History - Audit trail of status changes
+model WorkOrderStatusHistory {
+  id          String @id @default(cuid())
+  workOrderId String
+
+  // Status transition
+  previousStatus WorkOrderStatus?
+  newStatus      WorkOrderStatus
+  transitionDate DateTime         @default(now())
+
+  // Transition details
+  reason    String? @db.Text
+  changedBy String? // User ID reference
+  notes     String? @db.Text
+
+  // Context at time of transition
+  quantityAtTransition Int?
+  scrapAtTransition    Int?
+
+  // Metadata
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([newStatus])
+  @@index([transitionDate])
+  @@map("work_order_status_history")
+}
+
+/// Dispatch Log - Tracks work order dispatch events
+model DispatchLog {
+  id          String @id @default(cuid())
+  workOrderId String
+
+  // Dispatch details
+  dispatchedAt   DateTime @default(now())
+  dispatchedBy   String? // User ID reference
+  dispatchedFrom String? // Source (e.g., schedule number)
+
+  // Assignment (cross-service references)
+  assignedToId     String? // Personnel ID reference
+  workCenterId     String? // Work Center ID reference
+  priorityOverride WorkOrderPriority?
+
+  // Timing
+  expectedStartDate DateTime?
+  expectedEndDate   DateTime?
+
+  // Status at dispatch
+  quantityDispatched Int
+  materialReserved   Boolean @default(false)
+  toolingReserved    Boolean @default(false)
+
+  // Notes
+  dispatchNotes String?  @db.Text
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([dispatchedAt])
+  @@index([assignedToId])
+  @@index([workCenterId])
+  @@map("dispatch_logs")
+}
+
+/// Work Performance Record - Actuals capture
+model WorkPerformance {
+  id          String  @id @default(cuid())
+  workOrderId String
+  operationId String? // WorkOrderOperation reference
+
+  // Performance type
+  performanceType WorkPerformanceType
+
+  // Timing
+  recordedAt DateTime @default(now())
+  recordedBy String? // User ID reference
+
+  // Labor performance (when performanceType = LABOR)
+  personnelId     String? // Personnel ID reference
+  laborHours      Float?
+  laborCost       Float?
+  laborEfficiency Float?
+
+  // Material performance (when performanceType = MATERIAL)
+  partId           String? // Material ID reference
+  quantityConsumed Float?
+  quantityPlanned  Float?
+  materialVariance Float?
+  unitCost         Float?
+  totalCost        Float?
+
+  // Equipment performance (when performanceType = EQUIPMENT)
+  equipmentId      String? // Equipment ID reference
+  setupTime        Float?
+  runTime          Float?
+  plannedSetupTime Float?
+  plannedRunTime   Float?
+
+  // Quality performance (when performanceType = QUALITY)
+  quantityProduced Int?
+  quantityGood     Int?
+  quantityScrap    Int?
+  quantityRework   Int?
+  yieldPercentage  Float?
+  scrapReason      String? @db.Text
+
+  // Downtime (when performanceType = DOWNTIME)
+  downtimeMinutes  Float?
+  downtimeReason   String? @db.Text
+  downtimeCategory String?
+
+  // General
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workOrder WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  operation WorkOrderOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([performanceType])
+  @@index([recordedAt])
+  @@index([personnelId])
+  @@index([equipmentId])
+  @@map("work_performance")
+}
+
+enum WorkPerformanceType {
+  LABOR
+  MATERIAL
+  EQUIPMENT
+  QUALITY
+  SETUP
+  DOWNTIME
+}
+
+/// Production Variance - Planned vs. Actual tracking
+model ProductionVariance {
+  id          String  @id @default(cuid())
+  workOrderId String
+  operationId String? // WorkOrderOperation reference
+
+  // Variance details
+  varianceType     VarianceType
+  varianceCategory VarianceCategory
+
+  // Quantities
+  plannedValue    Float
+  actualValue     Float
+  variance        Float // Actual - Planned
+  variancePercent Float // (Variance / Planned) * 100
+
+  // Cost impact
+  costImpact Float?
+
+  // Analysis
+  severity         VarianceSeverity @default(MINOR)
+  rootCause        String?          @db.Text
+  correctiveAction String?          @db.Text
+
+  // Timestamps
+  detectedAt DateTime  @default(now())
+  resolvedAt DateTime?
+
+  // Metadata
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workOrder WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  operation WorkOrderOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([varianceType])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("production_variances")
+}
+
+enum VarianceType {
+  QUANTITY
+  TIME
+  COST
+  QUALITY
+  MATERIAL
+  LABOR
+}
+
+enum VarianceCategory {
+  FAVORABLE // Better than planned
+  UNFAVORABLE // Worse than planned
+}
+
+enum VarianceSeverity {
+  MINOR // < 5% variance
+  MODERATE // 5-15% variance
+  MAJOR // 15-30% variance
+  CRITICAL // > 30% variance
+}
+
+// ============================================================================
+// Digital Work Instructions
+// ============================================================================
+
+/// Work Instruction - Digital work instructions for operations
+model WorkInstruction {
+  id          String  @id @default(cuid())
+  title       String
+  description String? @db.Text
+
+  // Cross-service references
+  partId      String? // Reference to Resource Service Part
+  operationId String? // Reference to Resource Service RoutingOperation
+
+  // Version control
+  version        String                @default("1.0.0")
+  status         WorkInstructionStatus @default(DRAFT)
+  effectiveDate  DateTime?
+  supersededDate DateTime?
+  ecoNumber      String? // Engineering Change Order
+
+  // Approval
+  approvedById    String? // User ID reference
+  approvedAt      DateTime?
+  approvalHistory Json?
+
+  // Audit
+  createdById String // User ID reference
+  updatedById String // User ID reference
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  steps       WorkInstructionStep[]
+  executions  WorkInstructionExecution[]
+  WorkOrder   WorkOrder?                 @relation(fields: [workOrderId], references: [id])
+  workOrderId String?
+
+  @@index([status])
+  @@index([partId])
+  @@index([operationId])
+  @@map("work_instructions")
+}
+
+enum WorkInstructionStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  REJECTED
+  SUPERSEDED
+  ARCHIVED
+}
+
+/// Work Instruction Step - Individual steps in work instruction
+model WorkInstructionStep {
+  id                String @id @default(cuid())
+  workInstructionId String
+  stepNumber        Int
+  title             String
+  content           String @db.Text
+
+  // Media
+  imageUrls      String[]
+  videoUrls      String[]
+  attachmentUrls String[]
+
+  // Step details
+  estimatedDuration Int? // Seconds
+  isCritical        Boolean @default(false)
+  requiresSignature Boolean @default(false)
+  dataEntryFields   Json? // JSON schema for data entry
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workInstruction WorkInstruction                @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+  stepExecutions  WorkInstructionStepExecution[]
+
+  @@unique([workInstructionId, stepNumber])
+  @@index([workInstructionId])
+  @@map("work_instruction_steps")
+}
+
+/// Work Instruction Execution - Track operator progress
+model WorkInstructionExecution {
+  id                String  @id @default(cuid())
+  workInstructionId String
+  workOrderId       String
+  operationId       String? // WorkOrderOperation reference
+
+  // Operator
+  operatorId String // User ID reference
+
+  // Progress
+  currentStepNumber Int                            @default(1)
+  status            WorkInstructionExecutionStatus @default(IN_PROGRESS)
+
+  // Timestamps
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  workInstruction WorkInstruction                @relation(fields: [workInstructionId], references: [id])
+  stepExecutions  WorkInstructionStepExecution[]
+
+  @@index([workInstructionId])
+  @@index([workOrderId])
+  @@index([operatorId])
+  @@index([status])
+  @@map("work_instruction_executions")
+}
+
+enum WorkInstructionExecutionStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  ABORTED
+}
+
+/// Work Instruction Step Execution - Individual step completion tracking
+model WorkInstructionStepExecution {
+  id          String @id @default(cuid())
+  executionId String
+  stepId      String
+
+  // Execution details
+  status      StepExecutionStatus @default(NOT_STARTED)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Data collection
+  dataCollected Json? // Collected data per dataEntryFields schema
+  notes         String? @db.Text
+
+  // Signature (if required)
+  signedById String? // User ID reference
+  signedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  execution WorkInstructionExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  step      WorkInstructionStep      @relation(fields: [stepId], references: [id])
+
+  @@unique([executionId, stepId])
+  @@index([executionId])
+  @@index([stepId])
+  @@index([status])
+  @@map("work_instruction_step_executions")
+}
+
+enum StepExecutionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  FAILED
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

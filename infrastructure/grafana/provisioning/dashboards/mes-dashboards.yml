@@ -1,0 +1,17 @@
+# Grafana Dashboard Provisioning Configuration
+# Phase 2, Task 2.2: Auto-provision MES Dashboards
+
+apiVersion: 1
+
+providers:
+  - name: 'MES Dashboards'
+    orgId: 1
+    folder: 'MES Microservices'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true

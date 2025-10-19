@@ -1,0 +1,738 @@
+# PostgreSQL StatefulSets for all 8 MES microservice databases
+# Each service has its own PostgreSQL instance for Database Per Service pattern
+
+---
+# Auth Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-auth
+  namespace: mes-production
+  labels:
+    app: postgres-auth
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-auth
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-auth
+  namespace: mes-production
+spec:
+  serviceName: postgres-auth
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-auth
+  template:
+    metadata:
+      labels:
+        app: postgres-auth
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_auth
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-auth-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-auth-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Work Order Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-work-order
+  namespace: mes-production
+  labels:
+    app: postgres-work-order
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-work-order
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-work-order
+  namespace: mes-production
+spec:
+  serviceName: postgres-work-order
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-work-order
+  template:
+    metadata:
+      labels:
+        app: postgres-work-order
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_work_order
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-work-order-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-work-order-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# Quality Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-quality
+  namespace: mes-production
+  labels:
+    app: postgres-quality
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-quality
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-quality
+  namespace: mes-production
+spec:
+  serviceName: postgres-quality
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-quality
+  template:
+    metadata:
+      labels:
+        app: postgres-quality
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_quality
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-quality-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-quality-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 15Gi
+
+---
+# Material Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-material
+  namespace: mes-production
+  labels:
+    app: postgres-material
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-material
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-material
+  namespace: mes-production
+spec:
+  serviceName: postgres-material
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-material
+  template:
+    metadata:
+      labels:
+        app: postgres-material
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_material
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-material-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-material-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# Traceability Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-traceability
+  namespace: mes-production
+  labels:
+    app: postgres-traceability
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-traceability
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-traceability
+  namespace: mes-production
+spec:
+  serviceName: postgres-traceability
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-traceability
+  template:
+    metadata:
+      labels:
+        app: postgres-traceability
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_traceability
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-traceability-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-traceability-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 25Gi
+
+---
+# Resource Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-resource
+  namespace: mes-production
+  labels:
+    app: postgres-resource
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-resource
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-resource
+  namespace: mes-production
+spec:
+  serviceName: postgres-resource
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-resource
+  template:
+    metadata:
+      labels:
+        app: postgres-resource
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_resource
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-resource-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-resource-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Reporting Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-reporting
+  namespace: mes-production
+  labels:
+    app: postgres-reporting
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-reporting
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-reporting
+  namespace: mes-production
+spec:
+  serviceName: postgres-reporting
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-reporting
+  template:
+    metadata:
+      labels:
+        app: postgres-reporting
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_reporting
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-reporting-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-reporting-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 30Gi
+
+---
+# Integration Service Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-integration
+  namespace: mes-production
+  labels:
+    app: postgres-integration
+    component: database
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-integration
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-integration
+  namespace: mes-production
+spec:
+  serviceName: postgres-integration
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-integration
+  template:
+    metadata:
+      labels:
+        app: postgres-integration
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: mes_integration
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-integration-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-integration-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 15Gi

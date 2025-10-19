@@ -1,0 +1,422 @@
+# Kong Declarative Configuration
+# Phase 2, Task 2.2: API Gateway Configuration for MES Microservices
+#
+# This file defines the API Gateway routes for all 8 microservices
+# Reference: docs/PHASE_2_TASK_2.1_SERVICE_BOUNDARY_ANALYSIS.md
+
+_format_version: "3.0"
+_transform: true
+
+# ============================================================
+# Services (Upstream Microservices)
+# ============================================================
+
+services:
+  # Service 1: Authentication Service
+  - name: auth-service
+    url: http://auth-service:3008
+    tags:
+      - mes
+      - authentication
+
+  # Service 2: Work Order Service
+  - name: work-order-service
+    url: http://work-order-service:3001
+    tags:
+      - mes
+      - production
+
+  # Service 3: Quality Service
+  - name: quality-service
+    url: http://quality-service:3002
+    tags:
+      - mes
+      - quality
+
+  # Service 4: Material Service
+  - name: material-service
+    url: http://material-service:3003
+    tags:
+      - mes
+      - material
+
+  # Service 5: Traceability Service
+  - name: traceability-service
+    url: http://traceability-service:3004
+    tags:
+      - mes
+      - traceability
+
+  # Service 6: Resource Service
+  - name: resource-service
+    url: http://resource-service:3005
+    tags:
+      - mes
+      - resources
+
+  # Service 7: Reporting Service
+  - name: reporting-service
+    url: http://reporting-service:3006
+    tags:
+      - mes
+      - analytics
+
+  # Service 8: Integration Service
+  - name: integration-service
+    url: http://integration-service:3007
+    tags:
+      - mes
+      - integration
+
+# ============================================================
+# Routes (API Endpoints)
+# ============================================================
+
+routes:
+  # ============================================================
+  # Authentication Service Routes (No Auth Required)
+  # ============================================================
+  - name: auth-login
+    service: auth-service
+    paths:
+      - /api/v1/auth/login
+    methods:
+      - POST
+    strip_path: false
+
+  - name: auth-logout
+    service: auth-service
+    paths:
+      - /api/v1/auth/logout
+    methods:
+      - POST
+    strip_path: false
+
+  - name: auth-refresh
+    service: auth-service
+    paths:
+      - /api/v1/auth/refresh
+    methods:
+      - POST
+    strip_path: false
+
+  - name: auth-profile
+    service: auth-service
+    paths:
+      - /api/v1/auth/profile
+    methods:
+      - GET
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Work Order Service Routes (Auth Required)
+  # ============================================================
+  - name: work-orders
+    service: work-order-service
+    paths:
+      - /api/v1/workorders
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: local
+
+  - name: production-schedule
+    service: work-order-service
+    paths:
+      - /api/v1/production-schedule
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Quality Service Routes (Auth Required)
+  # ============================================================
+  - name: quality
+    service: quality-service
+    paths:
+      - /api/v1/quality
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: local
+
+  - name: fai
+    service: quality-service
+    paths:
+      - /api/v1/fai
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  - name: signatures
+    service: quality-service
+    paths:
+      - /api/v1/signatures
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Material Service Routes (Auth Required)
+  # ============================================================
+  - name: parts
+    service: material-service
+    paths:
+      - /api/v1/parts
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 150
+          policy: local
+
+  - name: lots
+    service: material-service
+    paths:
+      - /api/v1/lots
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  - name: serialization
+    service: material-service
+    paths:
+      - /api/v1/serialization
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Traceability Service Routes (Auth Required)
+  # ============================================================
+  - name: traceability
+    service: traceability-service
+    paths:
+      - /api/v1/traceability
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 50
+          policy: local
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - X-Service-Name:traceability
+
+  # ============================================================
+  # Resource Service Routes (Auth Required)
+  # ============================================================
+  - name: equipment
+    service: resource-service
+    paths:
+      - /api/v1/equipment
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 200
+          policy: local
+
+  - name: personnel
+    service: resource-service
+    paths:
+      - /api/v1/personnel
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  - name: process-segments
+    service: resource-service
+    paths:
+      - /api/v1/process-segments
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Reporting Service Routes (Auth Required)
+  # ============================================================
+  - name: dashboard
+    service: reporting-service
+    paths:
+      - /api/v1/dashboard
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: response-caching
+        config:
+          strategy: memory
+          cache_ttl: 300  # 5 minutes cache
+
+  - name: reports
+    service: reporting-service
+    paths:
+      - /api/v1/reports
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+
+  # ============================================================
+  # Integration Service Routes (Auth Required)
+  # ============================================================
+  - name: integration
+    service: integration-service
+    paths:
+      - /api/v1/integration
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: sub
+          claims_to_verify:
+            - exp
+      - name: rate-limiting
+        config:
+          minute: 60
+          policy: local
+
+# ============================================================
+# Global Plugins
+# ============================================================
+
+plugins:
+  # CORS Plugin for frontend access
+  - name: cors
+    config:
+      origins:
+        - http://localhost:5173
+        - http://localhost:3000
+        - http://localhost:8000
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+      exposed_headers:
+        - X-Request-ID
+      credentials: true
+      max_age: 3600
+
+  # Request ID for distributed tracing
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
+
+  # Request/Response logging
+  - name: file-log
+    config:
+      path: /tmp/kong-requests.log
+      reopen: true
+
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      per_consumer: false
+
+# ============================================================
+# Consumers (API Users - for API key authentication)
+# ============================================================
+
+consumers:
+  - username: mes-frontend
+    custom_id: mes-frontend-app
+    tags:
+      - frontend
+
+  - username: mes-integration
+    custom_id: mes-integration-system
+    tags:
+      - integration
+      - erp
+
+# ============================================================
+# JWT Credentials (for demo purposes)
+# ============================================================
+
+jwt_secrets:
+  - consumer: mes-frontend
+    key: mes-frontend-jwt-key
+    secret: your-256-bit-secret-key-replace-in-production
+    algorithm: HS256

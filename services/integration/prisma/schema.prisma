@@ -1,0 +1,627 @@
+// Integration Service Database Schema
+// Phase 2, Task 2.3: Database Per Service Pattern
+// Service: Integration Service (Port 3007)
+// Bounded Context: External system integrations, ISA-95 B2M messaging, data sync
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-integration"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("INTEGRATION_DATABASE_URL")
+}
+
+// ============================================================================
+// Integration Endpoint Definitions
+// ============================================================================
+
+model IntegrationEndpoint {
+  id              String   @id @default(cuid())
+  endpointCode    String   @unique
+  endpointName    String
+  description     String?  @db.Text
+
+  // System details
+  systemType      SystemType
+  systemName      String
+  systemVersion   String?
+
+  // Connection details
+  connectionType  ConnectionType
+  baseUrl         String?
+  port            Int?
+  username        String?
+  passwordHash    String?  // Encrypted password
+  apiKey          String?  // Encrypted API key
+  certificatePath String?
+
+  // Authentication
+  authType        AuthType  @default(BASIC)
+  authConfig      Json?     // Additional auth configuration
+
+  // Protocol details
+  protocol        Protocol  @default(REST)
+  protocolConfig  Json?     // Protocol-specific configuration
+
+  // Retry configuration
+  maxRetries      Int       @default(3)
+  retryDelayMs    Int       @default(1000)
+  timeoutMs       Int       @default(30000)
+
+  // Rate limiting
+  rateLimit       Int?      // Requests per minute
+  rateLimitPeriod Int?      // Period in seconds
+
+  // Health check
+  healthCheckUrl  String?
+  lastHealthCheck DateTime?
+  healthStatus    HealthStatus @default(UNKNOWN)
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  mappings        DataMapping[]
+  syncJobs        SyncJob[]
+  b2mMessages     ISA95B2MMessage[]
+
+  @@index([endpointCode])
+  @@index([systemType])
+  @@map("integration_endpoints")
+}
+
+enum SystemType {
+  ERP
+  PLM
+  CRM
+  SCM
+  WMS
+  QMS
+  CMMS
+  HMI_SCADA
+  CUSTOM
+}
+
+enum ConnectionType {
+  HTTP
+  HTTPS
+  SOAP
+  DATABASE
+  FILE_SHARE
+  MQTT
+  KAFKA
+  CUSTOM
+}
+
+enum AuthType {
+  NONE
+  BASIC
+  BEARER_TOKEN
+  API_KEY
+  OAUTH2
+  CERTIFICATE
+  CUSTOM
+}
+
+enum Protocol {
+  REST
+  SOAP
+  GRAPHQL
+  GRPC
+  JDBC
+  ODBC
+  FILE_TRANSFER
+  MESSAGE_QUEUE
+}
+
+enum HealthStatus {
+  HEALTHY
+  DEGRADED
+  DOWN
+  UNKNOWN
+}
+
+// ============================================================================
+// Data Mapping Definitions
+// ============================================================================
+
+model DataMapping {
+  id              String   @id @default(cuid())
+  endpointId      String
+  mappingCode     String   @unique
+  mappingName     String
+  description     String?  @db.Text
+
+  // Direction
+  direction       SyncDirection
+
+  // Source and target
+  sourceEntity    String    // MES entity or external entity
+  targetEntity    String
+  sourceSchema    Json?     // JSON schema of source
+  targetSchema    Json?     // JSON schema of target
+
+  // Transformation
+  transformationType TransformationType @default(FIELD_MAPPING)
+  transformationConfig Json  // Field mappings, rules, expressions
+
+  // ISA-95 B2M alignment
+  b2mObjectType   B2MObjectType?
+  b2mOperation    B2MOperation?
+
+  // Filtering
+  filterConditions Json?    // Filter rules (e.g., only sync active records)
+
+  // Validation
+  validationRules Json?     // Validation rules before sync
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  endpoint        IntegrationEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  syncJobs        SyncJob[]
+
+  @@index([endpointId])
+  @@index([mappingCode])
+  @@map("data_mappings")
+}
+
+enum SyncDirection {
+  INBOUND         // External system -> MES
+  OUTBOUND        // MES -> External system
+  BIDIRECTIONAL   // Both directions
+}
+
+enum TransformationType {
+  FIELD_MAPPING   // Simple field-to-field mapping
+  EXPRESSION      // Complex expression-based transformation
+  SCRIPT          // Custom JavaScript transformation
+  TEMPLATE        // Template-based transformation
+}
+
+enum B2MObjectType {
+  PRODUCT_DEFINITION
+  PRODUCTION_SCHEDULE
+  PRODUCTION_PERFORMANCE
+  PRODUCTION_CAPABILITY
+  PROCESS_SEGMENT
+  PERSONNEL
+  EQUIPMENT
+  MATERIAL
+  WORK_ORDER
+  QUALITY_TEST
+}
+
+enum B2MOperation {
+  GET
+  CHANGE
+  PROCESS
+  RESPONSE
+  CANCEL
+}
+
+// ============================================================================
+// Sync Jobs & Schedules
+// ============================================================================
+
+model SyncJob {
+  id              String   @id @default(cuid())
+  endpointId      String
+  dataMappingId   String?  // Null for custom sync jobs
+  jobCode         String   @unique
+  jobName         String
+  description     String?  @db.Text
+
+  // Job type
+  jobType         SyncJobType
+
+  // Schedule
+  scheduleType    ScheduleType @default(MANUAL)
+  cronExpression  String?
+  intervalMinutes Int?
+
+  // Execution window
+  enabledStartTime String?   // HH:MM format
+  enabledEndTime   String?   // HH:MM format
+
+  // Batch configuration
+  batchSize       Int       @default(100)
+  parallelThreads Int       @default(1)
+
+  // Error handling
+  onErrorAction   ErrorAction @default(RETRY_THEN_FAIL)
+  notifyOnError   Boolean   @default(true)
+  notifyEmails    String[]
+
+  // Status
+  isActive        Boolean   @default(true)
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  endpoint        IntegrationEndpoint @relation(fields: [endpointId], references: [id])
+  dataMapping     DataMapping? @relation(fields: [dataMappingId], references: [id])
+  executions      SyncExecution[]
+
+  @@index([endpointId])
+  @@index([dataMappingId])
+  @@index([nextRunAt])
+  @@map("sync_jobs")
+}
+
+enum SyncJobType {
+  PULL            // Pull data from external system
+  PUSH            // Push data to external system
+  SYNC            // Bidirectional sync
+  CUSTOM          // Custom logic
+}
+
+enum ScheduleType {
+  MANUAL
+  CRON
+  INTERVAL
+  REAL_TIME       // Event-driven
+}
+
+enum ErrorAction {
+  RETRY_THEN_FAIL
+  SKIP_AND_CONTINUE
+  FAIL_IMMEDIATELY
+  LOG_ONLY
+}
+
+model SyncExecution {
+  id              String   @id @default(cuid())
+  syncJobId       String
+  executionNumber String   @unique @default(cuid())
+
+  // Execution details
+  triggeredBy     TriggerType
+  triggeredById   String?  // User ID if manual, or job ID if scheduled
+
+  // Time tracking
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  durationSeconds Int?
+
+  // Statistics
+  recordsProcessed Int      @default(0)
+  recordsSuccess   Int      @default(0)
+  recordsFailed    Int      @default(0)
+  recordsSkipped   Int      @default(0)
+
+  // Status
+  status          ExecutionStatus @default(RUNNING)
+  errorMessage    String?  @db.Text
+  errorStack      String?  @db.Text
+
+  // Idempotency
+  externalBatchId String?  // External system batch/transaction ID
+  checksumBefore  String?  // Data checksum before sync
+  checksumAfter   String?  // Data checksum after sync
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  syncJob         SyncJob  @relation(fields: [syncJobId], references: [id])
+  logs            SyncExecutionLog[]
+  records         SyncedRecord[]
+
+  @@index([syncJobId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("sync_executions")
+}
+
+enum TriggerType {
+  MANUAL
+  SCHEDULED
+  EVENT_DRIVEN
+  API_REQUEST
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+  CANCELLED
+}
+
+model SyncExecutionLog {
+  id              String   @id @default(cuid())
+  executionId     String
+  timestamp       DateTime @default(now())
+  logLevel        LogLevel
+  message         String   @db.Text
+  details         Json?
+
+  // Relations
+  execution       SyncExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+  @@index([logLevel])
+  @@index([timestamp])
+  @@map("sync_execution_logs")
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+model SyncedRecord {
+  id              String   @id @default(cuid())
+  executionId     String
+
+  // Record identification
+  externalId      String   // ID in external system
+  mesId           String?  // ID in MES
+  entityType      String   // Product, WorkOrder, Material, etc.
+
+  // Operation
+  operation       RecordOperation
+  direction       SyncDirection
+
+  // Data
+  sourceData      Json?    // Original data from source
+  transformedData Json?    // Data after transformation
+  validationErrors String[] // Validation errors
+
+  // Status
+  status          RecordStatus
+  errorMessage    String?  @db.Text
+
+  // Timestamps
+  syncedAt        DateTime @default(now())
+
+  // Relations
+  execution       SyncExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+  @@index([externalId])
+  @@index([mesId])
+  @@index([status])
+  @@map("synced_records")
+}
+
+enum RecordOperation {
+  CREATE
+  UPDATE
+  DELETE
+  UPSERT
+}
+
+enum RecordStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+  PENDING_REVIEW
+}
+
+// ============================================================================
+// ISA-95 Part 4: Business-to-Manufacturing Messaging (B2M)
+// ============================================================================
+
+model ISA95B2MMessage {
+  id              String   @id @default(cuid())
+  endpointId      String
+  messageId       String   @unique  // Unique message identifier
+  correlationId   String?  // For request-response correlation
+
+  // Message classification (ISA-95 Part 4)
+  objectType      B2MObjectType
+  verb            B2MOperation      // Get, Change, Process, Response, Cancel
+
+  // Direction
+  direction       MessageDirection
+
+  // Message content
+  messageBody     Json      // ISA-95 B2M XML or JSON payload
+  messageFormat   MessageFormat @default(JSON)
+
+  // Sender/receiver
+  senderSystem    String
+  receiverSystem  String
+
+  // Status
+  status          MessageStatus @default(PENDING)
+  acknowledgement AcknowledgementStatus?
+
+  // Timestamps (ISA-95 timeline)
+  createdTimestamp      DateTime  @default(now())
+  sentTimestamp         DateTime?
+  receivedTimestamp     DateTime?
+  processedTimestamp    DateTime?
+  acknowledgedTimestamp DateTime?
+
+  // Response handling
+  requiresResponse      Boolean   @default(false)
+  responseReceivedAt    DateTime?
+  responseMessageId     String?   // Link to response message
+
+  // Error handling
+  retryCount      Int       @default(0)
+  errorMessage    String?   @db.Text
+
+  // Idempotency
+  isIdempotent    Boolean   @default(true)
+  processingKey   String?   // Unique key to prevent duplicate processing
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  endpoint        IntegrationEndpoint @relation(fields: [endpointId], references: [id])
+
+  @@index([endpointId])
+  @@index([messageId])
+  @@index([correlationId])
+  @@index([status])
+  @@index([objectType, verb])
+  @@map("isa95_b2m_messages")
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageFormat {
+  XML
+  JSON
+  PROTOBUF
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  CANCELLED
+}
+
+enum AcknowledgementStatus {
+  ACKNOWLEDGED
+  NEGATIVE_ACK
+  PENDING_ACK
+}
+
+// ============================================================================
+// Idempotency Tracking (Prevent Duplicate Processing)
+// ============================================================================
+
+model IdempotencyKey {
+  id              String   @id @default(cuid())
+  idempotencyKey  String   @unique
+  endpointId      String
+  entityType      String   // WorkOrder, Material, etc.
+  entityId        String   // MES entity ID
+  operation       String   // CREATE, UPDATE, DELETE
+
+  // Request fingerprint
+  requestHash     String   // Hash of request payload
+
+  // Response
+  responseStatus  Int      // HTTP status code or custom status
+  responseBody    Json?
+
+  // Expiration
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([idempotencyKey])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+// ============================================================================
+// Integration Event Log (Audit Trail)
+// ============================================================================
+
+model IntegrationEvent {
+  id              String   @id @default(cuid())
+  eventNumber     String   @unique @default(cuid())
+  endpointId      String?
+
+  // Event classification
+  eventType       IntegrationEventType
+  eventCategory   String   // SYNC, B2M, ERROR, HEALTH_CHECK, etc.
+
+  // Event details
+  eventTitle      String
+  eventMessage    String   @db.Text
+  eventData       Json?
+
+  // Severity
+  severity        EventSeverity @default(INFO)
+
+  // Context
+  userId          String?  // User ID from Auth Service
+  ipAddress       String?
+  userAgent       String?
+
+  // Timestamp
+  timestamp       DateTime @default(now())
+
+  @@index([endpointId])
+  @@index([eventType])
+  @@index([severity])
+  @@index([timestamp])
+  @@map("integration_events")
+}
+
+enum IntegrationEventType {
+  ENDPOINT_CREATED
+  ENDPOINT_UPDATED
+  ENDPOINT_DELETED
+  CONNECTION_SUCCESS
+  CONNECTION_FAILED
+  SYNC_STARTED
+  SYNC_COMPLETED
+  SYNC_FAILED
+  B2M_MESSAGE_SENT
+  B2M_MESSAGE_RECEIVED
+  B2M_MESSAGE_PROCESSED
+  MAPPING_CREATED
+  MAPPING_UPDATED
+  DATA_VALIDATION_ERROR
+  TRANSFORMATION_ERROR
+  SYSTEM_ERROR
+}
+
+enum EventSeverity {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+// =============================================================================
+// EVENT IDEMPOTENCY
+// =============================================================================
+
+/// Tracks processed events to prevent duplicate processing
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  eventId      String   @unique
+  eventType    String
+  consumerId   String
+  status       IdempotencyStatus @default(PROCESSING)
+  consumedAt   DateTime?
+  retryCount   Int      @default(0)
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([consumerId])
+  @@index([status])
+  @@index([consumedAt])
+  @@map("idempotency_records")
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

@@ -18,10 +18,23 @@ const authClient = axios.create({
   },
 });
 
-// Response interceptor for error handling
+// Response interceptor for error handling and 401 detection
 authClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // Handle 401 Unauthorized - trigger logout
+    if (error.response?.status === 401) {
+      // Get the auth store dynamically to avoid circular dependency
+      // We'll check if we're already on the login page to avoid redirect loops
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        // Clear localStorage to force logout
+        localStorage.removeItem('mes-auth-storage');
+        // Redirect to login with the current path as redirect URL
+        const redirectUrl = window.location.pathname + window.location.search;
+        window.location.href = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
+      }
+    }
+
     if (error.response?.data) {
       throw new Error(error.response.data.message || 'Authentication failed');
     }

@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import joi from 'joi';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables - respect DOTENV_CONFIG_PATH for E2E tests
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
 // Configuration schema validation
 const envSchema = joi.object({

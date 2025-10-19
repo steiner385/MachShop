@@ -6,7 +6,6 @@ import {
   Input,
   Button,
   Typography,
-  Tree,
   Timeline,
   Descriptions,
   Tag,
@@ -16,7 +15,6 @@ import {
   Alert,
   Divider,
   message,
-  Spin
 } from 'antd';
 import {
   QrcodeOutlined,
@@ -28,38 +26,119 @@ import {
   ToolOutlined,
   UserOutlined,
   CalendarOutlined,
-  BarcodeOutlined
+  BarcodeOutlined,
 } from '@ant-design/icons';
-import { traceabilityApi, GenealogyNode, ManufacturingHistoryEntry, MaterialCertificate, QualityRecord } from '../../services/traceabilityApi';
+import { traceabilityApi, ManufacturingHistoryEntry, MaterialCertificate, QualityRecord } from '../../services/traceabilityApi';
+import { GenealogyTreeVisualization } from '@/components/Traceability/GenealogyTreeVisualization';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 
 const Traceability: React.FC = () => {
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [traceabilityData, setTraceabilityData] = useState<any>(null);
-  const [genealogy, setGenealogy] = useState<any[]>([]);
   const [manufacturingHistory, setManufacturingHistory] = useState<ManufacturingHistoryEntry[]>([]);
   const [materialCertificates, setMaterialCertificates] = useState<MaterialCertificate[]>([]);
   const [qualityRecords, setQualityRecords] = useState<QualityRecord[]>([]);
+
+  // Forward/backward traceability states
+  const [forwardSearchValue, setForwardSearchValue] = useState('');
+  const [forwardResults, setForwardResults] = useState<any[]>([]);
+  const [forwardLoading, setForwardLoading] = useState(false);
+  const [backwardSearchValue, setBackwardSearchValue] = useState('');
+  const [backwardResults, setBackwardResults] = useState<any[]>([]);
+  const [backwardLoading, setBackwardLoading] = useState(false);
 
   // Set page title
   useEffect(() => {
     document.title = 'Material Traceability - Manufacturing Execution System';
   }, []);
 
-  // Helper function to transform genealogy node to tree format
-  const transformGenealogyToTree = (node: GenealogyNode): any => {
-    return {
-      title: `${node.serialNumber} (${node.partName})`,
-      key: node.id,
-      icon: <ApartmentOutlined />,
-      children: node.children?.map(child => transformGenealogyToTree(child)) || []
-    };
+  const handleForwardTraceability = async (lotNumber: string) => {
+    if (!lotNumber.trim()) {
+      message.warning('Please enter a lot number');
+      return;
+    }
+
+    setForwardLoading(true);
+    try {
+      setForwardSearchValue(lotNumber);
+
+      // Call API to get forward traceability data
+      const result = await traceabilityApi.getForwardTraceability(lotNumber);
+
+      if (result && result.usedInParts && result.usedInParts.length > 0) {
+        // Format data for display in table
+        const formattedResults = result.usedInParts.map((part: any, index: number) => ({
+          key: `${part.serialNumber}-${index}`,
+          serialNumber: part.serialNumber,
+          partNumber: part.partNumber,
+          status: 'ACTIVE', // Would come from API
+          date: part.dateUsed ? new Date(part.dateUsed).toLocaleDateString() : 'N/A'
+        }));
+        setForwardResults(formattedResults);
+        message.success(`Found ${formattedResults.length} products using lot ${lotNumber}`);
+      } else {
+        setForwardResults([]);
+        message.info('No products found using this lot number');
+      }
+    } catch (error: any) {
+      console.error('Forward traceability error:', error);
+      setForwardResults([]);
+      if (error.response?.status === 404) {
+        message.error(`Lot number ${lotNumber} not found`);
+      } else {
+        message.error('Failed to perform forward traceability search');
+      }
+    } finally {
+      setForwardLoading(false);
+    }
   };
 
-  // These are removed - we now use real API data from state variables
+  const handleBackwardTraceability = async (serialNumber: string) => {
+    if (!serialNumber.trim()) {
+      message.warning('Please enter a serial number');
+      return;
+    }
+
+    setBackwardLoading(true);
+    try {
+      setBackwardSearchValue(serialNumber);
+
+      // Call API to get backward traceability data
+      const result = await traceabilityApi.getBackwardTraceability(serialNumber);
+
+      if (result && result.components && result.components.length > 0) {
+        // Format data for display in table
+        const formattedResults = result.components.map((component: any, index: number) => ({
+          key: `${component.serialNumber || component.lotNumber}-${index}`,
+          material: component.partName || component.partNumber || 'Unknown',
+          lotNumber: component.lotNumber || 'N/A',
+          supplier: component.supplier || 'N/A',
+          certificate: component.certificateNumber || 'N/A'
+        }));
+        setBackwardResults(formattedResults);
+        message.success(`Found ${formattedResults.length} components/materials for serial ${serialNumber}`);
+      } else {
+        setBackwardResults([]);
+        message.info('No component data found for this serial number');
+      }
+    } catch (error: any) {
+      console.error('Backward traceability error:', error);
+      setBackwardResults([]);
+      if (error.response?.status === 404) {
+        message.error(`Serial number ${serialNumber} not found`);
+      } else {
+        message.error('Failed to perform backward traceability search');
+      }
+    } finally {
+      setBackwardLoading(false);
+    }
+  };
 
   const handleSearch = async (value: string) => {
     if (!value.trim()) {
@@ -70,6 +149,7 @@ const Traceability: React.FC = () => {
     try {
       setLoading(true);
       setSearchValue(value);
+      setError(null); // Clear any previous errors
 
       // Fetch complete traceability data
       const data = await traceabilityApi.getTraceabilityBySerialNumber(value);
@@ -89,25 +169,20 @@ const Traceability: React.FC = () => {
         materialCert: data.materialCertificates[0]?.certificateNumber || 'N/A'
       });
 
-      // Transform genealogy tree
-      if (data.genealogy) {
-        setGenealogy([transformGenealogyToTree(data.genealogy)]);
-      }
-
-      // Set other data
+      // Set data
       setManufacturingHistory(data.manufacturingHistory);
       setMaterialCertificates(data.materialCertificates);
       setQualityRecords(data.qualityRecords);
 
     } catch (error: any) {
       console.error('Failed to load traceability data:', error);
-      if (error.response?.status === 404) {
-        message.error('No traceability data found for this serial number');
-      } else {
-        message.error('Failed to load traceability data. Please try again.');
-      }
+      const errorMessage = error.response?.status === 404
+        ? 'No traceability data found for this serial number'
+        : 'Failed to load traceability data. Please try again.';
+
+      setError(errorMessage);
+      message.error(errorMessage);
       setTraceabilityData(null);
-      setGenealogy([]);
       setManufacturingHistory([]);
       setMaterialCertificates([]);
       setQualityRecords([]);
@@ -189,21 +264,108 @@ const Traceability: React.FC = () => {
 
   const tabItems = [
     {
+      key: 'forward',
+      label: 'Forward Traceability',
+      children: (
+        <Card title="Forward Traceability (Lot to Products)">
+          <Alert
+            message="Forward Traceability"
+            description="Track where materials from a specific lot number were used. Enter a lot number to see all products that contain materials from that lot."
+            type="info"
+            style={{ marginBottom: 16 }}
+          />
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Search
+              placeholder="Enter lot number (e.g., LOT-20251015-001)"
+              allowClear
+              enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
+              size="large"
+              onSearch={handleForwardTraceability}
+              loading={forwardLoading}
+            />
+            {forwardSearchValue && (
+              <div style={{ marginTop: 16 }}>
+                <Text type="secondary">
+                  Search results for lot: {forwardSearchValue}
+                </Text>
+                <Table
+                  dataSource={forwardResults}
+                  columns={[
+                    { title: 'Product Serial Number', dataIndex: 'serialNumber', key: 'serialNumber' },
+                    { title: 'Part Number', dataIndex: 'partNumber', key: 'partNumber' },
+                    { title: 'Status', dataIndex: 'status', key: 'status' },
+                    { title: 'Date', dataIndex: 'date', key: 'date' }
+                  ]}
+                  pagination={false}
+                  size="small"
+                  locale={{ emptyText: 'No data - Forward traceability feature implemented, API integration pending' }}
+                />
+              </div>
+            )}
+          </Space>
+        </Card>
+      ),
+    },
+    {
+      key: 'backward',
+      label: 'Backward Traceability',
+      children: (
+        <Card title="Backward Traceability (Serial to Materials)">
+          <Alert
+            message="Backward Traceability"
+            description="Track all materials and components used to manufacture a specific product. Enter a serial number to see its complete material genealogy."
+            type="info"
+            style={{ marginBottom: 16 }}
+          />
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Search
+              placeholder="Enter serial number (e.g., SN-20251015-000001-7)"
+              allowClear
+              enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
+              size="large"
+              onSearch={handleBackwardTraceability}
+              loading={backwardLoading}
+            />
+            {backwardSearchValue && (
+              <div style={{ marginTop: 16 }}>
+                <Text type="secondary">
+                  Search results for serial: {backwardSearchValue}
+                </Text>
+                <Table
+                  dataSource={backwardResults}
+                  columns={[
+                    { title: 'Material/Component', dataIndex: 'material', key: 'material' },
+                    { title: 'Lot Number', dataIndex: 'lotNumber', key: 'lotNumber' },
+                    { title: 'Supplier', dataIndex: 'supplier', key: 'supplier' },
+                    { title: 'Certificate', dataIndex: 'certificate', key: 'certificate' }
+                  ]}
+                  pagination={false}
+                  size="small"
+                  locale={{ emptyText: 'No data - Backward traceability feature implemented, API integration pending' }}
+                />
+              </div>
+            )}
+          </Space>
+        </Card>
+      ),
+    },
+    {
       key: '1',
       label: 'Genealogy',
       children: (
         <Card title="Part Genealogy Tree">
           <Alert
             message="Component Breakdown"
-            description="This tree shows the complete breakdown of components and materials that make up this part."
+            description="This interactive tree shows the complete breakdown of components and materials that make up this part. Use zoom/pan controls to navigate."
             type="info"
             style={{ marginBottom: 16 }}
           />
-          {genealogy.length > 0 ? (
-            <Tree
-              showIcon
-              defaultExpandAll
-              treeData={genealogy}
+          {traceabilityData?.serialNumber ? (
+            <GenealogyTreeVisualization
+              serialNumber={traceabilityData.serialNumber}
+              maxDepth={5}
+              width={1200}
+              height={600}
             />
           ) : (
             <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
@@ -306,9 +468,20 @@ const Traceability: React.FC = () => {
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: 24 }}>
-        Material Traceability
-      </Title>
+      {/* Header with Actions */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Title level={2} style={{ margin: 0 }}>
+          Material Traceability
+        </Title>
+        <Space>
+          <Button
+            icon={<BarcodeOutlined />}
+            onClick={() => navigate('/serialization')}
+          >
+            Manage Serial Numbers
+          </Button>
+        </Space>
+      </div>
 
       {/* Search Section */}
       <Card style={{ marginBottom: 24 }}>
@@ -331,124 +504,69 @@ const Traceability: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Results Section */}
+      {/* Error Alert */}
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: 24 }}
+          showIcon
+        />
+      )}
+
+      {/* Part Information - Only show when traceabilityData exists */}
       {traceabilityData && (
-        <>
-          {/* Part Information */}
-          <Card title="Part Information" style={{ marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={12}>
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Serial Number">
-                    <Text strong>{traceabilityData.serialNumber}</Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Part Number">
-                    {traceabilityData.partNumber}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Part Name">
-                    {traceabilityData.partName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Lot Number">
-                    {traceabilityData.lotNumber}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Work Order">
-                    {traceabilityData.workOrder}
-                  </Descriptions.Item>
-                </Descriptions>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Status">
-                    <Tag color="green">{traceabilityData.status}</Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Current Location">
-                    {traceabilityData.currentLocation}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Customer">
-                    {traceabilityData.customer}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Manufacture Date">
-                    {traceabilityData.manufactureDate}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Heat Number">
-                    {traceabilityData.heatNumber}
-                  </Descriptions.Item>
-                </Descriptions>
-              </Col>
-            </Row>
-          </Card>
-
-          {/* Detailed Traceability Information */}
-          <Card>
-            <Tabs defaultActiveKey="1" items={tabItems} />
-          </Card>
-        </>
-      )}
-
-      {/* No Results State */}
-      {!traceabilityData && searchValue && !loading && (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <QrcodeOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />
-            <Title level={3} style={{ color: '#999' }}>
-              No traceability data found
-            </Title>
-            <Text type="secondary">
-              Please check your search term and try again
-            </Text>
-          </div>
+        <Card title="Part Information" style={{ marginBottom: 24 }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={12}>
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="Serial Number">
+                  <Text strong>{traceabilityData.serialNumber}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Part Number">
+                  {traceabilityData.partNumber}
+                </Descriptions.Item>
+                <Descriptions.Item label="Part Name">
+                  {traceabilityData.partName}
+                </Descriptions.Item>
+                <Descriptions.Item label="Lot Number">
+                  {traceabilityData.lotNumber}
+                </Descriptions.Item>
+                <Descriptions.Item label="Work Order">
+                  {traceabilityData.workOrder}
+                </Descriptions.Item>
+              </Descriptions>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="Status">
+                  <Tag color="green">{traceabilityData.status}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Current Location">
+                  {traceabilityData.currentLocation}
+                </Descriptions.Item>
+                <Descriptions.Item label="Customer">
+                  {traceabilityData.customer}
+                </Descriptions.Item>
+                <Descriptions.Item label="Manufacture Date">
+                  {traceabilityData.manufactureDate}
+                </Descriptions.Item>
+                <Descriptions.Item label="Heat Number">
+                  {traceabilityData.heatNumber}
+                </Descriptions.Item>
+              </Descriptions>
+            </Col>
+          </Row>
         </Card>
       )}
 
-      {/* Initial State */}
-      {!traceabilityData && !searchValue && (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <QrcodeOutlined style={{ fontSize: 80, color: '#1890ff' }} />
-            <Title level={3} style={{ marginTop: 16 }}>
-              Search for Part Traceability
-            </Title>
-            <Text type="secondary" style={{ fontSize: 16 }}>
-              Enter a serial number, lot number, or work order to view complete traceability information
-            </Text>
-            <Divider />
-            <Space size="large">
-              <div style={{ textAlign: 'center' }}>
-                <ApartmentOutlined style={{ fontSize: 24, color: '#52c41a' }} />
-                <div style={{ marginTop: 8 }}>
-                  <Text strong>Genealogy</Text>
-                  <br />
-                  <Text type="secondary">Component breakdown</Text>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <HistoryOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-                <div style={{ marginTop: 8 }}>
-                  <Text strong>History</Text>
-                  <br />
-                  <Text type="secondary">Manufacturing timeline</Text>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <FileTextOutlined style={{ fontSize: 24, color: '#722ed1' }} />
-                <div style={{ marginTop: 8 }}>
-                  <Text strong>Certificates</Text>
-                  <br />
-                  <Text type="secondary">Material documentation</Text>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <ExperimentOutlined style={{ fontSize: 24, color: '#faad14' }} />
-                <div style={{ marginTop: 8 }}>
-                  <Text strong>Quality</Text>
-                  <br />
-                  <Text type="secondary">Inspection records</Text>
-                </div>
-              </div>
-            </Space>
-          </div>
-        </Card>
-      )}
+      {/* Traceability Tabs - Always visible */}
+      <Card>
+        <Tabs defaultActiveKey="forward" items={tabItems} />
+      </Card>
     </div>
   );
 };
