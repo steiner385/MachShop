@@ -558,7 +558,18 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
       });
       discoveredLinks.push(...tabLinks);
 
-      // Look for navigation buttons (Create, New, Add buttons with data-route or that trigger navigation)
+      // Look for navigation buttons by scanning for React onClick handlers in the page HTML
+      // This is more reliable than clicking buttons since React's onClick isn't in the HTML onclick attribute
+      const pageHTML = await page.content();
+      const navigateMatches = pageHTML.matchAll(/navigate\(['"`]([^'"`]+)['"`]\)/g);
+      for (const match of navigateMatches) {
+        const route = match[1];
+        if (route && route.startsWith('/')) {
+          discoveredLinks.push(route.split('?')[0].split('#')[0]);
+        }
+      }
+
+      // Also look for navigation buttons with data attributes
       const buttonLinks = await page.locator('button, [role="button"]').evaluateAll((buttons) => {
         return buttons
           .map((btn) => {
@@ -568,7 +579,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
                             btn.getAttribute('data-href');
             if (dataRoute) return dataRoute;
 
-            // Check if button has an onClick that looks like navigation
+            // Check if button has an HTML onclick attribute (rare in React)
             const onClick = btn.getAttribute('onclick');
             if (onClick) {
               const routeMatch = onClick.match(/navigate\(['"]([^'"]+)['"]\)/);
@@ -714,11 +725,15 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
 
       try {
         await page.goto(`${baseURL}${currentPath}`, {
-          waitUntil: 'domcontentloaded',
-          timeout: 10000
+          waitUntil: 'networkidle',
+          timeout: 15000
         });
 
-        await page.waitForTimeout(500); // Let page render
+        // Wait for page to fully render and for any loading spinners to disappear
+        await page.waitForTimeout(1000);
+
+        // Wait for any loading indicators to disappear
+        await page.locator('.ant-spin').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
 
         const links = await extractLinksFromPage(currentPath);
 

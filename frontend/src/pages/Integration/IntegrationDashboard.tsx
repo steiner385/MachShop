@@ -301,6 +301,12 @@ const IntegrationDashboard: React.FC = () => {
             Refresh
           </Button>
           <Button
+            icon={<HistoryOutlined />}
+            onClick={() => navigate('/integrations/logs')}
+          >
+            View All Logs
+          </Button>
+          <Button
             type="primary"
             icon={<SettingOutlined />}
             onClick={() => navigate('/integrations/config')}

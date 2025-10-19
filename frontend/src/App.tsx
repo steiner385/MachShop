@@ -224,11 +224,7 @@ const App: React.FC = () => {
         />
         <Route
           path="/serialization/parts"
-          element={
-            <ProtectedRoute permissions={['traceability.read']}>
-              <SerializationListPage />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/serialization" replace />}
         />
 
         {/* Integration Management (Sprint 5) */}
