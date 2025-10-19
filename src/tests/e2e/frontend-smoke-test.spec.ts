@@ -400,8 +400,33 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
     const pagesToCrawl: string[] = ['/dashboard'];
     const crawledPages = new Set<string>();
 
+    // Helper to expand all menu groups to reveal submenu items
+    async function expandAllMenuGroups(): Promise<void> {
+      try {
+        // Find all collapsed menu groups and expand them
+        const menuGroups = await page.locator('[role="menu"] .ant-menu-submenu:not(.ant-menu-submenu-open)').all();
+
+        for (const group of menuGroups) {
+          try {
+            await group.click();
+            await page.waitForTimeout(200); // Wait for expansion animation
+          } catch (e) {
+            // Group might already be expanded or not clickable
+          }
+        }
+      } catch (e) {
+        // No menu groups to expand
+      }
+    }
+
     // Helper to extract links from a page
     async function extractLinksFromPage(url: string): Promise<string[]> {
+      // Expand all menu groups first (only on dashboard where menu is visible)
+      if (url === '/dashboard') {
+        await expandAllMenuGroups();
+        await page.waitForTimeout(500); // Wait for all menus to expand
+      }
+
       // Get regular anchor links
       const anchorLinks = await page.locator('a[href]').evaluateAll((anchors) => {
         return anchors
@@ -425,7 +450,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
           });
       });
 
-      // Also extract navigation from menu items (Ant Design menu structure)
+      // Extract navigation from menu items (Ant Design menu structure)
       const menuLinks = await page.locator('[role="menuitem"]').evaluateAll((items) => {
         return items
           .map((item) => {
@@ -458,7 +483,33 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
           .map((href) => href.split('?')[0].split('#')[0]);
       });
 
-      const allLinks = [...anchorLinks, ...menuLinks];
+      // Extract routes from tab navigation (Ant Design Tabs)
+      const tabLinks = await page.locator('[role="tab"]').evaluateAll((tabs) => {
+        return tabs
+          .map((tab) => {
+            // Tabs might have data-node-key or similar attributes
+            const tabKey = tab.getAttribute('data-node-key') || tab.getAttribute('id');
+            if (tabKey && tabKey.startsWith('/')) {
+              return tabKey;
+            }
+
+            // Check for nested links in tabs
+            const link = tab.querySelector('a');
+            if (link) {
+              return link.getAttribute('href');
+            }
+
+            return null;
+          })
+          .filter((href): href is string => {
+            if (!href) return false;
+            if (!href.startsWith('/')) return false;
+            return true;
+          })
+          .map((href) => href.split('?')[0].split('#')[0]);
+      });
+
+      const allLinks = [...anchorLinks, ...menuLinks, ...tabLinks];
       return [...new Set(allLinks)]; // Remove duplicates
     }
 
@@ -525,22 +576,44 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
       }
     }
 
+    // Known intentional orphans - pages accessed via buttons, dropdowns, or tabs
+    const intentionalOrphans = [
+      '/profile',                    // User dropdown only
+      '/fai/create',                 // Button on FAI list page
+      '/work-instructions/create',   // Button on work instructions list
+      '/serialization/parts',        // Tab on serialization page
+      '/integrations/config',        // Tab on integrations page
+      '/integrations/logs',          // Tab on integrations page
+      '/sprint3-demo',               // Special demo page
+    ];
+
+    // Filter out intentional orphans to find truly orphaned pages
+    const trueOrphans = orphanedRoutes.filter(route => !intentionalOrphans.includes(route));
+
     console.log(`\n🔍 Orphaned Pages Analysis:\n`);
 
-    if (orphanedRoutes.length > 0) {
-      console.log(`❌ Found ${orphanedRoutes.length} orphaned page(s) - these pages exist but aren't linked in the UI:`);
-      orphanedRoutes.forEach(route => {
+    if (trueOrphans.length > 0) {
+      console.log(`❌ Found ${trueOrphans.length} truly orphaned page(s) - these exist but aren't reachable:`);
+      trueOrphans.forEach(route => {
         const routeInfo = ROUTES_TO_TEST.find(r => r.path === route);
         console.log(`  - ${route.padEnd(40)} (${routeInfo?.name})`);
       });
 
       console.log(`\n⚠️  Recommendation: Add navigation menu items or links to these pages, or remove them if unused.\n`);
-
-      // This is a warning, not a failure - orphaned pages might be intentional (e.g., admin-only)
-      // But we want to know about them
-      console.warn(`Warning: ${orphanedRoutes.length} page(s) are not reachable via UI navigation`);
+      console.warn(`Warning: ${trueOrphans.length} page(s) are not reachable via UI navigation`);
     } else {
-      console.log(`✅ No orphaned pages found - all routes are reachable via UI navigation!\n`);
+      console.log(`✅ No truly orphaned pages found - all routes are reachable!\n`);
+    }
+
+    // Report intentional orphans that were filtered
+    const foundIntentionalOrphans = intentionalOrphans.filter(o => orphanedRoutes.includes(o));
+    if (foundIntentionalOrphans.length > 0) {
+      console.log(`ℹ️  ${foundIntentionalOrphans.length} intentional orphan(s) (accessed via buttons/tabs/dropdowns):`);
+      foundIntentionalOrphans.forEach(route => {
+        const routeInfo = ROUTES_TO_TEST.find(r => r.path === route);
+        console.log(`  - ${route.padEnd(40)} (${routeInfo?.name})`);
+      });
+      console.log('');
     }
 
     // Also report pages discovered that aren't in our test list

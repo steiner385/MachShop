@@ -18,13 +18,24 @@ export const TEST_USERS = {
     username: 'admin',
     password: 'password123',
     email: 'admin@mes.com',
-    roles: ['Plant Manager', 'System Administrator'],
+    // Include all roles for comprehensive E2E testing
+    roles: [
+      'Plant Manager',
+      'System Administrator',
+      'Quality Engineer',
+      'Quality Inspector',
+      'Production Planner',
+      'Maintenance Technician',
+      'Production Supervisor'
+    ],
     permissions: [
       'workorders.read', 'workorders.write', 'workorders.delete',
       'quality.read', 'quality.write',
       'traceability.read', 'traceability.write',
       'equipment.read', 'equipment.write',
-      'users.read', 'users.write'
+      'users.read', 'users.write',
+      'materials.read', 'materials.write',
+      'workinstructions.read', 'workinstructions.write'
     ]
   },
   qualityEngineer: {
