@@ -421,10 +421,33 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
 
     // Helper to extract links from a page
     async function extractLinksFromPage(url: string): Promise<string[]> {
+      const discoveredLinks: string[] = [];
+
       // Expand all menu groups first (only on dashboard where menu is visible)
       if (url === '/dashboard') {
         await expandAllMenuGroups();
         await page.waitForTimeout(500); // Wait for all menus to expand
+
+        // Click user dropdown to discover profile link
+        try {
+          const userDropdown = page.locator('[class*="user"], [class*="avatar"], .ant-dropdown-trigger').first();
+          if (await userDropdown.count() > 0) {
+            await userDropdown.click();
+            await page.waitForTimeout(300);
+
+            // Extract links from dropdown menu
+            const dropdownLinks = await page.locator('.ant-dropdown a[href]').evaluateAll((anchors) => {
+              return anchors.map(a => a.getAttribute('href')).filter(Boolean) as string[];
+            });
+            discoveredLinks.push(...dropdownLinks);
+
+            // Close dropdown by clicking elsewhere
+            await page.locator('body').click({ position: { x: 10, y: 10 } });
+            await page.waitForTimeout(200);
+          }
+        } catch (e) {
+          // User dropdown might not exist or be clickable
+        }
       }
 
       // Get regular anchor links
@@ -449,6 +472,7 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
             return href.split('?')[0].split('#')[0];
           });
       });
+      discoveredLinks.push(...anchorLinks);
 
       // Extract navigation from menu items (Ant Design menu structure)
       const menuLinks = await page.locator('[role="menuitem"]').evaluateAll((items) => {
@@ -482,8 +506,32 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
           })
           .map((href) => href.split('?')[0].split('#')[0]);
       });
+      discoveredLinks.push(...menuLinks);
 
-      // Extract routes from tab navigation (Ant Design Tabs)
+      // Extract routes from tab navigation (Ant Design Tabs) - click each tab to discover routes
+      const tabs = await page.locator('[role="tab"]').all();
+      const currentUrl = page.url();
+      for (const tab of tabs) {
+        try {
+          const tabText = await tab.textContent();
+          await tab.click();
+          await page.waitForTimeout(300);
+
+          const newUrl = page.url();
+          if (newUrl !== currentUrl) {
+            const newPath = new URL(newUrl).pathname;
+            discoveredLinks.push(newPath);
+
+            // Navigate back to original URL
+            await page.goto(currentUrl);
+            await page.waitForTimeout(300);
+          }
+        } catch (e) {
+          // Tab might not be clickable or navigation failed
+        }
+      }
+
+      // Also check tab attributes as fallback
       const tabLinks = await page.locator('[role="tab"]').evaluateAll((tabs) => {
         return tabs
           .map((tab) => {
@@ -508,9 +556,150 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
           })
           .map((href) => href.split('?')[0].split('#')[0]);
       });
+      discoveredLinks.push(...tabLinks);
 
-      const allLinks = [...anchorLinks, ...menuLinks, ...tabLinks];
-      return [...new Set(allLinks)]; // Remove duplicates
+      // Look for navigation buttons (Create, New, Add buttons with data-route or that trigger navigation)
+      const buttonLinks = await page.locator('button, [role="button"]').evaluateAll((buttons) => {
+        return buttons
+          .map((btn) => {
+            // Check for data attributes that might indicate a route
+            const dataRoute = btn.getAttribute('data-route') ||
+                            btn.getAttribute('data-path') ||
+                            btn.getAttribute('data-href');
+            if (dataRoute) return dataRoute;
+
+            // Check if button has an onClick that looks like navigation
+            const onClick = btn.getAttribute('onclick');
+            if (onClick) {
+              const routeMatch = onClick.match(/navigate\(['"]([^'"]+)['"]\)/);
+              if (routeMatch) return routeMatch[1];
+            }
+
+            return null;
+          })
+          .filter((href): href is string => {
+            if (!href) return false;
+            if (!href.startsWith('/')) return false;
+            return true;
+          })
+          .map((href) => href.split('?')[0].split('#')[0]);
+      });
+      discoveredLinks.push(...buttonLinks);
+
+      // Save original URL for navigation restoration
+      const originalUrl = page.url();
+
+      // Click the user dropdown menu items to discover profile and settings links
+      if (url === '/dashboard') {
+        try {
+          const dropdownMenu = page.locator('[class*="user"], [class*="avatar"], .ant-dropdown-trigger').first();
+          if (await dropdownMenu.count() > 0) {
+            await dropdownMenu.click();
+            await page.waitForTimeout(300);
+
+            // Get menu items and try clicking them to discover routes
+            const menuItems = await page.locator('.ant-dropdown [role="menuitem"]').all();
+            for (const item of menuItems) {
+              try {
+                const itemText = await item.textContent();
+                if (itemText && (itemText.includes('Profile') || itemText.includes('Settings'))) {
+                  await item.click();
+                  await page.waitForTimeout(300);
+
+                  const newUrl = page.url();
+                  if (newUrl !== originalUrl) {
+                    const newPath = new URL(newUrl).pathname;
+                    discoveredLinks.push(newPath);
+
+                    // Navigate back
+                    await page.goto(originalUrl);
+                    await page.waitForTimeout(300);
+                  }
+                }
+              } catch (e) {
+                // Menu item might not be clickable
+              }
+            }
+
+            // Close dropdown
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+          }
+        } catch (e) {
+          // Dropdown might not exist
+        }
+      }
+
+      // Click first row action buttons to discover routes (Settings, View Logs, etc.)
+      // Limit to first row to avoid clicking too many buttons
+      const actionButtons = await page.locator('table tbody tr:first-child button, table tbody tr:first-child [role="button"]').all();
+      for (const button of actionButtons.slice(0, 5)) {  // Limit to first 5 buttons
+        try {
+          await button.click();
+          await page.waitForTimeout(400);
+
+          const newUrl = page.url();
+          if (newUrl !== originalUrl) {
+            const newPath = new URL(newUrl).pathname;
+            discoveredLinks.push(newPath);
+
+            // Navigate back
+            await page.goto(originalUrl);
+            await page.waitForTimeout(300);
+          } else {
+            // Might have opened a modal, press Escape
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+          }
+        } catch (e) {
+          // Button might not be clickable, continue
+        }
+      }
+
+      // Click navigation buttons (Create, New, Add) to discover programmatic routes
+      const navButtons = await page.locator('button:has-text("Create"), button:has-text("New"), button:has-text("Add"), [role="button"]:has-text("Create"), [role="button"]:has-text("New")').all();
+
+      for (const button of navButtons) {
+        try {
+          const buttonText = await button.textContent();
+
+          // Skip buttons that are likely to open modals or dialogs
+          if (buttonText && (buttonText.includes('Modal') || buttonText.includes('Dialog'))) {
+            continue;
+          }
+
+          // Click the button
+          await button.click();
+          await page.waitForTimeout(500);
+
+          const newUrl = page.url();
+          if (newUrl !== originalUrl) {
+            const newPath = new URL(newUrl).pathname;
+            discoveredLinks.push(newPath);
+
+            // Navigate back to original URL
+            await page.goto(originalUrl);
+            await page.waitForTimeout(500);
+          } else {
+            // Button might have opened a modal, press Escape to close
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+          }
+        } catch (e) {
+          // Button might not be clickable or navigation failed
+          // Try to recover by going back to original URL
+          try {
+            if (page.url() !== originalUrl) {
+              await page.goto(originalUrl);
+              await page.waitForTimeout(300);
+            }
+          } catch {
+            // Recovery failed, continue
+          }
+        }
+      }
+
+      return [...new Set(discoveredLinks)]; // Remove duplicates
     }
 
     // Crawl pages breadth-first to discover all reachable links
@@ -576,15 +765,10 @@ test.describe('Frontend Smoke Test - Complete Site Traversal', () => {
       }
     }
 
-    // Known intentional orphans - pages accessed via buttons, dropdowns, or tabs
+    // Known intentional orphans - pages that are truly not linked in the UI
+    // (most pages accessed via buttons/tabs/dropdowns should now be discovered by the crawler)
     const intentionalOrphans = [
-      '/profile',                    // User dropdown only
-      '/fai/create',                 // Button on FAI list page
-      '/work-instructions/create',   // Button on work instructions list
-      '/serialization/parts',        // Tab on serialization page
-      '/integrations/config',        // Tab on integrations page
-      '/integrations/logs',          // Tab on integrations page
-      '/sprint3-demo',               // Special demo page
+      '/sprint3-demo',               // Special demo page (may not have UI link)
     ];
 
     // Filter out intentional orphans to find truly orphaned pages
