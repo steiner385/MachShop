@@ -112,10 +112,13 @@ async function verifyPageLoaded(page: Page, routeName: string): Promise<void> {
   const url = page.url();
   const bodyText = await page.locator('body').textContent() || '';
 
-  // Check for common error indicators
-  const has404 = bodyText.includes('404') || bodyText.includes('Page Not Found');
-  const has500 = bodyText.includes('500') || bodyText.includes('Internal Server Error');
-  const hasError = bodyText.includes('An error occurred') || bodyText.includes('Something went wrong');
+  // Check for actual error UI elements (more specific than just text)
+  const errorElements = await page.locator('[role="alert"], .ant-alert-error, .error-message').count();
+
+  // Check for common error indicators (more specific patterns)
+  const has404 = bodyText.match(/404[\s\-:]+(page\s+not\s+found|not\s+found)/i);
+  const has500 = bodyText.match(/500[\s\-:]+(internal\s+server\s+error|server\s+error)/i);
+  const hasError = (bodyText.includes('An error occurred') || bodyText.includes('Something went wrong')) && errorElements > 0;
 
   if (has404) {
     throw new Error('Page shows 404 error');

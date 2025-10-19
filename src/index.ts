@@ -38,6 +38,7 @@ import productRoutes from './routes/products';
 import productionScheduleRoutes from './routes/productionSchedules';
 import workOrderExecutionRoutes from './routes/workOrderExecution';
 import routingRoutes from './routes/routings';
+import siteRoutes from './routes/sites';
 
 // Aerospace integration routes
 import maximoRoutes from './routes/maximoRoutes';
@@ -138,6 +139,7 @@ apiRouter.use('/products', authMiddleware, productRoutes);
 apiRouter.use('/production-schedules', authMiddleware, productionScheduleRoutes);
 apiRouter.use('/work-order-execution', authMiddleware, workOrderExecutionRoutes);
 apiRouter.use('/routings', authMiddleware, routingRoutes);
+apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/upload', authMiddleware, uploadRoutes);
 apiRouter.use('/signatures', authMiddleware, signatureRoutes);
