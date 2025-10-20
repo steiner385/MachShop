@@ -517,6 +517,49 @@ const Traceability: React.FC = () => {
         />
       )}
 
+      {/* Initial state - Welcome message with feature highlights */}
+      {!traceabilityData && !loading && !error && (
+        <Card style={{ marginBottom: 24 }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Title level={3}>Search for Part Traceability</Title>
+            <Text type="secondary" style={{ fontSize: 16 }}>
+              Enter a serial number, lot number, or work order to view complete traceability information
+            </Text>
+            <Divider />
+            <Row gutter={[24, 24]} style={{ marginTop: 32 }}>
+              <Col xs={24} sm={12} md={6}>
+                <div style={{ textAlign: 'center' }}>
+                  <ApartmentOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 8 }} />
+                  <div style={{ fontWeight: 500 }}>Genealogy</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Component breakdown</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <div style={{ textAlign: 'center' }}>
+                  <HistoryOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 8 }} />
+                  <div style={{ fontWeight: 500 }}>History</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Manufacturing operations</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <div style={{ textAlign: 'center' }}>
+                  <FileTextOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 8 }} />
+                  <div style={{ fontWeight: 500 }}>Certificates</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Material certifications</Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <div style={{ textAlign: 'center' }}>
+                  <ExperimentOutlined style={{ fontSize: 32, color: '#1890ff', marginBottom: 8 }} />
+                  <div style={{ fontWeight: 500 }}>Quality</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Inspection records</Text>
+                </div>
+              </Col>
+            </Row>
+          </div>
+        </Card>
+      )}
+
       {/* Part Information - Only show when traceabilityData exists */}
       {traceabilityData && (
         <Card title="Part Information" style={{ marginBottom: 24 }}>
