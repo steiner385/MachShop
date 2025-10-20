@@ -325,6 +325,11 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        {/* Redirect /scheduling to /production/scheduling for backwards compatibility */}
+        <Route
+          path="/scheduling"
+          element={<Navigate to="/production/scheduling" replace />}
+        />
 
         {/* Process Segments - Manufacturing Routes (Sprint 6) */}
         <Route
