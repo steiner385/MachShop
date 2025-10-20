@@ -8,7 +8,7 @@
 
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import { getAuthToken } from './helpers/testAuthHelper';
+import { getAuthToken } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
 const BASE_URL = process.env.API_URL || 'http://localhost:3001';
