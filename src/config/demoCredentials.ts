@@ -40,11 +40,14 @@ export const DEMO_USERS: DemoUser[] = [
     lastName: 'Administrator',
     roles: ['Plant Manager', 'System Administrator'],
     permissions: [
-      'workorders.read', 'workorders.write', 'workorders.delete',
+      'workorders.read', 'workorders.write', 'workorders.create', 'workorders.update', 'workorders.delete', 'workorders.release',
       'quality.read', 'quality.write',
       'traceability.read', 'traceability.write',
       'equipment.read', 'equipment.write',
-      'users.read', 'users.write'
+      'users.read', 'users.write',
+      'materials.read', 'materials.write',
+      'scheduling.read', 'scheduling.write',
+      'workinstructions.read', 'workinstructions.write', 'workinstructions.create', 'workinstructions.execute'
     ],
     description: 'Full system access - Plant management and system administration',
     displayName: 'System Administrator'
@@ -59,7 +62,10 @@ export const DEMO_USERS: DemoUser[] = [
     permissions: [
       'workorders.read',
       'quality.read', 'quality.write',
-      'traceability.read'
+      'traceability.read',
+      'fai.read', 'fai.write', 'fai.approve',
+      'ncr.read', 'ncr.write', 'ncr.close',
+      'signatures.read', 'signatures.write'
     ],
     description: 'Quality management - Inspections, NCRs, and quality reporting',
     displayName: 'Quality Engineer'
@@ -99,7 +105,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Supervisor',
     roles: ['Production Supervisor'],
-    permissions: ['workorders.read', 'workorders.write', 'production.read', 'production.write', 'personnel.read'],
+    permissions: ['workorders.read', 'workorders.write', 'workorders.assign', 'personnel.read', 'personnel.assign', 'workinstructions.read', 'equipment.read', 'materials.read'],
     description: 'Production supervisor - Manage production floor',
     displayName: 'Production Supervisor'
   },
@@ -110,7 +116,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Planner',
     roles: ['Production Planner'],
-    permissions: ['workorders.read', 'workorders.write', 'schedules.read', 'schedules.write', 'materials.read'],
+    permissions: ['workorders.read', 'workorders.create', 'scheduling.read', 'scheduling.write', 'capacity.read', 'routings.read', 'bom.read', 'materials.read'],
     description: 'Production planner - Plan production schedules',
     displayName: 'Production Planner'
   },
@@ -121,7 +127,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Scheduler',
     roles: ['Production Scheduler'],
-    permissions: ['workorders.read', 'schedules.read', 'schedules.write', 'equipment.read', 'materials.read'],
+    permissions: ['workorders.read', 'workorders.priority', 'scheduling.read', 'scheduling.write', 'equipment.read', 'materials.read', 'capacity.read'],
     description: 'Production scheduler - Schedule work orders',
     displayName: 'Production Scheduler'
   },
@@ -132,7 +138,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Manufacturing',
     lastName: 'Engineer',
     roles: ['Manufacturing Engineer'],
-    permissions: ['routing.read', 'routing.write', 'processsegments.read', 'processsegments.write', 'workinstructions.read', 'workinstructions.write'],
+    permissions: ['routings.read', 'routings.write', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read'],
     description: 'Manufacturing engineer - Design process routings',
     displayName: 'Manufacturing Engineer'
   },
@@ -145,7 +151,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Quality',
     lastName: 'Engineer',
     roles: ['Quality Engineer'],
-    permissions: ['quality.read', 'quality.write', 'fai.read', 'fai.write', 'ncr.read', 'ncr.write', 'traceability.read'],
+    permissions: ['workorders.read', 'quality.read', 'quality.write', 'fai.read', 'fai.write', 'fai.approve', 'ncr.read', 'ncr.write', 'ncr.close', 'signatures.read', 'signatures.write', 'traceability.read', 'inspections.read', 'inspections.approve'],
     description: 'Quality engineer - Manage quality programs',
     displayName: 'Quality Engineer (Test)'
   },
@@ -156,7 +162,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Quality',
     lastName: 'Inspector',
     roles: ['Quality Inspector'],
-    permissions: ['quality.read', 'quality.write', 'inspections.read', 'inspections.write', 'ncr.read', 'ncr.write'],
+    permissions: ['workorders.read', 'quality.read', 'inspections.read', 'inspections.write', 'fai.read', 'fai.execute', 'ncr.read', 'ncr.write', 'signatures.read', 'signatures.write', 'traceability.read'],
     description: 'Quality inspector - Perform inspections',
     displayName: 'Quality Inspector'
   },
@@ -167,7 +173,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'DCMA',
     lastName: 'Inspector',
     roles: ['DCMA Inspector'],
-    permissions: ['*.read'], // READ-ONLY access to everything
+    permissions: ['workorders.read', 'quality.read', 'fai.read', 'ncr.read', 'signatures.read', 'traceability.read', 'audit.read', 'audit.export'],
     description: 'DCMA inspector - Government audit access (read-only)',
     displayName: 'DCMA Inspector'
   },
@@ -178,7 +184,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Process',
     lastName: 'Engineer',
     roles: ['Process Engineer'],
-    permissions: ['processsegments.read', 'processsegments.write', 'routing.read', 'routing.write', 'quality.read'],
+    permissions: ['workorders.read', 'quality.read', 'spc.read', 'spc.write', 'processImprovement.read', 'processImprovement.write', 'yield.read', 'yield.write', 'capability.read', 'capability.write', 'equipment.read'],
     description: 'Process engineer - Optimize manufacturing processes',
     displayName: 'Process Engineer'
   },
@@ -191,7 +197,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Warehouse',
     lastName: 'Manager',
     roles: ['Warehouse Manager'],
-    permissions: ['materials.read', 'materials.write', 'inventory.read', 'inventory.write', 'shipping.read', 'shipping.write'],
+    permissions: ['inventory.read', 'inventory.write', 'materials.read', 'materials.write', 'warehouse.read', 'warehouse.write', 'cycleCounts.read', 'cycleCounts.write', 'adjustments.approve'],
     description: 'Warehouse manager - Manage inventory',
     displayName: 'Warehouse Manager'
   },
@@ -202,7 +208,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Materials',
     lastName: 'Handler',
     roles: ['Materials Handler'],
-    permissions: ['materials.read', 'materials.write', 'inventory.read', 'inventory.write'],
+    permissions: ['workorders.read', 'materials.read', 'materials.move', 'inventory.read', 'inventory.update', 'cycleCounts.read', 'cycleCounts.execute'],
     description: 'Materials handler - Handle material transactions',
     displayName: 'Materials Handler'
   },
@@ -213,7 +219,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Shipping',
     lastName: 'Receiving',
     roles: ['Shipping & Receiving Specialist'],
-    permissions: ['shipping.read', 'shipping.write', 'receiving.read', 'receiving.write', 'materials.read'],
+    permissions: ['shipments.read', 'shipments.write', 'receiving.read', 'receiving.write', 'carriers.read', 'carriers.write', 'packingLists.read', 'packingLists.write', 'workorders.read', 'materials.read'],
     description: 'Shipping & receiving - Handle shipments',
     displayName: 'Shipping & Receiving'
   },
@@ -224,7 +230,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Logistics',
     lastName: 'Coordinator',
     roles: ['Logistics Coordinator'],
-    permissions: ['shipping.read', 'shipping.write', 'schedules.read', 'materials.read'],
+    permissions: ['logistics.read', 'logistics.write', 'shipments.read', 'shipments.write', 'tracking.read', 'tracking.write', 'carriers.read', 'workorders.read', 'inventory.read'],
     description: 'Logistics coordinator - Coordinate material flow',
     displayName: 'Logistics Coordinator'
   },
@@ -237,7 +243,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Maintenance',
     lastName: 'Technician',
     roles: ['Maintenance Technician'],
-    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.write'],
+    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.execute', 'pmScheduling.read', 'workorders.read'],
     description: 'Maintenance technician - Perform equipment maintenance',
     displayName: 'Maintenance Technician'
   },
@@ -248,7 +254,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Maintenance',
     lastName: 'Supervisor',
     roles: ['Maintenance Supervisor'],
-    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.write', 'personnel.read'],
+    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.write', 'pmScheduling.read', 'pmScheduling.write', 'workRequests.approve', 'spareParts.read', 'spareParts.write', 'workorders.read'],
     description: 'Maintenance supervisor - Manage maintenance team',
     displayName: 'Maintenance Supervisor'
   },
@@ -261,7 +267,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Plant',
     lastName: 'Manager',
     roles: ['Plant Manager'],
-    permissions: ['*.read', 'reports.read'], // READ-ONLY + reports
+    permissions: ['workorders.read', 'quality.read', 'equipment.read', 'materials.read', 'personnel.read', 'reports.read', 'reports.write', 'kpi.read', 'capex.approve', 'traceability.read', 'audit.read'],
     description: 'Plant manager - Executive oversight (read-only)',
     displayName: 'Plant Manager'
   },
@@ -272,7 +278,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'System',
     lastName: 'Admin',
     roles: ['System Administrator'],
-    permissions: ['*'], // Full access
+    permissions: ['users.read', 'users.write', 'roles.read', 'roles.write', 'permissions.read', 'permissions.write', 'system.config', 'audit.read', 'integrations.read', 'integrations.write'],
     description: 'System administrator - Full system access',
     displayName: 'System Admin'
   },
@@ -283,7 +289,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Super',
     lastName: 'User',
     roles: ['Superuser'],
-    permissions: ['*'], // Full access with audit logging
+    permissions: ['*', 'bypass.validations', 'impersonate.*', 'force.status', 'audit.read'],
     description: 'Superuser - Full access with audit logging',
     displayName: 'Superuser'
   },
@@ -294,7 +300,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Inventory',
     lastName: 'Specialist',
     roles: ['Inventory Control Specialist'],
-    permissions: ['inventory.read', 'inventory.write', 'materials.read', 'materials.write', 'traceability.read'],
+    permissions: ['inventory.read', 'inventory.write', 'cycleCounts.read', 'cycleCounts.write', 'adjustments.read', 'adjustments.write', 'minmax.read', 'minmax.write', 'mrp.read', 'mrp.write', 'materials.read'],
     description: 'Inventory specialist - Manage inventory accuracy',
     displayName: 'Inventory Control Specialist'
   }
