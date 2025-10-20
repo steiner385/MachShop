@@ -21,12 +21,13 @@ export const TEST_USERS = {
     email: 'admin@mes.com',
     roles: ['Plant Manager', 'System Administrator'],
     permissions: [
-      'workorders.read', 'workorders.write', 'workorders.delete',
+      'workorders.read', 'workorders.write', 'workorders.create', 'workorders.update', 'workorders.delete', 'workorders.release',
       'quality.read', 'quality.write',
       'traceability.read', 'traceability.write',
       'equipment.read', 'equipment.write',
       'users.read', 'users.write',
       'materials.read', 'materials.write',
+      'scheduling.read', 'scheduling.write',
       'workinstructions.read', 'workinstructions.write', 'workinstructions.create', 'workinstructions.execute'
     ]
   },
