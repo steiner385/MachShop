@@ -33,7 +33,7 @@ import { Routing, LIFECYCLE_STATE_COLORS, LIFECYCLE_STATE_LABELS } from '@/types
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { isRoutingEditable } from '@/api/routing';
-import { useAuthStore } from '@/store/AuthStore';
+import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -52,6 +52,7 @@ export const RoutingList: React.FC = () => {
 
   const { currentSite, allSites } = useSite();
   const { user } = useAuthStore();
+  const { hasPermission, hasAnyPermission } = usePermissionCheck();
 
   const {
     routings,
@@ -134,8 +135,11 @@ export const RoutingList: React.FC = () => {
     return site ? site.siteName : 'Unknown';
   };
 
-  // Check if user has permission to create routings
-  const canCreateRouting = user?.permissions?.includes('routing.write') || user?.permissions?.includes('processsegments.write') || false;
+  // Check if user has permission to perform routing operations
+  const canCreateRouting = hasAnyPermission(['routing.write', 'processsegments.write']);
+  const canViewRouting = hasAnyPermission(['routing.read', 'routing.write', 'processsegments.read', 'processsegments.write']);
+  const canUpdateRouting = hasAnyPermission(['routing.write', 'processsegments.write']);
+  const canDeleteRouting = hasAnyPermission(['routing.delete', 'routing.write', 'processsegments.write']);
 
   // Table columns
   const columns: ColumnsType<Routing> = [
@@ -224,39 +228,44 @@ export const RoutingList: React.FC = () => {
       key: 'actions',
       width: '12%',
       fixed: 'right',
-      render: (_, record: Routing) => (
-        <Space size="small">
-          <Tooltip title="View">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => navigate(`/routings/${record.id}`)}
-            />
-          </Tooltip>
+      render: (_, record: Routing) => {
+        const editable = isRoutingEditable(record);
+        const canEdit = canUpdateRouting && editable;
+        const canDelete = canDeleteRouting && editable;
 
-          {isRoutingEditable(record) && (
-            <Tooltip title="Edit">
+        return (
+          <Space size="small">
+            <Tooltip title={!canViewRouting ? "No permission to view routing" : "View"}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EyeOutlined />}
+                disabled={!canViewRouting}
+                onClick={() => navigate(`/routings/${record.id}`)}
+              />
+            </Tooltip>
+
+            <Tooltip title={!canUpdateRouting ? "No permission to edit routing" : !editable ? "Routing is not editable" : "Edit"}>
               <Button
                 type="text"
                 size="small"
                 icon={<EditOutlined />}
+                disabled={!canEdit}
                 onClick={() => navigate(`/routings/${record.id}/edit`)}
               />
             </Tooltip>
-          )}
 
-          <Tooltip title="Clone">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => handleClone(record.id)}
-            />
-          </Tooltip>
+            <Tooltip title={!canCreateRouting ? "No permission to clone routing" : "Clone"}>
+              <Button
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                disabled={!canCreateRouting}
+                onClick={() => handleClone(record.id)}
+              />
+            </Tooltip>
 
-          {isRoutingEditable(record) && (
-            <Tooltip title="Delete">
+            <Tooltip title={!canDeleteRouting ? "No permission to delete routing" : !editable ? "Routing is not editable" : "Delete"}>
               <Popconfirm
                 title="Are you sure you want to delete this routing?"
                 description="This action cannot be undone."
@@ -264,18 +273,20 @@ export const RoutingList: React.FC = () => {
                 okText="Yes"
                 cancelText="No"
                 okButtonProps={{ danger: true }}
+                disabled={!canDelete}
               >
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
+                  disabled={!canDelete}
                 />
               </Popconfirm>
             </Tooltip>
-          )}
-        </Space>
-      ),
+          </Space>
+        );
+      },
     },
   ];
 

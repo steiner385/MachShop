@@ -41,6 +41,8 @@ import {
   MaterialLotStatus,
 } from '@/types/materials';
 import type { ColumnsType } from 'antd/es/table';
+import { usePermissionCheck } from '@/store/AuthStore';
+import { PERMISSIONS } from '@/types/auth';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -51,6 +53,7 @@ export const MaterialsList: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<MaterialType | undefined>();
   const [statusFilter, setStatusFilter] = useState<MaterialLotStatus | undefined>();
   const [viewMode, setViewMode] = useState<'definitions' | 'lots'>('lots');
+  const { hasPermission } = usePermissionCheck();
 
   const {
     definitions,
@@ -207,18 +210,23 @@ export const MaterialsList: React.FC = () => {
       key: 'actions',
       width: 100,
       fixed: 'right',
-      render: (_, record) => (
-        <Tooltip title="View Details">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/materials/definitions/${record.id}`)}
-          >
-            View
-          </Button>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        const canView = hasPermission(PERMISSIONS.MATERIALS_READ);
+
+        return (
+          <Tooltip title={!canView ? "No permission to view material details" : "View Details"}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              disabled={!canView}
+              onClick={() => navigate(`/materials/definitions/${record.id}`)}
+            >
+              View
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 
@@ -324,18 +332,23 @@ export const MaterialsList: React.FC = () => {
       key: 'actions',
       width: 100,
       fixed: 'right',
-      render: (_, record) => (
-        <Tooltip title="View Details">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/materials/lots/${record.id}`)}
-          >
-            View
-          </Button>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        const canView = hasPermission(PERMISSIONS.MATERIALS_READ);
+
+        return (
+          <Tooltip title={!canView ? "No permission to view lot details" : "View Details"}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              disabled={!canView}
+              onClick={() => navigate(`/materials/lots/${record.id}`)}
+            >
+              View
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 

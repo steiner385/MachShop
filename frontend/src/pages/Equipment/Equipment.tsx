@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Tag, Button, Space, Row, Col, Statistic, Spin, message } from 'antd';
+import { Card, Table, Tag, Button, Space, Row, Col, Statistic, Spin, message, Tooltip } from 'antd';
 import {
   PlusOutlined,
   ToolOutlined,
@@ -8,6 +8,8 @@ import {
   CloseCircleOutlined
 } from '@ant-design/icons';
 import { equipmentApi, Equipment as EquipmentType, EquipmentStatistics } from '../../services/equipmentApi';
+import { usePermissionCheck } from '@/store/AuthStore';
+import { PERMISSIONS } from '@/types/auth';
 
 const Equipment: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,7 @@ const Equipment: React.FC = () => {
     pageSize: 10,
     total: 0,
   });
+  const { hasPermission } = usePermissionCheck();
 
   // Set page title
   useEffect(() => {
@@ -121,8 +124,12 @@ const Equipment: React.FC = () => {
       key: 'actions',
       render: () => (
         <Space>
-          <Button size="small">View</Button>
-          <Button size="small">Maintain</Button>
+          <Tooltip title={!canViewEquipment ? "No permission to view equipment" : ""}>
+            <Button size="small" disabled={!canViewEquipment}>View</Button>
+          </Tooltip>
+          <Tooltip title={!canMaintainEquipment ? "No permission to perform maintenance" : ""}>
+            <Button size="small" disabled={!canMaintainEquipment}>Maintain</Button>
+          </Tooltip>
         </Space>
       ),
     },
@@ -136,6 +143,11 @@ const Equipment: React.FC = () => {
     );
   }
 
+  // Permission checks
+  const canViewEquipment = hasPermission(PERMISSIONS.EQUIPMENT_READ);
+  const canUpdateEquipment = hasPermission(PERMISSIONS.EQUIPMENT_UPDATE);
+  const canMaintainEquipment = hasPermission(PERMISSIONS.EQUIPMENT_MAINTENANCE);
+
   return (
     <div>
       {/* Header */}
@@ -146,9 +158,15 @@ const Equipment: React.FC = () => {
         marginBottom: 24
       }}>
         <h1>Equipment Management</h1>
-        <Button type="primary" icon={<PlusOutlined />}>
-          Add Equipment
-        </Button>
+        <Tooltip title={!canUpdateEquipment ? "No permission to add equipment" : ""}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            disabled={!canUpdateEquipment}
+          >
+            Add Equipment
+          </Button>
+        </Tooltip>
       </div>
 
       {/* Statistics */}
