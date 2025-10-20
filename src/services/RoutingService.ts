@@ -116,7 +116,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -128,7 +128,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             }
@@ -140,7 +139,7 @@ export class RoutingService {
       }
     });
 
-    return routing as RoutingWithRelations;
+    return routing as unknown as RoutingWithRelations;
   }
 
   /**
@@ -170,7 +169,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -182,7 +181,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             },
@@ -224,7 +222,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -236,7 +234,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             }
@@ -293,7 +290,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -305,7 +302,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             }
@@ -319,7 +315,7 @@ export class RoutingService {
         { partId: 'asc' },
         { version: 'desc' }
       ]
-    }) as Promise<RoutingWithRelations[]>;
+    }) as unknown as Promise<RoutingWithRelations[]>;
   }
 
   /**
@@ -388,7 +384,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -400,7 +396,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             }
@@ -410,7 +405,7 @@ export class RoutingService {
           }
         }
       }
-    }) as Promise<RoutingWithRelations>;
+    }) as unknown as Promise<RoutingWithRelations>;
   }
 
   /**
@@ -474,7 +469,7 @@ export class RoutingService {
           select: {
             id: true,
             segmentName: true,
-            operationType: true,
+            segmentType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -486,7 +481,6 @@ export class RoutingService {
           select: {
             id: true,
             name: true,
-            workCenterCode: true,
             isActive: true
           }
         },
@@ -508,7 +502,7 @@ export class RoutingService {
           select: {
             id: true,
             segmentName: true,
-            operationType: true,
+            segmentType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -520,7 +514,6 @@ export class RoutingService {
           select: {
             id: true,
             name: true,
-            workCenterCode: true,
             isActive: true
           }
         },
@@ -542,7 +535,7 @@ export class RoutingService {
           select: {
             id: true,
             segmentName: true,
-            operationType: true,
+            segmentType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -554,7 +547,6 @@ export class RoutingService {
           select: {
             id: true,
             name: true,
-            workCenterCode: true,
             isActive: true
           }
         },
@@ -614,7 +606,7 @@ export class RoutingService {
           select: {
             id: true,
             segmentName: true,
-            operationType: true,
+            segmentType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -626,7 +618,6 @@ export class RoutingService {
           select: {
             id: true,
             name: true,
-            workCenterCode: true,
             isActive: true
           }
         },
@@ -980,7 +971,7 @@ export class RoutingService {
               select: {
                 id: true,
                 segmentName: true,
-                operationType: true,
+                segmentType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -992,7 +983,6 @@ export class RoutingService {
               select: {
                 id: true,
                 name: true,
-                workCenterCode: true,
                 isActive: true
               }
             }
@@ -1039,7 +1029,7 @@ export class RoutingService {
       }
     }
 
-    return newRouting as RoutingWithRelations;
+    return newRouting as unknown as RoutingWithRelations;
   }
 
   /**

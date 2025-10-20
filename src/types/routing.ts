@@ -154,7 +154,7 @@ export interface RoutingStepWithRelations extends RoutingStep {
   processSegment?: {
     id: string;
     segmentName: string;
-    operationType: string;
+    segmentType: string;
     setupTime?: number;
     duration?: number;
     teardownTime?: number;
@@ -164,7 +164,6 @@ export interface RoutingStepWithRelations extends RoutingStep {
   workCenter?: {
     id: string;
     name: string;
-    workCenterCode: string;
     isActive: boolean;
   };
   dependencies?: RoutingStepDependency[];
