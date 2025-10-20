@@ -121,11 +121,14 @@ const FAICreatePage: React.FC = () => {
             tooltip="The part number being inspected"
           >
             <Select
+              mode="tags"
               placeholder="Select or enter part ID"
               showSearch
               allowClear
               size="large"
               optionFilterProp="children"
+              data-testid="part-id-input"
+              maxCount={1}
             >
               {/* TODO: Load parts from API */}
               <Option value="PART-001">PART-001 - Wing Panel A</Option>
@@ -141,7 +144,7 @@ const FAICreatePage: React.FC = () => {
               name="workOrderId"
               tooltip="Optional: Link to related work order"
             >
-              <Input placeholder="WO-2024-001" />
+              <Input placeholder="WO-2024-001" data-testid="work-order-input" />
             </Form.Item>
 
             <Form.Item
@@ -159,7 +162,7 @@ const FAICreatePage: React.FC = () => {
             name="revisionLevel"
             tooltip="Drawing or part revision level (e.g., A, B, C, 1, 2)"
           >
-            <Input placeholder="A" maxLength={10} />
+            <Input placeholder="A" maxLength={10} data-testid="revision-input" />
           </Form.Item>
 
           {/* Action Buttons */}

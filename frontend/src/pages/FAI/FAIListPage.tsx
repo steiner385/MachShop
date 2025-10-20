@@ -224,6 +224,7 @@ const FAIListPage: React.FC = () => {
             icon={<PlusOutlined />}
             onClick={() => navigate('/fai/create')}
             size="large"
+            data-testid="create-fai-button"
           >
             Create FAI Report
           </Button>
