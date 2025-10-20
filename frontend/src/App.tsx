@@ -7,9 +7,12 @@ import LoginPage from '@/pages/Auth/LoginPage';
 import Dashboard from '@/pages/Dashboard/Dashboard';
 import WorkOrders from '@/pages/WorkOrders/WorkOrders';
 import WorkOrderDetails from '@/pages/WorkOrders/WorkOrderDetails';
+import WorkOrderEdit from '@/pages/WorkOrders/WorkOrderEdit';
 import Quality from '@/pages/Quality/Quality';
 import Inspections from '@/pages/Quality/Inspections';
+import InspectionDetail from '@/pages/Quality/InspectionDetail';
 import NCRs from '@/pages/Quality/NCRs';
+import NCRDetail from '@/pages/Quality/NCRDetail';
 import Traceability from '@/pages/Traceability/Traceability';
 // Phase 3: Equipment Maintenance API Integration
 import { MaintenanceList } from '@/components/Equipment/MaintenanceList';
@@ -134,6 +137,14 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/workorders/:id/edit"
+          element={
+            <ProtectedRoute permissions={['workorders.write']}>
+              <WorkOrderEdit />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Quality Management */}
         <Route
@@ -153,10 +164,26 @@ const App: React.FC = () => {
           }
         />
         <Route
+          path="/quality/inspections/:id"
+          element={
+            <ProtectedRoute roles={['Quality Engineer', 'Quality Inspector']}>
+              <InspectionDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/quality/ncrs"
           element={
             <ProtectedRoute roles={['Quality Engineer']}>
               <NCRs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quality/ncrs/:id"
+          element={
+            <ProtectedRoute roles={['Quality Engineer']}>
+              <NCRDetail />
             </ProtectedRoute>
           }
         />
@@ -208,6 +235,14 @@ const App: React.FC = () => {
         />
         <Route
           path="/traceability/:serialNumber"
+          element={
+            <ProtectedRoute permissions={['traceability.read']}>
+              <TraceabilityDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/traceability/batch/:id"
           element={
             <ProtectedRoute permissions={['traceability.read']}>
               <TraceabilityDetailPage />
