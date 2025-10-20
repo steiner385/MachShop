@@ -559,6 +559,8 @@ export class CMMAdapter {
         qifPlanId,
         partNumber,
         revision,
+        planVersion: '1.0',
+        createdDate: new Date(),
         characteristics: characteristics.map((char, idx) => ({
           characteristicId: `CHAR-${idx + 1}`,
           balloonNumber: char.balloonNumber,
