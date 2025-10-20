@@ -14,7 +14,8 @@ import { logger } from '../utils/logger';
 import {
   RoutingLifecycleState,
   DependencyType,
-  DependencyTimingType
+  DependencyTimingType,
+  CreateRoutingDTO
 } from '../types/routing';
 
 const router = express.Router();
@@ -177,7 +178,9 @@ router.post('/',
       expirationDate: validatedData.expirationDate ? new Date(validatedData.expirationDate) : undefined
     };
 
-    const routing = await routingService.createRouting(data);
+    // Note: steps in validated data don't have routingId (not needed for inline creation)
+    // Type assertion is safe here as the service handles inline step creation
+    const routing = await routingService.createRouting(data as CreateRoutingDTO);
 
     logger.info('Routing created', {
       userId: req.user?.id,
