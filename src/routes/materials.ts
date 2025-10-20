@@ -18,7 +18,9 @@ router.get('/classes',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const includeRelations = req.query.includeRelations === 'true';
-    const classes = await MaterialService.getAllMaterialClasses(includeRelations);
+    const classes = await MaterialService.getAllMaterialClasses({
+      includeChildren: includeRelations
+    });
     return res.status(200).json(classes);
   })
 );
@@ -31,8 +33,7 @@ router.get('/classes',
 router.get('/classes/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const includeRelations = req.query.includeRelations === 'true';
-    const materialClass = await MaterialService.getMaterialClassById(req.params.id, includeRelations);
+    const materialClass = await MaterialService.getMaterialClassById(req.params.id);
 
     if (!materialClass) {
       return res.status(404).json({
@@ -66,7 +67,14 @@ router.get('/classes/:id/hierarchy',
 router.get('/classes/:id/children',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const children = await MaterialService.getChildMaterialClasses(req.params.id);
+    const materialClass = await MaterialService.getMaterialClassById(req.params.id);
+    if (!materialClass) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Material class with ID ${req.params.id} not found`
+      });
+    }
+    const children = materialClass.childClasses || [];
     return res.status(200).json(children);
   })
 );
@@ -88,14 +96,11 @@ router.get('/definitions',
   asyncHandler(async (req, res) => {
     const { materialClassId, materialType, includeRelations } = req.query;
 
-    const filters: any = {};
-    if (materialClassId) filters.materialClassId = materialClassId as string;
-    if (materialType) filters.materialType = materialType as string;
-
-    const definitions = await MaterialService.getAllMaterialDefinitions(
-      filters,
-      includeRelations === 'true'
-    );
+    const definitions = await MaterialService.getAllMaterialDefinitions({
+      materialClassId: materialClassId as string | undefined,
+      materialType: materialType as string | undefined,
+      includeRelations: includeRelations === 'true'
+    });
 
     return res.status(200).json(definitions);
   })
@@ -109,8 +114,7 @@ router.get('/definitions',
 router.get('/definitions/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const includeRelations = req.query.includeRelations === 'true';
-    const material = await MaterialService.getMaterialDefinitionById(req.params.id, includeRelations);
+    const material = await MaterialService.getMaterialDefinitionById(req.params.id);
 
     if (!material) {
       return res.status(404).json({
@@ -131,10 +135,8 @@ router.get('/definitions/:id',
 router.get('/definitions/number/:materialNumber',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const includeRelations = req.query.includeRelations === 'true';
     const material = await MaterialService.getMaterialDefinitionByNumber(
-      req.params.materialNumber,
-      includeRelations
+      req.params.materialNumber
     );
 
     if (!material) {
@@ -210,16 +212,12 @@ router.get('/lots',
   asyncHandler(async (req, res) => {
     const { materialId, status, state, qualityStatus, includeRelations } = req.query;
 
-    const filters: any = {};
-    if (materialId) filters.materialId = materialId as string;
-    if (status) filters.status = status as string;
-    if (state) filters.state = state as string;
-    if (qualityStatus) filters.qualityStatus = qualityStatus as string;
-
-    const lots = await MaterialService.getAllMaterialLots(
-      filters,
-      includeRelations === 'true'
-    );
+    const lots = await MaterialService.getAllMaterialLots({
+      materialId: materialId as string | undefined,
+      status: status as any,
+      qualityStatus: qualityStatus as any,
+      includeRelations: includeRelations === 'true'
+    });
 
     return res.status(200).json(lots);
   })
@@ -233,8 +231,7 @@ router.get('/lots',
 router.get('/lots/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const includeRelations = req.query.includeRelations === 'true';
-    const lot = await MaterialService.getMaterialLotById(req.params.id, includeRelations);
+    const lot = await MaterialService.getMaterialLotById(req.params.id);
 
     if (!lot) {
       return res.status(404).json({
@@ -255,8 +252,7 @@ router.get('/lots/:id',
 router.get('/lots/number/:lotNumber',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const includeRelations = req.query.includeRelations === 'true';
-    const lot = await MaterialService.getMaterialLotByNumber(req.params.lotNumber, includeRelations);
+    const lot = await MaterialService.getMaterialLotByLotNumber(req.params.lotNumber);
 
     if (!lot) {
       return res.status(404).json({
@@ -314,11 +310,19 @@ router.get('/lots/expired/all',
  * @route GET /api/v1/materials/lots/statistics/summary
  * @desc Get material lot statistics
  * @access Private
+ * @query materialId - Material ID (required)
  */
 router.get('/lots/statistics/summary',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const stats = await MaterialService.getMaterialLotStatistics();
+    const { materialId } = req.query;
+    if (!materialId) {
+      return res.status(400).json({
+        error: 'BadRequest',
+        message: 'materialId query parameter is required'
+      });
+    }
+    const stats = await MaterialService.getMaterialLotStatistics(materialId as string);
     return res.status(200).json(stats);
   })
 );
@@ -335,7 +339,7 @@ router.get('/lots/statistics/summary',
 router.get('/lots/:lotId/sublots',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const sublots = await MaterialService.getMaterialSublots(req.params.lotId);
+    const sublots = await MaterialService.getSublotsForLot(req.params.lotId);
     return res.status(200).json(sublots);
   })
 );
@@ -377,7 +381,10 @@ router.post('/lots/:lotId/split',
  * @access Private
  * @body sublotIds - Array of sublot IDs to merge
  * @body workOrderId - Optional work order ID
+ *
+ * TODO: Implement mergeMaterialSublots method in MaterialService
  */
+/*
 router.post('/lots/merge',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
@@ -398,6 +405,7 @@ router.post('/lots/merge',
     return res.status(200).json(result);
   })
 );
+*/
 
 // ========================================
 // MATERIAL GENEALOGY ROUTES
@@ -471,6 +479,7 @@ router.post('/genealogy',
       relationshipType,
       quantityConsumed: parseFloat(quantityConsumed),
       quantityProduced: parseFloat(quantityProduced),
+      unitOfMeasure: req.body.unitOfMeasure || 'EA',
       workOrderId,
       operationId,
       processDate: processDate ? new Date(processDate) : new Date()
@@ -492,7 +501,7 @@ router.post('/genealogy',
 router.get('/lots/:lotId/history',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const history = await MaterialService.getLotStateHistory(req.params.lotId);
+    const history = await MaterialService.getStateHistory(req.params.lotId);
     return res.status(200).json(history);
   })
 );
@@ -510,23 +519,25 @@ router.get('/lots/:lotId/history',
 router.put('/lots/:lotId/state',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const { state, transitionType, userId, reason, workOrderId } = req.body;
+    const { state, status, userId, reason, workOrderId } = req.body;
 
-    if (!state || !transitionType || !userId) {
+    if (!state || !status || !userId) {
       return res.status(400).json({
         error: 'BadRequest',
-        message: 'state, transitionType, and userId are required'
+        message: 'state, status, and userId are required'
       });
     }
 
-    const updatedLot = await MaterialService.updateLotState({
-      lotId: req.params.lotId,
-      newState: state,
-      transitionType,
-      userId,
-      reason,
-      workOrderId
-    });
+    const updatedLot = await MaterialService.updateLotState(
+      req.params.lotId,
+      state,
+      status,
+      {
+        reason,
+        changedById: userId,
+        workOrderId
+      }
+    );
 
     return res.status(200).json(updatedLot);
   })
@@ -555,7 +566,7 @@ router.post('/lots/:lotId/quarantine',
       });
     }
 
-    const quarantinedLot = await MaterialService.quarantineLot(req.params.lotId, userId, reason);
+    const quarantinedLot = await MaterialService.quarantineLot(req.params.lotId, reason, userId);
     return res.status(200).json(quarantinedLot);
   })
 );
@@ -570,16 +581,16 @@ router.post('/lots/:lotId/quarantine',
 router.post('/lots/:lotId/release',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const { userId, reason } = req.body;
+    const { userId } = req.body;
 
-    if (!userId || !reason) {
+    if (!userId) {
       return res.status(400).json({
         error: 'BadRequest',
-        message: 'userId and reason are required'
+        message: 'userId is required'
       });
     }
 
-    const releasedLot = await MaterialService.releaseLot(req.params.lotId, userId, reason);
+    const releasedLot = await MaterialService.releaseFromQuarantine(req.params.lotId, userId);
     return res.status(200).json(releasedLot);
   })
 );
@@ -603,7 +614,7 @@ router.post('/lots/:lotId/reject',
       });
     }
 
-    const rejectedLot = await MaterialService.rejectLot(req.params.lotId, userId, reason);
+    const rejectedLot = await MaterialService.rejectLot(req.params.lotId, reason, userId);
     return res.status(200).json(rejectedLot);
   })
 );
@@ -637,7 +648,7 @@ router.get('/work-orders/:workOrderId/usage',
 router.get('/inventory',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const lots = await MaterialService.getAllMaterialLots({}, true);
+    const lots = await MaterialService.getAllMaterialLots({ includeRelations: true });
     return res.status(200).json(lots);
   })
 );
@@ -660,14 +671,16 @@ router.post('/consumption',
     }
 
     // Update lot state to CONSUMED
-    const updatedLot = await MaterialService.updateLotState({
+    const updatedLot = await MaterialService.updateLotState(
       lotId,
-      newState: 'CONSUMED',
-      transitionType: 'CONSUME',
-      userId,
-      reason: `Consumed ${quantity} for work order ${workOrderId}`,
-      workOrderId
-    });
+      'CONSUMED',
+      'DEPLETED',
+      {
+        reason: `Consumed ${quantity} for work order ${workOrderId}`,
+        changedById: userId,
+        workOrderId
+      }
+    );
 
     return res.status(201).json({
       id: updatedLot.id,
