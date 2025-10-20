@@ -55,15 +55,25 @@ const fetchSitesFromAPI = async (): Promise<Site[]> => {
   try {
     const token = localStorage.getItem('mes-auth-storage');
     if (!token) {
-      throw new Error('No authentication token found');
+      // Return empty array if not authenticated yet (silent failure)
+      console.log('[SiteContext] No auth token yet, skipping site fetch');
+      return [];
     }
 
     // Parse the auth storage to get the token
-    const authData = JSON.parse(token);
+    let authData;
+    try {
+      authData = JSON.parse(token);
+    } catch (e) {
+      console.log('[SiteContext] Invalid auth token format, skipping site fetch');
+      return [];
+    }
+
     const accessToken = authData?.state?.token;
 
     if (!accessToken) {
-      throw new Error('No access token found');
+      console.log('[SiteContext] No access token in auth data, skipping site fetch');
+      return [];
     }
 
     const response = await fetch('/api/v1/sites', {
@@ -74,6 +84,11 @@ const fetchSitesFromAPI = async (): Promise<Site[]> => {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Unauthorized - auth token might be invalid/expired
+        console.log('[SiteContext] Unauthorized - auth token invalid/expired');
+        return [];
+      }
       throw new Error(`Failed to fetch sites: ${response.statusText}`);
     }
 
@@ -81,7 +96,8 @@ const fetchSitesFromAPI = async (): Promise<Site[]> => {
     return data.sites || data.data || data;
   } catch (error) {
     console.error('Error fetching sites:', error);
-    throw error;
+    // Don't throw - return empty array to allow app to continue
+    return [];
   }
 };
 
@@ -252,8 +268,9 @@ export const SiteProvider: React.FC<SiteProviderProps> = ({ children }) => {
         setAllSites(sites);
 
         if (sites.length === 0) {
-          console.warn('[SiteContext] No sites available');
-          setError('No sites available');
+          // No sites available yet - might be waiting for auth
+          // Don't treat this as an error, just log it
+          console.log('[SiteContext] No sites available yet (might be waiting for auth)');
           setIsLoading(false);
           return;
         }
@@ -283,6 +300,38 @@ export const SiteProvider: React.FC<SiteProviderProps> = ({ children }) => {
 
     initializeSites();
   }, []); // Run once on mount
+
+  /**
+   * Monitor auth changes and refetch sites when auth becomes available
+   */
+  useEffect(() => {
+    const checkAndRefetchSites = async () => {
+      // Only refetch if we don't have sites yet and auth is available
+      if (allSites.length === 0 && !isLoading) {
+        const token = localStorage.getItem('mes-auth-storage');
+        if (token) {
+          console.log('[SiteContext] Auth detected, refetching sites...');
+          await refreshSites();
+        }
+      }
+    };
+
+    // Set up interval to check for auth availability
+    const interval = setInterval(checkAndRefetchSites, 1000);
+
+    // Also check immediately
+    checkAndRefetchSites();
+
+    // Stop checking after 10 seconds or when sites are loaded
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [allSites.length, isLoading, refreshSites]);
 
   const contextValue: SiteContextValue = {
     currentSite,
