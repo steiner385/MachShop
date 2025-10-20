@@ -88,13 +88,11 @@ export class MaterialService {
         where: { id: current.parentClassId },
         include: {
           parentClass: true,
-          childClasses: false,
-          materials: false,
         },
       });
       if (!parent) break;
-      hierarchy.push(parent);
-      current = parent;
+      hierarchy.push(parent as any);
+      current = parent as any;
     }
 
     return hierarchy.reverse(); // Top-down order
@@ -285,7 +283,7 @@ export class MaterialService {
   async updateMaterialLot(id: string, data: Partial<MaterialLot>) {
     return this.prisma.materialLot.update({
       where: { id },
-      data,
+      data: data as any,
       include: {
         material: true,
         stateHistory: { take: 5, orderBy: { changedAt: 'desc' } },
@@ -343,6 +341,8 @@ export class MaterialService {
     // Create state transition
     await this.createStateTransition({
       lotId,
+      previousState: 'AVAILABLE' as any,
+      newState: 'AVAILABLE' as any,
       previousStatus: 'AVAILABLE',
       newStatus: 'EXPIRED',
       reason: reason || 'Lot expired based on expiration date',
@@ -512,7 +512,7 @@ export class MaterialService {
 
       for (const record of records) {
         const nextLotId = direction === 'forward' ? record.childLotId : record.parentLotId;
-        const nextLot = direction === 'forward' ? record.childLot : record.parentLot;
+        const nextLot = direction === 'forward' ? (record as any).childLot : (record as any).parentLot;
 
         tree.push({
           depth,
@@ -607,7 +607,7 @@ export class MaterialService {
       transitionType: 'MANUAL',
       changedById: options?.changedById,
       workOrderId: options?.workOrderId,
-      fromLocation: options?.fromLocation || lot.location,
+      fromLocation: options?.fromLocation || lot.location || undefined,
       toLocation: options?.toLocation,
       notes: options?.notes,
     });

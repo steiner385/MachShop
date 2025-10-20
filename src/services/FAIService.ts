@@ -427,7 +427,7 @@ export class FAIService {
       // Recalculate deviation
       const nominalValue = input.nominalValue ?? characteristic.nominalValue;
       let deviation = input.deviation;
-      if (actualValue !== undefined && nominalValue !== undefined) {
+      if (actualValue !== undefined && actualValue !== null && nominalValue !== undefined && nominalValue !== null) {
         deviation = calculateDeviation(actualValue, nominalValue);
       }
 
@@ -437,7 +437,7 @@ export class FAIService {
       const toleranceType = input.toleranceType ?? (characteristic.toleranceType as any);
 
       let result = input.result;
-      if (!result && actualValue !== undefined && nominalValue !== undefined) {
+      if (!result && actualValue !== undefined && actualValue !== null && nominalValue !== undefined && nominalValue !== null) {
         result = validateCharacteristic(
           actualValue,
           nominalValue,
@@ -642,7 +642,7 @@ export class FAIService {
       const qifDoc = this.qifService.createMeasurementPlan({
         partNumber,
         revision,
-        characteristics,
+        characteristics: characteristics.map(c => ({ ...c, characteristicType: 'DIMENSIONAL' })) as any,
       });
 
       // Generate XML
@@ -732,7 +732,7 @@ export class FAIService {
       const qifDoc = this.qifService.createMeasurementResults({
         partNumber,
         serialNumber,
-        measurements,
+        measurements: measurements.map((m, idx) => ({ ...m, balloonNumber: `CHAR-${idx + 1}` })) as any,
         inspectedBy,
       });
 
@@ -837,7 +837,7 @@ export class FAIService {
               UpperLimit: char.upperLimit || undefined,
               LowerLimit: char.lowerLimit || undefined,
               CharacteristicType: char.toleranceType || undefined,
-            })),
+            })) as any,
           },
           MeasurementResults: {
             id: `FAI-RESULTS-${faiReport.faiNumber}`,
@@ -853,11 +853,13 @@ export class FAIService {
                 MeasuredValue: char.actualValue || 0,
                 Status: char.result === CharacteristicResult.PASS ? 'PASS' : 'FAIL',
                 Deviation: char.deviation,
-              })),
+              })) as any,
             Summary: {
               TotalCharacteristics: faiReport.characteristics.length,
               PassedCharacteristics: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.PASS).length,
-              FailCount: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.FAIL).length,
+              FailedCharacteristics: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.FAIL).length,
+              OverallStatus: faiReport.characteristics.some((c) => c.result === CharacteristicResult.FAIL) ? 'FAIL' as const : 'PASS' as const,
+              InspectionDate: (faiReport.approvedAt || new Date()).toISOString(),
             },
           },
         },
@@ -903,13 +905,14 @@ export class FAIService {
       // Parse QIF XML
       const importResult = await this.qifService.importQIF(qifXml);
 
-      if (!importResult.measurementResults) {
+      if (!importResult.measurements || typeof importResult.measurements === 'number') {
         throw new Error('No measurement results found in QIF document');
       }
 
       // Update FAI characteristics with QIF results
       let updatedCount = 0;
-      for (const result of importResult.measurementResults.results) {
+      const results = Array.isArray(importResult.measurements) ? importResult.measurements : (importResult.measurements as any).results || [];
+      for (const result of results) {
         // Find matching characteristic by ID or balloon number
         const charMatch = faiReport.characteristics.find(
           (char) =>

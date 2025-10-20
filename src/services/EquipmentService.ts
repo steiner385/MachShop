@@ -420,12 +420,12 @@ class EquipmentService {
    * Check if a state represents downtime for OEE calculations
    */
   private isDowntimeState(state: EquipmentState): boolean {
-    return [
+    return ([
       EquipmentState.BLOCKED,
       EquipmentState.STARVED,
       EquipmentState.FAULT,
       EquipmentState.EMERGENCY,
-    ].includes(state);
+    ] as EquipmentState[]).includes(state);
   }
 
   /**
