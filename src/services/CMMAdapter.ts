@@ -240,11 +240,11 @@ export class CMMAdapter {
             data: {
               qifMeasurementPlanId: qifPlan.id,
               characteristicId: step.id || `CHAR-${Date.now()}`,
-              balloonNumber: step.BalloonNumber,
-              nominalValue: step.NominalValue,
-              upperTolerance: step.UpperLimit,
-              lowerTolerance: step.LowerLimit,
-              gdtType: step.CharacteristicType,
+              balloonNumber: (step as any).BalloonNumber || (step as any).balloonNumber,
+              nominalValue: (step as any).NominalValue || (step as any).nominalValue || 0,
+              upperTolerance: (step as any).UpperLimit || (step as any).upperLimit || 0,
+              lowerTolerance: (step as any).LowerLimit || (step as any).lowerLimit || 0,
+              gdtType: (step as any).CharacteristicType || (step as any).characteristicType,
             },
           });
         }
@@ -534,6 +534,7 @@ export class CMMAdapter {
           nominalValue: char.nominalValue,
           upperTolerance: char.upperTolerance,
           lowerTolerance: char.lowerTolerance,
+          characteristicType: 'DIMENSIONAL',
         })),
       });
 
@@ -561,9 +562,13 @@ export class CMMAdapter {
         characteristics: characteristics.map((char, idx) => ({
           characteristicId: `CHAR-${idx + 1}`,
           balloonNumber: char.balloonNumber,
+          description: char.description || 'CMM Measurement',
           nominalValue: char.nominalValue,
           upperTolerance: char.upperTolerance,
           lowerTolerance: char.lowerTolerance,
+          toleranceType: 'BILATERAL',
+          measurementMethod: 'CMM',
+          samplingRequired: false,
         })),
         xmlContent: qifXml,
       };
