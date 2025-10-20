@@ -171,7 +171,7 @@ export const SiteSelector: React.FC<SiteSelectorProps> = ({
         }}
         suffixIcon={showIcon ? <GlobalOutlined /> : undefined}
         className="site-selector"
-        dropdownClassName="site-selector-dropdown"
+        classNames={{ popup: { root: "site-selector-dropdown" } }}
         style={{ minWidth: 200, ...style }}
         popupMatchSelectWidth={false}
       >
