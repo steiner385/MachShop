@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupAuthToken } from './helpers/testAuthHelper';
+import { setupAuthToken } from '../helpers/testAuthHelper';
 
 test.describe('ISA-95 Personnel Hierarchy - Task 1.2', () => {
   let authToken: string;
