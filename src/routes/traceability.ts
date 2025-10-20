@@ -287,12 +287,12 @@ router.get('/serial/:serialNumber',
         workOrderNumber: '', // Would need to join work order
         machineId: op.routingOperation.workCenter?.id,
         machineName: op.routingOperation.workCenter?.name,
-        operatorId: op.operatorId || '',
+        operatorId: '', // TODO: Add operatorId to WorkOrderOperation model
         operatorName: '', // Would need to join user
         startTime: op.startedAt?.toISOString() || '',
         endTime: op.completedAt?.toISOString() || '',
         status: op.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
-        notes: op.notes
+        notes: '' // TODO: Add notes to WorkOrderOperation model
       })),
       materialCertificates: materialCertificates.map(mt => ({
         id: mt.id,
@@ -307,9 +307,9 @@ router.get('/serial/:serialNumber',
       })),
       qualityRecords: qualityRecords.map(qr => ({
         id: qr.id,
-        inspectionType: qr.operation,
-        inspectionDate: qr.startedAt.toISOString(),
-        inspector: qr.inspector,
+        inspectionType: qr.inspectionNumber,
+        inspectionDate: qr.startedAt?.toISOString() || qr.createdAt.toISOString(),
+        inspectorId: qr.inspectorId,
         result: qr.result,
         notes: qr.notes,
         documentUrl: undefined
@@ -402,12 +402,12 @@ router.get('/history/:serialNumber',
       workOrderNumber: op.workOrder.workOrderNumber,
       machineId: op.routingOperation.workCenter?.id,
       machineName: op.routingOperation.workCenter?.name,
-      operatorId: op.operatorId || '',
+      operatorId: '', // TODO: Add operatorId to WorkOrderOperation model
       operatorName: '', // Would need to join user table
       startTime: op.startedAt?.toISOString() || '',
       endTime: op.completedAt?.toISOString() || '',
       status: op.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
-      notes: op.notes
+      notes: '' // TODO: Add notes to WorkOrderOperation model
     }));
 
     logger.info('Manufacturing history retrieved', {
@@ -511,9 +511,9 @@ router.get('/quality/:serialNumber',
 
     const qualityRecords = qualityInspections.map(qr => ({
       id: qr.id,
-      inspectionType: qr.operation,
-      inspectionDate: qr.startedAt.toISOString(),
-      inspector: qr.inspector,
+      inspectionType: qr.inspectionNumber,
+      inspectionDate: qr.startedAt?.toISOString() || qr.createdAt.toISOString(),
+      inspectorId: qr.inspectorId,
       result: qr.result,
       notes: qr.notes,
       documentUrl: undefined
