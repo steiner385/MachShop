@@ -25,7 +25,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { workOrderApi, WorkOrder, WorkOrderFilters } from '@/services/workOrderApi';
 import { message } from 'antd';
-import { useAuthStore } from '@/store/AuthStore';
+import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
+import { PERMISSIONS } from '@/types/auth';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -42,6 +43,7 @@ const WorkOrders: React.FC = () => {
   });
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { hasPermission } = usePermissionCheck();
 
   // Set page title
   useEffect(() => {
@@ -195,37 +197,44 @@ const WorkOrders: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (record: any) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button 
-              icon={<EyeOutlined />} 
-              size="small"
-              onClick={() => navigate(`/workorders/${record.key}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button 
-              icon={<EditOutlined />} 
-              size="small"
-            />
-          </Tooltip>
-          {record.status === 'CREATED' && (
-            <Tooltip title="Release">
-              <Button 
-                icon={<PlayCircleOutlined />} 
+      render: (record: any) => {
+        const canEdit = hasPermission(PERMISSIONS.WORKORDERS_UPDATE);
+        const canRelease = hasPermission(PERMISSIONS.WORKORDERS_RELEASE);
+
+        return (
+          <Space>
+            <Tooltip title="View Details">
+              <Button
+                icon={<EyeOutlined />}
                 size="small"
-                type="primary"
+                onClick={() => navigate(`/workorders/${record.key}`)}
               />
             </Tooltip>
-          )}
-        </Space>
-      ),
+            <Tooltip title={!canEdit ? "No permission to edit" : "Edit"}>
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                disabled={!canEdit}
+              />
+            </Tooltip>
+            {record.status === 'CREATED' && (
+              <Tooltip title={!canRelease ? "No permission to release" : "Release"}>
+                <Button
+                  icon={<PlayCircleOutlined />}
+                  size="small"
+                  type="primary"
+                  disabled={!canRelease}
+                />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
   // Check if user has permission to create work orders
-  const canCreateWorkOrder = user?.permissions?.includes('workorders.write') || false;
+  const canCreateWorkOrder = hasPermission(PERMISSIONS.WORKORDERS_CREATE);
 
   return (
     <div>

@@ -359,3 +359,43 @@ export const useRoles = () => {
   const { user } = useAuthStore();
   return user?.roles || [];
 };
+
+// Permission check hook with utility functions
+export const usePermissionCheck = () => {
+  const { user } = useAuthStore();
+
+  const hasPermission = (permission: string): boolean => {
+    return user?.permissions?.includes(permission) ?? false;
+  };
+
+  const hasAnyPermission = (permissions: string[]): boolean => {
+    return permissions.some(permission => user?.permissions?.includes(permission)) ?? false;
+  };
+
+  const hasAllPermissions = (permissions: string[]): boolean => {
+    return permissions.every(permission => user?.permissions?.includes(permission)) ?? false;
+  };
+
+  const hasRole = (role: string): boolean => {
+    return user?.roles?.includes(role) ?? false;
+  };
+
+  const hasAnyRole = (roles: string[]): boolean => {
+    return roles.some(role => user?.roles?.includes(role)) ?? false;
+  };
+
+  const hasAllRoles = (roles: string[]): boolean => {
+    return roles.every(role => user?.roles?.includes(role)) ?? false;
+  };
+
+  return {
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    hasAnyRole,
+    hasAllRoles,
+    permissions: user?.permissions || [],
+    roles: user?.roles || []
+  };
+};
