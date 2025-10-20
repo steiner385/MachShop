@@ -32,7 +32,7 @@ router.use(authMiddleware);
  * POST /api/v1/cmm/qif/plan/import
  * Import QIF Measurement Plan XML
  */
-router.post('/qif/plan/import', async (req: Request, res: Response) => {
+router.post('/qif/plan/import', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifXml } = req.body;
 
@@ -67,7 +67,7 @@ router.post('/qif/plan/import', async (req: Request, res: Response) => {
  * GET /api/v1/cmm/qif/plan/:qifPlanId
  * Export QIF Measurement Plan XML
  */
-router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response) => {
+router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifPlanId } = req.params;
 
@@ -95,7 +95,7 @@ router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response) => {
  * POST /api/v1/cmm/qif/results/import
  * Import QIF Measurement Results XML
  */
-router.post('/qif/results/import', async (req: Request, res: Response) => {
+router.post('/qif/results/import', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifXml, workOrderId, serializedPartId } = req.body;
 
@@ -130,7 +130,7 @@ router.post('/qif/results/import', async (req: Request, res: Response) => {
  * GET /api/v1/cmm/qif/results/:qifResultsId
  * Export QIF Measurement Results XML
  */
-router.get('/qif/results/:qifResultsId', async (req: Request, res: Response) => {
+router.get('/qif/results/:qifResultsId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifResultsId } = req.params;
 
@@ -158,7 +158,7 @@ router.get('/qif/results/:qifResultsId', async (req: Request, res: Response) => 
  * POST /api/v1/cmm/inspection/execute
  * Execute CMM inspection program
  */
-router.post('/inspection/execute', async (req: Request, res: Response) => {
+router.post('/inspection/execute', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       programName,
@@ -209,7 +209,7 @@ router.post('/inspection/execute', async (req: Request, res: Response) => {
  * GET /api/v1/cmm/inspection/:inspectionId
  * Get inspection status
  */
-router.get('/inspection/:inspectionId', async (req: Request, res: Response) => {
+router.get('/inspection/:inspectionId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { inspectionId } = req.params;
 
@@ -239,7 +239,7 @@ router.get('/inspection/:inspectionId', async (req: Request, res: Response) => {
  * GET /api/v1/cmm/inspection/:inspectionId/results
  * Get measurement results
  */
-router.get('/inspection/:inspectionId/results', async (req: Request, res: Response) => {
+router.get('/inspection/:inspectionId/results', async (req: Request, res: Response): Promise<any> => {
   try {
     const { inspectionId } = req.params;
 
@@ -276,7 +276,7 @@ router.get('/inspection/:inspectionId/results', async (req: Request, res: Respon
  * GET /api/v1/cmm/inspection/:inspectionId/qif
  * Get QIF measurement results from CMM
  */
-router.get('/inspection/:inspectionId/qif', async (req: Request, res: Response) => {
+router.get('/inspection/:inspectionId/qif', async (req: Request, res: Response): Promise<any> => {
   try {
     const { inspectionId } = req.params;
 
@@ -311,7 +311,7 @@ router.get('/inspection/:inspectionId/qif', async (req: Request, res: Response) 
  * GET /api/v1/cmm/programs
  * List all CMM programs
  */
-router.get('/programs', async (req: Request, res: Response) => {
+router.get('/programs', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.query;
 
@@ -342,7 +342,7 @@ router.get('/programs', async (req: Request, res: Response) => {
  * POST /api/v1/cmm/plan/create
  * Create MES QIF Plan from characteristics
  */
-router.post('/plan/create', async (req: Request, res: Response) => {
+router.post('/plan/create', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       partNumber,
@@ -391,7 +391,7 @@ router.post('/plan/create', async (req: Request, res: Response) => {
  * GET /api/v1/cmm/health
  * Get CMM adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('CMM') as CMMAdapter | undefined;

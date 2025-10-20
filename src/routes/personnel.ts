@@ -9,7 +9,7 @@ const router = express.Router();
  * @desc Get all personnel with optional filtering
  * @access Private
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const {
       personnelClassId,
@@ -42,7 +42,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  * @desc Get personnel by ID with full relations
  * @access Private
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -71,7 +71,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  */
 router.get(
   '/employee-number/:employeeNumber',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { employeeNumber } = req.params;
 
@@ -99,7 +99,7 @@ router.get(
  * @desc Update personnel information
  * @access Private
  */
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -123,7 +123,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
  */
 router.get(
   '/:id/supervisor-chain',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { id } = req.params;
 
@@ -145,7 +145,7 @@ router.get(
  * @desc Get all subordinates (recursive)
  * @access Private
  */
-router.get('/:id/subordinates', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id/subordinates', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -170,7 +170,7 @@ router.get('/:id/subordinates', async (req: Request, res: Response, next: NextFu
  */
 router.get(
   '/certifications/expiring',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { days = '30' } = req.query;
       const daysAhead = parseInt(days as string, 10);
@@ -195,7 +195,7 @@ router.get(
  */
 router.get(
   '/certifications/expired',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const certifications = await PersonnelService.getExpiredCertifications();
 
@@ -217,7 +217,7 @@ router.get(
  */
 router.post(
   '/:id/certifications',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { id } = req.params;
       const certificationData = {
@@ -229,7 +229,7 @@ router.post(
 
       const certification = await PersonnelService.createCertification(certificationData);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Certification created successfully',
         data: certification,
@@ -247,7 +247,7 @@ router.post(
  */
 router.put(
   '/certifications/:certificationId/status',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { certificationId } = req.params;
       const { status } = req.body;
@@ -282,7 +282,7 @@ router.put(
  * @desc Get skill matrix for personnel
  * @access Private
  */
-router.get('/:id/skills', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id/skills', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -303,7 +303,7 @@ router.get('/:id/skills', async (req: Request, res: Response, next: NextFunction
  * @desc Assign skill to personnel with competency level
  * @access Private
  */
-router.post('/:id/skills', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/skills', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const skillData = {
@@ -323,7 +323,7 @@ router.post('/:id/skills', async (req: Request, res: Response, next: NextFunctio
 
     const skill = await PersonnelService.assignSkill(skillData);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Skill assigned successfully',
       data: skill,
@@ -340,7 +340,7 @@ router.post('/:id/skills', async (req: Request, res: Response, next: NextFunctio
  */
 router.get(
   '/by-skill/:skillId',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { skillId } = req.params;
       const { minCompetencyLevel } = req.query;
@@ -370,7 +370,7 @@ router.get(
  */
 router.post(
   '/:id/work-centers',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { id } = req.params;
       const assignmentData = {
@@ -382,7 +382,7 @@ router.post(
 
       const assignment = await PersonnelService.assignToWorkCenter(assignmentData);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Personnel assigned to work center successfully',
         data: assignment,
@@ -400,7 +400,7 @@ router.post(
  */
 router.get(
   '/work-center/:workCenterId',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { workCenterId } = req.params;
 
@@ -426,7 +426,7 @@ router.get(
  */
 router.post(
   '/:id/availability',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { id } = req.params;
       const availabilityData = {
@@ -445,7 +445,7 @@ router.post(
 
       const availability = await PersonnelService.createAvailability(availabilityData);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Availability record created successfully',
         data: availability,
@@ -463,7 +463,7 @@ router.post(
  */
 router.get(
   '/:id/availability',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { id } = req.params;
       const { startDate, endDate } = req.query;

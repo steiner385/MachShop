@@ -63,7 +63,7 @@ router.post(
       sequenceNumber: result.sequenceNumber,
     });
 
-    res.status(201).json(result);
+    return res.status(201).json(result);
   })
 );
 
@@ -91,7 +91,7 @@ router.post(
       lastSerial: results[results.length - 1]?.serialNumber,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       count: results.length,
       serialNumbers: results,
     });
@@ -145,7 +145,7 @@ router.post(
       partId: part.partId,
     });
 
-    res.status(201).json(part);
+    return res.status(201).json(part);
   })
 );
 
@@ -170,7 +170,7 @@ router.get(
       serialNumber: part.serialNumber,
     });
 
-    res.status(200).json(part);
+    return res.status(200).json(part);
   })
 );
 
@@ -203,7 +203,7 @@ router.patch(
       newStatus: status,
     });
 
-    res.status(200).json(part);
+    return res.status(200).json(part);
   })
 );
 
@@ -235,7 +235,7 @@ router.get(
       total: result.total,
     });
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   })
 );
 
@@ -262,7 +262,7 @@ router.post(
       isValid,
     });
 
-    res.status(200).json({ serialNumber, isValid });
+    return res.status(200).json({ serialNumber, isValid });
   })
 );
 
@@ -291,7 +291,7 @@ router.post(
       startValue: start,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Sequence initialized successfully',
       sequenceName,
       startValue: start,

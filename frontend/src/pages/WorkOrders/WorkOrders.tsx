@@ -25,6 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { workOrderApi, WorkOrder, WorkOrderFilters } from '@/services/workOrderApi';
 import { message } from 'antd';
+import { useAuthStore } from '@/store/AuthStore';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -40,6 +41,7 @@ const WorkOrders: React.FC = () => {
     total: 0,
   });
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // Set page title
   useEffect(() => {
@@ -222,13 +224,22 @@ const WorkOrders: React.FC = () => {
     },
   ];
 
+  // Check if user has permission to create work orders
+  const canCreateWorkOrder = user?.permissions?.includes('workorders.write') || false;
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={2} style={{ margin: 0 }}>Work Orders</Title>
-        <Button type="primary" icon={<PlusOutlined />}>
-          Create Work Order
-        </Button>
+        <Tooltip title={!canCreateWorkOrder ? "You don't have permission to create work orders" : ""}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            disabled={!canCreateWorkOrder}
+          >
+            Create Work Order
+          </Button>
+        </Tooltip>
       </div>
 
       <Card>

@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import prisma from '../lib/database';
 import {
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess
 } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -22,7 +22,7 @@ const querySchema = z.object({
  * @access Private
  */
 router.get('/kpis',
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess,
   asyncHandler(async (req, res) => {
     const { siteId } = req.query;
@@ -186,7 +186,7 @@ router.get('/kpis',
       kpis
     });
 
-    res.status(200).json(kpis);
+    return res.status(200).json(kpis);
   })
 );
 
@@ -196,7 +196,7 @@ router.get('/kpis',
  * @access Private
  */
 router.get('/recent-work-orders',
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess,
   asyncHandler(async (req, res) => {
     const validationResult = querySchema.safeParse(req.query);
@@ -225,8 +225,8 @@ router.get('/recent-work-orders',
       workOrderNumber: wo.workOrderNumber,
       partNumber: wo.partNumber,
       status: wo.status,
-      progress: wo.quantityCompleted && wo.quantityOrdered
-        ? (wo.quantityCompleted / wo.quantityOrdered) * 100
+      progress: wo.quantityCompleted && wo.quantity
+        ? (wo.quantityCompleted / wo.quantity) * 100
         : 0,
       priority: wo.priority,
       dueDate: wo.dueDate?.toISOString() || ''
@@ -238,7 +238,7 @@ router.get('/recent-work-orders',
       count: recentWorkOrders.length
     });
 
-    res.status(200).json(recentWorkOrders);
+    return res.status(200).json(recentWorkOrders);
   })
 );
 
@@ -248,7 +248,7 @@ router.get('/recent-work-orders',
  * @access Private
  */
 router.get('/alerts',
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess,
   asyncHandler(async (req, res) => {
     const validationResult = querySchema.safeParse(req.query);
@@ -345,7 +345,7 @@ router.get('/alerts',
       count: sortedAlerts.length
     });
 
-    res.status(200).json(sortedAlerts);
+    return res.status(200).json(sortedAlerts);
   })
 );
 
@@ -355,7 +355,7 @@ router.get('/alerts',
  * @access Private
  */
 router.get('/efficiency',
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess,
   asyncHandler(async (req, res) => {
     const { siteId } = req.query;
@@ -436,7 +436,7 @@ router.get('/efficiency',
       metrics
     });
 
-    res.status(200).json(metrics);
+    return res.status(200).json(metrics);
   })
 );
 
@@ -446,7 +446,7 @@ router.get('/efficiency',
  * @access Private
  */
 router.get('/quality-trends',
-  requireProductionAccess,
+  requireDashboardAccess,
   requireSiteAccess,
   asyncHandler(async (req, res) => {
     const { siteId } = req.query;
@@ -615,7 +615,7 @@ router.get('/quality-trends',
       trends
     });
 
-    res.status(200).json(trends);
+    return res.status(200).json(trends);
   })
 );
 

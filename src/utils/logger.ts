@@ -1,4 +1,4 @@
-import winston from 'winston';
+import * as winston from 'winston';
 import { config } from '../config/config';
 
 // Define log format
@@ -160,8 +160,8 @@ export const createLogger = (service: string) => {
 };
 
 // HTTP request logging formatter
-export const httpLogFormat = winston.format.printf(({ level, message, timestamp, metadata }) => {
-  const { req, res, responseTime } = metadata;
+export const httpLogFormat = winston.format.printf(({ level, message, timestamp, metadata }: any) => {
+  const { req, res, responseTime } = metadata || {};
   
   if (req && res) {
     return `${timestamp} [${level}]: ${req.method} ${req.url} ${res.statusCode} - ${responseTime}ms - ${req.ip}`;

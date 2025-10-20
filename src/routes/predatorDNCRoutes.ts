@@ -42,7 +42,7 @@ router.use(authMiddleware);
  * 4. Program version (via Shop Floor Connect)
  * 5. Gauge calibration (via Indysoft)
  */
-router.post('/authorization-handshake', async (req: Request, res: Response) => {
+router.post('/authorization-handshake', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       operatorId,
@@ -111,7 +111,7 @@ router.post('/authorization-handshake', async (req: Request, res: Response) => {
  * Transfer CNC program to equipment
  * Requires valid authorizationId from authorization handshake
  */
-router.post('/transfer-program', async (req: Request, res: Response) => {
+router.post('/transfer-program', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       operatorId,
@@ -174,7 +174,7 @@ router.post('/transfer-program', async (req: Request, res: Response) => {
  * GET /api/predator-dnc/machine/:machineId/status
  * Get machine status from DNC
  */
-router.get('/machine/:machineId/status', async (req: Request, res: Response) => {
+router.get('/machine/:machineId/status', async (req: Request, res: Response): Promise<any> => {
   try {
     const { machineId } = req.params;
 
@@ -212,7 +212,7 @@ router.get('/machine/:machineId/status', async (req: Request, res: Response) => 
  * GET /api/predator-dnc/machine/:machineId/active-program
  * Get active program on machine
  */
-router.get('/machine/:machineId/active-program', async (req: Request, res: Response) => {
+router.get('/machine/:machineId/active-program', async (req: Request, res: Response): Promise<any> => {
   try {
     const { machineId } = req.params;
 
@@ -250,7 +250,7 @@ router.get('/machine/:machineId/active-program', async (req: Request, res: Respo
  * GET /api/predator-dnc/download-log/:downloadId
  * Get program download log
  */
-router.get('/download-log/:downloadId', async (req: Request, res: Response) => {
+router.get('/download-log/:downloadId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { downloadId } = req.params;
 
@@ -287,7 +287,7 @@ router.get('/download-log/:downloadId', async (req: Request, res: Response) => {
  * GET /api/predator-dnc/authorization/:authId
  * Get authorization result by ID
  */
-router.get('/authorization/:authId', async (req: Request, res: Response) => {
+router.get('/authorization/:authId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { authId } = req.params;
 
@@ -324,7 +324,7 @@ router.get('/authorization/:authId', async (req: Request, res: Response) => {
  * GET /api/predator-dnc/health
  * Get Predator DNC adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('DNC') as PredatorDNCAdapter | undefined;

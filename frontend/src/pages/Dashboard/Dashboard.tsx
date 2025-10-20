@@ -37,6 +37,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi, DashboardKPIs, RecentWorkOrder, DashboardAlert, EfficiencyMetrics, QualityTrends } from '../../services/dashboardApi';
 import { exportDashboardMetricsToExcel, exportDashboardMetricsToPDF } from '@/utils/exportUtils';
+import { OEEMetricsCard } from '@/components/Dashboard/OEEMetricsCard';
 import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -639,6 +640,11 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* OEE Dashboard - Phase 3 */}
+      <div style={{ marginTop: 24 }}>
+        <OEEMetricsCard />
+      </div>
     </div>
   );
 };

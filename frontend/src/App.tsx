@@ -11,7 +11,8 @@ import Quality from '@/pages/Quality/Quality';
 import Inspections from '@/pages/Quality/Inspections';
 import NCRs from '@/pages/Quality/NCRs';
 import Traceability from '@/pages/Traceability/Traceability';
-import Equipment from '@/pages/Equipment/Equipment';
+// Phase 3: Equipment Maintenance API Integration
+import { MaintenanceList } from '@/components/Equipment/MaintenanceList';
 import Profile from '@/pages/Profile/Profile';
 import NotFound from '@/pages/NotFound/NotFound';
 import { ProtectedRoute } from '@/components/Auth/ProtectedRoute';
@@ -46,6 +47,7 @@ import Sprint3Demo from '@/pages/Sprint3Demo/Sprint3Demo';
 
 // Navigation UI Improvement - Sprint 1 Placeholder Pages
 import SchedulingPage from '@/pages/Production/SchedulingPage';
+import ScheduleDetailPage from '@/pages/Production/ScheduleDetailPage';
 import MaterialsPage from '@/pages/Materials/MaterialsPage';
 import PersonnelPage from '@/pages/Personnel/PersonnelPage';
 import AdminPage from '@/pages/Admin/AdminPage';
@@ -261,22 +263,30 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Equipment Management */}
+        {/* Equipment Management - Phase 3: Equipment Maintenance Scheduling with API Integration */}
         <Route
           path="/equipment"
           element={
             <ProtectedRoute roles={['Maintenance Technician', 'Plant Manager']}>
-              <Equipment />
+              <MaintenanceList />
             </ProtectedRoute>
           }
         />
 
-        {/* Production Scheduling (Navigation UI Sprint 1 - Placeholder) */}
+        {/* Production Scheduling (Phase 2 - Production Scheduling Dashboard) */}
         <Route
-          path="/scheduling"
+          path="/production/scheduling"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
               <SchedulingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/production/scheduling/:id"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+              <ScheduleDetailPage />
             </ProtectedRoute>
           }
         />

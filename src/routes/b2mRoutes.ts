@@ -53,7 +53,7 @@ router.use(authMiddleware);
  * POST /api/b2m/production-performance/export/:workOrderId
  * Export work order production actuals to ERP
  */
-router.post('/production-performance/export/:workOrderId', async (req: Request, res: Response) => {
+router.post('/production-performance/export/:workOrderId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { workOrderId } = req.params;
     const { configId } = req.body;
@@ -87,7 +87,7 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
  * GET /api/b2m/production-performance/:messageId
  * Get production performance export status
  */
-router.get('/production-performance/:messageId', async (req: Request, res: Response) => {
+router.get('/production-performance/:messageId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
 
@@ -110,7 +110,7 @@ router.get('/production-performance/:messageId', async (req: Request, res: Respo
  * GET /api/b2m/production-performance/work-order/:workOrderId
  * Get all production performance exports for a work order
  */
-router.get('/production-performance/work-order/:workOrderId', async (req: Request, res: Response) => {
+router.get('/production-performance/work-order/:workOrderId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { workOrderId } = req.params;
 
@@ -133,7 +133,7 @@ router.get('/production-performance/work-order/:workOrderId', async (req: Reques
  * POST /api/b2m/production-performance/:messageId/retry
  * Retry failed production performance export
  */
-router.post('/production-performance/:messageId/retry', async (req: Request, res: Response) => {
+router.post('/production-performance/:messageId/retry', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
     const userId = (req as any).user?.id;
@@ -162,7 +162,7 @@ router.post('/production-performance/:messageId/retry', async (req: Request, res
  * POST /api/b2m/material-transactions/export
  * Export material transaction to ERP (MES → ERP)
  */
-router.post('/material-transactions/export', async (req: Request, res: Response) => {
+router.post('/material-transactions/export', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       configId,
@@ -223,7 +223,7 @@ router.post('/material-transactions/export', async (req: Request, res: Response)
  * POST /api/b2m/material-transactions/inbound
  * Process inbound material transaction from ERP (ERP → MES)
  */
-router.post('/material-transactions/inbound', async (req: Request, res: Response) => {
+router.post('/material-transactions/inbound', async (req: Request, res: Response): Promise<any> => {
   try {
     const { configId, messagePayload } = req.body;
     const userId = (req as any).user?.id;
@@ -258,7 +258,7 @@ router.post('/material-transactions/inbound', async (req: Request, res: Response
  * GET /api/b2m/material-transactions/:messageId
  * Get material transaction status
  */
-router.get('/material-transactions/:messageId', async (req: Request, res: Response) => {
+router.get('/material-transactions/:messageId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
 
@@ -281,7 +281,7 @@ router.get('/material-transactions/:messageId', async (req: Request, res: Respon
  * GET /api/b2m/material-transactions/part/:partId
  * Get all material transactions for a part
  */
-router.get('/material-transactions/part/:partId', async (req: Request, res: Response) => {
+router.get('/material-transactions/part/:partId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partId } = req.params;
     const { transactionType, direction, status, startDate, endDate } = req.query;
@@ -327,7 +327,7 @@ router.get('/material-transactions/part/:partId', async (req: Request, res: Resp
  * GET /api/b2m/material-transactions/work-order/:workOrderId
  * Get all material transactions for a work order
  */
-router.get('/material-transactions/work-order/:workOrderId', async (req: Request, res: Response) => {
+router.get('/material-transactions/work-order/:workOrderId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { workOrderId } = req.params;
 
@@ -350,7 +350,7 @@ router.get('/material-transactions/work-order/:workOrderId', async (req: Request
  * POST /api/b2m/material-transactions/:messageId/retry
  * Retry failed material transaction
  */
-router.post('/material-transactions/:messageId/retry', async (req: Request, res: Response) => {
+router.post('/material-transactions/:messageId/retry', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
     const userId = (req as any).user?.id;
@@ -375,7 +375,7 @@ router.post('/material-transactions/:messageId/retry', async (req: Request, res:
  * POST /api/b2m/material-transactions/bulk-export/:workOrderId
  * Bulk export all material transactions for a work order
  */
-router.post('/material-transactions/bulk-export/:workOrderId', async (req: Request, res: Response) => {
+router.post('/material-transactions/bulk-export/:workOrderId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { workOrderId } = req.params;
     const { configId } = req.body;
@@ -413,7 +413,7 @@ router.post('/material-transactions/bulk-export/:workOrderId', async (req: Reque
  * POST /api/b2m/personnel/export
  * Export personnel information to ERP (MES → ERP)
  */
-router.post('/personnel/export', async (req: Request, res: Response) => {
+router.post('/personnel/export', async (req: Request, res: Response): Promise<any> => {
   try {
     const { configId, userId: targetUserId, actionType } = req.body;
     const requestingUserId = (req as any).user?.id;
@@ -449,7 +449,7 @@ router.post('/personnel/export', async (req: Request, res: Response) => {
  * POST /api/b2m/personnel/inbound
  * Process inbound personnel information from ERP (ERP → MES)
  */
-router.post('/personnel/inbound', async (req: Request, res: Response) => {
+router.post('/personnel/inbound', async (req: Request, res: Response): Promise<any> => {
   try {
     const { configId, messagePayload } = req.body;
     const userId = (req as any).user?.id;
@@ -484,7 +484,7 @@ router.post('/personnel/inbound', async (req: Request, res: Response) => {
  * GET /api/b2m/personnel/:messageId
  * Get personnel information exchange status
  */
-router.get('/personnel/:messageId', async (req: Request, res: Response) => {
+router.get('/personnel/:messageId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
 
@@ -507,7 +507,7 @@ router.get('/personnel/:messageId', async (req: Request, res: Response) => {
  * GET /api/b2m/personnel/user/:userId
  * Get all personnel exchanges for a user
  */
-router.get('/personnel/user/:userId', async (req: Request, res: Response) => {
+router.get('/personnel/user/:userId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
     const { actionType, direction, status, startDate, endDate } = req.query;
@@ -553,7 +553,7 @@ router.get('/personnel/user/:userId', async (req: Request, res: Response) => {
  * GET /api/b2m/personnel/external/:externalId
  * Get all personnel exchanges by external personnel ID
  */
-router.get('/personnel/external/:externalId', async (req: Request, res: Response) => {
+router.get('/personnel/external/:externalId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { externalId } = req.params;
 
@@ -576,7 +576,7 @@ router.get('/personnel/external/:externalId', async (req: Request, res: Response
  * POST /api/b2m/personnel/:messageId/retry
  * Retry failed personnel information exchange
  */
-router.post('/personnel/:messageId/retry', async (req: Request, res: Response) => {
+router.post('/personnel/:messageId/retry', async (req: Request, res: Response): Promise<any> => {
   try {
     const { messageId } = req.params;
     const userId = (req as any).user?.id;
@@ -601,7 +601,7 @@ router.post('/personnel/:messageId/retry', async (req: Request, res: Response) =
  * POST /api/b2m/personnel/bulk-sync
  * Bulk sync personnel from ERP to MES
  */
-router.post('/personnel/bulk-sync', async (req: Request, res: Response) => {
+router.post('/personnel/bulk-sync', async (req: Request, res: Response): Promise<any> => {
   try {
     const { configId, personnelData } = req.body;
     const userId = (req as any).user?.id;
@@ -636,7 +636,7 @@ router.post('/personnel/bulk-sync', async (req: Request, res: Response) => {
  * POST /api/b2m/personnel/sync-all
  * Sync all active MES users to ERP
  */
-router.post('/personnel/sync-all', async (req: Request, res: Response) => {
+router.post('/personnel/sync-all', async (req: Request, res: Response): Promise<any> => {
   try {
     const { configId } = req.body;
     const userId = (req as any).user?.id;

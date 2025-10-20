@@ -73,9 +73,9 @@ export class PersonnelInfoSyncService {
         actionType,
         personnel: {
           externalId: user.username, // Use username as external ID
-          employeeNumber: user.employeeId || undefined,
-          firstName: user.name?.split(' ')[0],
-          lastName: user.name?.split(' ').slice(1).join(' '),
+          employeeNumber: user.employeeNumber || undefined,
+          firstName: user.firstName || undefined,
+          lastName: user.lastName || undefined,
           email: user.email,
           department: undefined, // TODO: Add department tracking to User model
           jobTitle: undefined, // TODO: Add job title tracking to User model
@@ -104,10 +104,10 @@ export class PersonnelInfoSyncService {
         personnelId: user.id,
         actionType,
         direction: 'OUTBOUND' as IntegrationDirection,
-        firstName: user.name?.split(' ')[0],
-        lastName: user.name?.split(' ').slice(1).join(' '),
+        firstName: user.firstName || undefined,
+        lastName: user.lastName || undefined,
         email: user.email,
-        employeeNumber: user.employeeId || undefined,
+        employeeNumber: user.employeeNumber || undefined,
         department: undefined,
         jobTitle: undefined,
         skills: skills.length > 0 ? (skills as any) : undefined,
@@ -217,11 +217,13 @@ export class PersonnelInfoSyncService {
           user = await this.prisma.user.create({
             data: {
               username: message.personnel.externalId,
-              name: `${message.personnel.firstName} ${message.personnel.lastName}`.trim(),
+              firstName: message.personnel.firstName,
+              lastName: message.personnel.lastName,
               email: message.personnel.email || `${message.personnel.externalId}@company.com`,
-              password: 'PLACEHOLDER', // TODO: Implement proper password handling
-              employeeId: message.personnel.employeeNumber,
-              role: 'OPERATOR', // Default role
+              passwordHash: 'PLACEHOLDER', // TODO: Implement proper password handling
+              employeeNumber: message.personnel.employeeNumber,
+              roles: ['OPERATOR'], // Default role
+              permissions: [],
               isActive: true,
             },
           });
@@ -363,10 +365,11 @@ export class PersonnelInfoSyncService {
         where: { id: exchange.personnelId },
         select: {
           username: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
-          employeeId: true,
-          role: true,
+          employeeNumber: true,
+          roles: true,
           isActive: true,
         },
       });

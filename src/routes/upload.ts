@@ -41,7 +41,7 @@ router.post('/single', (req: Request, res: Response, next: NextFunction) => {
       size: file.size,
     });
 
-    res.json({
+    return res.json({
       url: fileUrl,
       filename: file.filename,
       originalName: file.originalname,
@@ -98,7 +98,7 @@ router.post('/multiple', (req: Request, res: Response, next: NextFunction) => {
       totalSize: files.reduce((sum, f) => sum + f.size, 0),
     });
 
-    res.json({
+    return res.json({
       files: files.map((file, index) => ({
         url: fileUrls[index],
         filename: file.filename,
@@ -116,7 +116,7 @@ router.post('/multiple', (req: Request, res: Response, next: NextFunction) => {
  * @desc    Delete a file
  * @access  Private
  */
-router.delete('/file', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/file', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { fileUrl } = req.body;
 
@@ -142,7 +142,7 @@ router.delete('/file', async (req: Request, res: Response, next: NextFunction) =
  * @desc    Delete multiple files
  * @access  Private
  */
-router.delete('/files', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/files', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { fileUrls } = req.body;
 
@@ -166,7 +166,7 @@ router.delete('/files', async (req: Request, res: Response, next: NextFunction) 
  * @desc    Get file metadata
  * @access  Private
  */
-router.get('/file/metadata', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/file/metadata', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const fileUrl = req.query.fileUrl as string;
 
@@ -191,7 +191,7 @@ router.get('/file/metadata', async (req: Request, res: Response, next: NextFunct
  * @desc    Clean up orphaned files older than specified days
  * @access  Private (Admin only)
  */
-router.post('/cleanup', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/cleanup', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     // TODO: Add admin permission check
 

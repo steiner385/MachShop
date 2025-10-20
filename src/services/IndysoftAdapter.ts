@@ -480,7 +480,7 @@ export class IndysoftAdapter {
         console.log(`Quarantining ${affectedParts.length} parts measured with out-of-cal gauge ${gaugeId}`);
 
         // Update serial numbers to quarantine status
-        await prisma.serialNumber.updateMany({
+        await prisma.serializedPart.updateMany({
           where: {
             serialNumber: { in: affectedParts },
           },
@@ -607,7 +607,7 @@ export class IndysoftAdapter {
         throw new Error(`Gauge ${gaugeId} not found`);
       }
 
-      const serial = await prisma.serialNumber.findFirst({
+      const serial = await prisma.serializedPart.findFirst({
         where: { serialNumber },
       });
 
@@ -739,7 +739,7 @@ export class IndysoftAdapter {
           FileUnits: {
             PrimaryUnits: {
               LinearUnit: 'mm',
-              AngularUnit: 'degree',
+              AngularUnit: { UnitName: 'degree' },
             },
           },
           Resources: {
@@ -862,7 +862,7 @@ export class IndysoftAdapter {
           FileUnits: {
             PrimaryUnits: {
               LinearUnit: 'mm',
-              AngularUnit: 'degree',
+              AngularUnit: { UnitName: 'degree' },
             },
           },
           Resources: {

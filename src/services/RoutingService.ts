@@ -100,7 +100,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -154,7 +154,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -208,7 +208,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -277,7 +277,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -372,7 +372,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -793,7 +793,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -818,7 +818,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -883,7 +883,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {
@@ -964,7 +964,7 @@ export class RoutingService {
           select: {
             id: true,
             partNumber: true,
-            name: true
+            partName: true
           }
         },
         site: {

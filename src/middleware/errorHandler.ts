@@ -76,7 +76,7 @@ const handleZodError = (error: ZodError): ValidationError => {
     field: err.path.join('.'),
     message: err.message,
     code: err.code,
-    received: err.received
+    ...('received' in err ? { received: (err as any).received } : {})
   }));
 
   return new ValidationError('Validation failed', details);
@@ -198,7 +198,13 @@ export const errorHandler = (
 };
 
 // Async error wrapper
-export const asyncHandler = (fn: Function) => {
+type AsyncRequestHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<any>;
+
+export const asyncHandler = (fn: AsyncRequestHandler) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

@@ -397,9 +397,11 @@ export class MaterialTransactionService {
       await this.prisma.part.update({
         where: { id: partId },
         data: {
-          quantityOnHand: {
-            increment: quantityChange,
-          },
+          // TODO: Add quantityOnHand field to Part model to track inventory
+          // quantityOnHand: {
+          //   increment: quantityChange,
+          // },
+          updatedAt: new Date(),
         },
       });
     }

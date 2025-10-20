@@ -477,7 +477,7 @@ export class PredatorPDMAdapter {
         qifPlanId: latestDoc.documentId,
         partNumber,
         revision: latestDoc.revision,
-        characteristics: qifData.measurementPlan?.characteristics?.map(char => ({
+        characteristics: qifData.measurementPlan?.characteristics?.map((char: any) => ({
           characteristicId: char.characteristicId,
           balloonNumber: char.balloonNumber || '',
           nominalValue: char.nominalValue || 0,

@@ -45,7 +45,7 @@ router.get('/forward/:lotNumber',
       productCount: result.totalProducts,
     });
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   })
 );
 
@@ -67,7 +67,7 @@ router.get('/backward/:serialNumber',
       componentCount: result.totalComponents,
     });
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   })
 );
 
@@ -94,7 +94,7 @@ router.get('/genealogy-graph/:serialNumber',
       maxDepth: graph.maxDepth,
     });
 
-    res.status(200).json(graph);
+    return res.status(200).json(graph);
   })
 );
 
@@ -128,7 +128,7 @@ router.post('/genealogy',
       genealogyId: genealogy.id,
     });
 
-    res.status(201).json(genealogy);
+    return res.status(201).json(genealogy);
   })
 );
 
@@ -150,7 +150,7 @@ router.get('/circular-check/:serialNumber',
       hasCircular,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       serialNumber,
       hasCircularReferences: hasCircular,
     });
@@ -194,7 +194,7 @@ async function buildGenealogyTree(serializedPartId: string): Promise<any> {
     id: part.id,
     serialNumber: part.serialNumber,
     partNumber: part.part.partNumber,
-    partName: part.part.name,
+    partName: part.part.partName,
     lotNumber: part.lotNumber,
     quantity: 1,
     children: children.filter(Boolean)
@@ -278,7 +278,7 @@ router.get('/serial/:serialNumber',
     const traceabilityDetails = {
       serialNumber: serializedPart.serialNumber,
       partNumber: serializedPart.part.partNumber,
-      partName: serializedPart.part.name,
+      partName: serializedPart.part.partName,
       genealogy,
       manufacturingHistory: manufacturingHistory.map(op => ({
         id: op.id,
@@ -322,7 +322,7 @@ router.get('/serial/:serialNumber',
       partNumber: serializedPart.part.partNumber
     });
 
-    res.status(200).json(traceabilityDetails);
+    return res.status(200).json(traceabilityDetails);
   })
 );
 
@@ -351,7 +351,7 @@ router.get('/genealogy/:serialNumber',
       serialNumber
     });
 
-    res.status(200).json(genealogy);
+    return res.status(200).json(genealogy);
   })
 );
 
@@ -416,7 +416,7 @@ router.get('/history/:serialNumber',
       operationCount: manufacturingHistory.length
     });
 
-    res.status(200).json(manufacturingHistory);
+    return res.status(200).json(manufacturingHistory);
   })
 );
 
@@ -474,7 +474,7 @@ router.get('/certificates/:serialNumber',
       certificateCount: certificates.length
     });
 
-    res.status(200).json(certificates);
+    return res.status(200).json(certificates);
   })
 );
 
@@ -525,7 +525,7 @@ router.get('/quality/:serialNumber',
       recordCount: qualityRecords.length
     });
 
-    res.status(200).json(qualityRecords);
+    return res.status(200).json(qualityRecords);
   })
 );
 
@@ -584,7 +584,7 @@ router.get('/forward-legacy/:materialLot',
         return serializedParts.map(sp => ({
           serialNumber: sp.serialNumber,
           partNumber: sp.part.partNumber,
-          partName: sp.part.name,
+          partName: sp.part.partName,
           workOrderNumber: tx.workOrder?.workOrderNumber || '',
           dateUsed: tx.transactionDate.toISOString()
         }));
@@ -602,7 +602,7 @@ router.get('/forward-legacy/:materialLot',
       usageCount: result.usedInParts.length
     });
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   })
 );
 
@@ -658,7 +658,7 @@ router.get('/search',
     const searchResults = results.map(sp => ({
       serialNumber: sp.serialNumber,
       partNumber: sp.part.partNumber,
-      partName: sp.part.name
+      partName: sp.part.partName
     }));
 
     logger.info('Traceability search executed', {
@@ -667,7 +667,7 @@ router.get('/search',
       resultCount: searchResults.length
     });
 
-    res.status(200).json(searchResults);
+    return res.status(200).json(searchResults);
   })
 );
 

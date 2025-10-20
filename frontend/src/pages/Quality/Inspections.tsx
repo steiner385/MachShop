@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { qualityApi, QualityInspection, InspectionResult } from '../../services/qualityApi';
+import { useAuthStore } from '@/store/AuthStore';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -47,6 +48,7 @@ const Inspections: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // Set page title
   useEffect(() => {
@@ -236,13 +238,23 @@ const Inspections: React.FC = () => {
     form.resetFields();
   };
 
+  // Check if user has permission to create inspections
+  const canCreateInspection = user?.permissions?.includes('quality.write') || user?.permissions?.includes('inspections.write') || false;
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={2} style={{ margin: 0 }}>Quality Inspections</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateInspection}>
-          New Inspection
-        </Button>
+        <Tooltip title={!canCreateInspection ? "You don't have permission to create inspections" : ""}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreateInspection}
+            disabled={!canCreateInspection}
+          >
+            New Inspection
+          </Button>
+        </Tooltip>
       </div>
 
       <Card>

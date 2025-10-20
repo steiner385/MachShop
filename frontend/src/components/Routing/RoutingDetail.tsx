@@ -405,7 +405,7 @@ export const RoutingDetail: React.FC = () => {
             </Title>
             <Space size="middle">
               <Text type="secondary">
-                Part: <strong>{currentRouting.part?.partNumber}</strong> - {currentRouting.part?.name}
+                Part: <strong>{currentRouting.part?.partNumber}</strong> - {currentRouting.part?.partName}
               </Text>
               <Text type="secondary">|</Text>
               <Text type="secondary">
@@ -515,7 +515,7 @@ export const RoutingDetail: React.FC = () => {
               </Descriptions.Item>
               <Descriptions.Item label="Version">{currentRouting.version}</Descriptions.Item>
               <Descriptions.Item label="Part">
-                {currentRouting.part?.partNumber} - {currentRouting.part?.name}
+                {currentRouting.part?.partNumber} - {currentRouting.part?.partName}
               </Descriptions.Item>
               <Descriptions.Item label="Site">
                 {currentRouting.site?.siteName} ({currentRouting.site?.siteCode})

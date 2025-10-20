@@ -808,27 +808,21 @@ export class FAIService {
           Version: '3.0.0',
           idMax: faiReport.characteristics.length + 100,
           FileUnits: {
-            PrimaryUnits: {
-              LinearUnit: 'inch',
-              AngularUnit: 'degree',
-              AreaUnit: 'square inch',
-              VolumeUnit: 'cubic inch',
-            },
+            PrimaryUnits: { UnitName: 'inch' },
+            AngularUnits: { UnitName: 'degree' },
           },
           Header: {
             Author: 'MES FAI Module',
-            Application: {
-              Name: 'MachShop MES',
-              Organization: 'Manufacturing Enterprise',
-            },
-            CreationTime: new Date().toISOString(),
+            Organization: 'Manufacturing Enterprise',
+            CreationDate: new Date().toISOString(),
           },
           Product: [
             {
               id: '1',
               PartNumber: partNumber,
+              PartName: part.partName,
               Revision: revision,
-              PartFamily: part.description || undefined,
+              // PartFamily not in QIFProduct type - using PartName instead
             },
           ],
           MeasurementPlan: {
@@ -862,7 +856,7 @@ export class FAIService {
               })),
             Summary: {
               TotalCharacteristics: faiReport.characteristics.length,
-              PassCount: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.PASS).length,
+              PassedCharacteristics: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.PASS).length,
               FailCount: faiReport.characteristics.filter((c) => c.result === CharacteristicResult.FAIL).length,
             },
           },

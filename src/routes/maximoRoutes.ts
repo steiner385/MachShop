@@ -27,7 +27,7 @@ router.use(authMiddleware);
  * POST /api/maximo/sync-work-orders
  * Sync work orders from Maximo to MES
  */
-router.post('/sync-work-orders', async (req: Request, res: Response) => {
+router.post('/sync-work-orders', async (req: Request, res: Response): Promise<any> => {
   try {
     const { status, worktype, dateFrom, dateTo } = req.body;
 
@@ -64,7 +64,7 @@ router.post('/sync-work-orders', async (req: Request, res: Response) => {
  * POST /api/maximo/work-order-status
  * Push work order status update to Maximo
  */
-router.post('/work-order-status', async (req: Request, res: Response) => {
+router.post('/work-order-status', async (req: Request, res: Response): Promise<any> => {
   try {
     const { wonum, status, actualStart, actualFinish } = req.body;
 
@@ -117,7 +117,7 @@ router.post('/work-order-status', async (req: Request, res: Response) => {
  * POST /api/maximo/create-cm-work-order
  * Create corrective maintenance work order in Maximo
  */
-router.post('/create-cm-work-order', async (req: Request, res: Response) => {
+router.post('/create-cm-work-order', async (req: Request, res: Response): Promise<any> => {
   try {
     const { assetnum, description, failureCode, priority } = req.body;
 
@@ -159,7 +159,7 @@ router.post('/create-cm-work-order', async (req: Request, res: Response) => {
  * GET /api/maximo/equipment/:assetnum/history
  * Get equipment maintenance history from Maximo
  */
-router.get('/equipment/:assetnum/history', async (req: Request, res: Response) => {
+router.get('/equipment/:assetnum/history', async (req: Request, res: Response): Promise<any> => {
   try {
     const { assetnum } = req.params;
     const { dateFrom, dateTo } = req.query;
@@ -196,7 +196,7 @@ router.get('/equipment/:assetnum/history', async (req: Request, res: Response) =
  * GET /api/maximo/work-order/:wonum
  * Get work order details from Maximo
  */
-router.get('/work-order/:wonum', async (req: Request, res: Response) => {
+router.get('/work-order/:wonum', async (req: Request, res: Response): Promise<any> => {
   try {
     const { wonum } = req.params;
 
@@ -233,7 +233,7 @@ router.get('/work-order/:wonum', async (req: Request, res: Response) => {
  * GET /api/maximo/health
  * Get Maximo adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('CMMS') as IBMMaximoAdapter | undefined;

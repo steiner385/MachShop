@@ -101,19 +101,19 @@ export class ProductionPerformanceExportService {
       // Aggregate variances
       const quantityVariance = workOrder.variances
         .filter(v => v.varianceType === 'QUANTITY')
-        .reduce((sum, v) => sum + v.varianceAmount, 0);
+        .reduce((sum, v) => sum + v.variance, 0);
 
       const timeVariance = workOrder.variances
         .filter(v => v.varianceType === 'TIME')
-        .reduce((sum, v) => sum + v.varianceAmount, 0);
+        .reduce((sum, v) => sum + v.variance, 0);
 
       const costVariance = workOrder.variances
         .filter(v => v.varianceType === 'COST')
-        .reduce((sum, v) => sum + v.varianceAmount, 0);
+        .reduce((sum, v) => sum + v.variance, 0);
 
       const efficiencyVariance = workOrder.variances
         .filter(v => v.varianceType === 'EFFICIENCY')
-        .reduce((sum, v) => sum + v.varianceAmount, 0);
+        .reduce((sum, v) => sum + v.variance, 0);
 
       // Build personnel actuals JSON
       const personnelActuals = laborPerformance.map(p => ({

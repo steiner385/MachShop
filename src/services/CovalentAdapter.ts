@@ -227,12 +227,12 @@ export class CovalentAdapter {
 
       for (const operator of operators) {
         try {
-          const existingOperator = await prisma.personnel.findFirst({
-            where: { badgeNumber: operator.operatorId },
+          const existingOperator = await prisma.user.findFirst({
+            where: { employeeNumber: operator.operatorId },
           });
 
           const operatorData = {
-            badgeNumber: operator.operatorId,
+            employeeNumber: operator.operatorId,
             firstName: operator.firstName,
             lastName: operator.lastName,
             email: operator.email,
@@ -244,12 +244,12 @@ export class CovalentAdapter {
           };
 
           if (existingOperator) {
-            await prisma.personnel.update({
+            await prisma.user.update({
               where: { id: existingOperator.id },
               data: operatorData,
             });
           } else {
-            await prisma.personnel.create({
+            await prisma.user.create({
               data: operatorData,
             });
           }

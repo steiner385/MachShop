@@ -38,6 +38,7 @@ import { useAuthStore } from '@/store/AuthStore';
 import { ROLES, PERMISSIONS } from '@/types/auth';
 import Breadcrumbs from '@/components/Navigation/Breadcrumbs';
 import { SiteSelector } from '@/components/Site/SiteSelector';
+import { GlobalSearch } from '@/components/Search/GlobalSearch';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -289,20 +290,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const checkAccess = (permissions?: string[], roles?: string[]) => {
     if (!user) return false;
-    
+
     // If no permissions or roles specified, allow access
     if (!permissions && !roles) return true;
-    
+
+    // System administrators have access to everything
+    const isSystemAdmin = user.roles && user.roles.includes(ROLES.SYSTEM_ADMIN);
+    if (isSystemAdmin) return true;
+
+    // Check for wildcard permission (admins have '*' permission)
+    const hasWildcardPermission = user.permissions && user.permissions.includes('*');
+    if (hasWildcardPermission) return true;
+
     // Check permissions with null safety
     if (permissions && user.permissions && permissions.some(permission => user.permissions.includes(permission))) {
       return true;
     }
-    
+
     // Check roles with null safety
     if (roles && user.roles && roles.some(role => user.roles.includes(role))) {
       return true;
     }
-    
+
     return false;
   };
 
@@ -394,13 +403,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             borderBottom: '1px solid #f0f0f0',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{ fontSize: 16, width: 40, height: 40 }}
             />
+
+            {/* Global Search */}
+            <div style={{ maxWidth: 500, flex: 1 }}>
+              <GlobalSearch compact />
+            </div>
           </div>
 
           <Space size="middle">

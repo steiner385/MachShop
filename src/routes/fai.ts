@@ -18,7 +18,7 @@ const router = express.Router();
  * @desc    Create a new FAI report
  * @access  Private
  */
-router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     // Validate request body
     const validatedData = CreateFAIReportSchema.parse(req.body);
@@ -47,7 +47,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction): Promis
  * @desc    List FAI reports with filtering and pagination
  * @access  Private
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const queryParams: FAIQueryParams = {
       page: req.query.page ? parseInt(req.query.page as string) : undefined,
@@ -72,7 +72,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction): Promise
  * @desc    Get FAI report by ID
  * @access  Private
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -94,7 +94,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
  * @desc    Get FAI report by FAI number
  * @access  Private
  */
-router.get('/number/:faiNumber', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/number/:faiNumber', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { faiNumber } = req.params;
 
@@ -116,7 +116,7 @@ router.get('/number/:faiNumber', async (req: Request, res: Response, next: NextF
  * @desc    Update FAI report
  * @access  Private
  */
-router.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -140,7 +140,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction): Prom
  * @desc    Delete FAI report
  * @access  Private
  */
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -157,7 +157,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction): P
  * @desc    Add characteristic to FAI report
  * @access  Private
  */
-router.post('/:id/characteristics', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/characteristics', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -181,7 +181,7 @@ router.post('/:id/characteristics', async (req: Request, res: Response, next: Ne
  * @desc    Get all characteristics for FAI report
  * @access  Private
  */
-router.get('/:id/characteristics', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id/characteristics', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -198,7 +198,7 @@ router.get('/:id/characteristics', async (req: Request, res: Response, next: Nex
  * @desc    Update characteristic
  * @access  Private
  */
-router.put('/:id/characteristics/:charId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id/characteristics/:charId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { charId } = req.params;
 
@@ -222,7 +222,7 @@ router.put('/:id/characteristics/:charId', async (req: Request, res: Response, n
  * @desc    Delete characteristic
  * @access  Private
  */
-router.delete('/:id/characteristics/:charId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/:id/characteristics/:charId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { charId } = req.params;
 
@@ -239,7 +239,7 @@ router.delete('/:id/characteristics/:charId', async (req: Request, res: Response
  * @desc    Approve FAI report
  * @access  Private (requires approval permission)
  */
-router.post('/:id/approve', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/approve', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -265,7 +265,7 @@ router.post('/:id/approve', async (req: Request, res: Response, next: NextFuncti
  * @desc    Get Form 1 data (Part Number Accountability)
  * @access  Private
  */
-router.get('/:id/form1', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id/form1', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -290,7 +290,7 @@ router.get('/:id/form1', async (req: Request, res: Response, next: NextFunction)
  * @desc    Get Form 2 data (Product Accountability)
  * @access  Private
  */
-router.get('/:id/form2', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id/form2', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -317,7 +317,7 @@ router.get('/:id/form2', async (req: Request, res: Response, next: NextFunction)
  * @desc    Preview CMM data import without committing
  * @access  Private
  */
-router.post('/:id/import-cmm/preview', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/import-cmm/preview', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { xmlContent } = req.body;
@@ -359,7 +359,7 @@ router.post('/:id/import-cmm/preview', async (req: Request, res: Response, next:
  * @desc    Import CMM data into FAI report
  * @access  Private
  */
-router.post('/:id/import-cmm', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/import-cmm', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { xmlContent, autoMatch } = req.body;
@@ -407,7 +407,7 @@ router.post('/:id/import-cmm', async (req: Request, res: Response, next: NextFun
  * @desc    Validate CMM XML file
  * @access  Private
  */
-router.post('/:id/import-cmm/validate', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/import-cmm/validate', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { xmlContent } = req.body;
 
@@ -438,7 +438,7 @@ router.post('/:id/import-cmm/validate', async (req: Request, res: Response, next
  * @desc    Generate FAIR PDF (Forms 1, 2, 3 + signatures)
  * @access  Private
  */
-router.post('/:id/generate-pdf', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/generate-pdf', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const options = req.body.options || {};
@@ -478,7 +478,7 @@ router.post('/:id/generate-pdf', async (req: Request, res: Response, next: NextF
  * @desc    Download FAIR PDF
  * @access  Private
  */
-router.get('/:id/download-pdf', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id/download-pdf', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -518,7 +518,7 @@ router.get('/:id/download-pdf', async (req: Request, res: Response, next: NextFu
  * @desc    Generate QIF MeasurementPlan from FAI report
  * @access  Private
  */
-router.post('/:id/qif/plan', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/qif/plan', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -541,7 +541,7 @@ router.post('/:id/qif/plan', async (req: Request, res: Response, next: NextFunct
  * @desc    Generate QIF MeasurementResults from FAI report
  * @access  Private
  */
-router.post('/:id/qif/results', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/qif/results', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { serialNumber } = req.body;
@@ -566,7 +566,7 @@ router.post('/:id/qif/results', async (req: Request, res: Response, next: NextFu
  * @desc    Export complete FAI report as QIF AS9102 document
  * @access  Private
  */
-router.get('/:id/qif/export', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id/qif/export', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { serialNumber } = req.query;
@@ -596,7 +596,7 @@ router.get('/:id/qif/export', async (req: Request, res: Response, next: NextFunc
  * @desc    Import QIF MeasurementResults into FAI report
  * @access  Private
  */
-router.post('/:id/qif/import', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/qif/import', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { qifXml } = req.body;

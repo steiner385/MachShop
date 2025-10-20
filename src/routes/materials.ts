@@ -19,7 +19,7 @@ router.get('/classes',
   asyncHandler(async (req, res) => {
     const includeRelations = req.query.includeRelations === 'true';
     const classes = await MaterialService.getAllMaterialClasses(includeRelations);
-    res.status(200).json(classes);
+    return res.status(200).json(classes);
   })
 );
 
@@ -41,7 +41,7 @@ router.get('/classes/:id',
       });
     }
 
-    res.status(200).json(materialClass);
+    return res.status(200).json(materialClass);
   })
 );
 
@@ -54,7 +54,7 @@ router.get('/classes/:id/hierarchy',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const hierarchy = await MaterialService.getMaterialClassHierarchy(req.params.id);
-    res.status(200).json(hierarchy);
+    return res.status(200).json(hierarchy);
   })
 );
 
@@ -67,7 +67,7 @@ router.get('/classes/:id/children',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const children = await MaterialService.getChildMaterialClasses(req.params.id);
-    res.status(200).json(children);
+    return res.status(200).json(children);
   })
 );
 
@@ -97,7 +97,7 @@ router.get('/definitions',
       includeRelations === 'true'
     );
 
-    res.status(200).json(definitions);
+    return res.status(200).json(definitions);
   })
 );
 
@@ -119,7 +119,7 @@ router.get('/definitions/:id',
       });
     }
 
-    res.status(200).json(material);
+    return res.status(200).json(material);
   })
 );
 
@@ -144,7 +144,7 @@ router.get('/definitions/number/:materialNumber',
       });
     }
 
-    res.status(200).json(material);
+    return res.status(200).json(material);
   })
 );
 
@@ -157,7 +157,7 @@ router.put('/definitions/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const updatedMaterial = await MaterialService.updateMaterialDefinition(req.params.id, req.body);
-    res.status(200).json(updatedMaterial);
+    return res.status(200).json(updatedMaterial);
   })
 );
 
@@ -174,7 +174,7 @@ router.get('/definitions/:materialId/properties',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const properties = await MaterialService.getMaterialProperties(req.params.materialId);
-    res.status(200).json(properties);
+    return res.status(200).json(properties);
   })
 );
 
@@ -187,7 +187,7 @@ router.post('/properties',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const property = await MaterialService.createMaterialProperty(req.body);
-    res.status(201).json(property);
+    return res.status(201).json(property);
   })
 );
 
@@ -221,7 +221,7 @@ router.get('/lots',
       includeRelations === 'true'
     );
 
-    res.status(200).json(lots);
+    return res.status(200).json(lots);
   })
 );
 
@@ -243,7 +243,7 @@ router.get('/lots/:id',
       });
     }
 
-    res.status(200).json(lot);
+    return res.status(200).json(lot);
   })
 );
 
@@ -265,7 +265,7 @@ router.get('/lots/number/:lotNumber',
       });
     }
 
-    res.status(200).json(lot);
+    return res.status(200).json(lot);
   })
 );
 
@@ -278,7 +278,7 @@ router.put('/lots/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const updatedLot = await MaterialService.updateMaterialLot(req.params.id, req.body);
-    res.status(200).json(updatedLot);
+    return res.status(200).json(updatedLot);
   })
 );
 
@@ -293,7 +293,7 @@ router.get('/lots/expiring/soon',
   asyncHandler(async (req, res) => {
     const daysAhead = parseInt(req.query.daysAhead as string) || 30;
     const expiringLots = await MaterialService.getExpiringLots(daysAhead);
-    res.status(200).json(expiringLots);
+    return res.status(200).json(expiringLots);
   })
 );
 
@@ -306,7 +306,7 @@ router.get('/lots/expired/all',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const expiredLots = await MaterialService.getExpiredLots();
-    res.status(200).json(expiredLots);
+    return res.status(200).json(expiredLots);
   })
 );
 
@@ -319,7 +319,7 @@ router.get('/lots/statistics/summary',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const stats = await MaterialService.getMaterialLotStatistics();
-    res.status(200).json(stats);
+    return res.status(200).json(stats);
   })
 );
 
@@ -336,7 +336,7 @@ router.get('/lots/:lotId/sublots',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const sublots = await MaterialService.getMaterialSublots(req.params.lotId);
-    res.status(200).json(sublots);
+    return res.status(200).json(sublots);
   })
 );
 
@@ -367,7 +367,7 @@ router.post('/lots/:lotId/split',
       workOrderId
     });
 
-    res.status(201).json(sublot);
+    return res.status(201).json(sublot);
   })
 );
 
@@ -395,7 +395,7 @@ router.post('/lots/merge',
       workOrderId
     });
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   })
 );
 
@@ -412,7 +412,7 @@ router.get('/lots/:lotId/genealogy',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const genealogy = await MaterialService.getLotGenealogy(req.params.lotId);
-    res.status(200).json(genealogy);
+    return res.status(200).json(genealogy);
   })
 );
 
@@ -427,7 +427,7 @@ router.get('/lots/:lotId/genealogy/tree',
   asyncHandler(async (req, res) => {
     const direction = (req.query.direction as 'forward' | 'backward') || 'forward';
     const tree = await MaterialService.getFullGenealogyTree(req.params.lotId, direction);
-    res.status(200).json(tree);
+    return res.status(200).json(tree);
   })
 );
 
@@ -476,7 +476,7 @@ router.post('/genealogy',
       processDate: processDate ? new Date(processDate) : new Date()
     });
 
-    res.status(201).json(genealogy);
+    return res.status(201).json(genealogy);
   })
 );
 
@@ -493,7 +493,7 @@ router.get('/lots/:lotId/history',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const history = await MaterialService.getLotStateHistory(req.params.lotId);
-    res.status(200).json(history);
+    return res.status(200).json(history);
   })
 );
 
@@ -528,7 +528,7 @@ router.put('/lots/:lotId/state',
       workOrderId
     });
 
-    res.status(200).json(updatedLot);
+    return res.status(200).json(updatedLot);
   })
 );
 
@@ -556,7 +556,7 @@ router.post('/lots/:lotId/quarantine',
     }
 
     const quarantinedLot = await MaterialService.quarantineLot(req.params.lotId, userId, reason);
-    res.status(200).json(quarantinedLot);
+    return res.status(200).json(quarantinedLot);
   })
 );
 
@@ -580,7 +580,7 @@ router.post('/lots/:lotId/release',
     }
 
     const releasedLot = await MaterialService.releaseLot(req.params.lotId, userId, reason);
-    res.status(200).json(releasedLot);
+    return res.status(200).json(releasedLot);
   })
 );
 
@@ -604,7 +604,7 @@ router.post('/lots/:lotId/reject',
     }
 
     const rejectedLot = await MaterialService.rejectLot(req.params.lotId, userId, reason);
-    res.status(200).json(rejectedLot);
+    return res.status(200).json(rejectedLot);
   })
 );
 
@@ -621,7 +621,7 @@ router.get('/work-orders/:workOrderId/usage',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const usage = await MaterialService.getMaterialUsageByWorkOrder(req.params.workOrderId);
-    res.status(200).json(usage);
+    return res.status(200).json(usage);
   })
 );
 
@@ -638,7 +638,7 @@ router.get('/inventory',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
     const lots = await MaterialService.getAllMaterialLots({}, true);
-    res.status(200).json(lots);
+    return res.status(200).json(lots);
   })
 );
 
@@ -669,7 +669,7 @@ router.post('/consumption',
       workOrderId
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       id: updatedLot.id,
       message: 'Material consumption recorded',
       lot: updatedLot

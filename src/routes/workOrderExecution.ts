@@ -22,7 +22,7 @@ const router = express.Router();
  * POST /api/v1/work-order-execution/dispatch
  * Dispatch a single work order to the shop floor (CREATED → RELEASED)
  */
-router.post('/dispatch', async (req: Request, res: Response) => {
+router.post('/dispatch', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       workOrderId,
@@ -85,7 +85,7 @@ router.post('/dispatch', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/dispatch/ready
  * Get work orders ready for dispatch (CREATED status)
  */
-router.get('/dispatch/ready', async (req: Request, res: Response) => {
+router.get('/dispatch/ready', async (req: Request, res: Response): Promise<any> => {
   try {
     const { siteId } = req.query;
 
@@ -104,7 +104,7 @@ router.get('/dispatch/ready', async (req: Request, res: Response) => {
  * POST /api/v1/work-order-execution/dispatch/bulk
  * Bulk dispatch multiple work orders
  */
-router.post('/dispatch/bulk', async (req: Request, res: Response) => {
+router.post('/dispatch/bulk', async (req: Request, res: Response): Promise<any> => {
   try {
     const { workOrderIds, dispatchedBy, dispatchedFrom, workCenterId } = req.body;
 
@@ -159,7 +159,7 @@ router.post('/dispatch/bulk', async (req: Request, res: Response) => {
  * POST /api/v1/work-order-execution/:id/status
  * Transition work order to a new status
  */
-router.post('/:id/status', async (req: Request, res: Response) => {
+router.post('/:id/status', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { newStatus, reason, changedBy, notes } = req.body;
@@ -211,7 +211,7 @@ router.post('/:id/status', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/status/history
  * Get status history for a work order
  */
-router.get('/:id/status/history', async (req: Request, res: Response) => {
+router.get('/:id/status/history', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -228,7 +228,7 @@ router.get('/:id/status/history', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/status/:status
  * Get work orders by status
  */
-router.get('/status/:status', async (req: Request, res: Response) => {
+router.get('/status/:status', async (req: Request, res: Response): Promise<any> => {
   try {
     const { status } = req.params;
     const { siteId } = req.query;
@@ -261,7 +261,7 @@ router.get('/status/:status', async (req: Request, res: Response) => {
  * POST /api/v1/work-order-execution/:id/performance
  * Record work performance actuals
  */
-router.post('/:id/performance', async (req: Request, res: Response) => {
+router.post('/:id/performance', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const {
@@ -374,7 +374,7 @@ router.post('/:id/performance', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/performance
  * Get all performance records for a work order
  */
-router.get('/:id/performance', async (req: Request, res: Response) => {
+router.get('/:id/performance', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { type } = req.query;
@@ -404,7 +404,7 @@ router.get('/:id/performance', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/performance/:type
  * Get performance records by type
  */
-router.get('/:id/performance/:type', async (req: Request, res: Response) => {
+router.get('/:id/performance/:type', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id, type } = req.params;
 
@@ -433,7 +433,7 @@ router.get('/:id/performance/:type', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/variances
  * Get production variances for a work order
  */
-router.get('/:id/variances', async (req: Request, res: Response) => {
+router.get('/:id/variances', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { type } = req.query;
@@ -463,7 +463,7 @@ router.get('/:id/variances', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/variances/summary
  * Get variance summary with analytics
  */
-router.get('/:id/variances/summary', async (req: Request, res: Response) => {
+router.get('/:id/variances/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -485,7 +485,7 @@ router.get('/:id/variances/summary', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/:id/variances/:type
  * Get variances by type
  */
-router.get('/:id/variances/:type', async (req: Request, res: Response) => {
+router.get('/:id/variances/:type', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id, type } = req.params;
 
@@ -514,7 +514,7 @@ router.get('/:id/variances/:type', async (req: Request, res: Response) => {
  * GET /api/v1/work-order-execution/dashboard
  * Get real-time execution dashboard
  */
-router.get('/dashboard', async (req: Request, res: Response) => {
+router.get('/dashboard', async (req: Request, res: Response): Promise<any> => {
   try {
     const { siteId } = req.query;
 

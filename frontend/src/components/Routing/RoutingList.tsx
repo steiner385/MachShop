@@ -33,6 +33,7 @@ import { Routing, LIFECYCLE_STATE_COLORS, LIFECYCLE_STATE_LABELS } from '@/types
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { isRoutingEditable } from '@/api/routing';
+import { useAuthStore } from '@/store/AuthStore';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -50,6 +51,7 @@ export const RoutingList: React.FC = () => {
   const [isPrimaryFilter, setIsPrimaryFilter] = useState<boolean | undefined>();
 
   const { currentSite, allSites } = useSite();
+  const { user } = useAuthStore();
 
   const {
     routings,
@@ -132,6 +134,9 @@ export const RoutingList: React.FC = () => {
     return site ? site.siteName : 'Unknown';
   };
 
+  // Check if user has permission to create routings
+  const canCreateRouting = user?.permissions?.includes('routing.write') || user?.permissions?.includes('processsegments.write') || false;
+
   // Table columns
   const columns: ColumnsType<Routing> = [
     {
@@ -155,7 +160,7 @@ export const RoutingList: React.FC = () => {
       render: (_, record: Routing) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.part?.partNumber || 'N/A'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.part?.name || ''}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>{record.part?.partName || ''}</div>
         </div>
       ),
     },
@@ -298,14 +303,17 @@ export const RoutingList: React.FC = () => {
             style={{ width: '400px' }}
           />
 
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/routings/create')}
-            size="large"
-          >
-            Create New Routing
-          </Button>
+          <Tooltip title={!canCreateRouting ? "You don't have permission to create routings" : ""}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/routings/create')}
+              size="large"
+              disabled={!canCreateRouting}
+            >
+              Create New Routing
+            </Button>
+          </Tooltip>
         </div>
 
         {/* Bottom Row: Filters */}

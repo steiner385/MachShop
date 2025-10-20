@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
  * GET /api/v1/sites
  * Get all sites with optional filtering
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { active } = req.query;
 
@@ -57,7 +57,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/v1/sites/:id
  * Get a single site by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -107,7 +107,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * GET /api/v1/sites/code/:siteCode
  * Get a site by site code
  */
-router.get('/code/:siteCode', async (req: Request, res: Response) => {
+router.get('/code/:siteCode', async (req: Request, res: Response): Promise<any> => {
   try {
     const { siteCode } = req.params;
 
@@ -149,7 +149,7 @@ router.get('/code/:siteCode', async (req: Request, res: Response) => {
  * POST /api/v1/sites
  * Create a new site
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { siteName, siteCode, location, enterpriseId, isActive = true } = req.body;
 
@@ -199,7 +199,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/v1/sites/:id
  * Update an existing site
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { siteName, siteCode, location, enterpriseId, isActive } = req.body;
@@ -249,7 +249,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/v1/sites/:id
  * Delete a site (soft delete by setting isActive to false)
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { permanent } = req.query;

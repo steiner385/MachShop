@@ -27,7 +27,7 @@ router.use(authMiddleware);
  * POST /api/covalent/check-authorization
  * Check work authorization for an operator
  */
-router.post('/check-authorization', async (req: Request, res: Response) => {
+router.post('/check-authorization', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       operatorId,
@@ -77,7 +77,7 @@ router.post('/check-authorization', async (req: Request, res: Response) => {
  * POST /api/covalent/validate-fai-inspector
  * Validate FAI inspector qualification
  */
-router.post('/validate-fai-inspector', async (req: Request, res: Response) => {
+router.post('/validate-fai-inspector', async (req: Request, res: Response): Promise<any> => {
   try {
     const { operatorId } = req.body;
 
@@ -111,7 +111,7 @@ router.post('/validate-fai-inspector', async (req: Request, res: Response) => {
  * POST /api/covalent/check-dnc-authorization
  * Check DNC program load authorization
  */
-router.post('/check-dnc-authorization', async (req: Request, res: Response) => {
+router.post('/check-dnc-authorization', async (req: Request, res: Response): Promise<any> => {
   try {
     const { operatorId, machineType, programName, partNumber, partComplexity } = req.body;
 
@@ -153,7 +153,7 @@ router.post('/check-dnc-authorization', async (req: Request, res: Response) => {
  * GET /api/covalent/operator/:operatorId/certifications
  * Get operator certifications
  */
-router.get('/operator/:operatorId/certifications', async (req: Request, res: Response) => {
+router.get('/operator/:operatorId/certifications', async (req: Request, res: Response): Promise<any> => {
   try {
     const { operatorId } = req.params;
 
@@ -185,7 +185,7 @@ router.get('/operator/:operatorId/certifications', async (req: Request, res: Res
  * GET /api/covalent/operator/:operatorId/skills
  * Get operator skills
  */
-router.get('/operator/:operatorId/skills', async (req: Request, res: Response) => {
+router.get('/operator/:operatorId/skills', async (req: Request, res: Response): Promise<any> => {
   try {
     const { operatorId } = req.params;
 
@@ -217,7 +217,7 @@ router.get('/operator/:operatorId/skills', async (req: Request, res: Response) =
  * GET /api/covalent/health
  * Get Covalent adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('SKILLS') as CovalentAdapter | undefined;

@@ -48,6 +48,7 @@ import shopFloorConnectRoutes from './routes/shopFloorConnectRoutes';
 import predatorPDMRoutes from './routes/predatorPDMRoutes';
 import predatorDNCRoutes from './routes/predatorDNCRoutes';
 import cmmRoutes from './routes/cmmRoutes';
+import searchRoutes from './routes/search';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
@@ -127,6 +128,7 @@ const apiRouter = express.Router();
 apiRouter.use('/auth', authRoutes);
 
 // Protected routes (authentication required)
+apiRouter.use('/search', authMiddleware, searchRoutes);
 apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
 apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);

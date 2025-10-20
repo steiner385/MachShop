@@ -106,7 +106,7 @@ export interface CharacteristicNominal {
   Name?: string;
   Description?: string;
   TargetValue?: number;
-  PlusToler ance?: number;
+  PlusTolerance?: number;
   MinusTolerance?: number;
   Attributes?: CharacteristicAttribute[];
 }
@@ -164,7 +164,7 @@ export interface AngleBetweenCharacteristic {
   Feature2?: FeatureReference;
 }
 
-export interface PositionCharacteristicChar acteristic {
+export interface PositionCharacteristic {
   ToleranceValue: number;
   MaterialCondition?: 'MMC' | 'LMC' | 'RFS';
   DatumReferenceFrame?: DatumReferenceFrame;
@@ -363,7 +363,7 @@ export interface AcceptanceCriteria {
   CriteriaType: 'TOLERANCE' | 'CPKCP' | 'PASS_FAIL';
   MinimumCpk?: number;
   MinimumCp?: number;
-  RequireAll Measurements?: boolean;
+  RequireAllMeasurements?: boolean;
 }
 
 // =======================

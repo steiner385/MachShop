@@ -6,28 +6,20 @@ import { Page, expect } from '@playwright/test';
  */
 
 export interface TestUser {
-  username: string;
-  password: string;
-  email: string;
-  roles: string[];
-  permissions: string[];
+  readonly username: string;
+  readonly password: string;
+  readonly email: string;
+  readonly roles: readonly string[];
+  readonly permissions: readonly string[];
 }
 
 export const TEST_USERS = {
+  // Legacy test users (kept for backward compatibility)
   admin: {
     username: 'admin',
     password: 'password123',
     email: 'admin@mes.com',
-    // Include all roles for comprehensive E2E testing
-    roles: [
-      'Plant Manager',
-      'System Administrator',
-      'Quality Engineer',
-      'Quality Inspector',
-      'Production Planner',
-      'Maintenance Technician',
-      'Production Supervisor'
-    ],
+    roles: ['Plant Manager', 'System Administrator'],
     permissions: [
       'workorders.read', 'workorders.write', 'workorders.delete',
       'quality.read', 'quality.write',
@@ -35,7 +27,7 @@ export const TEST_USERS = {
       'equipment.read', 'equipment.write',
       'users.read', 'users.write',
       'materials.read', 'materials.write',
-      'workinstructions.read', 'workinstructions.write'
+      'workinstructions.read', 'workinstructions.write', 'workinstructions.create', 'workinstructions.execute'
     ]
   },
   qualityEngineer: {
@@ -43,14 +35,157 @@ export const TEST_USERS = {
     password: 'password123',
     email: 'jane.smith@mes.com',
     roles: ['Quality Engineer'],
-    permissions: ['workorders.read', 'quality.read', 'quality.write', 'traceability.read']
+    permissions: ['workorders.read', 'quality.read', 'quality.write', 'traceability.read', 'fai.read', 'fai.write', 'fai.approve', 'ncr.read', 'ncr.write', 'ncr.close', 'signatures.read', 'signatures.write']
   },
   operator: {
     username: 'john.doe',
     password: 'password123',
     email: 'john.doe@mes.com',
     roles: ['Production Operator'],
-    permissions: ['workorders.read']
+    permissions: ['workorders.read', 'workinstructions.read', 'workinstructions.execute']
+  },
+
+  // Tier 1: Production Roles (P0 - Critical)
+  productionOperator: {
+    username: 'prod.operator',
+    password: 'password123',
+    email: 'prod.operator@mes.com',
+    roles: ['Production Operator'],
+    permissions: ['workorders.read', 'workinstructions.read', 'workinstructions.execute', 'equipment.read']
+  },
+  productionSupervisor: {
+    username: 'prod.supervisor',
+    password: 'password123',
+    email: 'prod.supervisor@mes.com',
+    roles: ['Production Supervisor'],
+    permissions: ['workorders.read', 'workorders.write', 'workorders.assign', 'personnel.read', 'personnel.assign', 'workinstructions.read', 'equipment.read', 'materials.read']
+  },
+  productionPlanner: {
+    username: 'prod.planner',
+    password: 'password123',
+    email: 'prod.planner@mes.com',
+    roles: ['Production Planner'],
+    permissions: ['workorders.read', 'workorders.create', 'scheduling.read', 'scheduling.write', 'capacity.read', 'routings.read', 'bom.read', 'materials.read']
+  },
+  productionScheduler: {
+    username: 'prod.scheduler',
+    password: 'password123',
+    email: 'prod.scheduler@mes.com',
+    roles: ['Production Scheduler'],
+    permissions: ['workorders.read', 'workorders.priority', 'scheduling.read', 'scheduling.write', 'equipment.read', 'materials.read', 'capacity.read']
+  },
+  manufacturingEngineer: {
+    username: 'mfg.engineer',
+    password: 'password123',
+    email: 'mfg.engineer@mes.com',
+    roles: ['Manufacturing Engineer'],
+    permissions: ['routings.read', 'routings.write', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read']
+  },
+
+  // Tier 2: Quality & Compliance (P1 - High)
+  qualityEngineerFull: {
+    username: 'quality.engineer',
+    password: 'password123',
+    email: 'quality.engineer@mes.com',
+    roles: ['Quality Engineer'],
+    permissions: ['workorders.read', 'quality.read', 'quality.write', 'fai.read', 'fai.write', 'fai.approve', 'ncr.read', 'ncr.write', 'ncr.close', 'signatures.read', 'signatures.write', 'traceability.read', 'inspections.read', 'inspections.approve']
+  },
+  qualityInspector: {
+    username: 'quality.inspector',
+    password: 'password123',
+    email: 'quality.inspector@mes.com',
+    roles: ['Quality Inspector'],
+    permissions: ['workorders.read', 'quality.read', 'inspections.read', 'inspections.write', 'fai.read', 'fai.execute', 'ncr.read', 'ncr.write', 'signatures.read', 'signatures.write', 'traceability.read']
+  },
+  dcmaInspector: {
+    username: 'dcma.inspector',
+    password: 'password123',
+    email: 'dcma.inspector@mes.com',
+    roles: ['DCMA Inspector'],
+    permissions: ['workorders.read', 'quality.read', 'fai.read', 'ncr.read', 'signatures.read', 'traceability.read', 'audit.read', 'audit.export']
+  },
+  processEngineer: {
+    username: 'process.engineer',
+    password: 'password123',
+    email: 'process.engineer@mes.com',
+    roles: ['Process Engineer'],
+    permissions: ['workorders.read', 'quality.read', 'spc.read', 'spc.write', 'processImprovement.read', 'processImprovement.write', 'yield.read', 'yield.write', 'capability.read', 'capability.write', 'equipment.read']
+  },
+
+  // Tier 3: Materials & Logistics (P1 - High)
+  warehouseManager: {
+    username: 'warehouse.manager',
+    password: 'password123',
+    email: 'warehouse.manager@mes.com',
+    roles: ['Warehouse Manager'],
+    permissions: ['inventory.read', 'inventory.write', 'materials.read', 'materials.write', 'warehouse.read', 'warehouse.write', 'cycleCounts.read', 'cycleCounts.write', 'adjustments.approve']
+  },
+  materialsHandler: {
+    username: 'materials.handler',
+    password: 'password123',
+    email: 'materials.handler@mes.com',
+    roles: ['Materials Handler'],
+    permissions: ['workorders.read', 'materials.read', 'materials.move', 'inventory.read', 'inventory.update', 'cycleCounts.read', 'cycleCounts.execute']
+  },
+  shippingReceivingSpecialist: {
+    username: 'shipping.specialist',
+    password: 'password123',
+    email: 'shipping.specialist@mes.com',
+    roles: ['Shipping/Receiving Specialist'],
+    permissions: ['shipments.read', 'shipments.write', 'receiving.read', 'receiving.write', 'carriers.read', 'carriers.write', 'packingLists.read', 'packingLists.write', 'workorders.read', 'materials.read']
+  },
+  logisticsCoordinator: {
+    username: 'logistics.coordinator',
+    password: 'password123',
+    email: 'logistics.coordinator@mes.com',
+    roles: ['Logistics Coordinator'],
+    permissions: ['logistics.read', 'logistics.write', 'shipments.read', 'shipments.write', 'tracking.read', 'tracking.write', 'carriers.read', 'workorders.read', 'inventory.read']
+  },
+
+  // Tier 4: Maintenance & Equipment (P2 - Medium)
+  maintenanceTechnician: {
+    username: 'maint.technician',
+    password: 'password123',
+    email: 'maint.technician@mes.com',
+    roles: ['Maintenance Technician'],
+    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.execute', 'pmScheduling.read', 'workorders.read']
+  },
+  maintenanceSupervisor: {
+    username: 'maint.supervisor',
+    password: 'password123',
+    email: 'maint.supervisor@mes.com',
+    roles: ['Maintenance Supervisor'],
+    permissions: ['equipment.read', 'equipment.write', 'maintenance.read', 'maintenance.write', 'pmScheduling.read', 'pmScheduling.write', 'workRequests.approve', 'spareParts.read', 'spareParts.write', 'workorders.read']
+  },
+
+  // Tier 5: Administration (P2 - Medium)
+  plantManager: {
+    username: 'plant.manager',
+    password: 'password123',
+    email: 'plant.manager@mes.com',
+    roles: ['Plant Manager'],
+    permissions: ['workorders.read', 'quality.read', 'equipment.read', 'materials.read', 'personnel.read', 'reports.read', 'reports.write', 'kpi.read', 'capex.approve', 'traceability.read', 'audit.read']
+  },
+  systemAdministrator: {
+    username: 'sys.admin',
+    password: 'password123',
+    email: 'sys.admin@mes.com',
+    roles: ['System Administrator'],
+    permissions: ['users.read', 'users.write', 'roles.read', 'roles.write', 'permissions.read', 'permissions.write', 'system.config', 'audit.read', 'integrations.read', 'integrations.write']
+  },
+  superuser: {
+    username: 'superuser',
+    password: 'password123',
+    email: 'superuser@mes.com',
+    roles: ['Superuser'],
+    permissions: ['*', 'bypass.validations', 'impersonate.*', 'force.status', 'audit.read']
+  },
+  inventoryControlSpecialist: {
+    username: 'inventory.specialist',
+    password: 'password123',
+    email: 'inventory.specialist@mes.com',
+    roles: ['Inventory Control Specialist'],
+    permissions: ['inventory.read', 'inventory.write', 'cycleCounts.read', 'cycleCounts.write', 'adjustments.read', 'adjustments.write', 'minmax.read', 'minmax.write', 'mrp.read', 'mrp.write', 'materials.read']
   }
 } as const;
 
@@ -205,8 +340,9 @@ export async function navigateAuthenticated(page: Page, route: string, user: key
  */
 export function checkUserPermissions(user: keyof typeof TEST_USERS, requiredPermissions: string[]): boolean {
   const testUser = TEST_USERS[user];
-  return requiredPermissions.every(permission => 
-    testUser.permissions.includes(permission) || testUser.permissions.includes('*')
+  const permissions = testUser.permissions as unknown as string[];
+  return requiredPermissions.every(permission =>
+    permissions.includes(permission) || permissions.includes('*')
   );
 }
 
@@ -227,15 +363,42 @@ export async function assertAuthenticated(page: Page): Promise<void> {
   const authState = await page.evaluate(() => {
     const authStorage = localStorage.getItem('mes-auth-storage');
     if (!authStorage) return null;
-    
+
     try {
       return JSON.parse(authStorage);
     } catch {
       return null;
     }
   });
-  
+
   expect(authState).toBeTruthy();
   expect(authState.state.token).toBeTruthy();
   expect(authState.state.user).toBeTruthy();
+}
+
+/**
+ * Login as test user and return auth headers for API requests
+ * Used for API-level E2E tests with Playwright request context
+ */
+export async function loginAsTestUser(
+  request: any,
+  user: keyof typeof TEST_USERS = 'admin'
+): Promise<Record<string, string>> {
+  const testUser = TEST_USERS[user];
+
+  const loginResponse = await request.post('/api/v1/auth/login', {
+    data: {
+      username: testUser.username,
+      password: testUser.password
+    }
+  });
+
+  expect(loginResponse.ok()).toBeTruthy();
+  const authData = await loginResponse.json();
+  expect(authData.token).toBeTruthy();
+
+  return {
+    'Authorization': `Bearer ${authData.token}`,
+    'Content-Type': 'application/json'
+  };
 }

@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import joi from 'joi';
+import * as dotenv from 'dotenv';
+import * as joi from 'joi';
 
 // Load environment variables - respect DOTENV_CONFIG_PATH for E2E tests
 dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });

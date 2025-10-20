@@ -260,7 +260,7 @@ export class IBMMaximoAdapter {
           let equipmentId: string | null = null;
           if (wo.assetnum) {
             const equipment = await prisma.equipment.findFirst({
-              where: { equipmentCode: wo.assetnum },
+              where: { equipmentNumber: wo.assetnum },
             });
             equipmentId = equipment?.id || null;
           }
@@ -390,11 +390,11 @@ export class IBMMaximoAdapter {
       for (const asset of assets) {
         try {
           const existingEquipment = await prisma.equipment.findFirst({
-            where: { equipmentCode: asset.assetnum },
+            where: { equipmentNumber: asset.assetnum },
           });
 
           const equipmentData = {
-            equipmentCode: asset.assetnum,
+            equipmentNumber: asset.assetnum,
             equipmentName: asset.description,
             equipmentType: asset.assettype || 'GENERAL',
             manufacturer: asset.manufacturer,
@@ -416,7 +416,7 @@ export class IBMMaximoAdapter {
             await prisma.equipment.create({
               data: {
                 ...equipmentData,
-                capacity: 1.0,
+                // capacity: 1.0, // TODO: Add capacity field to Equipment model if needed
                 currentStatus: 'AVAILABLE',
               },
             });

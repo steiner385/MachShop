@@ -408,7 +408,7 @@ export class PredatorDNCAdapter {
     operatorName?: string;
   }> {
     try {
-      const operator = await prisma.personnel.findFirst({
+      const operator = await prisma.user.findFirst({
         where: { badgeNumber: operatorId },
       });
 
@@ -509,7 +509,7 @@ export class PredatorDNCAdapter {
     try {
       // Get machine details
       const machine = await prisma.equipment.findFirst({
-        where: { equipmentCode: request.machineId },
+        where: { equipmentNumber: request.machineId },
       });
 
       const authResult = await this.covalentAdapter.checkDNCAuthorization({

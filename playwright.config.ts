@@ -220,6 +220,19 @@ export default defineConfig({
       },
     },
 
+    /* Role-based E2E tests - comprehensive role validation */
+    {
+      name: 'role-tests',
+      testMatch: '**/roles/*.spec.ts',
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - tests manage their own role-specific auth
+        actionTimeout: 15000,
+        navigationTimeout: 30000,
+      },
+    },
+
     // NOTE: Domain integration tests (routing-domain and domain-integration)
     // have been removed because they require Nginx and /etc/hosts configuration.
     // To re-enable, add projects with baseURL: 'http://local.mes.com'

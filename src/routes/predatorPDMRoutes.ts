@@ -32,7 +32,7 @@ router.use(authMiddleware);
  * GET /api/predator-pdm/nc-program/:partNumber/:operationCode
  * Get NC program for part and operation
  */
-router.get('/nc-program/:partNumber/:operationCode', async (req: Request, res: Response) => {
+router.get('/nc-program/:partNumber/:operationCode', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber, operationCode } = req.params;
     const { revision } = req.query;
@@ -70,7 +70,7 @@ router.get('/nc-program/:partNumber/:operationCode', async (req: Request, res: R
  * GET /api/predator-pdm/work-instruction/:partNumber/:operationCode
  * Get work instruction for part and operation
  */
-router.get('/work-instruction/:partNumber/:operationCode', async (req: Request, res: Response) => {
+router.get('/work-instruction/:partNumber/:operationCode', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber, operationCode } = req.params;
 
@@ -107,7 +107,7 @@ router.get('/work-instruction/:partNumber/:operationCode', async (req: Request, 
  * GET /api/predator-pdm/step-ap242/:partNumber
  * Get STEP AP242 3D model with PMI (Model-Based Enterprise)
  */
-router.get('/step-ap242/:partNumber', async (req: Request, res: Response) => {
+router.get('/step-ap242/:partNumber', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.params;
     const { revision } = req.query;
@@ -145,7 +145,7 @@ router.get('/step-ap242/:partNumber', async (req: Request, res: Response) => {
  * GET /api/predator-pdm/requirements/:partNumber
  * Get requirements for part (ReqIF)
  */
-router.get('/requirements/:partNumber', async (req: Request, res: Response) => {
+router.get('/requirements/:partNumber', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.params;
 
@@ -177,7 +177,7 @@ router.get('/requirements/:partNumber', async (req: Request, res: Response) => {
  * GET /api/predator-pdm/fai-template/:partNumber
  * Get FAI template for part
  */
-router.get('/fai-template/:partNumber', async (req: Request, res: Response) => {
+router.get('/fai-template/:partNumber', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.params;
 
@@ -214,7 +214,7 @@ router.get('/fai-template/:partNumber', async (req: Request, res: Response) => {
  * POST /api/predator-pdm/search-documents
  * Search documents in PDM
  */
-router.post('/search-documents', async (req: Request, res: Response) => {
+router.post('/search-documents', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber, documentType, status, revision, tags } = req.body;
 
@@ -251,7 +251,7 @@ router.post('/search-documents', async (req: Request, res: Response) => {
  * POST /api/predator-pdm/approve-document
  * Approve document in PDM
  */
-router.post('/approve-document', async (req: Request, res: Response) => {
+router.post('/approve-document', async (req: Request, res: Response): Promise<any> => {
   try {
     const { documentId, approvedBy } = req.body;
 
@@ -294,7 +294,7 @@ router.post('/approve-document', async (req: Request, res: Response) => {
  * GET /api/predator-pdm/revision-history/:partNumber
  * Get document revision history for part
  */
-router.get('/revision-history/:partNumber', async (req: Request, res: Response) => {
+router.get('/revision-history/:partNumber', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.params;
     const { documentType } = req.query;
@@ -327,7 +327,7 @@ router.get('/revision-history/:partNumber', async (req: Request, res: Response) 
  * POST /api/predator-pdm/link-requirement
  * Link requirement to document (digital thread)
  */
-router.post('/link-requirement', async (req: Request, res: Response) => {
+router.post('/link-requirement', async (req: Request, res: Response): Promise<any> => {
   try {
     const { requirementId, documentId } = req.body;
 
@@ -370,7 +370,7 @@ router.post('/link-requirement', async (req: Request, res: Response) => {
  * GET /api/predator-pdm/health
  * Get Predator PDM adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('PDM') as PredatorPDMAdapter | undefined;

@@ -16,7 +16,7 @@ const router = express.Router();
  * @desc    Create a new work instruction
  * @access  Private
  */
-router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     // Validate request body
     const validatedData = CreateWorkInstructionSchema.parse(req.body);
@@ -48,7 +48,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction): Promis
  * @desc    List work instructions with filtering and pagination
  * @access  Private
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const queryParams: WorkInstructionQueryParams = {
       page: req.query.page ? parseInt(req.query.page as string) : undefined,
@@ -73,7 +73,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction): Promise
  * @desc    Get work instruction by ID
  * @access  Private
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -95,7 +95,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
  * @desc    Update work instruction
  * @access  Private
  */
-router.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -130,7 +130,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction): Prom
  * @desc    Delete work instruction
  * @access  Private
  */
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -147,7 +147,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction): P
  * @desc    Add step to work instruction
  * @access  Private
  */
-router.post('/:id/steps', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/steps', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -171,7 +171,7 @@ router.post('/:id/steps', async (req: Request, res: Response, next: NextFunction
  * @desc    Update step
  * @access  Private
  */
-router.put('/:id/steps/:stepId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.put('/:id/steps/:stepId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { stepId } = req.params;
 
@@ -195,7 +195,7 @@ router.put('/:id/steps/:stepId', async (req: Request, res: Response, next: NextF
  * @desc    Delete step
  * @access  Private
  */
-router.delete('/:id/steps/:stepId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/:id/steps/:stepId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { stepId } = req.params;
 
@@ -212,7 +212,7 @@ router.delete('/:id/steps/:stepId', async (req: Request, res: Response, next: Ne
  * @desc    Approve work instruction
  * @access  Private (requires approval permission)
  */
-router.post('/:id/approve', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/approve', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -238,7 +238,7 @@ router.post('/:id/approve', async (req: Request, res: Response, next: NextFuncti
  * @desc    Reject work instruction with reason and comments
  * @access  Private (requires approval permission)
  */
-router.post('/:id/reject', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/reject', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { reason, comments } = req.body;
@@ -287,7 +287,7 @@ router.post('/:id/reject', async (req: Request, res: Response, next: NextFunctio
  * @desc    Reorder steps in work instruction
  * @access  Private
  */
-router.post('/:id/steps/reorder', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/:id/steps/reorder', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
     const { stepOrder } = req.body;
@@ -310,7 +310,7 @@ router.post('/:id/steps/reorder', async (req: Request, res: Response, next: Next
  * @desc    Get work instructions by part ID
  * @access  Private
  */
-router.get('/part/:partId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/part/:partId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { partId } = req.params;
 

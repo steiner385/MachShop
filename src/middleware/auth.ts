@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { AuthenticationError, AuthorizationError } from './errorHandler';
 import { logger } from '../utils/logger';
@@ -251,6 +251,42 @@ export const requireManagementAccess = requireAnyRole([
   'System Administrator',
   'Plant Manager'
 ]);
+
+// Dashboard authorization - allows production roles OR users with wildcard read permissions (DCMA Inspector)
+export const requireDashboardAccess = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  const allowedRoles = [
+    'System Administrator',
+    'Plant Manager',
+    'Production Supervisor',
+    'Production Planner',
+    'Operator'
+  ];
+
+  // Check if user has an allowed role
+  const hasRole = req.user.roles.some(role => allowedRoles.includes(role));
+
+  // Check if user has wildcard read permission (e.g., DCMA Inspector with *.read)
+  const hasWildcardRead = req.user.permissions.includes('*.read') || req.user.permissions.includes('*');
+
+  if (hasRole || hasWildcardRead) {
+    return next();
+  }
+
+  logger.warn('Dashboard access denied', {
+    userId: req.user.id,
+    username: req.user.username,
+    userRoles: req.user.roles,
+    userPermissions: req.user.permissions,
+    path: req.path,
+    method: req.method
+  });
+
+  return next(new AuthorizationError('Dashboard access requires production role or read permissions'));
+};
 
 // Optional authentication middleware (for public endpoints with optional user info)
 export const optionalAuth = async (

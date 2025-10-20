@@ -33,7 +33,7 @@ router.use(authMiddleware);
  * GET /api/integrations
  * List all integration configurations
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const integrations = await prisma.integrationConfig.findMany({
       select: {
@@ -66,7 +66,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/integrations/:id
  * Get integration configuration details
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -101,7 +101,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /api/integrations
  * Create new integration configuration
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { name, displayName, type, config, enabled } = req.body;
 
@@ -149,7 +149,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/integrations/:id
  * Update integration configuration
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { displayName, config, enabled } = req.body;
@@ -205,7 +205,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/integrations/:id
  * Delete integration configuration
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -242,7 +242,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
  * POST /api/integrations/:id/sync
  * Trigger manual synchronization
  */
-router.post('/:id/sync', async (req: Request, res: Response) => {
+router.post('/:id/sync', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { jobType, filters } = req.body;
@@ -294,7 +294,7 @@ router.post('/:id/sync', async (req: Request, res: Response) => {
  * GET /api/integrations/:id/health
  * Get health status for specific integration
  */
-router.get('/:id/health', async (req: Request, res: Response) => {
+router.get('/:id/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -339,7 +339,7 @@ router.get('/:id/health', async (req: Request, res: Response) => {
  * GET /api/integrations/health/all
  * Get health status for all integrations
  */
-router.get('/health/all', async (req: Request, res: Response) => {
+router.get('/health/all', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const healthStatuses = await manager.getAllHealthStatus();
@@ -355,7 +355,7 @@ router.get('/health/all', async (req: Request, res: Response) => {
  * GET /api/integrations/:id/logs
  * Get integration logs with pagination
  */
-router.get('/:id/logs', async (req: Request, res: Response) => {
+router.get('/:id/logs', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const page = parseInt(req.query.page as string) || 1;
@@ -412,7 +412,7 @@ router.get('/:id/logs', async (req: Request, res: Response) => {
  * POST /api/integrations/:id/test
  * Test connection to integration system
  */
-router.post('/:id/test', async (req: Request, res: Response) => {
+router.post('/:id/test', async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 

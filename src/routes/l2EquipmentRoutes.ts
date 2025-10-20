@@ -25,7 +25,7 @@ const router = express.Router();
  * POST /equipment/data/collect
  * Collect a single data point from equipment
  */
-router.post('/equipment/data/collect', async (req: Request, res: Response) => {
+router.post('/equipment/data/collect', async (req: Request, res: Response): Promise<any> => {
   try {
     const result = await EquipmentDataCollectionService.collectDataPoint(req.body);
 
@@ -47,7 +47,7 @@ router.post('/equipment/data/collect', async (req: Request, res: Response) => {
  * POST /equipment/data/collect-batch
  * Collect multiple data points in batch
  */
-router.post('/equipment/data/collect-batch', async (req: Request, res: Response) => {
+router.post('/equipment/data/collect-batch', async (req: Request, res: Response): Promise<any> => {
   try {
     const { dataPoints } = req.body;
 
@@ -78,7 +78,7 @@ router.post('/equipment/data/collect-batch', async (req: Request, res: Response)
  * GET /equipment/data/query
  * Query data points with filters
  */
-router.get('/equipment/data/query', async (req: Request, res: Response) => {
+router.get('/equipment/data/query', async (req: Request, res: Response): Promise<any> => {
   try {
     const query = {
       equipmentId: req.query.equipmentId as string | undefined,
@@ -110,7 +110,7 @@ router.get('/equipment/data/query', async (req: Request, res: Response) => {
  * GET /equipment/data/:equipmentId/latest
  * Get all latest data points for equipment
  */
-router.get('/equipment/data/:equipmentId/latest', async (req: Request, res: Response) => {
+router.get('/equipment/data/:equipmentId/latest', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
 
@@ -133,7 +133,7 @@ router.get('/equipment/data/:equipmentId/latest', async (req: Request, res: Resp
  * GET /equipment/data/:equipmentId/summary
  * Generate data collection summary for equipment
  */
-router.get('/equipment/data/:equipmentId/summary', async (req: Request, res: Response) => {
+router.get('/equipment/data/:equipmentId/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
@@ -162,7 +162,7 @@ router.get('/equipment/data/:equipmentId/summary', async (req: Request, res: Res
  * GET /equipment/data/:equipmentId/trend
  * Get data point trend (time series)
  */
-router.get('/equipment/data/:equipmentId/trend', async (req: Request, res: Response) => {
+router.get('/equipment/data/:equipmentId/trend', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const { dataPointName, startDate, endDate, limit } = req.query;
@@ -210,7 +210,7 @@ router.get('/equipment/data/:equipmentId/trend', async (req: Request, res: Respo
  * POST /equipment/commands/issue
  * Issue a command to equipment
  */
-router.post('/equipment/commands/issue', async (req: Request, res: Response) => {
+router.post('/equipment/commands/issue', async (req: Request, res: Response): Promise<any> => {
   try {
     const userId = (req as any).user?.id;
 
@@ -237,7 +237,7 @@ router.post('/equipment/commands/issue', async (req: Request, res: Response) => 
  * PUT /equipment/commands/:commandId/status
  * Update command status
  */
-router.put('/equipment/commands/:commandId/status', async (req: Request, res: Response) => {
+router.put('/equipment/commands/:commandId/status', async (req: Request, res: Response): Promise<any> => {
   try {
     const { commandId } = req.params;
 
@@ -264,7 +264,7 @@ router.put('/equipment/commands/:commandId/status', async (req: Request, res: Re
  * PUT /equipment/commands/:commandId/complete
  * Mark command as completed
  */
-router.put('/equipment/commands/:commandId/complete', async (req: Request, res: Response) => {
+router.put('/equipment/commands/:commandId/complete', async (req: Request, res: Response): Promise<any> => {
   try {
     const { commandId } = req.params;
     const { responsePayload, responseCode, responseMessage } = req.body;
@@ -294,7 +294,7 @@ router.put('/equipment/commands/:commandId/complete', async (req: Request, res: 
  * PUT /equipment/commands/:commandId/fail
  * Mark command as failed
  */
-router.put('/equipment/commands/:commandId/fail', async (req: Request, res: Response) => {
+router.put('/equipment/commands/:commandId/fail', async (req: Request, res: Response): Promise<any> => {
   try {
     const { commandId } = req.params;
     const { errorMessage, responseCode, responsePayload } = req.body;
@@ -331,7 +331,7 @@ router.put('/equipment/commands/:commandId/fail', async (req: Request, res: Resp
  * POST /equipment/commands/:commandId/retry
  * Retry a failed command
  */
-router.post('/equipment/commands/:commandId/retry', async (req: Request, res: Response) => {
+router.post('/equipment/commands/:commandId/retry', async (req: Request, res: Response): Promise<any> => {
   try {
     const { commandId } = req.params;
 
@@ -355,7 +355,7 @@ router.post('/equipment/commands/:commandId/retry', async (req: Request, res: Re
  * GET /equipment/commands/query
  * Query commands with filters
  */
-router.get('/equipment/commands/query', async (req: Request, res: Response) => {
+router.get('/equipment/commands/query', async (req: Request, res: Response): Promise<any> => {
   try {
     const query = {
       equipmentId: req.query.equipmentId as string | undefined,
@@ -388,7 +388,7 @@ router.get('/equipment/commands/query', async (req: Request, res: Response) => {
  * GET /equipment/commands/:equipmentId/pending
  * Get pending commands for equipment
  */
-router.get('/equipment/commands/:equipmentId/pending', async (req: Request, res: Response) => {
+router.get('/equipment/commands/:equipmentId/pending', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
 
@@ -411,7 +411,7 @@ router.get('/equipment/commands/:equipmentId/pending', async (req: Request, res:
  * GET /equipment/commands/:equipmentId/summary
  * Generate command execution summary
  */
-router.get('/equipment/commands/:equipmentId/summary', async (req: Request, res: Response) => {
+router.get('/equipment/commands/:equipmentId/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
@@ -444,7 +444,7 @@ router.get('/equipment/commands/:equipmentId/summary', async (req: Request, res:
  * POST /equipment/material/movement
  * Record a material movement
  */
-router.post('/equipment/material/movement', async (req: Request, res: Response) => {
+router.post('/equipment/material/movement', async (req: Request, res: Response): Promise<any> => {
   try {
     const userId = (req as any).user?.id;
 
@@ -471,7 +471,7 @@ router.post('/equipment/material/movement', async (req: Request, res: Response) 
  * GET /equipment/material/query
  * Query material movements with filters
  */
-router.get('/equipment/material/query', async (req: Request, res: Response) => {
+router.get('/equipment/material/query', async (req: Request, res: Response): Promise<any> => {
   try {
     const query = {
       equipmentId: req.query.equipmentId as string | undefined,
@@ -505,7 +505,7 @@ router.get('/equipment/material/query', async (req: Request, res: Response) => {
  * GET /equipment/material/:equipmentId/summary
  * Generate material movement summary
  */
-router.get('/equipment/material/:equipmentId/summary', async (req: Request, res: Response) => {
+router.get('/equipment/material/:equipmentId/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
@@ -534,7 +534,7 @@ router.get('/equipment/material/:equipmentId/summary', async (req: Request, res:
  * GET /equipment/material/traceability/:movementId
  * Build traceability chain for a movement
  */
-router.get('/equipment/material/traceability/:movementId', async (req: Request, res: Response) => {
+router.get('/equipment/material/traceability/:movementId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { movementId } = req.params;
 
@@ -557,7 +557,7 @@ router.get('/equipment/material/traceability/:movementId', async (req: Request, 
  * GET /equipment/material/:equipmentId/balance
  * Get material balance for equipment
  */
-router.get('/equipment/material/:equipmentId/balance', async (req: Request, res: Response) => {
+router.get('/equipment/material/:equipmentId/balance', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const partNumber = req.query.partNumber as string | undefined;
@@ -585,7 +585,7 @@ router.get('/equipment/material/:equipmentId/balance', async (req: Request, res:
  * POST /equipment/process/start
  * Start a new process data collection
  */
-router.post('/equipment/process/start', async (req: Request, res: Response) => {
+router.post('/equipment/process/start', async (req: Request, res: Response): Promise<any> => {
   try {
     const result = await ProcessDataCollectionService.startProcessDataCollection(req.body);
 
@@ -607,7 +607,7 @@ router.post('/equipment/process/start', async (req: Request, res: Response) => {
  * PUT /equipment/process/:processDataCollectionId/complete
  * Complete a process data collection
  */
-router.put('/equipment/process/:processDataCollectionId/complete', async (req: Request, res: Response) => {
+router.put('/equipment/process/:processDataCollectionId/complete', async (req: Request, res: Response): Promise<any> => {
   try {
     const { processDataCollectionId } = req.params;
     const { endTimestamp: endTimestampString, ...otherFields } = req.body;
@@ -636,7 +636,7 @@ router.put('/equipment/process/:processDataCollectionId/complete', async (req: R
  * PUT /equipment/process/:processDataCollectionId/parameters
  * Update process parameters
  */
-router.put('/equipment/process/:processDataCollectionId/parameters', async (req: Request, res: Response) => {
+router.put('/equipment/process/:processDataCollectionId/parameters', async (req: Request, res: Response): Promise<any> => {
   try {
     const { processDataCollectionId } = req.params;
     const { parameters } = req.body;
@@ -671,7 +671,7 @@ router.put('/equipment/process/:processDataCollectionId/parameters', async (req:
  * GET /equipment/process/query
  * Query process data collections
  */
-router.get('/equipment/process/query', async (req: Request, res: Response) => {
+router.get('/equipment/process/query', async (req: Request, res: Response): Promise<any> => {
   try {
     const query = {
       equipmentId: req.query.equipmentId as string | undefined,
@@ -705,7 +705,7 @@ router.get('/equipment/process/query', async (req: Request, res: Response) => {
  * GET /equipment/process/:equipmentId/active
  * Get active processes for equipment
  */
-router.get('/equipment/process/:equipmentId/active', async (req: Request, res: Response) => {
+router.get('/equipment/process/:equipmentId/active', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
 
@@ -728,7 +728,7 @@ router.get('/equipment/process/:equipmentId/active', async (req: Request, res: R
  * GET /equipment/process/:equipmentId/summary
  * Generate process data summary
  */
-router.get('/equipment/process/:equipmentId/summary', async (req: Request, res: Response) => {
+router.get('/equipment/process/:equipmentId/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const { processName, startDate, endDate } = req.query;
@@ -764,7 +764,7 @@ router.get('/equipment/process/:equipmentId/summary', async (req: Request, res: 
  * GET /equipment/process/:equipmentId/trend
  * Get process parameter trend
  */
-router.get('/equipment/process/:equipmentId/trend', async (req: Request, res: Response) => {
+router.get('/equipment/process/:equipmentId/trend', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
     const { processName, parameterName, startDate, endDate } = req.query;

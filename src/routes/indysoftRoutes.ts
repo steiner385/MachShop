@@ -34,7 +34,7 @@ router.use(authMiddleware);
  * POST /api/indysoft/sync-gauges
  * Sync gauges from Indysoft to MES
  */
-router.post('/sync-gauges', async (req: Request, res: Response) => {
+router.post('/sync-gauges', async (req: Request, res: Response): Promise<any> => {
   try {
     const { activeOnly } = req.body;
 
@@ -65,7 +65,7 @@ router.post('/sync-gauges', async (req: Request, res: Response) => {
  * GET /api/indysoft/gauge/:gaugeId/certificate
  * Get calibration certificate for a gauge
  */
-router.get('/gauge/:gaugeId/certificate', async (req: Request, res: Response) => {
+router.get('/gauge/:gaugeId/certificate', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId } = req.params;
 
@@ -102,7 +102,7 @@ router.get('/gauge/:gaugeId/certificate', async (req: Request, res: Response) =>
  * GET /api/indysoft/gauge/:gaugeId/uncertainty
  * Get measurement uncertainty budget for a gauge
  */
-router.get('/gauge/:gaugeId/uncertainty', async (req: Request, res: Response) => {
+router.get('/gauge/:gaugeId/uncertainty', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId } = req.params;
 
@@ -139,7 +139,7 @@ router.get('/gauge/:gaugeId/uncertainty', async (req: Request, res: Response) =>
  * GET /api/indysoft/gauge/:gaugeId/gage-rr
  * Get Gage R&R study results
  */
-router.get('/gauge/:gaugeId/gage-rr', async (req: Request, res: Response) => {
+router.get('/gauge/:gaugeId/gage-rr', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId } = req.params;
 
@@ -176,7 +176,7 @@ router.get('/gauge/:gaugeId/gage-rr', async (req: Request, res: Response) => {
  * POST /api/indysoft/gauge/:gaugeId/validate
  * Validate gauge calibration status before use
  */
-router.post('/gauge/:gaugeId/validate', async (req: Request, res: Response) => {
+router.post('/gauge/:gaugeId/validate', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId } = req.params;
 
@@ -206,7 +206,7 @@ router.post('/gauge/:gaugeId/validate', async (req: Request, res: Response) => {
  * POST /api/indysoft/out-of-cal
  * Handle out-of-calibration investigation
  */
-router.post('/out-of-cal', async (req: Request, res: Response) => {
+router.post('/out-of-cal', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId, asFoundCondition, outOfToleranceBy } = req.body;
 
@@ -247,7 +247,7 @@ router.post('/out-of-cal', async (req: Request, res: Response) => {
  * GET /api/indysoft/gauge/:gaugeId/qif/resource
  * Export gauge as QIF 3.0 Resource document
  */
-router.get('/gauge/:gaugeId/qif/resource', async (req: Request, res: Response) => {
+router.get('/gauge/:gaugeId/qif/resource', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeId } = req.params;
 
@@ -277,7 +277,7 @@ router.get('/gauge/:gaugeId/qif/resource', async (req: Request, res: Response) =
  * Export multiple gauges as QIF 3.0 Resources document
  * Body: { gaugeIds?: string[], activeOnly?: boolean }
  */
-router.post('/qif/resources', async (req: Request, res: Response) => {
+router.post('/qif/resources', async (req: Request, res: Response): Promise<any> => {
   try {
     const { gaugeIds, activeOnly = true } = req.body;
 
@@ -311,7 +311,7 @@ router.post('/qif/resources', async (req: Request, res: Response) => {
  * Export gauges by measurement type as QIF 3.0 Resources
  * Example: /api/indysoft/qif/resources/measurement-type/Length
  */
-router.get('/qif/resources/measurement-type/:type', async (req: Request, res: Response) => {
+router.get('/qif/resources/measurement-type/:type', async (req: Request, res: Response): Promise<any> => {
   try {
     const { type } = req.params;
 
@@ -340,7 +340,7 @@ router.get('/qif/resources/measurement-type/:type', async (req: Request, res: Re
  * GET /api/indysoft/health
  * Get Indysoft adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('CALIBRATION') as IndysoftAdapter | undefined;

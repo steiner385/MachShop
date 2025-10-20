@@ -100,7 +100,7 @@ router.get('/',
       filters
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       equipment: result.equipment,
       total: result.total,
       page,
@@ -135,7 +135,7 @@ router.get('/:id',
       equipmentName: equipment.name
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -157,7 +157,7 @@ router.post('/',
       equipmentNumber: equipment.equipmentNumber
     });
 
-    res.status(201).json(equipment);
+    return res.status(201).json(equipment);
   })
 );
 
@@ -179,7 +179,7 @@ router.put('/:id',
       equipmentId: id
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -201,7 +201,7 @@ router.delete('/:id',
       equipmentId: id
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -243,7 +243,7 @@ router.get('/statistics',
       statistics
     });
 
-    res.status(200).json(statistics);
+    return res.status(200).json(statistics);
   })
 );
 
@@ -262,8 +262,8 @@ router.get('/:id/status',
       select: {
         status: true,
         utilizationRate: true,
-        lastMaintenanceDate: true,
-        nextMaintenanceDate: true
+        // lastMaintenanceDate: true, // TODO: Add to Equipment model if needed
+        // nextMaintenanceDate: true // TODO: Add to Equipment model if needed
       }
     });
 
@@ -276,7 +276,7 @@ router.get('/:id/status',
       equipmentId: id
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -302,8 +302,8 @@ router.get('/:id/history',
     // Get status history from audit log
     const history = await prisma.auditLog.findMany({
       where: {
-        entityType: 'equipment',
-        entityId: id,
+        tableName: 'equipment',
+        recordId: id,
         action: { in: ['UPDATE', 'STATUS_CHANGE'] }
       },
       orderBy: {
@@ -316,8 +316,8 @@ router.get('/:id/history',
     const statusHistory = history.map(log => ({
       id: log.id,
       equipmentId: id,
-      status: (log.newData as any)?.status || equipment.status,
-      notes: (log.newData as any)?.notes,
+      status: (log.newValues as any)?.status || equipment.status,
+      notes: (log.newValues as any)?.notes,
       recordedAt: log.timestamp.toISOString(),
       recordedBy: log.userId
     }));
@@ -328,7 +328,7 @@ router.get('/:id/history',
       recordCount: statusHistory.length
     });
 
-    res.status(200).json(statusHistory);
+    return res.status(200).json(statusHistory);
   })
 );
 
@@ -378,7 +378,7 @@ router.post('/:id/status',
       notes
     });
 
-    res.status(200).json(updatedEquipment);
+    return res.status(200).json(updatedEquipment);
   })
 );
 
@@ -412,10 +412,11 @@ router.post('/:id/maintenance',
     }
 
     // Update equipment with maintenance date
+    // TODO: Add nextMaintenanceDate field to Equipment model
     const updatedEquipment = await prisma.equipment.update({
       where: { id },
       data: {
-        nextMaintenanceDate: new Date(maintenanceDate),
+        // nextMaintenanceDate: new Date(maintenanceDate),
         updatedAt: new Date()
       }
     });
@@ -427,7 +428,7 @@ router.post('/:id/maintenance',
       notes
     });
 
-    res.status(200).json(updatedEquipment);
+    return res.status(200).json(updatedEquipment);
   })
 );
 
@@ -456,7 +457,7 @@ router.get('/:id/children',
       childCount: equipment.childEquipment?.length || 0
     });
 
-    res.status(200).json(equipment.childEquipment || []);
+    return res.status(200).json(equipment.childEquipment || []);
   })
 );
 
@@ -478,7 +479,7 @@ router.get('/:id/hierarchy',
       descendantCount: hierarchy.length
     });
 
-    res.status(200).json(hierarchy);
+    return res.status(200).json(hierarchy);
   })
 );
 
@@ -500,7 +501,7 @@ router.get('/:id/ancestors',
       ancestorCount: ancestors.length
     });
 
-    res.status(200).json(ancestors);
+    return res.status(200).json(ancestors);
   })
 );
 
@@ -528,7 +529,7 @@ router.get('/:id/state-history',
       recordCount: stateHistory.length
     });
 
-    res.status(200).json(stateHistory);
+    return res.status(200).json(stateHistory);
   })
 );
 
@@ -571,7 +572,7 @@ router.post('/:id/state',
       reason
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -625,7 +626,7 @@ router.get('/:id/oee',
       recordCount: performanceLogs.length
     });
 
-    res.status(200).json(performanceLogs);
+    return res.status(200).json(performanceLogs);
   })
 );
 
@@ -673,7 +674,7 @@ router.post('/:id/oee',
       periodType: performanceLog.periodType
     });
 
-    res.status(201).json(performanceLog);
+    return res.status(201).json(performanceLog);
   })
 );
 
@@ -699,7 +700,7 @@ router.get('/:id/oee/current',
       oee: currentOEE.oee
     });
 
-    res.status(200).json(currentOEE);
+    return res.status(200).json(currentOEE);
   })
 );
 
@@ -730,7 +731,7 @@ router.get('/:id/capabilities',
       capabilityCount: capabilities.length
     });
 
-    res.status(200).json(capabilities);
+    return res.status(200).json(capabilities);
   })
 );
 
@@ -768,7 +769,7 @@ router.post('/:id/capabilities',
       capability: newCapability.capability
     });
 
-    res.status(201).json(newCapability);
+    return res.status(201).json(newCapability);
   })
 );
 
@@ -801,7 +802,7 @@ router.put('/:id/capabilities/:capabilityId',
       updates: Object.keys(updateData)
     });
 
-    res.status(200).json(updatedCapability);
+    return res.status(200).json(updatedCapability);
   })
 );
 
@@ -824,7 +825,7 @@ router.delete('/:id/capabilities/:capabilityId',
       capabilityId
     });
 
-    res.status(200).json(removedCapability);
+    return res.status(200).json(removedCapability);
   })
 );
 
@@ -850,7 +851,7 @@ router.get('/by-capability/:capability',
       equipmentCount: equipment.length
     });
 
-    res.status(200).json(equipment);
+    return res.status(200).json(equipment);
   })
 );
 
@@ -871,7 +872,142 @@ router.get('/:id/hierarchy-path',
       equipmentId: id
     });
 
-    res.status(200).json(hierarchyPath);
+    return res.status(200).json(hierarchyPath);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/oee/dashboard
+ * @desc Get OEE dashboard data - aggregated metrics for all equipment
+ * @access Private
+ * @query equipmentClass - Filter by equipment class
+ * @query siteId - Filter by site
+ * @query areaId - Filter by area
+ * @query limit - Limit number of equipment in topPerformers/bottomPerformers
+ */
+router.get('/oee/dashboard',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { equipmentClass, siteId, areaId, limit = 5 } = req.query;
+
+    // Get all equipment with filters
+    const equipmentList = await prisma.equipment.findMany({
+      where: {
+        isActive: true,
+        ...(equipmentClass && { equipmentClass: equipmentClass as any }),
+        ...(siteId && { siteId: siteId as string }),
+        ...(areaId && { areaId: areaId as string }),
+      },
+      select: {
+        id: true,
+        equipmentNumber: true,
+        name: true,
+        equipmentClass: true,
+        oee: true,
+        availability: true,
+        performance: true,
+        quality: true,
+        status: true,
+        currentState: true,
+      },
+      orderBy: {
+        oee: 'desc',
+      },
+    });
+
+    // Calculate aggregated metrics
+    const totalEquipment = equipmentList.length;
+    const equipmentWithOEE = equipmentList.filter(e => e.oee !== null && e.oee !== undefined);
+
+    const averageOEE = equipmentWithOEE.length > 0
+      ? equipmentWithOEE.reduce((sum, e) => sum + (e.oee || 0), 0) / equipmentWithOEE.length
+      : 0;
+
+    const averageAvailability = equipmentWithOEE.length > 0
+      ? equipmentWithOEE.reduce((sum, e) => sum + (e.availability || 0), 0) / equipmentWithOEE.length
+      : 0;
+
+    const averagePerformance = equipmentWithOEE.length > 0
+      ? equipmentWithOEE.reduce((sum, e) => sum + (e.performance || 0), 0) / equipmentWithOEE.length
+      : 0;
+
+    const averageQuality = equipmentWithOEE.length > 0
+      ? equipmentWithOEE.reduce((sum, e) => sum + (e.quality || 0), 0) / equipmentWithOEE.length
+      : 0;
+
+    // Count by status
+    const byStatus = equipmentList.reduce((acc, e) => {
+      acc[e.status] = (acc[e.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Count by state
+    const byState = equipmentList.reduce((acc, e) => {
+      acc[e.currentState] = (acc[e.currentState] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Top performers (highest OEE)
+    const topPerformers = equipmentWithOEE.slice(0, parseInt(limit as string)).map(e => ({
+      id: e.id,
+      equipmentNumber: e.equipmentNumber,
+      name: e.name,
+      equipmentClass: e.equipmentClass,
+      oee: e.oee,
+      availability: e.availability,
+      performance: e.performance,
+      quality: e.quality,
+      status: e.status,
+    }));
+
+    // Bottom performers (lowest OEE)
+    const bottomPerformers = equipmentWithOEE
+      .slice(-parseInt(limit as string))
+      .reverse()
+      .map(e => ({
+        id: e.id,
+        equipmentNumber: e.equipmentNumber,
+        name: e.name,
+        equipmentClass: e.equipmentClass,
+        oee: e.oee,
+        availability: e.availability,
+        performance: e.performance,
+        quality: e.quality,
+        status: e.status,
+      }));
+
+    // OEE distribution (categorize equipment by OEE thresholds)
+    const oeeDistribution = {
+      excellent: equipmentWithOEE.filter(e => (e.oee || 0) >= 85).length, // ≥ 85%
+      good: equipmentWithOEE.filter(e => (e.oee || 0) >= 70 && (e.oee || 0) < 85).length, // 70-85%
+      fair: equipmentWithOEE.filter(e => (e.oee || 0) >= 50 && (e.oee || 0) < 70).length, // 50-70%
+      poor: equipmentWithOEE.filter(e => (e.oee || 0) < 50).length, // < 50%
+      noData: equipmentList.length - equipmentWithOEE.length,
+    };
+
+    const dashboardData = {
+      summary: {
+        totalEquipment,
+        equipmentWithOEE: equipmentWithOEE.length,
+        averageOEE: Math.round(averageOEE * 10) / 10,
+        averageAvailability: Math.round(averageAvailability * 10) / 10,
+        averagePerformance: Math.round(averagePerformance * 10) / 10,
+        averageQuality: Math.round(averageQuality * 10) / 10,
+      },
+      distribution: oeeDistribution,
+      byStatus,
+      byState,
+      topPerformers,
+      bottomPerformers,
+    };
+
+    logger.info('OEE dashboard data retrieved', {
+      userId: req.user?.id,
+      totalEquipment,
+      averageOEE: dashboardData.summary.averageOEE,
+    });
+
+    return res.status(200).json(dashboardData);
   })
 );
 

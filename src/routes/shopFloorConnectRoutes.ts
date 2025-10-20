@@ -28,7 +28,7 @@ router.use(authMiddleware);
  * POST /api/shop-floor-connect/sync-programs
  * Sync CNC programs from Teamcenter
  */
-router.post('/sync-programs', async (req: Request, res: Response) => {
+router.post('/sync-programs', async (req: Request, res: Response): Promise<any> => {
   try {
     const { partNumber } = req.body;
 
@@ -59,7 +59,7 @@ router.post('/sync-programs', async (req: Request, res: Response) => {
  * POST /api/shop-floor-connect/check-revision
  * Check program revision for a part
  */
-router.post('/check-revision', async (req: Request, res: Response) => {
+router.post('/check-revision', async (req: Request, res: Response): Promise<any> => {
   try {
     const { programName, partNumber, workOrderNumber } = req.body;
 
@@ -99,7 +99,7 @@ router.post('/check-revision', async (req: Request, res: Response) => {
  * POST /api/shop-floor-connect/authorize-download
  * Authorize CNC program download to equipment
  */
-router.post('/authorize-download', async (req: Request, res: Response) => {
+router.post('/authorize-download', async (req: Request, res: Response): Promise<any> => {
   try {
     const { programName, partNumber, revision, machineId, operatorId, workOrderNumber } = req.body;
 
@@ -142,7 +142,7 @@ router.post('/authorize-download', async (req: Request, res: Response) => {
  * POST /api/shop-floor-connect/approve-first-piece
  * Approve first piece for a CNC program
  */
-router.post('/approve-first-piece', async (req: Request, res: Response) => {
+router.post('/approve-first-piece', async (req: Request, res: Response): Promise<any> => {
   try {
     const { programId, programName, revision, faiReportNumber, approvedBy, approvalDate } = req.body;
 
@@ -192,7 +192,7 @@ router.post('/approve-first-piece', async (req: Request, res: Response) => {
  * GET /api/shop-floor-connect/program/:programName
  * Get CNC program details
  */
-router.get('/program/:programName', async (req: Request, res: Response) => {
+router.get('/program/:programName', async (req: Request, res: Response): Promise<any> => {
   try {
     const { programName } = req.params;
     const { partNumber } = req.query;
@@ -234,7 +234,7 @@ router.get('/program/:programName', async (req: Request, res: Response) => {
  * GET /api/shop-floor-connect/eco/:ecoNumber
  * Get Engineering Change Order details
  */
-router.get('/eco/:ecoNumber', async (req: Request, res: Response) => {
+router.get('/eco/:ecoNumber', async (req: Request, res: Response): Promise<any> => {
   try {
     const { ecoNumber } = req.params;
 
@@ -271,7 +271,7 @@ router.get('/eco/:ecoNumber', async (req: Request, res: Response) => {
  * GET /api/shop-floor-connect/health
  * Get Shop Floor Connect adapter health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('SFC') as ShopFloorConnectAdapter | undefined;

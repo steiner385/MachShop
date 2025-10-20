@@ -21,7 +21,7 @@ const signatureService = new ElectronicSignatureService(prisma);
  * Body: CreateSignatureInput
  * Response: CreateSignatureResponse
  */
-router.post('/sign', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.post('/sign', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     // Validate request body
     const validatedData = createSignatureSchema.parse({
@@ -68,7 +68,7 @@ router.post('/sign', authMiddleware, async (req: Request, res: Response): Promis
  * Body: VerifySignatureInput
  * Response: VerificationResult
  */
-router.post('/verify', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.post('/verify', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     // Validate request body
     const validatedData = verifySignatureSchema.parse(req.body);
@@ -110,7 +110,7 @@ router.post('/verify', authMiddleware, async (req: Request, res: Response): Prom
  *
  * Response: VerifySignatureResponse
  */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -144,7 +144,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
  * Query params: ListSignaturesInput
  * Response: ListSignaturesResponse
  */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.get('/', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     // Validate query parameters
     const validatedData = listSignaturesSchema.parse(req.query);
@@ -187,7 +187,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
  *
  * Response: SignatureAuditTrail[]
  */
-router.get('/entity/:entityType/:entityId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.get('/entity/:entityType/:entityId', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     const { entityType, entityId } = req.params;
 
@@ -224,7 +224,7 @@ router.get('/entity/:entityType/:entityId', authMiddleware, async (req: Request,
  * Body: { invalidationReason: string }
  * Response: ElectronicSignature
  */
-router.post('/:id/invalidate', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/invalidate', authMiddleware, async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { invalidationReason } = req.body;

@@ -20,7 +20,7 @@ const prisma = new PrismaClient();
  * GET /api/v1/historian/health
  * Check connection health to Proficy Historian
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -60,7 +60,7 @@ router.get('/health', async (req: Request, res: Response) => {
  *   maxValue?: number;
  * }
  */
-router.post('/tags/create', async (req: Request, res: Response) => {
+router.post('/tags/create', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -92,7 +92,7 @@ router.post('/tags/create', async (req: Request, res: Response) => {
  * POST /api/v1/historian/tags/auto-configure
  * Auto-configure tags for all equipment
  */
-router.post('/tags/auto-configure', async (req: Request, res: Response) => {
+router.post('/tags/auto-configure', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -133,7 +133,7 @@ router.post('/tags/auto-configure', async (req: Request, res: Response) => {
  *   }>
  * }
  */
-router.post('/data/write', async (req: Request, res: Response) => {
+router.post('/data/write', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -180,7 +180,7 @@ router.post('/data/write', async (req: Request, res: Response) => {
  * POST /api/v1/historian/equipment/:equipmentDataCollectionId/push
  * Push a specific equipment data collection to Proficy Historian
  */
-router.post('/equipment/:equipmentDataCollectionId/push', async (req: Request, res: Response) => {
+router.post('/equipment/:equipmentDataCollectionId/push', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentDataCollectionId } = req.params;
 
@@ -214,7 +214,7 @@ router.post('/equipment/:equipmentDataCollectionId/push', async (req: Request, r
  * POST /api/v1/historian/process/:processDataCollectionId/push
  * Push a specific process data collection to Proficy Historian
  */
-router.post('/process/:processDataCollectionId/push', async (req: Request, res: Response) => {
+router.post('/process/:processDataCollectionId/push', async (req: Request, res: Response): Promise<any> => {
   try {
     const { processDataCollectionId } = req.params;
 
@@ -256,7 +256,7 @@ router.post('/process/:processDataCollectionId/push', async (req: Request, res: 
  *   intervalMilliseconds?: number
  *   maxResults?: number
  */
-router.get('/data/query', async (req: Request, res: Response) => {
+router.get('/data/query', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -323,7 +323,7 @@ router.get('/data/query', async (req: Request, res: Response) => {
  *   aggregateType: 'Average' | 'Minimum' | 'Maximum' | 'Count'
  *   intervalMinutes?: number (default: 60)
  */
-router.get('/data/aggregate', async (req: Request, res: Response) => {
+router.get('/data/aggregate', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');
@@ -379,7 +379,7 @@ router.get('/data/aggregate', async (req: Request, res: Response) => {
  * POST /api/v1/historian/buffer/flush
  * Manually flush buffered data to historian
  */
-router.post('/buffer/flush', async (req: Request, res: Response) => {
+router.post('/buffer/flush', async (req: Request, res: Response): Promise<any> => {
   try {
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByName('proficy_historian');

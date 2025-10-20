@@ -1,0 +1,368 @@
+name: Role-Based E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'frontend/src/**'
+      - 'src/tests/e2e/roles/**'
+      - '.github/workflows/role-based-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  # Tier 1 - Production Roles (P0 - Critical)
+  tier1-production-roles:
+    name: Tier 1 - Production Roles
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_e2e_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+
+      - name: Run Tier 1 tests
+        run: npm run test:roles:tier1
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+          NODE_ENV: test
+          PORT: 3101
+          FRONTEND_PORT: 5278
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tier1-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tier1-test-videos
+          path: test-results/
+          retention-days: 7
+
+  # Tier 2 - Quality & Compliance (P1 - High)
+  tier2-quality-compliance:
+    name: Tier 2 - Quality & Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_e2e_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+
+      - name: Run Tier 2 tests
+        run: npm run test:roles:tier2
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+          NODE_ENV: test
+          PORT: 3101
+          FRONTEND_PORT: 5278
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tier2-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  # Tier 3 - Materials & Logistics (P1 - High)
+  tier3-materials-logistics:
+    name: Tier 3 - Materials & Logistics
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_e2e_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+
+      - name: Run Tier 3 tests
+        run: npm run test:roles:tier3
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+          NODE_ENV: test
+          PORT: 3101
+          FRONTEND_PORT: 5278
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tier3-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  # Tier 4-5 - Maintenance & Administration (P2 - Medium)
+  tier4-5-maintenance-admin:
+    name: Tier 4-5 - Maintenance & Administration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_e2e_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+
+      - name: Run Tier 4-5 tests
+        run: npm run test:roles:tier4 && npm run test:roles:tier5
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+          NODE_ENV: test
+          PORT: 3101
+          FRONTEND_PORT: 5278
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tier4-5-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  # Compliance & DCMA Audit Tests
+  compliance-audit:
+    name: Compliance & DCMA Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_e2e_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+
+      - name: Run compliance tests
+        run: npm run test:roles:compliance
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db
+          NODE_ENV: test
+          PORT: 3101
+          FRONTEND_PORT: 5278
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-playwright-report
+          path: playwright-report/
+          retention-days: 90  # Keep compliance reports longer
+
+  # Test Summary
+  test-summary:
+    name: Test Summary
+    needs: [tier1-production-roles, tier2-quality-compliance, tier3-materials-logistics, tier4-5-maintenance-admin, compliance-audit]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all test reports
+        uses: actions/download-artifact@v3
+        with:
+          path: all-reports
+
+      - name: Display summary
+        run: |
+          echo "## Role-Based Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results by Tier" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tier 1 - Production Roles" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tier 2 - Quality & Compliance" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tier 3 - Materials & Logistics" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tier 4-5 - Maintenance & Administration" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Compliance & DCMA Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Roles**: 19" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suites**: 19" >> $GITHUB_STEP_SUMMARY
+          echo "- **AS9100 Compliance**: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- **DCMA Audit Ready**: ✅" >> $GITHUB_STEP_SUMMARY

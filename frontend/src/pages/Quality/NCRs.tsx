@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { qualityApi, NCR, NCRStatus, NCRSeverity } from '../../services/qualityApi';
+import { useAuthStore } from '@/store/AuthStore';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -48,6 +49,7 @@ const NCRs: React.FC = () => {
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   // Set page title
@@ -272,13 +274,23 @@ const NCRs: React.FC = () => {
     form.resetFields();
   };
 
+  // Check if user has permission to create NCRs
+  const canCreateNCR = user?.permissions?.includes('quality.write') || user?.permissions?.includes('ncr.write') || false;
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={2} style={{ margin: 0 }}>Non-Conformance Reports</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNCR}>
-          Create NCR
-        </Button>
+        <Tooltip title={!canCreateNCR ? "You don't have permission to create NCRs" : ""}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreateNCR}
+            disabled={!canCreateNCR}
+          >
+            Create NCR
+          </Button>
+        </Tooltip>
       </div>
 
       <Card>
