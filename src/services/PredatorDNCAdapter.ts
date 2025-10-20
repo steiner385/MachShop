@@ -409,7 +409,7 @@ export class PredatorDNCAdapter {
   }> {
     try {
       const operator = await prisma.user.findFirst({
-        where: { badgeNumber: operatorId },
+        where: { employeeNumber: operatorId },
       });
 
       if (!operator) {

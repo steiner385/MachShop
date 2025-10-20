@@ -667,23 +667,30 @@ export class TeamcenterAdapter {
       }
 
       // Create or update BOM item
-      await prisma.bOMItem.upsert({
+      const existingBOMItem = await prisma.bOMItem.findFirst({
         where: {
-          parentPartId_componentPartId: {
-            parentPartId: parentPartId,
-            componentPartId: componentPart.id,
-          },
-        },
-        update: {
-          quantity: line.properties.bl_quantity,
-        },
-        create: {
           parentPartId: parentPartId,
           componentPartId: componentPart.id,
-          quantity: line.properties.bl_quantity,
-          unitOfMeasure: componentPart.unitOfMeasure,
         },
       });
+
+      if (existingBOMItem) {
+        await prisma.bOMItem.update({
+          where: { id: existingBOMItem.id },
+          data: {
+            quantity: line.properties.bl_quantity,
+          },
+        });
+      } else {
+        await prisma.bOMItem.create({
+          data: {
+            parentPartId: parentPartId,
+            componentPartId: componentPart.id,
+            quantity: line.properties.bl_quantity,
+            unitOfMeasure: componentPart.unitOfMeasure,
+          },
+        });
+      }
 
       // Process children recursively (multi-level BOM)
       if (line.children && line.children.length > 0) {

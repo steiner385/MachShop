@@ -311,7 +311,7 @@ export class PredatorPDMAdapter {
       if (document.operationCode) formData.append('operationCode', document.operationCode);
       formData.append('revision', document.revision);
       formData.append('fileName', document.fileName);
-      formData.append('file', document.fileContent);
+      formData.append('file', document.fileContent as any);
       formData.append('author', document.author);
       if (document.description) formData.append('description', document.description);
       if (document.tags) formData.append('tags', JSON.stringify(document.tags));
@@ -477,7 +477,9 @@ export class PredatorPDMAdapter {
         qifPlanId: latestDoc.documentId,
         partNumber,
         revision: latestDoc.revision,
-        characteristics: qifData.measurementPlan?.characteristics?.map((char: any) => ({
+        planVersion: '1.0',
+        createdDate: new Date(),
+        characteristics: (qifData as any).characteristics?.map((char: any) => ({
           characteristicId: char.characteristicId,
           balloonNumber: char.balloonNumber || '',
           nominalValue: char.nominalValue || 0,

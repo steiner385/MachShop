@@ -417,8 +417,8 @@ export class IBMMaximoAdapter {
               data: {
                 ...equipmentData,
                 // capacity: 1.0, // TODO: Add capacity field to Equipment model if needed
-                currentStatus: 'AVAILABLE',
-              },
+                currentState: 'AVAILABLE' as any,
+              } as any,
             });
           }
 

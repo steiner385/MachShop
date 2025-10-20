@@ -47,7 +47,7 @@ export interface IntegrationJob {
   enabled: boolean;
   lastRun?: Date;
   nextRun?: Date;
-  cronTask?: cron.ScheduledTask;
+  cronTask?: any; // node-cron ScheduledTask
 }
 
 /**
@@ -297,11 +297,19 @@ export class IntegrationManager {
 
       switch (options.jobType) {
         case 'sync_items':
-          result = await adapter.syncItems(options.filters);
+          if ('syncItems' in adapter && typeof adapter.syncItems === 'function') {
+            result = await adapter.syncItems(options.filters);
+          } else {
+            throw new Error('Adapter does not support item sync');
+          }
           break;
 
         case 'sync_boms':
-          result = await adapter.syncBOMs(options.filters?.assemblyItemNumber);
+          if ('syncBOMs' in adapter && typeof adapter.syncBOMs === 'function') {
+            result = await (adapter as any).syncBOMs(options.filters?.assemblyItemNumber);
+          } else {
+            throw new Error('Adapter does not support BOM sync');
+          }
           break;
 
         case 'sync_workorders':
@@ -409,7 +417,7 @@ export class IntegrationManager {
         configId: data.configId,
         operation: data.operation,
         direction: data.direction,
-        status: data.status,
+        status: data.status as any,
         recordCount: data.recordCount,
         successCount: data.successCount,
         errorCount: data.errorCount,
@@ -576,7 +584,7 @@ export class IntegrationManager {
         try {
           const health = await adapter.getHealthStatus();
           connected = health.connected;
-          responseTime = health.responseTime;
+          responseTime = (health as any).responseTime;
         } catch (error) {
           connected = false;
         }

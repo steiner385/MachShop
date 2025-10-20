@@ -396,26 +396,24 @@ export class OracleEBSAdapter {
       workOrderNumber: ebsWO.WIP_ENTITY_NAME,
       partId: part.id,
       quantity: ebsWO.START_QUANTITY,
-      status,
+      status: status as any,
       priority: ebsWO.PRIORITY ? this.mapPriorityToMES(ebsWO.PRIORITY) : 'NORMAL',
       plannedStartDate: new Date(ebsWO.SCHEDULED_START_DATE),
       plannedEndDate: new Date(ebsWO.SCHEDULED_COMPLETION_DATE),
       actualStartDate: ebsWO.DATE_RELEASED ? new Date(ebsWO.DATE_RELEASED) : null,
       actualEndDate: ebsWO.DATE_COMPLETED ? new Date(ebsWO.DATE_COMPLETED) : null,
       description: ebsWO.DESCRIPTION || `EBS Job ${ebsWO.WIP_ENTITY_NAME}`,
-      externalSystemId: ebsWO.WIP_ENTITY_ID.toString(),
-      externalSystemName: 'ORACLE_EBS',
     };
 
     if (existing) {
       await prisma.workOrder.update({
         where: { id: existing.id },
-        data: workOrderData,
+        data: workOrderData as any,
       });
       return false; // Updated
     } else {
       await prisma.workOrder.create({
-        data: workOrderData,
+        data: workOrderData as any,
       });
       return true; // Created
     }
@@ -604,10 +602,9 @@ export class OracleEBSAdapter {
 
     // Process each component
     for (const component of components) {
-      const componentPart = await prisma.part.findUnique({
+      const componentPart = await prisma.part.findFirst({
         where: {
-          externalSystemId: component.COMPONENT_ITEM_ID.toString(),
-          externalSystemName: 'ORACLE_EBS',
+          partNumber: component.COMPONENT_ITEM_NUMBER,
         },
       });
 
@@ -617,23 +614,30 @@ export class OracleEBSAdapter {
       }
 
       // Create or update BOM item
-      await prisma.bOMItem.upsert({
+      const existingBOMItem = await prisma.bOMItem.findFirst({
         where: {
-          parentPartId_componentPartId: {
-            parentPartId: parentPart.id,
-            componentPartId: componentPart.id,
-          },
-        },
-        update: {
-          quantity: component.COMPONENT_QUANTITY * component.COMPONENT_YIELD_FACTOR,
-        },
-        create: {
           parentPartId: parentPart.id,
           componentPartId: componentPart.id,
-          quantity: component.COMPONENT_QUANTITY * component.COMPONENT_YIELD_FACTOR,
-          unitOfMeasure: componentPart.unitOfMeasure,
         },
       });
+
+      if (existingBOMItem) {
+        await prisma.bOMItem.update({
+          where: { id: existingBOMItem.id },
+          data: {
+            quantity: component.COMPONENT_QUANTITY * component.COMPONENT_YIELD_FACTOR,
+          },
+        });
+      } else {
+        await prisma.bOMItem.create({
+          data: {
+            parentPartId: parentPart.id,
+            componentPartId: componentPart.id,
+            quantity: component.COMPONENT_QUANTITY * component.COMPONENT_YIELD_FACTOR,
+            unitOfMeasure: componentPart.unitOfMeasure,
+          },
+        });
+      }
     }
   }
 
@@ -652,13 +656,16 @@ export class OracleEBSAdapter {
         where: { id: workOrderId },
       });
 
-      if (!workOrder || !workOrder.externalSystemId) {
-        throw new Error('Work order not found or not linked to EBS');
+      if (!workOrder) {
+        throw new Error('Work order not found');
       }
+
+      // Parse WIP entity ID from work order number (assuming format like WO-12345)
+      const wipEntityId = parseInt(workOrder.workOrderNumber.replace(/\D/g, '')) || 0;
 
       // Create move transaction (completion)
       const moveTransaction: EBSMoveTransaction = {
-        WIP_ENTITY_ID: parseInt(workOrder.externalSystemId),
+        WIP_ENTITY_ID: wipEntityId,
         ORGANIZATION_ID: this.config.orgId || 0,
         TRANSACTION_TYPE: 2, // Completion
         TRANSACTION_QUANTITY: quantity,

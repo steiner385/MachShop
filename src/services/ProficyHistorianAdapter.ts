@@ -367,12 +367,12 @@ export class ProficyHistorianAdapter {
       }
 
       // Map to Proficy tag naming convention: EQUIPMENT.<EQUIP_ID>.<DATA_TYPE>
-      const tagName = `EQUIPMENT.${dataCollection.equipment.equipmentCode}.${dataCollection.dataCollectionType}`;
+      const tagName = `EQUIPMENT.${dataCollection.equipment.equipmentNumber}.${dataCollection.dataCollectionType}`;
 
       const dataPoint: ProficyDataPoint = {
         tagName,
-        value: dataCollection.value,
-        timestamp: dataCollection.collectedAt,
+        value: dataCollection.numericValue ?? dataCollection.stringValue ?? dataCollection.booleanValue ?? 0,
+        timestamp: dataCollection.collectionTimestamp,
         quality: 100,
       };
 
@@ -402,7 +402,7 @@ export class ProficyHistorianAdapter {
       // Convert process parameters to individual tag writes
       const parameters = processData.parameters as any || {};
       for (const [paramName, paramValue] of Object.entries(parameters)) {
-        const tagName = `PROCESS.${processData.equipment.equipmentCode}.${paramName}`;
+        const tagName = `PROCESS.${processData.equipment.equipmentNumber}.${paramName}`;
         dataPoints.push({
           tagName,
           value: paramValue,
@@ -445,8 +445,8 @@ export class ProficyHistorianAdapter {
         for (const dataType of commonDataTypes) {
           try {
             await this.createTag({
-              tagName: `EQUIPMENT.${equip.equipmentCode}.${dataType.name}`,
-              description: `${dataType.name} for ${equip.equipmentName}`,
+              tagName: `EQUIPMENT.${equip.equipmentNumber}.${dataType.name}`,
+              description: `${dataType.name} for ${equip.description || equip.equipmentNumber}`,
               dataType: dataType.dataType,
               engineeringUnits: dataType.units,
               compressionType: 'Swinging Door',

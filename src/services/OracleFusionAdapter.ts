@@ -438,28 +438,34 @@ export class OracleFusionAdapter {
       }
 
       // Create or update BOM item
-      await prisma.bOMItem.upsert({
+      const existingBOMItem = await prisma.bOMItem.findFirst({
         where: {
-          // Composite unique constraint (if exists)
-          parentPartId_componentPartId: {
-            parentPartId: parentPart.id,
-            componentPartId: componentPart.id,
-          },
-        },
-        update: {
-          quantity: component.ComponentQuantity,
-          sequence: component.OperationSequenceNumber || null,
-          isActive: !component.DisableDate,
-        },
-        create: {
           parentPartId: parentPart.id,
           componentPartId: componentPart.id,
-          quantity: component.ComponentQuantity,
-          unitOfMeasure: componentPart.unitOfMeasure,
-          sequence: component.OperationSequenceNumber || null,
-          isActive: !component.DisableDate,
         },
       });
+
+      if (existingBOMItem) {
+        await prisma.bOMItem.update({
+          where: { id: existingBOMItem.id },
+          data: {
+            quantity: component.ComponentQuantity,
+            sequence: component.OperationSequenceNumber || null,
+            isActive: !component.DisableDate,
+          },
+        });
+      } else {
+        await prisma.bOMItem.create({
+          data: {
+            parentPartId: parentPart.id,
+            componentPartId: componentPart.id,
+            quantity: component.ComponentQuantity,
+            unitOfMeasure: componentPart.unitOfMeasure,
+            sequence: component.OperationSequenceNumber || null,
+            isActive: !component.DisableDate,
+          },
+        });
+      }
     }
   }
 
@@ -597,7 +603,7 @@ export class OracleFusionAdapter {
       update: {
         quantity: payload.StartQuantity,
         quantityCompleted: payload.CompletionQuantity || 0,
-        status: this.mapFusionStatusToMESStatus(payload.Status),
+        status: this.mapFusionStatusToMESStatus(payload.Status) as any,
       },
       create: {
         workOrderNumber: payload.WorkOrderNumber,
@@ -606,7 +612,7 @@ export class OracleFusionAdapter {
         quantity: payload.StartQuantity,
         quantityCompleted: payload.CompletionQuantity || 0,
         priority: 'NORMAL',
-        status: this.mapFusionStatusToMESStatus(payload.Status),
+        status: this.mapFusionStatusToMESStatus(payload.Status) as any,
         createdById: systemUser.id,
       },
     });

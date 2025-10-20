@@ -250,7 +250,7 @@ export class CovalentAdapter {
             });
           } else {
             await prisma.user.create({
-              data: operatorData,
+              data: operatorData as any,
             });
           }
 
