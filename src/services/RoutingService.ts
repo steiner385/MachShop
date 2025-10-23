@@ -32,7 +32,15 @@ import {
   RoutingTimingCalculation,
   RoutingStepResequenceRequest,
   RoutingValidationResult,
-  RoutingValidationError
+  RoutingValidationError,
+  // Phase 3.2: Template types
+  RoutingTemplate,
+  CreateRoutingTemplateDTO,
+  UpdateRoutingTemplateDTO,
+  RoutingTemplateQueryParams,
+  VisualRoutingData,
+  CreateRoutingWithVisualDTO,
+  UpdateRoutingWithVisualDTO
 } from '../types/routing';
 
 const prisma = new PrismaClient();
@@ -1273,6 +1281,327 @@ export class RoutingService {
 
     // Increment major version
     return `${major + 1}.0`;
+  }
+
+  // ============================================
+  // ROUTING TEMPLATE OPERATIONS (Phase 3.2)
+  // ============================================
+
+  /**
+   * Create a new routing template
+   */
+  async createRoutingTemplate(data: CreateRoutingTemplateDTO): Promise<RoutingTemplate> {
+    // Validate template name uniqueness
+    const existing = await prisma.routingTemplate.findFirst({
+      where: {
+        name: data.name,
+        createdBy: data.createdBy
+      }
+    });
+
+    if (existing) {
+      throw new Error(`Template with name "${data.name}" already exists for this user`);
+    }
+
+    // Create template
+    const template = await prisma.routingTemplate.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        tags: data.tags,
+        visualData: data.visualData as Prisma.InputJsonValue,
+        isFavorite: data.isFavorite ?? false,
+        usageCount: 0,
+        createdBy: data.createdBy
+      }
+    });
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Get all routing templates with optional filtering
+   */
+  async getRoutingTemplates(params?: RoutingTemplateQueryParams): Promise<RoutingTemplate[]> {
+    const where: Prisma.RoutingTemplateWhereInput = {};
+
+    if (params?.category) {
+      where.category = params.category;
+    }
+
+    if (params?.isFavorite !== undefined) {
+      where.isFavorite = params.isFavorite;
+    }
+
+    if (params?.createdBy) {
+      where.createdBy = params.createdBy;
+    }
+
+    if (params?.tags && params.tags.length > 0) {
+      where.tags = {
+        hasSome: params.tags
+      };
+    }
+
+    if (params?.searchText) {
+      where.OR = [
+        { name: { contains: params.searchText, mode: 'insensitive' } },
+        { description: { contains: params.searchText, mode: 'insensitive' } },
+        { category: { contains: params.searchText, mode: 'insensitive' } }
+      ];
+    }
+
+    const templates = await prisma.routingTemplate.findMany({
+      where,
+      orderBy: [
+        { isFavorite: 'desc' },
+        { usageCount: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+
+    return templates.map(t => this.mapTemplateFromPrisma(t));
+  }
+
+  /**
+   * Get a single routing template by ID
+   */
+  async getRoutingTemplateById(id: string): Promise<RoutingTemplate | null> {
+    const template = await prisma.routingTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      return null;
+    }
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Update a routing template
+   */
+  async updateRoutingTemplate(
+    id: string,
+    data: UpdateRoutingTemplateDTO
+  ): Promise<RoutingTemplate> {
+    const template = await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        tags: data.tags,
+        visualData: data.visualData ? (data.visualData as Prisma.InputJsonValue) : undefined,
+        isFavorite: data.isFavorite
+      }
+    });
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Delete a routing template
+   */
+  async deleteRoutingTemplate(id: string): Promise<void> {
+    await prisma.routingTemplate.delete({
+      where: { id }
+    });
+  }
+
+  /**
+   * Increment template usage count
+   */
+  async incrementTemplateUsage(id: string): Promise<void> {
+    await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        usageCount: {
+          increment: 1
+        }
+      }
+    });
+  }
+
+  /**
+   * Toggle template favorite status
+   */
+  async toggleTemplateFavorite(id: string): Promise<RoutingTemplate> {
+    const template = await prisma.routingTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      throw new Error(`Template ${id} not found`);
+    }
+
+    const updated = await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        isFavorite: !template.isFavorite
+      }
+    });
+
+    return this.mapTemplateFromPrisma(updated);
+  }
+
+  /**
+   * Get template categories with counts
+   */
+  async getTemplateCategories(): Promise<Array<{ category: string; count: number }>> {
+    const result = await prisma.routingTemplate.groupBy({
+      by: ['category'],
+      _count: {
+        id: true
+      },
+      orderBy: {
+        _count: {
+          id: 'desc'
+        }
+      }
+    });
+
+    return result.map(r => ({
+      category: r.category,
+      count: r._count.id
+    }));
+  }
+
+  /**
+   * Create routing from template
+   */
+  async createRoutingFromTemplate(
+    templateId: string,
+    routingData: Omit<CreateRoutingDTO, 'visualData'>,
+    userId?: string
+  ): Promise<RoutingWithRelations> {
+    // Get template
+    const template = await this.getRoutingTemplateById(templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+
+    // Increment usage count
+    await this.incrementTemplateUsage(templateId);
+
+    // Create routing with visual data from template
+    const routingWithVisual: CreateRoutingWithVisualDTO = {
+      ...routingData,
+      visualData: template.visualData,
+      createdBy: userId,
+      notes: `Created from template: ${template.name}`
+    };
+
+    return await this.createRoutingWithVisualData(routingWithVisual);
+  }
+
+  // ============================================
+  // VISUAL ROUTING DATA OPERATIONS (Phase 3.2)
+  // ============================================
+
+  /**
+   * Create routing with visual data
+   */
+  async createRoutingWithVisualData(
+    data: CreateRoutingWithVisualDTO
+  ): Promise<RoutingWithRelations> {
+    // Store visual data as JSON in a separate field or in notes
+    // For now, we'll store it in the notes field as a JSON string
+    const visualDataJson = data.visualData ? JSON.stringify(data.visualData) : null;
+
+    const routingData: CreateRoutingDTO = {
+      ...data,
+      notes: visualDataJson
+        ? `${data.notes || ''}\n\n[VISUAL_DATA]${visualDataJson}[/VISUAL_DATA]`
+        : data.notes
+    };
+
+    return await this.createRouting(routingData);
+  }
+
+  /**
+   * Update routing with visual data
+   */
+  async updateRoutingWithVisualData(
+    id: string,
+    data: UpdateRoutingWithVisualDTO
+  ): Promise<RoutingWithRelations> {
+    const existing = await this.getRoutingById(id);
+    if (!existing) {
+      throw new Error(`Routing ${id} not found`);
+    }
+
+    // Extract existing visual data from notes
+    const existingVisualData = this.extractVisualDataFromNotes(existing.notes || '');
+
+    // Prepare visual data
+    const visualDataJson = data.visualData ? JSON.stringify(data.visualData) : null;
+
+    // Prepare notes with visual data
+    let notes = data.notes !== undefined ? data.notes : existing.notes || '';
+
+    // Remove old visual data marker if exists
+    notes = notes.replace(/\[VISUAL_DATA\].*?\[\/VISUAL_DATA\]/s, '');
+
+    // Add new visual data marker if provided
+    if (visualDataJson) {
+      notes = `${notes}\n\n[VISUAL_DATA]${visualDataJson}[/VISUAL_DATA]`;
+    }
+
+    const routingData: UpdateRoutingDTO = {
+      ...data,
+      notes
+    };
+
+    return await this.updateRouting(id, routingData);
+  }
+
+  /**
+   * Get visual data for a routing
+   */
+  async getRoutingVisualData(routingId: string): Promise<VisualRoutingData | null> {
+    const routing = await this.getRoutingById(routingId);
+    if (!routing) {
+      return null;
+    }
+
+    return this.extractVisualDataFromNotes(routing.notes || '');
+  }
+
+  /**
+   * Helper: Extract visual data from notes field
+   */
+  private extractVisualDataFromNotes(notes: string): VisualRoutingData | null {
+    const match = notes.match(/\[VISUAL_DATA\](.*?)\[\/VISUAL_DATA\]/s);
+    if (match && match[1]) {
+      try {
+        return JSON.parse(match[1]);
+      } catch (e) {
+        console.error('Failed to parse visual data:', e);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Helper: Map Prisma template to RoutingTemplate type
+   */
+  private mapTemplateFromPrisma(template: any): RoutingTemplate {
+    return {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      tags: template.tags,
+      visualData: template.visualData as VisualRoutingData,
+      isFavorite: template.isFavorite,
+      usageCount: template.usageCount,
+      createdBy: template.createdBy,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt
+    };
   }
 }
 

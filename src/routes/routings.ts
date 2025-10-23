@@ -904,4 +904,317 @@ router.get('/:id/validate',
   })
 );
 
+// ============================================
+// ROUTING TEMPLATE ENDPOINTS (Phase 3.3)
+// ============================================
+
+/**
+ * @route GET /api/v1/routings/templates
+ * @desc Get all routing templates with optional filtering
+ * @access Private (Routing Access Required)
+ */
+router.get('/templates',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { category, isFavorite, createdBy, searchText, tags } = req.query;
+
+    const params = {
+      category: category as string | undefined,
+      isFavorite: isFavorite === 'true' ? true : isFavorite === 'false' ? false : undefined,
+      createdBy: createdBy as string | undefined,
+      searchText: searchText as string | undefined,
+      tags: tags ? (tags as string).split(',') : undefined
+    };
+
+    const templates = await routingService.getRoutingTemplates(params);
+
+    logger.info('Routing templates retrieved', {
+      userId: req.user?.id,
+      templateCount: templates.length,
+      filters: params
+    });
+
+    res.status(200).json({
+      success: true,
+      data: templates
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/templates/categories
+ * @desc Get template categories with counts
+ * @access Private (Routing Access Required)
+ */
+router.get('/templates/categories',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const categories = await routingService.getTemplateCategories();
+
+    logger.info('Template categories retrieved', {
+      userId: req.user?.id,
+      categoryCount: categories.length
+    });
+
+    res.status(200).json({
+      success: true,
+      data: categories
+    });
+  })
+);
+
+/**
+ * @route POST /api/v1/routings/templates
+ * @desc Create a new routing template
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/templates',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { name, description, category, tags, visualData, isFavorite } = req.body;
+
+    const template = await routingService.createRoutingTemplate({
+      name,
+      description,
+      category,
+      tags,
+      visualData,
+      isFavorite,
+      createdBy: req.user?.id
+    });
+
+    logger.info('Routing template created', {
+      userId: req.user?.id,
+      templateId: template.id,
+      templateName: template.name
+    });
+
+    res.status(201).json({
+      success: true,
+      data: template
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/templates/:id
+ * @desc Get a single routing template by ID
+ * @access Private (Routing Access Required)
+ */
+router.get('/templates/:id',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const template = await routingService.getRoutingTemplateById(id);
+
+    if (!template) {
+      throw new NotFoundError(`Template ${id} not found`);
+    }
+
+    logger.info('Routing template retrieved', {
+      userId: req.user?.id,
+      templateId: id
+    });
+
+    res.status(200).json({
+      success: true,
+      data: template
+    });
+  })
+);
+
+/**
+ * @route PUT /api/v1/routings/templates/:id
+ * @desc Update a routing template
+ * @access Private (Routing Write Permission Required)
+ */
+router.put('/templates/:id',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { name, description, category, tags, visualData, isFavorite } = req.body;
+
+    const template = await routingService.updateRoutingTemplate(id, {
+      name,
+      description,
+      category,
+      tags,
+      visualData,
+      isFavorite
+    });
+
+    logger.info('Routing template updated', {
+      userId: req.user?.id,
+      templateId: id
+    });
+
+    res.status(200).json({
+      success: true,
+      data: template
+    });
+  })
+);
+
+/**
+ * @route DELETE /api/v1/routings/templates/:id
+ * @desc Delete a routing template
+ * @access Private (Routing Write Permission Required)
+ */
+router.delete('/templates/:id',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    await routingService.deleteRoutingTemplate(id);
+
+    logger.info('Routing template deleted', {
+      userId: req.user?.id,
+      templateId: id
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Template deleted successfully'
+    });
+  })
+);
+
+/**
+ * @route POST /api/v1/routings/templates/:id/favorite
+ * @desc Toggle template favorite status
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/templates/:id/favorite',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const template = await routingService.toggleTemplateFavorite(id);
+
+    logger.info('Template favorite toggled', {
+      userId: req.user?.id,
+      templateId: id,
+      isFavorite: template.isFavorite
+    });
+
+    res.status(200).json({
+      success: true,
+      data: template
+    });
+  })
+);
+
+/**
+ * @route POST /api/v1/routings/templates/:id/use
+ * @desc Create routing from template
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/templates/:id/use',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const routingData = req.body;
+
+    const routing = await routingService.createRoutingFromTemplate(
+      id,
+      routingData,
+      req.user?.id
+    );
+
+    logger.info('Routing created from template', {
+      userId: req.user?.id,
+      templateId: id,
+      routingId: routing.id
+    });
+
+    res.status(201).json({
+      success: true,
+      data: routing
+    });
+  })
+);
+
+// ============================================
+// VISUAL ROUTING DATA ENDPOINTS (Phase 3.3)
+// ============================================
+
+/**
+ * @route GET /api/v1/routings/:id/visual-data
+ * @desc Get visual routing data for a routing
+ * @access Private (Routing Access Required)
+ */
+router.get('/:id/visual-data',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const visualData = await routingService.getRoutingVisualData(id);
+
+    logger.info('Visual routing data retrieved', {
+      userId: req.user?.id,
+      routingId: id,
+      hasVisualData: !!visualData
+    });
+
+    res.status(200).json({
+      success: true,
+      data: visualData
+    });
+  })
+);
+
+/**
+ * @route POST /api/v1/routings/visual
+ * @desc Create routing with visual data
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/visual',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const routingData = req.body;
+
+    const routing = await routingService.createRoutingWithVisualData({
+      ...routingData,
+      createdBy: req.user?.id
+    });
+
+    logger.info('Routing created with visual data', {
+      userId: req.user?.id,
+      routingId: routing.id,
+      routingNumber: routing.routingNumber
+    });
+
+    res.status(201).json({
+      success: true,
+      data: routing
+    });
+  })
+);
+
+/**
+ * @route PUT /api/v1/routings/:id/visual
+ * @desc Update routing with visual data
+ * @access Private (Routing Write Permission Required)
+ */
+router.put('/:id/visual',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const routing = await routingService.updateRoutingWithVisualData(id, updateData);
+
+    logger.info('Routing updated with visual data', {
+      userId: req.user?.id,
+      routingId: id
+    });
+
+    res.status(200).json({
+      success: true,
+      data: routing
+    });
+  })
+);
+
 export default router;
