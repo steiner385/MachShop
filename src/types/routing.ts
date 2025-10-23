@@ -531,5 +531,177 @@ export interface RoutingStepResequenceRequest {
   }>;
 }
 
+// ============================================
+// VISUAL ROUTING EDITOR TYPES (Phase 2)
+// ============================================
+
+/**
+ * StepType - Types of routing steps for visual editor
+ */
+export enum StepType {
+  PROCESS = 'PROCESS',                 // Standard manufacturing operation
+  INSPECTION = 'INSPECTION',           // Quality inspection/verification
+  DECISION = 'DECISION',               // Branch/decision point (mutually exclusive)
+  PARALLEL_SPLIT = 'PARALLEL_SPLIT',   // Split into parallel operations
+  PARALLEL_JOIN = 'PARALLEL_JOIN',     // Join parallel operations back together
+  OSP = 'OSP',                         // Outside processing/farmout
+  LOT_SPLIT = 'LOT_SPLIT',             // Split lot into multiple sublots
+  LOT_MERGE = 'LOT_MERGE',             // Merge multiple lots/sublots
+  TELESCOPING = 'TELESCOPING',         // Optional/telescoping operation
+  START = 'START',                     // Start node
+  END = 'END',                         // End node
+}
+
+/**
+ * ControlType - Material control types
+ */
+export enum ControlType {
+  LOT_CONTROLLED = 'LOT_CONTROLLED',
+  SERIAL_CONTROLLED = 'SERIAL_CONTROLLED',
+  MIXED = 'MIXED',
+}
+
+/**
+ * ConnectionDependencyType - Advanced dependency types for visual editor
+ */
+export enum ConnectionDependencyType {
+  FINISH_TO_START = 'FINISH_TO_START',     // Most common: Successor starts after predecessor finishes
+  START_TO_START = 'START_TO_START',       // Successor starts when predecessor starts
+  FINISH_TO_FINISH = 'FINISH_TO_FINISH',   // Successor finishes when predecessor finishes
+  START_TO_FINISH = 'START_TO_FINISH',     // Successor finishes when predecessor starts (rare)
+}
+
+/**
+ * RoutingStepNodeData - Data structure for ReactFlow nodes
+ */
+export interface RoutingStepNodeData {
+  label: string;
+  stepNumber: string;
+  stepType: StepType;
+  operationCode?: string;
+  workCenterId?: string;
+  description?: string;
+  standardTime?: number;
+  setupTime?: number;
+  controlType?: ControlType;
+  isOptional?: boolean;
+  isCriticalPath?: boolean;
+}
+
+/**
+ * RoutingConnectionData - Data structure for ReactFlow edges/connections
+ */
+export interface RoutingConnectionData {
+  dependencyType: ConnectionDependencyType;
+  lagTime?: number;        // Positive = delay, Negative = lead/overlap
+  description?: string;
+  isOptional?: boolean;
+  isCriticalPath?: boolean;
+}
+
+/**
+ * VisualRoutingData - Complete visual routing structure
+ * Stored as JSON in database for visual editor
+ */
+export interface VisualRoutingData {
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: RoutingStepNodeData;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    type?: string;
+    data?: RoutingConnectionData;
+  }>;
+}
+
+/**
+ * RoutingTemplate - Reusable routing pattern
+ */
+export interface RoutingTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+
+  // Visual routing structure
+  visualData: VisualRoutingData;
+
+  // Usage tracking
+  isFavorite?: boolean;
+  usageCount?: number;
+
+  // Metadata
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * CreateRoutingTemplateDTO - Data for creating a routing template
+ */
+export interface CreateRoutingTemplateDTO {
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  visualData: VisualRoutingData;
+  isFavorite?: boolean;
+  createdBy?: string;
+}
+
+/**
+ * UpdateRoutingTemplateDTO - Data for updating a routing template
+ */
+export interface UpdateRoutingTemplateDTO {
+  name?: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  visualData?: VisualRoutingData;
+  isFavorite?: boolean;
+}
+
+/**
+ * RoutingTemplateQueryParams - Query parameters for templates
+ */
+export interface RoutingTemplateQueryParams {
+  category?: string;
+  tags?: string[];
+  isFavorite?: boolean;
+  searchText?: string;
+  createdBy?: string;
+}
+
+// ============================================
+// EXTENDED ROUTING WITH VISUAL DATA
+// ============================================
+
+/**
+ * RoutingWithVisualData - Routing with visual editor data
+ */
+export interface RoutingWithVisualData extends Routing {
+  visualData?: VisualRoutingData;
+}
+
+/**
+ * CreateRoutingWithVisualDTO - Create routing with visual data
+ */
+export interface CreateRoutingWithVisualDTO extends CreateRoutingDTO {
+  visualData?: VisualRoutingData;
+}
+
+/**
+ * UpdateRoutingWithVisualDTO - Update routing with visual data
+ */
+export interface UpdateRoutingWithVisualDTO extends UpdateRoutingDTO {
+  visualData?: VisualRoutingData;
+}
+
 // All types and interfaces are exported inline above
 // Enums are also exported inline at the top of this file
