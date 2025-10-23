@@ -13,9 +13,8 @@
  * - Delete routing
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, request } from '@playwright/test';
 import { PrismaClient, RoutingLifecycleState } from '@prisma/client';
-import { testAuthHelper } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
 
@@ -52,13 +51,34 @@ test.describe('Routing Management E2E Tests', () => {
   let createdRoutingId: string;
 
   test.beforeAll(async ({ browser }) => {
-    // Create a new page
+    // Create API context for authentication
+    const apiContext = await request.newContext({
+      baseURL: 'http://localhost:3101/api/v1/',
+    });
+
+    // Login to get auth token
+    const loginResponse = await apiContext.post('auth/login', {
+      data: {
+        username: 'prod.planner',
+        password: 'password123'
+      }
+    });
+
+    if (!loginResponse.ok()) {
+      throw new Error(`Login failed: ${await loginResponse.text()}`);
+    }
+
+    const loginData = await loginResponse.json();
+    authToken = loginData.token;
+
+    // Create browser context with auth token
     const context = await browser.newContext();
     page = await context.newPage();
 
-    // Authenticate as Production Planner
-    const authResult = await testAuthHelper.loginAsProductionPlanner(page);
-    authToken = authResult.token;
+    // Set auth token in page context
+    await page.addInitScript((token) => {
+      localStorage.setItem('authToken', token);
+    }, authToken);
 
     // Setup test data in database
     testSite = await prisma.site.findFirst({

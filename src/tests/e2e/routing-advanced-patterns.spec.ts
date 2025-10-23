@@ -11,9 +11,8 @@
  * - Lot separation/merging workflows
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, request } from '@playwright/test';
 import { PrismaClient, RoutingLifecycleState, StepType, ControlType } from '@prisma/client';
-import { testAuthHelper } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
 
@@ -26,12 +25,34 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   let testWorkCenter: any;
 
   test.beforeAll(async ({ browser }) => {
+    // Create API context for authentication
+    const apiContext = await request.newContext({
+      baseURL: 'http://localhost:3101/api/v1/',
+    });
+
+    // Login to get auth token
+    const loginResponse = await apiContext.post('auth/login', {
+      data: {
+        username: 'mfg.engineer',
+        password: 'password123'
+      }
+    });
+
+    if (!loginResponse.ok()) {
+      throw new Error(`Login failed: ${await loginResponse.text()}`);
+    }
+
+    const loginData = await loginResponse.json();
+    authToken = loginData.token;
+
+    // Create browser context with auth token
     const context = await browser.newContext();
     page = await context.newPage();
 
-    // Authenticate as Manufacturing Engineer (has routing.write permission)
-    const authResult = await testAuthHelper.loginAsManufacturingEngineer(page);
-    authToken = authResult.token;
+    // Set auth token in page context
+    await page.addInitScript((token) => {
+      localStorage.setItem('authToken', token);
+    }, authToken);
 
     // Setup test data
     testSite = await prisma.site.findFirst({ where: { isActive: true } });
