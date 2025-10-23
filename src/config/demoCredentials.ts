@@ -47,6 +47,7 @@ export const DEMO_USERS: DemoUser[] = [
       'users.read', 'users.write',
       'materials.read', 'materials.write',
       'scheduling.read', 'scheduling.write',
+      'routings.read', 'routings.create', 'routings.write', 'routings.update', 'routings.delete', 'routings.approve', 'routings.activate',
       'workinstructions.read', 'workinstructions.write', 'workinstructions.create', 'workinstructions.execute'
     ],
     description: 'Full system access - Plant management and system administration',
@@ -105,7 +106,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Supervisor',
     roles: ['Production Supervisor'],
-    permissions: ['workorders.read', 'workorders.write', 'workorders.assign', 'personnel.read', 'personnel.assign', 'workinstructions.read', 'equipment.read', 'materials.read'],
+    permissions: ['workorders.read', 'workorders.write', 'workorders.assign', 'personnel.read', 'personnel.assign', 'workinstructions.read', 'equipment.read', 'materials.read', 'routings.read'],
     description: 'Production supervisor - Manage production floor',
     displayName: 'Production Supervisor'
   },
@@ -116,7 +117,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Planner',
     roles: ['Production Planner'],
-    permissions: ['workorders.read', 'workorders.create', 'scheduling.read', 'scheduling.write', 'capacity.read', 'routings.read', 'bom.read', 'materials.read'],
+    permissions: ['workorders.read', 'workorders.create', 'scheduling.read', 'scheduling.write', 'capacity.read', 'routings.read', 'routings.create', 'bom.read', 'materials.read'],
     description: 'Production planner - Plan production schedules',
     displayName: 'Production Planner'
   },
@@ -267,7 +268,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Plant',
     lastName: 'Manager',
     roles: ['Plant Manager'],
-    permissions: ['workorders.read', 'quality.read', 'equipment.read', 'materials.read', 'personnel.read', 'reports.read', 'reports.write', 'kpi.read', 'capex.approve', 'traceability.read', 'audit.read'],
+    permissions: ['workorders.read', 'quality.read', 'equipment.read', 'materials.read', 'personnel.read', 'reports.read', 'reports.write', 'kpi.read', 'capex.approve', 'traceability.read', 'audit.read', 'routings.read', 'routings.approve'],
     description: 'Plant manager - Executive oversight (read-only)',
     displayName: 'Plant Manager'
   },

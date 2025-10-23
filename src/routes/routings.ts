@@ -8,7 +8,13 @@
 import express from 'express';
 import { z } from 'zod';
 import { routingService } from '../services/RoutingService';
-import { requireProductionAccess, requireSiteAccess } from '../middleware/auth';
+import {
+  requireSiteAccess,
+  requireRoutingAccess,
+  requireRoutingWrite,
+  requireRoutingApproval,
+  requireRoutingActivation
+} from '../middleware/auth';
 import { asyncHandler, ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import {
@@ -165,10 +171,10 @@ const resequenceStepsSchema = z.object({
 /**
  * @route POST /api/v1/routings
  * @desc Create a new routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const validatedData = createRoutingSchema.parse(req.body);
 
@@ -201,10 +207,10 @@ router.post('/',
 /**
  * @route GET /api/v1/routings
  * @desc Query routings with filters
- * @access Private (Production Access Required)
+ * @access Private (Routing Read Access Required)
  */
 router.get('/',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const queryParams = {
       partId: req.query.partId as string | undefined,
@@ -235,10 +241,10 @@ router.get('/',
 /**
  * @route GET /api/v1/routings/:id
  * @desc Get routing by ID
- * @access Private (Production Access Required)
+ * @access Private (Routing Read Access Required)
  */
 router.get('/:id',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const includeSteps = req.query.includeSteps !== 'false'; // Default true
@@ -264,10 +270,10 @@ router.get('/:id',
 /**
  * @route GET /api/v1/routings/number/:routingNumber
  * @desc Get routing by routing number
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/number/:routingNumber',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { routingNumber } = req.params;
 
@@ -292,10 +298,10 @@ router.get('/number/:routingNumber',
 /**
  * @route PUT /api/v1/routings/:id
  * @desc Update routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.put('/:id',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const validatedData = updateRoutingSchema.parse(req.body);
@@ -326,10 +332,10 @@ router.put('/:id',
 /**
  * @route DELETE /api/v1/routings/:id
  * @desc Delete routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.delete('/:id',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -354,10 +360,10 @@ router.delete('/:id',
 /**
  * @route POST /api/v1/routings/:routingId/steps
  * @desc Create a routing step
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/:routingId/steps',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { routingId } = req.params;
     const validatedData = createRoutingStepSchema.parse({
@@ -384,10 +390,10 @@ router.post('/:routingId/steps',
 /**
  * @route GET /api/v1/routings/:routingId/steps
  * @desc Get all steps for a routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/:routingId/steps',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { routingId } = req.params;
 
@@ -409,10 +415,10 @@ router.get('/:routingId/steps',
 /**
  * @route GET /api/v1/routings/steps/:stepId
  * @desc Get routing step by ID
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/steps/:stepId',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { stepId } = req.params;
 
@@ -437,10 +443,10 @@ router.get('/steps/:stepId',
 /**
  * @route PUT /api/v1/routings/steps/:stepId
  * @desc Update routing step
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.put('/steps/:stepId',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { stepId } = req.params;
     const validatedData = updateRoutingStepSchema.parse(req.body);
@@ -463,10 +469,10 @@ router.put('/steps/:stepId',
 /**
  * @route DELETE /api/v1/routings/steps/:stepId
  * @desc Delete routing step
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.delete('/steps/:stepId',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { stepId } = req.params;
 
@@ -487,10 +493,10 @@ router.delete('/steps/:stepId',
 /**
  * @route POST /api/v1/routings/:routingId/steps/resequence
  * @desc Resequence routing steps
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/:routingId/steps/resequence',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { routingId } = req.params;
     const validatedData = resequenceStepsSchema.parse({
@@ -520,10 +526,10 @@ router.post('/:routingId/steps/resequence',
 /**
  * @route POST /api/v1/routings/steps/dependencies
  * @desc Create routing step dependency
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/steps/dependencies',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const validatedData = createStepDependencySchema.parse(req.body);
 
@@ -546,10 +552,10 @@ router.post('/steps/dependencies',
 /**
  * @route DELETE /api/v1/routings/steps/dependencies/:dependencyId
  * @desc Delete routing step dependency
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.delete('/steps/dependencies/:dependencyId',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { dependencyId } = req.params;
 
@@ -574,10 +580,10 @@ router.delete('/steps/dependencies/:dependencyId',
 /**
  * @route POST /api/v1/routings/part-site-availability
  * @desc Create part site availability
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/part-site-availability',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const validatedData = createPartSiteAvailabilitySchema.parse(req.body);
 
@@ -606,10 +612,10 @@ router.post('/part-site-availability',
 /**
  * @route GET /api/v1/routings/part-site-availability/:partId/:siteId
  * @desc Get part site availability
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/part-site-availability/:partId/:siteId',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { partId, siteId } = req.params;
 
@@ -635,10 +641,10 @@ router.get('/part-site-availability/:partId/:siteId',
 /**
  * @route GET /api/v1/routings/parts/:partId/available-sites
  * @desc Get all sites where a part is available
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/parts/:partId/available-sites',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { partId } = req.params;
 
@@ -660,10 +666,10 @@ router.get('/parts/:partId/available-sites',
 /**
  * @route PUT /api/v1/routings/part-site-availability/:id
  * @desc Update part site availability
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.put('/part-site-availability/:id',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const validatedData = updatePartSiteAvailabilitySchema.parse(req.body);
@@ -692,10 +698,10 @@ router.put('/part-site-availability/:id',
 /**
  * @route DELETE /api/v1/routings/part-site-availability/:id
  * @desc Delete part site availability
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.delete('/part-site-availability/:id',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -720,10 +726,10 @@ router.delete('/part-site-availability/:id',
 /**
  * @route POST /api/v1/routings/:id/copy
  * @desc Copy routing to new version or site
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/:id/copy',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const validatedData = copyRoutingSchema.parse(req.body);
@@ -747,10 +753,10 @@ router.post('/:id/copy',
 /**
  * @route POST /api/v1/routings/:id/approve
  * @desc Approve routing (move to RELEASED state)
- * @access Private (Production Access Required)
+ * @access Private (Routing Approval Permission Required)
  */
 router.post('/:id/approve',
-  requireProductionAccess,
+  requireRoutingApproval,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const validatedData = approveRoutingSchema.parse({
@@ -776,10 +782,10 @@ router.post('/:id/approve',
 /**
  * @route POST /api/v1/routings/:id/activate
  * @desc Activate routing (move to PRODUCTION state)
- * @access Private (Production Access Required)
+ * @access Private (Routing Activation Permission Required)
  */
 router.post('/:id/activate',
-  requireProductionAccess,
+  requireRoutingActivation,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -800,10 +806,10 @@ router.post('/:id/activate',
 /**
  * @route POST /api/v1/routings/:id/obsolete
  * @desc Mark routing as obsolete
- * @access Private (Production Access Required)
+ * @access Private (Routing Write Permission Required)
  */
 router.post('/:id/obsolete',
-  requireProductionAccess,
+  requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -824,10 +830,10 @@ router.post('/:id/obsolete',
 /**
  * @route GET /api/v1/routings/:partId/:siteId/versions
  * @desc Get all versions of a routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/:partId/:siteId/versions',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { partId, siteId } = req.params;
 
@@ -850,10 +856,10 @@ router.get('/:partId/:siteId/versions',
 /**
  * @route GET /api/v1/routings/:id/timing
  * @desc Calculate routing timing
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/:id/timing',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -875,10 +881,10 @@ router.get('/:id/timing',
 /**
  * @route GET /api/v1/routings/:id/validate
  * @desc Validate routing
- * @access Private (Production Access Required)
+ * @access Private (Routing Access Required)
  */
 router.get('/:id/validate',
-  requireProductionAccess,
+  requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
