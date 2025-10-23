@@ -88,6 +88,68 @@ router.get('/code/:segmentCode', async (req: Request, res: Response) => {
 });
 
 // ======================
+// ORACLE TERMINOLOGY ENDPOINTS
+// NOTE: Must come BEFORE /:id route to avoid shadowing
+// ======================
+
+/**
+ * GET /api/process-segments/by-code/:operationCode
+ * Get process segment by operation code (Oracle ERP / Teamcenter PLM terminology)
+ * Searches both operationCode and segmentCode fields
+ * NOTE: Must come BEFORE /:id route
+ */
+router.get('/by-code/:operationCode', async (req: Request, res: Response) => {
+  try {
+    const { operationCode } = req.params;
+    const segment = await ProcessSegmentService.getOperationByCode(operationCode);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error fetching operation by code:', error);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/process-segments/by-classification/:classification
+ * Get process segments by operation classification (Oracle ERP terminology)
+ * Classification: MAKE, ASSEMBLY, INSPECTION, TEST, REWORK, SETUP, SUBCONTRACT, PACKING
+ * NOTE: Must come BEFORE /:id route
+ */
+router.get('/by-classification/:classification', async (req: Request, res: Response) => {
+  try {
+    const { classification } = req.params;
+    const segments = await ProcessSegmentService.getOperationsByClassification(classification);
+    res.json(segments);
+  } catch (error: any) {
+    console.error('Error fetching operations by classification:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/process-segments/search
+ * Search process segments across both ISA-95 and Oracle/Teamcenter terminology
+ * Query parameter: q (search term)
+ * Searches: segmentCode, segmentName, operationCode, operationName, description
+ * NOTE: Must come BEFORE /:id route
+ */
+router.get('/search', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const searchTerm = req.query.q as string;
+    if (!searchTerm) {
+      res.status(400).json({ error: 'Search query parameter "q" is required' });
+      return;
+    }
+
+    const segments = await ProcessSegmentService.searchOperations(searchTerm);
+    res.json(segments);
+  } catch (error: any) {
+    console.error('Error searching operations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================
 // HIERARCHY ENDPOINTS
 // NOTE: Specific routes like /hierarchy/roots MUST come before /:id
 // ======================
@@ -430,6 +492,89 @@ router.get('/:id/total-time', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error calculating total time:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================
+// ORACLE TERMINOLOGY UPDATE ENDPOINTS
+// ======================
+
+/**
+ * PUT /api/process-segments/:id/terminology
+ * Update Oracle/Teamcenter PLM terminology fields for a process segment
+ * Body: { operationCode?, operationName?, operationClassification? }
+ */
+router.put('/:id/terminology', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const segment = await ProcessSegmentService.updateOperationTerminology(id, req.body);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error updating operation terminology:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ======================
+// WORK INSTRUCTION LINKAGE ENDPOINTS
+// ======================
+
+/**
+ * POST /api/process-segments/:id/work-instruction
+ * Assign standard work instruction to a process segment
+ * Body: { workInstructionId: string }
+ */
+router.post('/:id/work-instruction', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { workInstructionId } = req.body;
+
+    if (!workInstructionId) {
+      res.status(400).json({ error: 'workInstructionId is required' });
+      return;
+    }
+
+    const segment = await ProcessSegmentService.assignStandardWorkInstruction(id, workInstructionId);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error assigning standard work instruction:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/process-segments/:id/work-instruction
+ * Get the standard work instruction for a process segment
+ */
+router.get('/:id/work-instruction', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const workInstruction = await ProcessSegmentService.getStandardWorkInstruction(id);
+
+    if (!workInstruction) {
+      res.status(404).json({ error: 'No standard work instruction assigned to this process segment' });
+      return;
+    }
+
+    res.json(workInstruction);
+  } catch (error: any) {
+    console.error('Error fetching standard work instruction:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/process-segments/:id/work-instruction
+ * Remove standard work instruction from a process segment
+ */
+router.delete('/:id/work-instruction', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const segment = await ProcessSegmentService.removeStandardWorkInstruction(id);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error removing standard work instruction:', error);
+    res.status(400).json({ error: error.message });
   }
 });
 

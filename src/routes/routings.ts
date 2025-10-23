@@ -1217,4 +1217,258 @@ router.put('/:id/visual',
   })
 );
 
+// ============================================================================
+// NEW: MES ENHANCEMENT ROUTES (Oracle/Teamcenter Alignment)
+// ============================================================================
+
+// ------------------------------
+// Routing Type Routes (Phase 3)
+// ------------------------------
+
+/**
+ * @route GET /api/v1/routings/by-type/:partId/:siteId/:routingType
+ * @desc Get routings by type (PRIMARY, ALTERNATE, REWORK, etc.)
+ * @access Private
+ */
+router.get('/by-type/:partId/:siteId/:routingType',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { partId, siteId, routingType } = req.params;
+
+    const routings = await routingService.getRoutingsByType(partId, siteId, routingType);
+
+    res.status(200).json({
+      success: true,
+      data: routings
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/primary/:partId/:siteId
+ * @desc Get PRIMARY routing for a part at a site
+ * @access Private
+ */
+router.get('/primary/:partId/:siteId',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { partId, siteId } = req.params;
+
+    const routing = await routingService.getPrimaryRouting(partId, siteId);
+
+    if (!routing) {
+      throw new NotFoundError(`No PRIMARY routing found for part ${partId} at site ${siteId}`);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: routing
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/:id/alternates
+ * @desc Get ALTERNATE routings for a PRIMARY routing
+ * @access Private
+ */
+router.get('/:id/alternates',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const alternates = await routingService.getAlternateRoutings(id);
+
+    res.status(200).json({
+      success: true,
+      data: alternates
+    });
+  })
+);
+
+// ------------------------------
+// Parameter Override Routes (Phase 2)
+// ------------------------------
+
+/**
+ * @route POST /api/v1/routings/steps/:stepId/parameters
+ * @desc Set parameter override for a routing step
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/steps/:stepId/parameters',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+    const { parameterName, parameterValue, unitOfMeasure, notes } = req.body;
+
+    if (!parameterName || !parameterValue) {
+      throw new ValidationError('parameterName and parameterValue are required');
+    }
+
+    const override = await routingService.setRoutingStepParameterOverride(
+      stepId,
+      parameterName,
+      parameterValue,
+      unitOfMeasure,
+      notes
+    );
+
+    logger.info('Parameter override set', {
+      userId: req.user?.id,
+      stepId,
+      parameterName
+    });
+
+    res.status(201).json({
+      success: true,
+      data: override
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/steps/:stepId/parameters
+ * @desc Get parameter overrides for a routing step
+ * @access Private
+ */
+router.get('/steps/:stepId/parameters',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+
+    const overrides = await routingService.getRoutingStepParameterOverrides(stepId);
+
+    res.status(200).json({
+      success: true,
+      data: overrides
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/steps/:stepId/parameters/effective
+ * @desc Get effective parameters for a routing step (base + overrides)
+ * @access Private
+ */
+router.get('/steps/:stepId/parameters/effective',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+
+    const effectiveParameters = await routingService.getEffectiveStepParameters(stepId);
+
+    res.status(200).json({
+      success: true,
+      data: effectiveParameters
+    });
+  })
+);
+
+/**
+ * @route DELETE /api/v1/routings/steps/:stepId/parameters/:parameterName
+ * @desc Delete parameter override for a routing step
+ * @access Private (Routing Write Permission Required)
+ */
+router.delete('/steps/:stepId/parameters/:parameterName',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { stepId, parameterName } = req.params;
+
+    const deleted = await routingService.deleteRoutingStepParameterOverride(stepId, parameterName);
+
+    if (!deleted) {
+      throw new NotFoundError(`Parameter override ${parameterName} not found for step ${stepId}`);
+    }
+
+    logger.info('Parameter override deleted', {
+      userId: req.user?.id,
+      stepId,
+      parameterName
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Parameter override deleted successfully'
+    });
+  })
+);
+
+// ------------------------------
+// Work Instruction Assignment Routes (Phase 1)
+// ------------------------------
+
+/**
+ * @route POST /api/v1/routings/steps/:stepId/work-instruction
+ * @desc Assign work instruction to routing step
+ * @access Private (Routing Write Permission Required)
+ */
+router.post('/steps/:stepId/work-instruction',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+    const { workInstructionId } = req.body;
+
+    if (!workInstructionId) {
+      throw new ValidationError('workInstructionId is required');
+    }
+
+    const step = await routingService.assignWorkInstructionToStep(stepId, workInstructionId);
+
+    logger.info('Work instruction assigned to routing step', {
+      userId: req.user?.id,
+      stepId,
+      workInstructionId
+    });
+
+    res.status(200).json({
+      success: true,
+      data: step
+    });
+  })
+);
+
+/**
+ * @route DELETE /api/v1/routings/steps/:stepId/work-instruction
+ * @desc Remove work instruction override from routing step
+ * @access Private (Routing Write Permission Required)
+ */
+router.delete('/steps/:stepId/work-instruction',
+  requireRoutingWrite,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+
+    const step = await routingService.removeWorkInstructionFromStep(stepId);
+
+    logger.info('Work instruction removed from routing step', {
+      userId: req.user?.id,
+      stepId
+    });
+
+    res.status(200).json({
+      success: true,
+      data: step,
+      message: 'Work instruction override removed successfully'
+    });
+  })
+);
+
+/**
+ * @route GET /api/v1/routings/steps/:stepId/work-instruction/effective
+ * @desc Get effective work instruction for a routing step
+ * @access Private
+ */
+router.get('/steps/:stepId/work-instruction/effective',
+  requireRoutingAccess,
+  asyncHandler(async (req, res) => {
+    const { stepId } = req.params;
+
+    const workInstruction = await routingService.getEffectiveWorkInstruction(stepId);
+
+    res.status(200).json({
+      success: true,
+      data: workInstruction
+    });
+  })
+);
+
 export default router;

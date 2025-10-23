@@ -9,13 +9,17 @@
 import {
   RoutingLifecycleState,
   DependencyType,
-  DependencyTimingType
+  DependencyTimingType,
+  RoutingType,
+  OperationClassification
 } from '@prisma/client';
 
 export {
   RoutingLifecycleState,
   DependencyType,
-  DependencyTimingType
+  DependencyTimingType,
+  RoutingType,
+  OperationClassification
 };
 
 // ============================================
@@ -35,10 +39,15 @@ export interface Routing {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute: boolean;
+  isPrimaryRoute: boolean; // DEPRECATED: Use routingType instead
   isActive: boolean;
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType: RoutingType; // PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING
+  alternateForId?: string;  // If ALTERNATE, links to PRIMARY routing
+  priority: number;         // Selection priority (1=highest)
 
   // Approval tracking
   approvedBy?: string;
@@ -71,11 +80,33 @@ export interface RoutingStep {
   isQualityInspection: boolean;
   isCriticalPath: boolean;
 
+  // Work instruction linkage (NEW) - overrides ProcessSegment standard WI
+  workInstructionId?: string;
+
   // Instructions
   stepInstructions?: string;
   notes?: string;
 
   // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * RoutingStepParameter - Parameter override for a routing step
+ * Overrides ProcessSegment base parameter values for site-specific tuning
+ */
+export interface RoutingStepParameter {
+  id: string;
+  routingStepId: string;
+
+  // Parameter definition
+  parameterName: string;   // e.g., "spindle_speed", "feed_rate", "temperature"
+  parameterValue: string;  // Override value
+  unitOfMeasure?: string;  // e.g., "RPM", "IPM", "°F", "PSI"
+
+  // Metadata
+  notes?: string;          // Why this override is needed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -202,10 +233,15 @@ export interface CreateRoutingDTO {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute?: boolean; // Defaults to false
+  isPrimaryRoute?: boolean; // DEPRECATED: Use routingType instead
   isActive?: boolean; // Defaults to true
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType?: RoutingType; // Defaults to PRIMARY
+  alternateForId?: string;   // If ALTERNATE, links to PRIMARY routing
+  priority?: number;         // Selection priority (1=highest, defaults to 1)
 
   // Metadata
   createdBy?: string;
@@ -233,6 +269,9 @@ export interface CreateRoutingStepDTO {
   isOptional?: boolean; // Defaults to false
   isQualityInspection?: boolean; // Defaults to false
   isCriticalPath?: boolean; // Defaults to false
+
+  // Work instruction linkage (NEW)
+  workInstructionId?: string; // Override ProcessSegment standard work instruction
 
   // Instructions
   stepInstructions?: string;
@@ -296,10 +335,15 @@ export interface UpdateRoutingDTO {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute?: boolean;
+  isPrimaryRoute?: boolean; // DEPRECATED: Use routingType instead
   isActive?: boolean;
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType?: RoutingType;
+  alternateForId?: string;
+  priority?: number;
 
   // Approval tracking
   approvedBy?: string;
@@ -330,6 +374,9 @@ export interface UpdateRoutingStepDTO {
   isOptional?: boolean;
   isQualityInspection?: boolean;
   isCriticalPath?: boolean;
+
+  // Work instruction linkage (NEW)
+  workInstructionId?: string;
 
   // Instructions
   stepInstructions?: string;
@@ -701,6 +748,43 @@ export interface CreateRoutingWithVisualDTO extends CreateRoutingDTO {
  */
 export interface UpdateRoutingWithVisualDTO extends UpdateRoutingDTO {
   visualData?: VisualRoutingData;
+}
+
+// ============================================
+// PARAMETER OVERRIDE TYPES (NEW)
+// ============================================
+
+/**
+ * CreateRoutingStepParameterDTO - Data for creating a parameter override
+ */
+export interface CreateRoutingStepParameterDTO {
+  routingStepId: string;
+  parameterName: string;
+  parameterValue: string;
+  unitOfMeasure?: string;
+  notes?: string;
+}
+
+/**
+ * UpdateRoutingStepParameterDTO - Data for updating a parameter override
+ */
+export interface UpdateRoutingStepParameterDTO {
+  parameterValue?: string;
+  unitOfMeasure?: string;
+  notes?: string;
+}
+
+/**
+ * EffectiveParameterResult - Result of parameter inheritance calculation
+ * Combines ProcessSegment base parameters with RoutingStep overrides
+ */
+export interface EffectiveParameterResult {
+  parameterName: string;
+  parameterValue: string;
+  unitOfMeasure: string | null;
+  source: 'process_segment' | 'routing_step_override'; // Where this value came from
+  isOverridden: boolean; // True if this is an override, false if from base
+  notes?: string; // Override notes if applicable
 }
 
 // All types and interfaces are exported inline above
