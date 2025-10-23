@@ -223,6 +223,7 @@ export class EquipmentDataCollectionService {
    */
   static async generateDataCollectionSummary(
     equipmentId: string,
+    dataCollectionType?: DataCollectionType,
     startDate?: Date,
     endDate?: Date
   ): Promise<DataCollectionSummary> {
@@ -242,6 +243,11 @@ export class EquipmentDataCollectionService {
 
     // Build query filters
     const where: any = { equipmentId };
+
+    // Filter by dataCollectionType if provided
+    if (dataCollectionType) {
+      where.dataCollectionType = dataCollectionType;
+    }
 
     if (startDate || endDate) {
       where.collectionTimestamp = {};
@@ -293,6 +299,7 @@ export class EquipmentDataCollectionService {
       equipmentId: equipment.id,
       equipmentNumber: equipment.equipmentNumber,
       equipmentName: equipment.name,
+      dataCollectionType,
       totalDataPoints,
       dataPointsByType: typeMap,
       latestDataPoint: latestDataPoint as EquipmentDataCollectionRecord | undefined,
@@ -313,11 +320,14 @@ export class EquipmentDataCollectionService {
     startDate: Date,
     endDate: Date,
     limit?: number
-  ): Promise<Array<{
-    timestamp: Date;
-    value: number | string | boolean | object;
-    quality?: string;
-  }>> {
+  ): Promise<{
+    dataPointName: string;
+    dataPoints: Array<{
+      timestamp: Date;
+      value: number | string | boolean | object;
+      quality?: string;
+    }>;
+  }> {
     const dataPoints = await prisma.equipmentDataCollection.findMany({
       where: {
         equipmentId,
@@ -331,11 +341,14 @@ export class EquipmentDataCollectionService {
       take: limit || 1000,
     });
 
-    return dataPoints.map((dp) => ({
-      timestamp: dp.collectionTimestamp,
-      value: dp.numericValue ?? dp.stringValue ?? dp.booleanValue ?? dp.jsonValue ?? '',
-      quality: dp.quality || undefined,
-    }));
+    return {
+      dataPointName,
+      dataPoints: dataPoints.map((dp) => ({
+        timestamp: dp.collectionTimestamp,
+        value: dp.numericValue ?? dp.stringValue ?? dp.booleanValue ?? dp.jsonValue ?? '',
+        quality: dp.quality || undefined,
+      })),
+    };
   }
 
   /**

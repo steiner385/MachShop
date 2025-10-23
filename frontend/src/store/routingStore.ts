@@ -12,6 +12,7 @@ import {
   routingStepAPI,
   stepDependencyAPI,
   partSiteAvailabilityAPI,
+  VersionConflictError,
 } from '@/api/routing';
 import {
   Routing,
@@ -80,6 +81,12 @@ interface RoutingState {
       value?: any;
     }>;
   } | null;
+
+  // Version conflict handling
+  versionConflict: {
+    error: any; // VersionConflictError from API
+    attemptedChanges: UpdateRoutingRequest; // Changes user was trying to save
+  } | null;
 }
 
 // ============================================
@@ -129,6 +136,11 @@ interface RoutingActions {
   clearError: () => void;
   setDetailError: (error: string | null) => void;
   clearDetailError: () => void;
+
+  // Version conflict handling
+  setVersionConflict: (error: any, attemptedChanges: UpdateRoutingRequest) => void;
+  clearVersionConflict: () => void;
+  resolveConflictByReloading: (routingId: string) => Promise<void>;
 
   // State clearing
   clearCurrentRouting: () => void;
@@ -180,6 +192,7 @@ export const useRoutingStore = create<RoutingStore>()(
       isLoadingAvailability: false,
       routingTiming: null,
       validationResult: null,
+      versionConflict: null,
 
       // ============================================
       // LIST OPERATIONS
@@ -323,9 +336,16 @@ export const useRoutingStore = create<RoutingStore>()(
 
       updateRouting: async (id: string, data: UpdateRoutingRequest) => {
         try {
-          set({ isLoadingDetail: true, detailError: null });
+          set({ isLoadingDetail: true, detailError: null, versionConflict: null });
 
-          const response = await routingAPI.updateRouting(id, data);
+          // OPTIMISTIC LOCKING: Include current version for conflict detection
+          const currentRouting = get().currentRouting;
+          const dataWithVersion: UpdateRoutingRequest = {
+            ...data,
+            currentVersion: currentRouting?.version, // Add current version from state
+          };
+
+          const response = await routingAPI.updateRouting(id, dataWithVersion);
 
           if (response.success && response.data) {
             set({
@@ -337,10 +357,21 @@ export const useRoutingStore = create<RoutingStore>()(
             throw new Error(response.error || 'Failed to update routing');
           }
         } catch (error: any) {
-          set({
-            isLoadingDetail: false,
-            detailError: error.message || 'Failed to update routing',
-          });
+          // Handle version conflicts specially
+          if (error instanceof VersionConflictError) {
+            set({
+              isLoadingDetail: false,
+              versionConflict: {
+                error,
+                attemptedChanges: data,
+              },
+            });
+          } else {
+            set({
+              isLoadingDetail: false,
+              detailError: error.message || 'Failed to update routing',
+            });
+          }
           throw error;
         }
       },
@@ -688,6 +719,38 @@ export const useRoutingStore = create<RoutingStore>()(
 
       clearCurrentSteps: () => {
         set({ currentSteps: [] });
+      },
+
+      // ============================================
+      // VERSION CONFLICT HANDLING
+      // ============================================
+
+      setVersionConflict: (error: any, attemptedChanges: UpdateRoutingRequest) => {
+        set({
+          versionConflict: {
+            error,
+            attemptedChanges,
+          },
+        });
+      },
+
+      clearVersionConflict: () => {
+        set({ versionConflict: null });
+      },
+
+      resolveConflictByReloading: async (routingId: string) => {
+        try {
+          // Clear the conflict first
+          set({ versionConflict: null });
+
+          // Reload the latest version from the server
+          await get().fetchRoutingById(routingId);
+        } catch (error: any) {
+          set({
+            detailError: error.message || 'Failed to reload routing',
+          });
+          throw error;
+        }
       },
     }),
     { name: 'RoutingStore' }

@@ -25,20 +25,28 @@ test.describe('Work Order Management', () => {
   });
 
   test('should filter work orders by status', async ({ page }) => {
-    // Find the status filter dropdown by placeholder text for more specificity
-    const statusFilter = page.locator('.ant-select').filter({ has: page.locator('span:has-text("Status")') }).or(
-      page.locator('.ant-select').nth(0) // Fallback to first select if placeholder not found
-    );
+    // Find the status filter dropdown using test ID
+    const statusFilter = page.getByTestId('status-filter-select');
+    await expect(statusFilter).toBeVisible();
 
     // Click to open the dropdown
     await statusFilter.click();
 
     // Wait for the dropdown overlay to appear and be visible
     // Ant Design renders dropdown in a portal, so we look for the visible dropdown
-    await page.waitForSelector('.ant-select-dropdown:visible', { timeout: 5000 });
+    await page.waitForSelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)', { timeout: 10000 });
+
+    // Wait a bit for dropdown to fully render
+    await page.waitForTimeout(300);
 
     // Select "In Progress" from the dropdown options in the visible overlay
-    await page.locator('.ant-select-dropdown:visible .ant-select-item').filter({ hasText: /^In Progress$/i }).click();
+    // Try multiple approaches to find the option
+    const dropdownOption = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
+      .locator('.ant-select-item')
+      .filter({ hasText: 'In Progress' });
+
+    await expect(dropdownOption).toBeVisible({ timeout: 5000 });
+    await dropdownOption.click();
 
     // Wait for filtering to complete
     await page.waitForTimeout(1000);
@@ -61,7 +69,7 @@ test.describe('Work Order Management', () => {
 
   test('should create new work order', async ({ page }) => {
     // Click create button
-    await page.locator('button:has-text("Create Work Order")').click();
+    await page.getByTestId('create-work-order-button').click();
     
     // Verify create modal opens (if implemented)
     // For now, just check if the button click worked
@@ -69,13 +77,13 @@ test.describe('Work Order Management', () => {
     
     // Since the actual create functionality may not be fully implemented,
     // just verify the button exists and is clickable
-    await expect(page.locator('button:has-text("Create Work Order")')).toBeVisible();
+    await expect(page.getByTestId('create-work-order-button')).toBeVisible();
   });
 
   test('should validate work order creation form', async ({ page }) => {
     // Since form validation depends on the modal implementation,
     // let's just verify the create button exists and is functional
-    const createButton = page.locator('button:has-text("Create Work Order")');
+    const createButton = page.getByTestId('create-work-order-button');
     await expect(createButton).toBeVisible();
     await expect(createButton).toBeEnabled();
   });
@@ -164,16 +172,16 @@ test.describe('Work Order Management', () => {
 
   test('should search work orders', async ({ page }) => {
     // Type in search box (using placeholder text)
-    await page.locator('input[placeholder*="Search work orders"]').fill('ENG');
+    await page.getByTestId('work-order-search-input').fill('ENG');
     
     // Press enter to trigger search
-    await page.locator('input[placeholder*="Search work orders"]').press('Enter');
+    await page.getByTestId('work-order-search-input').press('Enter');
     
     // Wait for search to complete
     await page.waitForTimeout(1000);
     
     // Verify search interface works
-    const searchInput = page.locator('input[placeholder*="Search work orders"]');
+    const searchInput = page.getByTestId('work-order-search-input');
     await expect(searchInput).toHaveValue('ENG');
     
     // Clear search

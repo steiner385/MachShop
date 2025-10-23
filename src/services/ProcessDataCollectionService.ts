@@ -116,7 +116,7 @@ export class ProcessDataCollectionService {
 
     // Merge additional parameters with existing ones
     const mergedParameters = additionalParameters
-      ? { ...existingData.parameters, ...additionalParameters }
+      ? { ...(existingData.parameters as any), ...additionalParameters }
       : existingData.parameters;
 
     // Update process data
@@ -159,7 +159,7 @@ export class ProcessDataCollectionService {
     }
 
     // Merge parameters
-    const mergedParameters = { ...existingData.parameters, ...parameters };
+    const mergedParameters = { ...(existingData.parameters as any), ...parameters };
 
     const updatedData = await prisma.processDataCollection.update({
       where: { id: processDataCollectionId },

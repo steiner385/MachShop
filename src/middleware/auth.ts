@@ -236,6 +236,7 @@ export const requireProductionAccess = requireAnyRole([
   'Plant Manager',
   'Production Supervisor',
   'Production Planner',
+  'Production Operator',
   'Operator'
 ]);
 
@@ -263,6 +264,7 @@ export const requireDashboardAccess = (req: Request, res: Response, next: NextFu
     'Plant Manager',
     'Production Supervisor',
     'Production Planner',
+    'Production Operator',
     'Operator'
   ];
 

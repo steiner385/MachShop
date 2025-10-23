@@ -217,13 +217,11 @@ export class PersonnelInfoSyncService {
           user = await this.prisma.user.create({
             data: {
               username: message.personnel.externalId,
-              firstName: message.personnel.firstName,
-              lastName: message.personnel.lastName,
+              name: `${message.personnel.firstName || ''} ${message.personnel.lastName || ''}`.trim() || message.personnel.externalId,
               email: message.personnel.email || `${message.personnel.externalId}@company.com`,
-              passwordHash: 'PLACEHOLDER', // TODO: Implement proper password handling
-              employeeNumber: message.personnel.employeeNumber,
-              roles: ['OPERATOR'], // Default role
-              permissions: [],
+              password: 'PLACEHOLDER', // TODO: Implement proper password handling
+              employeeId: message.personnel.employeeNumber,
+              role: 'OPERATOR', // Default role
               isActive: true,
             },
           });

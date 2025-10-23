@@ -73,6 +73,12 @@ export class MaterialMovementTrackingService {
       }
     }
 
+    // Auto-set qualityStatus to SCRAP when movementType is SCRAP
+    let finalQualityStatus = qualityStatus || 'GOOD';
+    if (movementType === 'SCRAP' && !qualityStatus) {
+      finalQualityStatus = 'SCRAP';
+    }
+
     // Create movement record
     const movement = await prisma.equipmentMaterialMovement.create({
       data: {
@@ -88,7 +94,7 @@ export class MaterialMovementTrackingService {
         operationId,
         fromLocation,
         toLocation,
-        qualityStatus: qualityStatus || 'GOOD',
+        qualityStatus: finalQualityStatus,
         upstreamTraceId,
         downstreamTraceId,
         recordedBy,

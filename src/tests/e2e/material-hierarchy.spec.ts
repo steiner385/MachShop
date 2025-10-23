@@ -6,13 +6,13 @@ let apiContext: APIRequestContext;
 let authToken: string;
 
 test.beforeAll(async () => {
-  // Create API request context - use E2E backend server (port 3101)
+  // Fix: Use correct baseURL pattern with trailing slash to match L2 Equipment tests
   apiContext = await request.newContext({
-    baseURL: 'http://localhost:3101',
+    baseURL: 'http://localhost:3101/api/v1/',
   });
 
-  // Login to get auth token
-  const loginResponse = await apiContext.post('/api/v1/auth/login', {
+  // Login to get auth token - remove /api/v1/ prefix to match correct pattern
+  const loginResponse = await apiContext.post('auth/login', {
     data: {
       username: 'admin',
       password: 'password123'
@@ -45,7 +45,7 @@ test.describe('Material Class Hierarchy - ISA-95 Compliance', () => {
   let childClassId: string;
 
   test('should retrieve all material classes', async () => {
-    const response = await apiContext.get('/api/v1/materials/classes', {
+    const response = await apiContext.get('materials/classes', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -62,7 +62,7 @@ test.describe('Material Class Hierarchy - ISA-95 Compliance', () => {
     });
     expect(metalClass).toBeDefined();
 
-    const response = await apiContext.get(`/api/v1/materials/classes/${metalClass!.id}?includeRelations=true`, {
+    const response = await apiContext.get(`materials/classes/${metalClass!.id}?includeRelations=true`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -80,7 +80,7 @@ test.describe('Material Class Hierarchy - ISA-95 Compliance', () => {
       where: { classCode: 'METAL' }
     });
 
-    const response = await apiContext.get(`/api/v1/materials/classes/${metalClass!.id}/hierarchy`, {
+    const response = await apiContext.get(`materials/classes/${metalClass!.id}/hierarchy`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -100,7 +100,7 @@ test.describe('Material Class Hierarchy - ISA-95 Compliance', () => {
       where: { classCode: 'RAW' }
     });
 
-    const response = await apiContext.get(`/api/v1/materials/classes/${rawClass!.id}/children`, {
+    const response = await apiContext.get(`materials/classes/${rawClass!.id}/children`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -119,7 +119,7 @@ test.describe('Material Definition Management', () => {
   let testMaterialId: string;
 
   test('should retrieve all material definitions', async () => {
-    const response = await apiContext.get('/api/v1/materials/definitions', {
+    const response = await apiContext.get('materials/definitions', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -135,7 +135,7 @@ test.describe('Material Definition Management', () => {
       where: { classCode: 'METAL' }
     });
 
-    const response = await apiContext.get(`/api/v1/materials/definitions?materialClassId=${metalClass!.id}`, {
+    const response = await apiContext.get(`materials/definitions?materialClassId=${metalClass!.id}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -150,7 +150,7 @@ test.describe('Material Definition Management', () => {
   });
 
   test('should filter material definitions by material type', async () => {
-    const response = await apiContext.get('/api/v1/materials/definitions?materialType=RAW_MATERIAL', {
+    const response = await apiContext.get('materials/definitions?materialType=RAW_MATERIAL', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -167,37 +167,42 @@ test.describe('Material Definition Management', () => {
   test('should retrieve material definition by ID', async () => {
     // Get aluminum alloy from seed data
     const aluminum = await prisma.materialDefinition.findFirst({
-      where: { materialNumber: 'MAT-AL7075' }
+      where: { materialNumber: 'AL-6061-T6-BAR' }
     });
-    testMaterialId = aluminum!.id;
 
-    const response = await apiContext.get(`/api/v1/materials/definitions/${testMaterialId}?includeRelations=true`, {
+    if (!aluminum) {
+      throw new Error('Test material AL-6061-T6-BAR not found in database. Ensure seed data is loaded.');
+    }
+
+    testMaterialId = aluminum.id;
+
+    const response = await apiContext.get(`materials/definitions/${testMaterialId}?includeRelations=true`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
     expect(response.status()).toBe(200);
     const material = await response.json();
     expect(material.id).toBe(testMaterialId);
-    expect(material.materialNumber).toBe('MAT-AL7075');
+    expect(material.materialNumber).toBe('AL-6061-T6-BAR');
     expect(material).toHaveProperty('materialClass');
     expect(material).toHaveProperty('lots');
   });
 
   test('should retrieve material definition by material number', async () => {
-    const response = await apiContext.get('/api/v1/materials/definitions/number/MAT-AL7075', {
+    const response = await apiContext.get('materials/definitions/number/AL-6061-T6-BAR', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
     expect(response.status()).toBe(200);
     const material = await response.json();
-    expect(material.materialNumber).toBe('MAT-AL7075');
+    expect(material.materialNumber).toBe('AL-6061-T6-BAR');
     expect(material.description).toContain('Aluminum');
   });
 
   test('should update material definition', async () => {
     const updatedDescription = 'Updated Material Description - Test';
 
-    const response = await apiContext.put(`/api/v1/materials/definitions/${testMaterialId}`, {
+    const response = await apiContext.put(`materials/definitions/${testMaterialId}`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         description: updatedDescription
@@ -210,7 +215,7 @@ test.describe('Material Definition Management', () => {
   });
 
   test('should retrieve material properties', async () => {
-    const response = await apiContext.get(`/api/v1/materials/definitions/${testMaterialId}/properties`, {
+    const response = await apiContext.get(`materials/definitions/${testMaterialId}/properties`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -220,7 +225,7 @@ test.describe('Material Definition Management', () => {
   });
 
   test('should create material property', async () => {
-    const response = await apiContext.post('/api/v1/materials/properties', {
+    const response = await apiContext.post('materials/properties', {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         materialId: testMaterialId,
@@ -260,7 +265,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve all material lots', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots', {
+    const response = await apiContext.get('materials/lots', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -271,7 +276,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should filter lots by material ID', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots?materialId=${testMaterialId}`, {
+    const response = await apiContext.get(`materials/lots?materialId=${testMaterialId}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -286,7 +291,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should filter lots by status', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots?status=AVAILABLE', {
+    const response = await apiContext.get('materials/lots?status=AVAILABLE', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -301,7 +306,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should filter lots by state', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots?state=APPROVED', {
+    const response = await apiContext.get('materials/lots?state=APPROVED', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -316,7 +321,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should filter lots by quality status', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots?qualityStatus=APPROVED', {
+    const response = await apiContext.get('materials/lots?qualityStatus=APPROVED', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -331,7 +336,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve lot by ID with relations', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${testLotId}?includeRelations=true`, {
+    const response = await apiContext.get(`materials/lots/${testLotId}?includeRelations=true`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -343,7 +348,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve lot by lot number', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots/number/AL-20240115-001', {
+    const response = await apiContext.get('materials/lots/number/AL-20240115-001', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -353,7 +358,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should update material lot', async () => {
-    const response = await apiContext.put(`/api/v1/materials/lots/${testLotId}`, {
+    const response = await apiContext.put(`materials/lots/${testLotId}`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         currentQuantity: 1400.0
@@ -366,7 +371,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve lots expiring soon', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots/expiring/soon?daysAhead=30', {
+    const response = await apiContext.get('materials/lots/expiring/soon?daysAhead=30', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -387,7 +392,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve expired lots', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots/expired/all', {
+    const response = await apiContext.get('materials/lots/expired/all', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -406,7 +411,7 @@ test.describe('Material Lot Management', () => {
   });
 
   test('should retrieve material lot statistics', async () => {
-    const response = await apiContext.get('/api/v1/materials/lots/statistics/summary', {
+    const response = await apiContext.get('materials/lots/statistics/summary', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -438,7 +443,7 @@ test.describe('Material Sublot and Split/Merge Operations', () => {
   test('should split material lot into sublot', async () => {
     const sublotNumber = `SUBLOT-TEST-${Date.now()}`;
 
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/split`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/split`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         sublotNumber: sublotNumber,
@@ -455,7 +460,7 @@ test.describe('Material Sublot and Split/Merge Operations', () => {
   });
 
   test('should retrieve sublots for a lot', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${testLotId}/sublots`, {
+    const response = await apiContext.get(`materials/lots/${testLotId}/sublots`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -466,7 +471,7 @@ test.describe('Material Sublot and Split/Merge Operations', () => {
   });
 
   test('should reject split with insufficient quantity', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/split`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/split`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         sublotNumber: 'SUBLOT-FAIL',
@@ -481,7 +486,7 @@ test.describe('Material Sublot and Split/Merge Operations', () => {
 
   test('should merge sublots back into parent lot', async () => {
     // Get sublots for the test lot
-    const sublotsResponse = await apiContext.get(`/api/v1/materials/lots/${testLotId}/sublots`, {
+    const sublotsResponse = await apiContext.get(`materials/lots/${testLotId}/sublots`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const sublots = await sublotsResponse.json();
@@ -489,7 +494,7 @@ test.describe('Material Sublot and Split/Merge Operations', () => {
     if (sublots.length > 0) {
       const sublotIds = [sublots[0].id];
 
-      const response = await apiContext.post('/api/v1/materials/lots/merge', {
+      const response = await apiContext.post('materials/lots/merge', {
         headers: { 'Authorization': `Bearer ${authToken}` },
         data: {
           sublotIds: sublotIds
@@ -527,7 +532,7 @@ test.describe('Material Genealogy and Traceability', () => {
   });
 
   test('should retrieve lot genealogy (direct parents and children)', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${parentLotId}/genealogy`, {
+    const response = await apiContext.get(`materials/lots/${parentLotId}/genealogy`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -540,7 +545,7 @@ test.describe('Material Genealogy and Traceability', () => {
   });
 
   test('should retrieve full genealogy tree (forward traceability)', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${parentLotId}/genealogy/tree?direction=forward`, {
+    const response = await apiContext.get(`materials/lots/${parentLotId}/genealogy/tree?direction=forward`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -550,7 +555,7 @@ test.describe('Material Genealogy and Traceability', () => {
   });
 
   test('should retrieve full genealogy tree (backward traceability)', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${childLotId}/genealogy/tree?direction=backward`, {
+    const response = await apiContext.get(`materials/lots/${childLotId}/genealogy/tree?direction=backward`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -576,7 +581,7 @@ test.describe('Material Genealogy and Traceability', () => {
       }
     });
 
-    const response = await apiContext.post('/api/v1/materials/genealogy', {
+    const response = await apiContext.post('materials/genealogy', {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         parentLotId: newLot.id,
@@ -601,7 +606,7 @@ test.describe('Material Genealogy and Traceability', () => {
   });
 
   test('should require all mandatory fields for genealogy record', async () => {
-    const response = await apiContext.post('/api/v1/materials/genealogy', {
+    const response = await apiContext.post('materials/genealogy', {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         parentLotId: parentLotId,
@@ -633,7 +638,7 @@ test.describe('Material State Management', () => {
   });
 
   test('should retrieve lot state history', async () => {
-    const response = await apiContext.get(`/api/v1/materials/lots/${testLotId}/history`, {
+    const response = await apiContext.get(`materials/lots/${testLotId}/history`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -651,7 +656,7 @@ test.describe('Material State Management', () => {
   });
 
   test('should update lot state with history tracking', async () => {
-    const response = await apiContext.put(`/api/v1/materials/lots/${testLotId}/state`, {
+    const response = await apiContext.put(`materials/lots/${testLotId}/state`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         state: 'ISSUED',
@@ -666,7 +671,7 @@ test.describe('Material State Management', () => {
     expect(lot.state).toBe('ISSUED');
 
     // Verify history was created
-    const historyResponse = await apiContext.get(`/api/v1/materials/lots/${testLotId}/history`, {
+    const historyResponse = await apiContext.get(`materials/lots/${testLotId}/history`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const history = await historyResponse.json();
@@ -676,7 +681,7 @@ test.describe('Material State Management', () => {
   });
 
   test('should require mandatory fields for state update', async () => {
-    const response = await apiContext.put(`/api/v1/materials/lots/${testLotId}/state`, {
+    const response = await apiContext.put(`materials/lots/${testLotId}/state`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         state: 'CONSUMED'
@@ -723,7 +728,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should quarantine material lot', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/quarantine`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/quarantine`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         userId: testUserId,
@@ -739,7 +744,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should release material lot from quarantine', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/release`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/release`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         userId: testUserId,
@@ -755,7 +760,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should reject material lot', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/reject`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/reject`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         userId: testUserId,
@@ -770,7 +775,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should require userId and reason for quarantine', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/quarantine`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/quarantine`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         // Missing required fields
@@ -783,7 +788,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should require userId and reason for release', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/release`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/release`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         userId: testUserId
@@ -797,7 +802,7 @@ test.describe('Quality Management', () => {
   });
 
   test('should require userId and reason for reject', async () => {
-    const response = await apiContext.post(`/api/v1/materials/lots/${testLotId}/reject`, {
+    const response = await apiContext.post(`materials/lots/${testLotId}/reject`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         reason: 'Missing userId'
@@ -821,7 +826,7 @@ test.describe('Work Order Integration', () => {
   });
 
   test('should retrieve material usage by work order', async () => {
-    const response = await apiContext.get(`/api/v1/materials/work-orders/${testWorkOrderId}/usage`, {
+    const response = await apiContext.get(`materials/work-orders/${testWorkOrderId}/usage`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -836,7 +841,7 @@ test.describe('Work Order Integration', () => {
 
 test.describe('Legacy Routes - Backward Compatibility', () => {
   test('should support legacy inventory route', async () => {
-    const response = await apiContext.get('/api/v1/materials/inventory', {
+    const response = await apiContext.get('materials/inventory', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -855,7 +860,7 @@ test.describe('Legacy Routes - Backward Compatibility', () => {
     const user = await prisma.user.findFirst();
     const workOrder = await prisma.workOrder.findFirst();
 
-    const response = await apiContext.post('/api/v1/materials/consumption', {
+    const response = await apiContext.post('materials/consumption', {
       headers: { 'Authorization': `Bearer ${authToken}` },
       data: {
         lotId: lot!.id,

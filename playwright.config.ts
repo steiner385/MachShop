@@ -88,6 +88,19 @@ export default defineConfig({
       },
     },
 
+    /* Collaborative routing tests - manage own auth, extended timeouts */
+    {
+      name: 'collaborative-routing-tests',
+      testMatch: '**/collaborative-routing.spec.ts',
+      timeout: 120000, // 2 minutes per test (includes 30s+ polling intervals)
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - tests manage their own authentication
+        actionTimeout: 60000,
+        navigationTimeout: 30000,
+      },
+    },
+
     /* Traceability workflow tests - authenticated with extended timeouts */
     {
       name: 'traceability-tests',
@@ -204,6 +217,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:5278',
         // No storageState - tests manage auth for different scenarios
+        // Authenticated tests use navigateAuthenticated helper
       },
     },
 

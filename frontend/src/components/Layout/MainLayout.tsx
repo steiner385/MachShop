@@ -401,32 +401,33 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             zIndex: 99,
             transition: 'left 0.2s',
             borderBottom: '1px solid #f0f0f0',
+            overflow: 'hidden', // Prevent content from bleeding outside
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: 16, width: 40, height: 40 }}
+              style={{ fontSize: 16, width: 40, height: 40, flexShrink: 0 }}
             />
 
             {/* Global Search */}
-            <div style={{ maxWidth: 500, flex: 1 }}>
+            <div style={{ maxWidth: 400, flex: 1, minWidth: 0 }}>
               <GlobalSearch compact />
             </div>
           </div>
 
-          <Space size="middle">
+          <Space size="small" style={{ flexShrink: 0 }}>
             {/* Site Selector */}
-            <SiteSelector size="middle" showIcon={true} />
+            <SiteSelector size="small" showIcon={false} />
 
             {/* Notifications */}
             <Badge count={3} size="small">
               <Button
                 type="text"
                 icon={<BellOutlined />}
-                style={{ fontSize: 16, width: 40, height: 40 }}
+                style={{ fontSize: 16, width: 36, height: 36 }}
               />
             </Badge>
 
@@ -437,19 +438,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 placement="bottomRight"
                 arrow
               >
-                <Space style={{ cursor: 'pointer', padding: '0 8px' }} data-testid="user-avatar">
+                <Space style={{ cursor: 'pointer', padding: '0 4px' }} data-testid="user-avatar">
                   <Avatar
-                    size={32}
+                    size={28}
                     icon={<UserOutlined />}
                     style={{ backgroundColor: '#1890ff' }}
                   />
-                  <Space direction="vertical" size={0} style={{ lineHeight: 1 }}>
-                    <Text strong style={{ fontSize: 14 }}>
+                  <Space direction="vertical" size={0} style={{ lineHeight: 1, maxWidth: 150 }}>
+                    <Text strong style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                       {user.firstName && user.lastName
                         ? `${user.firstName} ${user.lastName}`
                         : user.username}
                     </Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                       {user.roles && user.roles.length > 0 ? user.roles[0] : 'Loading...'}
                     </Text>
                   </Space>

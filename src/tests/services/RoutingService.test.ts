@@ -392,6 +392,54 @@ describe('RoutingService', () => {
         routingService.updateRouting('routing-1', { version: '2.0' })
       ).rejects.toThrow('Routing already exists for part part-1 at site site-1 version 2.0');
     });
+
+    it('should successfully update when currentVersion matches', async () => {
+      const existingRouting = {
+        id: 'routing-1',
+        partId: 'part-1',
+        siteId: 'site-1',
+        version: '1.0',
+        updatedAt: new Date(),
+        createdBy: 'user-1',
+      };
+
+      const updatedRouting = {
+        ...existingRouting,
+        description: 'Updated with version check',
+      };
+
+      vi.mocked(mockPrisma.routing.findUnique).mockResolvedValue(existingRouting as any);
+      vi.mocked(mockPrisma.routing.findFirst).mockResolvedValue(null);
+      vi.mocked(mockPrisma.routing.update).mockResolvedValue(updatedRouting as any);
+
+      const result = await routingService.updateRouting('routing-1', {
+        description: 'Updated with version check',
+        currentVersion: '1.0', // Matches existing version
+      });
+
+      expect(result.description).toBe('Updated with version check');
+      expect(mockPrisma.routing.update).toHaveBeenCalled();
+    });
+
+    it('should throw VersionConflictError when currentVersion does not match', async () => {
+      const existingRouting = {
+        id: 'routing-1',
+        partId: 'part-1',
+        siteId: 'site-1',
+        version: '2.0', // Version has changed
+        updatedAt: new Date('2024-01-15T10:00:00Z'),
+        createdBy: 'user-2',
+      };
+
+      vi.mocked(mockPrisma.routing.findUnique).mockResolvedValue(existingRouting as any);
+
+      await expect(
+        routingService.updateRouting('routing-1', {
+          description: 'Attempting update',
+          currentVersion: '1.0', // Does not match current version
+        })
+      ).rejects.toThrow('Routing has been modified by another user');
+    });
   });
 
   describe('deleteRouting', () => {

@@ -158,7 +158,7 @@ export const TabletExecutionView: React.FC = () => {
           justifyContent: 'center',
         }}
       >
-        <Spin size="large" tip="Loading work instruction..." />
+        <Spin size="large" tip="Loading work instruction..."><div /></Spin>
       </div>
     );
   }

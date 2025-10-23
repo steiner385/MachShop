@@ -1,0 +1,218 @@
+/**
+ * Gantt Chart View Styles
+ * Sprint 4: Visual Routing Enhancements
+ */
+
+.gantt-chart-card {
+  overflow-x: auto;
+}
+
+/* Timeline Header */
+.gantt-timeline-header {
+  display: flex;
+  border-bottom: 2px solid #d9d9d9;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.gantt-task-labels {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.gantt-timeline-grid {
+  flex: 1;
+  position: relative;
+  min-width: 600px;
+}
+
+.gantt-time-markers {
+  position: relative;
+  height: 30px;
+}
+
+.time-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-marker::before {
+  content: '';
+  width: 1px;
+  height: 8px;
+  background-color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+/* Gantt Chart Body */
+.gantt-chart-body {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.gantt-row {
+  display: flex;
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 56px;
+  transition: background-color 0.2s;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.gantt-row:hover {
+  background-color: #fafafa;
+}
+
+.gantt-task-label {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid #f0f0f0;
+}
+
+.gantt-timeline {
+  flex: 1;
+  position: relative;
+  min-width: 600px;
+  padding: 8px 0;
+}
+
+/* Grid Lines */
+.grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #f0f0f0;
+  z-index: 0;
+}
+
+.grid-line:nth-child(even) {
+  background-color: #fafafa;
+  width: 10%;
+}
+
+/* Task Bar */
+.gantt-bar {
+  position: absolute;
+  height: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  z-index: 1;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: expandBar 0.5s ease-out;
+}
+
+@keyframes expandBar {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: var(--bar-width, 10%);
+    opacity: 1;
+  }
+}
+
+.gantt-bar:hover {
+  transform: translateY(-50%) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+
+.gantt-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .gantt-task-label {
+    width: 200px;
+  }
+
+  .gantt-task-labels {
+    width: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .gantt-task-label {
+    width: 150px;
+    font-size: 12px;
+  }
+
+  .gantt-task-labels {
+    width: 150px;
+  }
+
+  .gantt-timeline-grid {
+    min-width: 400px;
+  }
+
+  .gantt-timeline {
+    min-width: 400px;
+  }
+
+  .gantt-bar {
+    height: 28px;
+  }
+}
+
+/* Scrollbar Styling */
+.gantt-chart-body::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.gantt-chart-body::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.gantt-chart-body::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+}
+
+.gantt-chart-body::-webkit-scrollbar-thumb:hover {
+  background: #8c8c8c;
+}
+
+/* Loading and Empty States */
+.gantt-chart-card .ant-empty {
+  padding: 60px 0;
+}
+
+.gantt-chart-card .ant-spin-container {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

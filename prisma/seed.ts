@@ -199,7 +199,10 @@ async function main() {
   console.log('✅ Parts created');
 
   // Create routings using upsert with operations handling
-  // First, check if routing exists and handle operations
+  // First, delete all work order operations to allow routing operations to be deleted
+  await prisma.workOrderOperation.deleteMany({});
+
+  // Then, check if routing exists and handle operations
   const existingRouting = await prisma.routing.findUnique({
     where: { routingNumber: 'RT-BLADE-001' },
     include: { operations: true }
@@ -272,6 +275,158 @@ async function main() {
             description: 'Assemble blade components',
             setupTime: 0.5,
             cycleTime: 0.75,
+            workCenterId: assemblyArea.id
+          }
+        ]
+      }
+    }
+  });
+
+  // Create guide vane routing
+  const vaneRouting = await prisma.routing.upsert({
+    where: { routingNumber: 'RT-VANE-001' },
+    update: {
+      description: 'Standard guide vane manufacturing route',
+      operations: {
+        create: [
+          {
+            operationNumber: 10,
+            operationName: 'Casting',
+            description: 'Cast vane from molten metal',
+            setupTime: 3.0,
+            cycleTime: 2.5,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 20,
+            operationName: 'Machining',
+            description: 'Machine vane to final dimensions',
+            setupTime: 1.5,
+            cycleTime: 1.75,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 30,
+            operationName: 'Final Inspection',
+            description: 'Inspect vane dimensions and finish',
+            setupTime: 0.25,
+            cycleTime: 0.5,
+            workCenterId: assemblyArea.id
+          }
+        ]
+      }
+    },
+    create: {
+      routingNumber: 'RT-VANE-001',
+      description: 'Standard guide vane manufacturing route',
+      operations: {
+        create: [
+          {
+            operationNumber: 10,
+            operationName: 'Casting',
+            description: 'Cast vane from molten metal',
+            setupTime: 3.0,
+            cycleTime: 2.5,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 20,
+            operationName: 'Machining',
+            description: 'Machine vane to final dimensions',
+            setupTime: 1.5,
+            cycleTime: 1.75,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 30,
+            operationName: 'Final Inspection',
+            description: 'Inspect vane dimensions and finish',
+            setupTime: 0.25,
+            cycleTime: 0.5,
+            workCenterId: assemblyArea.id
+          }
+        ]
+      }
+    }
+  });
+
+  // Create compressor disk routing
+  const diskRouting = await prisma.routing.upsert({
+    where: { routingNumber: 'RT-DISK-001' },
+    update: {
+      description: 'Standard compressor disk manufacturing route',
+      operations: {
+        create: [
+          {
+            operationNumber: 10,
+            operationName: 'Forging',
+            description: 'Forge disk from billet',
+            setupTime: 4.0,
+            cycleTime: 3.0,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 20,
+            operationName: 'Heat Treatment',
+            description: 'Heat treat for strength',
+            setupTime: 2.0,
+            cycleTime: 4.0,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 30,
+            operationName: 'Precision Machining',
+            description: 'Machine disk to tight tolerances',
+            setupTime: 2.5,
+            cycleTime: 3.5,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 40,
+            operationName: 'Balancing',
+            description: 'Balance disk for rotation',
+            setupTime: 1.0,
+            cycleTime: 1.5,
+            workCenterId: assemblyArea.id
+          }
+        ]
+      }
+    },
+    create: {
+      routingNumber: 'RT-DISK-001',
+      description: 'Standard compressor disk manufacturing route',
+      operations: {
+        create: [
+          {
+            operationNumber: 10,
+            operationName: 'Forging',
+            description: 'Forge disk from billet',
+            setupTime: 4.0,
+            cycleTime: 3.0,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 20,
+            operationName: 'Heat Treatment',
+            description: 'Heat treat for strength',
+            setupTime: 2.0,
+            cycleTime: 4.0,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 30,
+            operationName: 'Precision Machining',
+            description: 'Machine disk to tight tolerances',
+            setupTime: 2.5,
+            cycleTime: 3.5,
+            workCenterId: machiningCenter.id
+          },
+          {
+            operationNumber: 40,
+            operationName: 'Balancing',
+            description: 'Balance disk for rotation',
+            setupTime: 1.0,
+            cycleTime: 1.5,
             workCenterId: assemblyArea.id
           }
         ]
@@ -420,6 +575,7 @@ async function main() {
       status: 'RELEASED',
       dueDate: new Date('2024-03-01'),
       customerOrder: 'CO-2024-002',
+      routingId: vaneRouting.id,
       createdById: adminUser.id
     },
     create: {
@@ -430,6 +586,7 @@ async function main() {
       status: 'RELEASED',
       dueDate: new Date('2024-03-01'),
       customerOrder: 'CO-2024-002',
+      routingId: vaneRouting.id,
       createdById: adminUser.id
     }
   });
@@ -443,6 +600,7 @@ async function main() {
       status: 'COMPLETED',
       dueDate: new Date('2024-01-28'),
       customerOrder: 'CO-2024-003',
+      routingId: diskRouting.id,
       createdById: adminUser.id,
       assignedToId: operator.id,
       startedAt: new Date('2024-01-15T08:00:00Z'),
@@ -456,6 +614,7 @@ async function main() {
       status: 'COMPLETED',
       dueDate: new Date('2024-01-28'),
       customerOrder: 'CO-2024-003',
+      routingId: diskRouting.id,
       createdById: adminUser.id,
       assignedToId: operator.id,
       startedAt: new Date('2024-01-15T08:00:00Z'),
@@ -473,6 +632,7 @@ async function main() {
       status: 'CREATED',
       dueDate: new Date('2024-03-15'),
       customerOrder: 'CO-2024-004',
+      routingId: vaneRouting.id,
       createdById: adminUser.id
     },
     create: {
@@ -483,11 +643,312 @@ async function main() {
       status: 'CREATED',
       dueDate: new Date('2024-03-15'),
       customerOrder: 'CO-2024-004',
+      routingId: vaneRouting.id,
       createdById: adminUser.id
     }
   });
 
   console.log('✅ Work orders created');
+
+  // Create work order operations for ALL work orders
+
+  // Fetch routing operations for all routings
+  const bladeRoutingOps = await prisma.routingOperation.findMany({
+    where: { routingId: bladeRouting.id },
+    orderBy: { operationNumber: 'asc' }
+  });
+
+  const vaneRoutingOps = await prisma.routingOperation.findMany({
+    where: { routingId: vaneRouting.id },
+    orderBy: { operationNumber: 'asc' }
+  });
+
+  const diskRoutingOps = await prisma.routingOperation.findMany({
+    where: { routingId: diskRouting.id },
+    orderBy: { operationNumber: 'asc' }
+  });
+
+  // WO-2024-001001 (IN_PROGRESS) - 3 operations from blade routing
+  if (bladeRoutingOps.length >= 3) {
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo1-op1' },
+      update: {
+        routingOperationId: bladeRoutingOps[0].id,
+        status: 'COMPLETED',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 10,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo1-op1',
+        workOrderId: workOrder1.id,
+        routingOperationId: bladeRoutingOps[0].id,
+        status: 'COMPLETED',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 10,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo1-op2' },
+      update: {
+        routingOperationId: bladeRoutingOps[1].id,
+        status: 'IN_PROGRESS',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 6,
+        quantityScrap: 1
+      },
+      create: {
+        id: 'wo1-op2',
+        workOrderId: workOrder1.id,
+        routingOperationId: bladeRoutingOps[1].id,
+        status: 'IN_PROGRESS',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 6,
+        quantityScrap: 1
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo1-op3' },
+      update: {
+        routingOperationId: bladeRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo1-op3',
+        workOrderId: workOrder1.id,
+        routingOperationId: bladeRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder1.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    console.log('✅ Work order operations created for WO-2024-001001');
+  }
+
+  // WO-2024-001002 (RELEASED) - 3 operations from vane routing, all pending
+  if (vaneRoutingOps.length >= 3) {
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo2-op1' },
+      update: {
+        routingOperationId: vaneRoutingOps[0].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo2-op1',
+        workOrderId: workOrder2.id,
+        routingOperationId: vaneRoutingOps[0].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo2-op2' },
+      update: {
+        routingOperationId: vaneRoutingOps[1].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo2-op2',
+        workOrderId: workOrder2.id,
+        routingOperationId: vaneRoutingOps[1].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo2-op3' },
+      update: {
+        routingOperationId: vaneRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo2-op3',
+        workOrderId: workOrder2.id,
+        routingOperationId: vaneRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder2.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    console.log('✅ Work order operations created for WO-2024-001002');
+  }
+
+  // WO-2024-001003 (COMPLETED) - 4 operations from disk routing, all completed
+  if (diskRoutingOps.length >= 4) {
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo3-op1' },
+      update: {
+        routingOperationId: diskRoutingOps[0].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo3-op1',
+        workOrderId: workOrder3.id,
+        routingOperationId: diskRoutingOps[0].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo3-op2' },
+      update: {
+        routingOperationId: diskRoutingOps[1].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo3-op2',
+        workOrderId: workOrder3.id,
+        routingOperationId: diskRoutingOps[1].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo3-op3' },
+      update: {
+        routingOperationId: diskRoutingOps[2].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo3-op3',
+        workOrderId: workOrder3.id,
+        routingOperationId: diskRoutingOps[2].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo3-op4' },
+      update: {
+        routingOperationId: diskRoutingOps[3].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo3-op4',
+        workOrderId: workOrder3.id,
+        routingOperationId: diskRoutingOps[3].id,
+        status: 'COMPLETED',
+        quantity: workOrder3.quantity,
+        quantityCompleted: 5,
+        quantityScrap: 0
+      }
+    });
+
+    console.log('✅ Work order operations created for WO-2024-001003');
+  }
+
+  // WO-2024-001004 (CREATED) - 3 operations from vane routing, all pending
+  if (vaneRoutingOps.length >= 3) {
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo4-op1' },
+      update: {
+        routingOperationId: vaneRoutingOps[0].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo4-op1',
+        workOrderId: workOrder4.id,
+        routingOperationId: vaneRoutingOps[0].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo4-op2' },
+      update: {
+        routingOperationId: vaneRoutingOps[1].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo4-op2',
+        workOrderId: workOrder4.id,
+        routingOperationId: vaneRoutingOps[1].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    await prisma.workOrderOperation.upsert({
+      where: { id: 'wo4-op3' },
+      update: {
+        routingOperationId: vaneRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      },
+      create: {
+        id: 'wo4-op3',
+        workOrderId: workOrder4.id,
+        routingOperationId: vaneRoutingOps[2].id,
+        status: 'PENDING',
+        quantity: workOrder4.quantity,
+        quantityCompleted: 0,
+        quantityScrap: 0
+      }
+    });
+
+    console.log('✅ Work order operations created for WO-2024-001004');
+  }
+
+  console.log('✅ All work order operations created');
 
   // Create quality inspections using upsert
   const inspection1 = await prisma.qualityInspection.upsert({

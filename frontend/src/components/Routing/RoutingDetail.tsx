@@ -24,6 +24,7 @@ import {
   Popconfirm,
   Badge,
   Tooltip,
+  Segmented,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -37,6 +38,9 @@ import {
   PlusOutlined,
   DeleteOutlined,
   ControlOutlined,
+  TableOutlined,
+  BarChartOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoutingStore } from '@/store/routingStore';
@@ -51,6 +55,10 @@ import type { ColumnsType } from 'antd/es/table';
 import { StepBuilderModal } from './StepBuilderModal';
 import { DraggableStepsTable } from './DraggableStepsTable';
 import { DependencyGraph } from './DependencyGraph';
+import { GanttChartView } from './GanttChartView';
+import { ActiveUsersIndicator } from './ActiveUsersIndicator';
+import { RoutingChangedAlert } from './RoutingChangedAlert';
+import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -64,6 +72,7 @@ export const RoutingDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('details');
+  const [stepsView, setStepsView] = useState<'table' | 'graph' | 'gantt'>('table');
   const [stepModalVisible, setStepModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<RoutingStep | undefined>(undefined);
 
@@ -86,6 +95,33 @@ export const RoutingDetail: React.FC = () => {
     activateRouting,
     obsoleteRouting,
   } = useRoutingStore();
+
+  // Change detection for collaborative editing
+  const {
+    hasChanges,
+    changeInfo,
+    acceptChange,
+    dismissChange,
+  } = useRoutingChangeDetection({
+    routingId: id || '',
+    currentVersion: currentRouting?.version || '',
+    enabled: !!id && !!currentRouting?.version && !isLoadingDetail,
+    onChangeDetected: (info) => {
+      console.log('Routing changed:', info);
+      message.info(`Routing was updated by ${info.modifiedBy || 'another user'}`);
+    },
+  });
+
+  // Handle reload when change is accepted
+  const handleReloadAfterChange = () => {
+    if (id) {
+      acceptChange();
+      fetchRoutingById(id);
+      fetchRoutingSteps(id);
+      calculateRoutingTiming(id);
+      message.success('Routing reloaded successfully');
+    }
+  };
 
   // Load routing and steps on mount
   useEffect(() => {
@@ -416,6 +452,18 @@ export const RoutingDetail: React.FC = () => {
                 Version: <strong>{currentRouting.version}</strong>
               </Text>
             </Space>
+
+            {/* Active Users Indicator */}
+            {id && (
+              <div style={{ marginTop: '12px' }}>
+                <ActiveUsersIndicator
+                  resourceType="routing"
+                  resourceId={id}
+                  action="viewing"
+                  enabled={true}
+                />
+              </div>
+            )}
           </div>
 
           <Space size="middle">
@@ -458,6 +506,15 @@ export const RoutingDetail: React.FC = () => {
           </Space>
         </div>
       </div>
+
+      {/* Change Detection Alert */}
+      {hasChanges && changeInfo && (
+        <RoutingChangedAlert
+          changeInfo={changeInfo}
+          onReload={handleReloadAfterChange}
+          onDismiss={dismissChange}
+        />
+      )}
 
       {/* Timing Statistics */}
       {routingTiming && (
@@ -583,18 +640,47 @@ export const RoutingDetail: React.FC = () => {
             }
             key="steps"
           >
-            <div style={{ marginBottom: '16px' }}>
+            {/* View Toggle and Actions */}
+            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <Space>
                 {editable && (
                   <Button type="primary" icon={<PlusOutlined />} onClick={handleAddStep}>
                     Add Step
                   </Button>
                 )}
-                <Text type="secondary">
-                  {editable ? '🎯 Drag and drop steps to reorder them' : 'Steps are locked (routing not editable)'}
-                </Text>
               </Space>
+
+              {/* View Toggle */}
+              <Segmented
+                value={stepsView}
+                onChange={(value) => setStepsView(value as 'table' | 'graph' | 'gantt')}
+                options={[
+                  {
+                    label: 'Table View',
+                    value: 'table',
+                    icon: <TableOutlined />,
+                  },
+                  {
+                    label: 'Graph View',
+                    value: 'graph',
+                    icon: <ApartmentOutlined />,
+                  },
+                  {
+                    label: 'Gantt Chart',
+                    value: 'gantt',
+                    icon: <BarChartOutlined />,
+                  },
+                ]}
+              />
             </div>
+
+            {editable && stepsView === 'table' && (
+              <div style={{ marginBottom: '12px' }}>
+                <Text type="secondary">
+                  🎯 Drag and drop steps to reorder them
+                </Text>
+              </div>
+            )}
 
             {stepsError && (
               <Alert
@@ -606,14 +692,32 @@ export const RoutingDetail: React.FC = () => {
               />
             )}
 
-            <DraggableStepsTable
-              steps={currentSteps}
-              loading={isLoadingSteps}
-              editable={editable}
-              onReorder={handleReorderSteps}
-              onEdit={handleEditStep}
-              onDelete={handleDeleteStep}
-            />
+            {/* Conditional View Rendering */}
+            {stepsView === 'table' && (
+              <DraggableStepsTable
+                steps={currentSteps}
+                loading={isLoadingSteps}
+                editable={editable}
+                onReorder={handleReorderSteps}
+                onEdit={handleEditStep}
+                onDelete={handleDeleteStep}
+              />
+            )}
+
+            {stepsView === 'graph' && (
+              <DependencyGraph
+                steps={currentSteps}
+                dependencies={currentSteps.flatMap((step) => step.dependencies || [])}
+                loading={isLoadingSteps}
+              />
+            )}
+
+            {stepsView === 'gantt' && (
+              <GanttChartView
+                steps={currentSteps}
+                loading={isLoadingSteps}
+              />
+            )}
           </TabPane>
 
           {/* Dependencies Tab */}

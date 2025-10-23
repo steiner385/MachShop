@@ -29,42 +29,9 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/process-segments/:id
- * Get process segment by ID
- */
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const includeRelations = req.query.includeRelations !== 'false';
-
-    const segment = await ProcessSegmentService.getProcessSegmentById(id, includeRelations);
-    res.json(segment);
-  } catch (error: any) {
-    console.error('Error fetching process segment:', error);
-    res.status(404).json({ error: error.message });
-  }
-});
-
-/**
- * GET /api/process-segments/code/:segmentCode
- * Get process segment by code
- */
-router.get('/code/:segmentCode', async (req: Request, res: Response) => {
-  try {
-    const { segmentCode } = req.params;
-    const includeRelations = req.query.includeRelations !== 'false';
-
-    const segment = await ProcessSegmentService.getProcessSegmentByCode(segmentCode, includeRelations);
-    res.json(segment);
-  } catch (error: any) {
-    console.error('Error fetching process segment by code:', error);
-    res.status(404).json({ error: error.message });
-  }
-});
-
-/**
  * GET /api/process-segments
  * Get all process segments with optional filters
+ * NOTE: Must come BEFORE /:id route to avoid being shadowed
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -103,6 +70,87 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/process-segments/code/:segmentCode
+ * Get process segment by code
+ * NOTE: Must come BEFORE /:id route to match /code/... correctly
+ */
+router.get('/code/:segmentCode', async (req: Request, res: Response) => {
+  try {
+    const { segmentCode } = req.params;
+    const includeRelations = req.query.includeRelations !== 'false';
+
+    const segment = await ProcessSegmentService.getProcessSegmentByCode(segmentCode, includeRelations);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error fetching process segment by code:', error);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+// ======================
+// HIERARCHY ENDPOINTS
+// NOTE: Specific routes like /hierarchy/roots MUST come before /:id
+// ======================
+
+/**
+ * GET /api/process-segments/hierarchy/roots
+ * Get root segments (top-level, no parent)
+ * NOTE: Must come BEFORE /:id route to match /hierarchy/roots correctly
+ */
+router.get('/hierarchy/roots', async (req: Request, res: Response) => {
+  try {
+    const roots = await ProcessSegmentService.getRootSegments();
+    res.json(roots);
+  } catch (error: any) {
+    console.error('Error fetching root segments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================
+// STATISTICS & REPORTING ENDPOINTS
+// NOTE: /statistics/overview MUST come before /:id
+// ======================
+
+/**
+ * GET /api/process-segments/statistics/overview
+ * Get process segment statistics
+ * NOTE: Must come BEFORE /:id route to match /statistics/overview correctly
+ */
+router.get('/statistics/overview', async (req: Request, res: Response) => {
+  try {
+    const stats = await ProcessSegmentService.getStatistics();
+    res.json(stats);
+  } catch (error: any) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================
+// GENERIC ID-BASED ROUTES
+// NOTE: These MUST come after all specific routes to avoid shadowing
+// ======================
+
+/**
+ * GET /api/process-segments/:id
+ * Get process segment by ID
+ * NOTE: Must come AFTER all specific routes like /code/:code, /hierarchy/roots, /statistics/overview
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const includeRelations = req.query.includeRelations !== 'false';
+
+    const segment = await ProcessSegmentService.getProcessSegmentById(id, includeRelations);
+    res.json(segment);
+  } catch (error: any) {
+    console.error('Error fetching process segment:', error);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+/**
  * PUT /api/process-segments/:id
  * Update process segment
  */
@@ -134,39 +182,6 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ======================
-// HIERARCHY ENDPOINTS
-// ======================
-
-/**
- * GET /api/process-segments/:id/children
- * Get child segments of a process segment
- */
-router.get('/:id/children', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const children = await ProcessSegmentService.getChildSegments(id);
-    res.json(children);
-  } catch (error: any) {
-    console.error('Error fetching child segments:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * GET /api/process-segments/hierarchy/roots
- * Get root segments (top-level, no parent)
- */
-router.get('/hierarchy/roots', async (req: Request, res: Response) => {
-  try {
-    const roots = await ProcessSegmentService.getRootSegments();
-    res.json(roots);
-  } catch (error: any) {
-    console.error('Error fetching root segments:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 /**
  * GET /api/process-segments/:id/hierarchy-tree
  * Get full hierarchy tree starting from a segment
@@ -193,6 +208,21 @@ router.get('/:id/ancestors', async (req: Request, res: Response) => {
     res.json(ancestors);
   } catch (error: any) {
     console.error('Error fetching ancestor chain:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/process-segments/:id/children
+ * Get child segments of a process segment
+ */
+router.get('/:id/children', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const children = await ProcessSegmentService.getChildSegments(id);
+    res.json(children);
+  } catch (error: any) {
+    console.error('Error fetching child segments:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -384,24 +414,6 @@ router.get('/:id/resource-specs', async (req: Request, res: Response) => {
     res.json(specs);
   } catch (error: any) {
     console.error('Error fetching resource specs:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ======================
-// STATISTICS & REPORTING ENDPOINTS
-// ======================
-
-/**
- * GET /api/process-segments/statistics/overview
- * Get process segment statistics
- */
-router.get('/statistics/overview', async (req: Request, res: Response) => {
-  try {
-    const stats = await ProcessSegmentService.getStatistics();
-    res.json(stats);
-  } catch (error: any) {
-    console.error('Error fetching statistics:', error);
     res.status(500).json({ error: error.message });
   }
 });

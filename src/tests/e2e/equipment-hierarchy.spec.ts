@@ -6,13 +6,13 @@ let apiContext: APIRequestContext;
 let authToken: string;
 
 test.beforeAll(async () => {
-  // Create API request context - use E2E backend server (port 3101)
+  // Fix: Use correct baseURL pattern with trailing slash to match L2 Equipment tests
   apiContext = await request.newContext({
-    baseURL: 'http://localhost:3101',
+    baseURL: 'http://localhost:3101/api/v1/',
   });
 
-  // Login to get auth token
-  const loginResponse = await apiContext.post('/api/v1/auth/login', {
+  // Login to get auth token - remove /api/v1/ prefix to match correct pattern
+  const loginResponse = await apiContext.post('auth/login', {
     data: {
       username: 'admin',
       password: 'password123'
@@ -232,7 +232,7 @@ test.describe('Equipment Hierarchy - ISA-95 Compliance', () => {
     const createdEquipment: string[] = [];
 
     for (let level = 3; level <= 5; level++) {
-      const response = await apiContext.post('/api/v1/equipment', { headers: { 'Authorization': `Bearer ${authToken}` }, data: {
+      const response = await apiContext.post('equipment', { headers: { 'Authorization': `Bearer ${authToken}` }, data: {
           equipmentNumber: `TEST-LEVEL-${level}`,
           name: `Test Equipment Level ${level}`,
           equipmentClass: 'PRODUCTION',
@@ -263,7 +263,7 @@ test.describe('Equipment Hierarchy - ISA-95 Compliance', () => {
   });
 
   test('should filter equipment by class', async () => {
-    const response = await apiContext.get('/api/v1/equipment?equipmentClass=PRODUCTION&includeRelations=true', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const response = await apiContext.get('equipment?equipmentClass=PRODUCTION&includeRelations=true', { headers: { 'Authorization': `Bearer ${authToken}` } });
 
     expect(response.status()).toBe(200);
     const result = await response.json();
@@ -292,7 +292,7 @@ test.describe('Equipment Hierarchy - ISA-95 Compliance', () => {
   });
 
   test('should get top-level equipment (no parent)', async () => {
-    const response = await apiContext.get('/api/v1/equipment?parentEquipmentId=null&includeRelations=true', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const response = await apiContext.get('equipment?parentEquipmentId=null&includeRelations=true', { headers: { 'Authorization': `Bearer ${authToken}` } });
 
     expect(response.status()).toBe(200);
     const result = await response.json();

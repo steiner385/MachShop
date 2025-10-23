@@ -44,11 +44,28 @@ test.describe('CSP API Violations Detection', () => {
     await page.locator('[data-testid="password-input"]').fill('password123');
     await page.locator('[data-testid="login-button"]').click();
 
-    // Wait for authentication
-    await Promise.race([
-      page.waitForURL('/dashboard', { timeout: 15000 }),
-      page.waitForTimeout(10000)
-    ]);
+    // Wait for authentication with robust waiting
+    try {
+      await page.waitForURL('/dashboard', { timeout: 20000 });
+      await page.waitForLoadState('networkidle', { timeout: 30000 });
+    } catch (error) {
+      console.warn('Dashboard navigation timeout, checking auth state...');
+      // Check if authentication succeeded even if navigation is slow
+      const authState = await page.evaluate(() => {
+        const authData = localStorage.getItem('mes-auth-storage');
+        try {
+          const parsed = authData ? JSON.parse(authData) : null;
+          return parsed?.state?.token ? true : false;
+        } catch { return false; }
+      });
+      if (authState) {
+        console.log('Auth state valid, manually navigating to dashboard...');
+        await page.goto('/dashboard');
+        await page.waitForLoadState('networkidle', { timeout: 30000 });
+      } else {
+        throw error;
+      }
+    }
 
     // Navigate to pages that make API calls and check for CSP violations
     const apiHeavyPages = ['/workorders', '/quality', '/traceability', '/equipment'];
@@ -56,10 +73,10 @@ test.describe('CSP API Violations Detection', () => {
     for (const pageUrl of apiHeavyPages) {
       console.log(`Testing CSP violations on ${pageUrl}`);
       await page.goto(pageUrl);
-      await page.waitForLoadState('networkidle');
-      
-      // Wait for potential API calls to complete
-      await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle', { timeout: 30000 });
+
+      // Wait for potential API calls to complete and CSP to be evaluated
+      await page.waitForTimeout(5000);
       
       // Check for CSP violations related to API calls
       const apiCspViolations = cspViolations.filter(violation => 

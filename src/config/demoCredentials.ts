@@ -78,11 +78,11 @@ export const DEMO_USERS: DemoUser[] = [
     lastName: 'Doe',
     roles: ['Production Operator'],
     permissions: [
-      'workorders.read',
+      'workorders.read', 'workorders.execute',
       'workinstructions.read', 'workinstructions.execute',
       'traceability.read'
     ],
-    description: 'Production operations - Work order viewing and basic operations',
+    description: 'Production operations - Work order viewing and execution',
     displayName: 'Production Operator'
   },
 
@@ -94,7 +94,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Operator',
     roles: ['Production Operator'],
-    permissions: ['workorders.read', 'workinstructions.read', 'workinstructions.execute', 'equipment.read'],
+    permissions: ['workorders.read', 'workorders.execute', 'workinstructions.read', 'workinstructions.execute', 'equipment.read'],
     description: 'Production operator - Execute work orders',
     displayName: 'Production Operator (Test)'
   },
@@ -127,7 +127,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Production',
     lastName: 'Scheduler',
     roles: ['Production Scheduler'],
-    permissions: ['workorders.read', 'workorders.priority', 'scheduling.read', 'scheduling.write', 'equipment.read', 'materials.read', 'capacity.read'],
+    permissions: ['workorders.read', 'workorders.update', 'workorders.priority', 'scheduling.read', 'scheduling.write', 'equipment.read', 'materials.read', 'capacity.read'],
     description: 'Production scheduler - Schedule work orders',
     displayName: 'Production Scheduler'
   },
@@ -138,7 +138,7 @@ export const DEMO_USERS: DemoUser[] = [
     firstName: 'Manufacturing',
     lastName: 'Engineer',
     roles: ['Manufacturing Engineer'],
-    permissions: ['routings.read', 'routings.write', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read'],
+    permissions: ['routings.read', 'routings.create', 'routings.write', 'routings.update', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.create', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read'],
     description: 'Manufacturing engineer - Design process routings',
     displayName: 'Manufacturing Engineer'
   },
@@ -213,15 +213,15 @@ export const DEMO_USERS: DemoUser[] = [
     displayName: 'Materials Handler'
   },
   {
-    username: 'shipping.receiving',
+    username: 'shipping.specialist',
     password: DEMO_PASSWORD,
-    email: 'shipping.receiving@mes.com',
+    email: 'shipping.specialist@mes.com',
     firstName: 'Shipping',
-    lastName: 'Receiving',
-    roles: ['Shipping & Receiving Specialist'],
+    lastName: 'Specialist',
+    roles: ['Shipping/Receiving Specialist'],
     permissions: ['shipments.read', 'shipments.write', 'receiving.read', 'receiving.write', 'carriers.read', 'carriers.write', 'packingLists.read', 'packingLists.write', 'workorders.read', 'materials.read'],
     description: 'Shipping & receiving - Handle shipments',
-    displayName: 'Shipping & Receiving'
+    displayName: 'Shipping/Receiving Specialist'
   },
   {
     username: 'logistics.coordinator',
@@ -237,9 +237,9 @@ export const DEMO_USERS: DemoUser[] = [
 
   // === Tier 4: Maintenance ===
   {
-    username: 'maint.tech',
+    username: 'maint.technician',
     password: DEMO_PASSWORD,
-    email: 'maint.tech@mes.com',
+    email: 'maint.technician@mes.com',
     firstName: 'Maintenance',
     lastName: 'Technician',
     roles: ['Maintenance Technician'],

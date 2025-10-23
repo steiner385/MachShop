@@ -563,7 +563,7 @@ export class EquipmentCommandService {
     newStatus: CommandStatus
   ): void {
     const validTransitions: Record<CommandStatus, CommandStatus[]> = {
-      PENDING: ['SENT', 'CANCELLED'],
+      PENDING: ['SENT', 'CANCELLED', 'FAILED'],
       SENT: ['ACKNOWLEDGED', 'EXECUTING', 'FAILED', 'TIMEOUT', 'CANCELLED'],
       ACKNOWLEDGED: ['EXECUTING', 'COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'],
       EXECUTING: ['COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'],

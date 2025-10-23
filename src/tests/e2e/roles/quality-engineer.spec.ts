@@ -31,7 +31,7 @@ test.describe('Quality Engineer - Core Functions', () => {
 
   test('QUAL-ENG-PERM-003: CAN approve FAI reports', async ({ page }) => {
     await navigateAuthenticated(page, '/fai', 'qualityEngineerFull');
-    await expectPageTitle(page, 'FAI');
+    await expectPageTitle(page, 'AS9102 First Article Inspection');
     console.log('✓ FAI approval capability validated');
   });
 

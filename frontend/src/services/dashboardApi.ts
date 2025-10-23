@@ -68,10 +68,7 @@ export const dashboardApi = {
    * @param endDate - Optional end date for filtering (ISO format)
    */
   async getKPIs(startDate?: string, endDate?: string): Promise<DashboardKPIs> {
-    const response = await apiClient.get<DashboardKPIs>('/dashboard/kpis', {
-      params: { startDate, endDate },
-    });
-    return response.data;
+    return await apiClient.get<DashboardKPIs>('/dashboard/kpis', { startDate, endDate });
   },
 
   /**
@@ -81,10 +78,7 @@ export const dashboardApi = {
    * @param endDate - Optional end date for filtering (ISO format)
    */
   async getRecentWorkOrders(limit: number = 5, startDate?: string, endDate?: string): Promise<RecentWorkOrder[]> {
-    const response = await apiClient.get<RecentWorkOrder[]>('/dashboard/recent-work-orders', {
-      params: { limit, startDate, endDate },
-    });
-    return response.data;
+    return await apiClient.get<RecentWorkOrder[]>('/dashboard/recent-work-orders', { limit, startDate, endDate });
   },
 
   /**
@@ -92,10 +86,7 @@ export const dashboardApi = {
    * @param limit - Number of alerts to return (default: 5)
    */
   async getAlerts(limit: number = 5): Promise<DashboardAlert[]> {
-    const response = await apiClient.get<DashboardAlert[]>('/dashboard/alerts', {
-      params: { limit },
-    });
-    return response.data;
+    return await apiClient.get<DashboardAlert[]>('/dashboard/alerts', { limit });
   },
 
   /**
@@ -104,10 +95,7 @@ export const dashboardApi = {
    * @param endDate - Optional end date for filtering (ISO format)
    */
   async getEfficiencyMetrics(startDate?: string, endDate?: string): Promise<EfficiencyMetrics> {
-    const response = await apiClient.get<EfficiencyMetrics>('/dashboard/efficiency', {
-      params: { startDate, endDate },
-    });
-    return response.data;
+    return await apiClient.get<EfficiencyMetrics>('/dashboard/efficiency', { startDate, endDate });
   },
 
   /**
@@ -116,9 +104,6 @@ export const dashboardApi = {
    * @param endDate - Optional end date for filtering (ISO format)
    */
   async getQualityTrends(startDate?: string, endDate?: string): Promise<QualityTrends> {
-    const response = await apiClient.get<QualityTrends>('/dashboard/quality-trends', {
-      params: { startDate, endDate },
-    });
-    return response.data;
+    return await apiClient.get<QualityTrends>('/dashboard/quality-trends', { startDate, endDate });
   },
 };

@@ -281,7 +281,7 @@ const IntegrationDashboard: React.FC = () => {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <Spin size="large" tip="Loading integrations..." />
+        <Spin size="large" tip="Loading integrations..."><div /></Spin>
       </div>
     );
   }

@@ -138,7 +138,7 @@ const Equipment: React.FC = () => {
   if (loading && equipment.length === 0) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <Spin size="large" tip="Loading equipment..." />
+        <Spin size="large" tip="Loading equipment..."><div /></Spin>
       </div>
     );
   }

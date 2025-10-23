@@ -2,12 +2,14 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout, Spin } from 'antd';
 import { useAuthStore } from '@/store/AuthStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import MainLayout from '@/components/Layout/MainLayout';
 import LoginPage from '@/pages/Auth/LoginPage';
 import Dashboard from '@/pages/Dashboard/Dashboard';
 import WorkOrders from '@/pages/WorkOrders/WorkOrders';
 import WorkOrderDetails from '@/pages/WorkOrders/WorkOrderDetails';
 import WorkOrderEdit from '@/pages/WorkOrders/WorkOrderEdit';
+import WorkOrderExecution from '@/pages/WorkOrders/WorkOrderExecution';
 import Quality from '@/pages/Quality/Quality';
 import Inspections from '@/pages/Quality/Inspections';
 import InspectionDetail from '@/pages/Quality/InspectionDetail';
@@ -51,6 +53,7 @@ import Sprint3Demo from '@/pages/Sprint3Demo/Sprint3Demo';
 // Navigation UI Improvement - Sprint 1 Placeholder Pages
 import SchedulingPage from '@/pages/Production/SchedulingPage';
 import ScheduleDetailPage from '@/pages/Production/ScheduleDetailPage';
+import TeamWorkQueue from '@/pages/Production/TeamWorkQueue';
 import MaterialsPage from '@/pages/Materials/MaterialsPage';
 import PersonnelPage from '@/pages/Personnel/PersonnelPage';
 import AdminPage from '@/pages/Admin/AdminPage';
@@ -73,39 +76,44 @@ const App: React.FC = () => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <Layout style={{ minHeight: '100vh' }}>
-        <Content style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Spin size="large" />
-            <div style={{ marginTop: 16, color: '#666' }}>Loading...</div>
-          </div>
-        </Content>
-      </Layout>
+      <ErrorBoundary>
+        <Layout style={{ minHeight: '100vh' }}>
+          <Content style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+              <Spin size="large" />
+              <div style={{ marginTop: 16, color: '#666' }}>Loading...</div>
+            </div>
+          </Content>
+        </Layout>
+      </ErrorBoundary>
     );
   }
 
   // If user is not authenticated, show login page
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-              replace
-            />
-          }
-        />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
+                replace
+              />
+            }
+          />
+        </Routes>
+      </ErrorBoundary>
     );
   }
 
   // Main application routes for authenticated users
   return (
-    <MainLayout>
-      <Routes>
+    <ErrorBoundary>
+      <MainLayout>
+        <Routes>
         {/* Root and Login redirects */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<Navigate to="/dashboard" replace />} />
@@ -142,6 +150,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute permissions={['workorders.write']}>
               <WorkOrderEdit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/workorders/:id/execute/:operationNumber"
+          element={
+            <ProtectedRoute permissions={['workorders.execute']}>
+              <WorkOrderExecution />
             </ProtectedRoute>
           }
         />
@@ -331,6 +347,16 @@ const App: React.FC = () => {
           element={<Navigate to="/production/scheduling" replace />}
         />
 
+        {/* Team Work Queue (Phase 2 - Production Supervisor) */}
+        <Route
+          path="/production/team-queue"
+          element={
+            <ProtectedRoute roles={['Production Supervisor', 'Plant Manager']}>
+              <TeamWorkQueue />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Process Segments - Manufacturing Routes (Sprint 6) */}
         <Route
           path="/process-segments"
@@ -463,6 +489,7 @@ const App: React.FC = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </MainLayout>
+    </ErrorBoundary>
   );
 };
 

@@ -13,25 +13,26 @@ test.describe('Material Traceability', () => {
   test('should display traceability search interface', async ({ page }) => {
     // Verify main title
     await expect(page.locator('h2')).toContainText('Material Traceability');
-    
+
     // Verify search input with placeholder
     await expect(page.locator('input[placeholder*="Enter serial number"]')).toBeVisible();
-    
-    // Verify search button
-    await expect(page.locator('button:has-text("Search")')).toBeVisible();
-    
+
+    // Verify main search button using test ID
+    await expect(page.getByTestId('main-search-button')).toBeVisible();
+
     // Verify QR code scan button
     await expect(page.locator('button:has-text("Scan QR Code")')).toBeVisible();
-    
+
     // Verify initial state message
     await expect(page.locator('text=Search for Part Traceability')).toBeVisible();
     await expect(page.locator('text=Enter a serial number, lot number, or work order')).toBeVisible();
-    
-    // Verify feature icons
-    await expect(page.locator('text=Genealogy')).toBeVisible();
-    await expect(page.locator('text=History')).toBeVisible();
-    await expect(page.locator('text=Certificates')).toBeVisible();
-    await expect(page.locator('text=Quality')).toBeVisible();
+
+    // Verify feature icons (scoped to the empty state area, not tabs)
+    const emptyState = page.locator('.ant-empty').or(page.locator('[class*="empty"]')).or(page.locator('text=Search for Part Traceability').locator('..'));
+    await expect(emptyState.locator('text=Genealogy').first()).toBeVisible();
+    await expect(emptyState.locator('text=History').first()).toBeVisible();
+    await expect(emptyState.locator('text=Certificates').first()).toBeVisible();
+    await expect(emptyState.locator('text=Quality').first()).toBeVisible();
   });
 
   test('should perform component genealogy search', async ({ page }) => {
@@ -40,7 +41,7 @@ test.describe('Material Traceability', () => {
     await searchInput.fill('TB-2024-001001-S001');
     
     // Click search
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for search results to load
@@ -81,7 +82,7 @@ test.describe('Material Traceability', () => {
     await searchInput.fill('LOT-2024-001');
     
     // Click search
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for search results
@@ -116,7 +117,7 @@ test.describe('Material Traceability', () => {
     await searchInput.fill('TB-2024-001001-S001');
     
     // Click search
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for search results
@@ -162,7 +163,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results
@@ -214,7 +215,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results
@@ -268,7 +269,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results to load
@@ -314,7 +315,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results
@@ -340,7 +341,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results
@@ -367,7 +368,7 @@ test.describe('Material Traceability', () => {
 
   test('should handle invalid search inputs', async ({ page }) => {
     // Test empty search
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
 
     // Wait and see if any validation appears
@@ -417,7 +418,7 @@ test.describe('Material Traceability', () => {
     } else {
       // If no batch functionality, test multiple individual searches
       const searchInput = page.locator('input[placeholder*="Enter serial number"]');
-      const searchButton = page.locator('button:has-text("Search")');
+      const searchButton = page.getByTestId('main-search-button');
       
       const serialNumbers = [
         'TB-2024-001001-S001',
@@ -441,7 +442,7 @@ test.describe('Material Traceability', () => {
     const searchInput = page.locator('input[placeholder*="Enter serial number"]');
     await searchInput.fill('TB-2024-001001-S001');
     
-    const searchButton = page.locator('button:has-text("Search")');
+    const searchButton = page.getByTestId('main-search-button');
     await searchButton.click();
     
     // Wait for results
@@ -453,14 +454,15 @@ test.describe('Material Traceability', () => {
     if (await genealogyTab.isVisible()) {
       await genealogyTab.click();
       await page.waitForTimeout(500);
-      
-      // Look for tree or diagram components
-      const treeComponent = page.locator('.ant-tree');
-      const alertComponent = page.locator('.ant-alert');
-      
+
+      // Look for tree or diagram components within the genealogy tab panel
+      const genealogyPanel = page.getByRole('tabpanel', { name: 'Genealogy' }).or(page.locator('[role="tabpanel"]').filter({ has: page.locator('.ant-tree, .ant-alert') }));
+      const treeComponent = genealogyPanel.locator('.ant-tree');
+      const alertComponent = genealogyPanel.locator('.ant-alert').first();
+
       if (await treeComponent.isVisible()) {
         await expect(treeComponent).toBeVisible();
-        
+
         // Look for tree nodes
         const treeNodes = page.locator('.ant-tree-node');
         if (await treeNodes.count() > 0) {

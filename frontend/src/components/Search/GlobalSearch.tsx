@@ -206,7 +206,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
         >
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center' }}>
-              <Spin size="large" tip="Searching..." />
+              <Spin size="large" tip="Searching..."><div /></Spin>
             </div>
           ) : totalResults === 0 ? (
             <div style={{ padding: '40px' }}>

@@ -52,6 +52,28 @@ export class ConflictError extends AppError {
   }
 }
 
+export class VersionConflictError extends AppError {
+  public readonly conflictDetails: {
+    currentVersion: string;
+    attemptedVersion: string;
+    lastModified: Date;
+    lastModifiedBy?: string;
+  };
+
+  constructor(
+    message: string,
+    conflictDetails: {
+      currentVersion: string;
+      attemptedVersion: string;
+      lastModified: Date;
+      lastModifiedBy?: string;
+    }
+  ) {
+    super(message, 409, 'VERSION_CONFLICT');
+    this.conflictDetails = conflictDetails;
+  }
+}
+
 export class BusinessRuleError extends AppError {
   constructor(message: string) {
     super(message, 422, 'BUSINESS_RULE_VIOLATION');
@@ -186,6 +208,11 @@ export const errorHandler = (
   // Add details for validation errors
   if (appError instanceof ValidationError && appError.details) {
     errorResponse.details = appError.details;
+  }
+
+  // Add conflict details for version conflicts
+  if (appError instanceof VersionConflictError && appError.conflictDetails) {
+    errorResponse.details = appError.conflictDetails;
   }
 
   // Add stack trace in development

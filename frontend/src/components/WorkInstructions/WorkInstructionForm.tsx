@@ -180,7 +180,7 @@ export const WorkInstructionForm: React.FC<WorkInstructionFormProps> = ({ mode }
   if (mode === 'edit' && isLoadingDetail) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="Loading work instruction..." />
+        <Spin size="large" tip="Loading work instruction..."><div /></Spin>
       </div>
     );
   }

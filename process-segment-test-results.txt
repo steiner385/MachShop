@@ -1,0 +1,3244 @@
+
+> manufacturing-execution-system@1.0.0 test:e2e
+> playwright test process-segment-hierarchy.spec.ts
+
+Starting global setup for E2E tests...
+Running port cleanup script...
+=== E2E Test Port Cleanup ===
+
+Cleaning test ports...
+ 4074719  ✓ Port 3101 cleaned
+ 4074871  ✓ Port 5278 cleaned
+  ✓ Port 5279 already free
+
+Verifying ports are free...
+  ✓ All test ports are free
+
+=== Port cleanup completed successfully ===
+Port cleanup completed successfully
+Loading E2E environment configuration...
+E2E environment loaded: {
+  NODE_ENV: 'test',
+  PORT: '3101',
+  FRONTEND_PORT: '5278',
+  DATABASE_URL: 'localhost:5432/mes_e2e_db?schema=public'
+}
+Setting up E2E test database...
+E2E test database already exists or connection issue
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "mes_e2e_db", schema "public" at "localhost:5432"
+
+16 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+E2E test database migrations completed
+Starting E2E-specific servers...
+Starting E2E backend server on port 3101...
+[E2E Backend] > manufacturing-execution-system@1.0.0 e2e:server
+> DOTENV_CONFIG_PATH=.env.e2e NODE_ENV=test PORT=3101 tsx src/index.ts
+[E2E Backend] [Database] Initializing connection pool (test): limit=25, pool_timeout=15s, connect_timeout=10s
+[E2E Backend] QIF Service initialized (QIF 3.0 support)
+[E2E Backend] OpenTelemetry tracing initialized
+  Service: mes-monolith
+  Jaeger: localhost:6832
+  Environment: test
+E2E backend server is ready
+Starting E2E frontend server on port 5278...
+[E2E Frontend] > manufacturing-execution-system@1.0.0 e2e:frontend
+> cd frontend && npm run dev:e2e
+[E2E Frontend] > mes-frontend@1.0.0 dev:e2e
+> vite --config vite.config.e2e.ts
+[E2E Frontend] VITE v5.4.20  ready in 107 ms
+[E2E Frontend] ➜  Local:   http://localhost:5278/
+  ➜  Network: http://192.168.243.204:5278/
+Waiting for server at http://localhost:3101/health...
+Server at http://localhost:3101/health is ready
+Waiting for server at http://localhost:5278...
+Server at http://localhost:5278 is ready
+Starting server health monitoring...
+[Health Monitor] Starting health monitoring (checking every 30s)
+Server health monitoring started (checking every 30 seconds)
+Seeding E2E test data...
+Clearing existing E2E test data...
+E2E test data clearing skipped (tables might not exist yet)
+🌱 Starting database seed...
+✅ Demo credentials validation passed
+  📝 User: admin (System Administrator)
+  📝 User: jane.smith (Quality Engineer)
+  📝 User: john.doe (Production Operator)
+  📝 User: prod.operator (Production Operator (Test))
+  📝 User: prod.supervisor (Production Supervisor)
+  📝 User: prod.planner (Production Planner)
+  📝 User: prod.scheduler (Production Scheduler)
+  📝 User: mfg.engineer (Manufacturing Engineer)
+  📝 User: quality.engineer (Quality Engineer (Test))
+  📝 User: quality.inspector (Quality Inspector)
+  📝 User: dcma.inspector (DCMA Inspector)
+  📝 User: process.engineer (Process Engineer)
+  📝 User: warehouse.manager (Warehouse Manager)
+  📝 User: materials.handler (Materials Handler)
+  📝 User: shipping.specialist (Shipping/Receiving Specialist)
+  📝 User: logistics.coordinator (Logistics Coordinator)
+  📝 User: maint.technician (Maintenance Technician)
+  📝 User: maint.supervisor (Maintenance Supervisor)
+  📝 User: plant.manager (Plant Manager)
+  📝 User: sys.admin (System Admin)
+  📝 User: superuser (Superuser)
+  📝 User: inventory.specialist (Inventory Control Specialist)
+✅ Users created
+✅ Work centers created
+✅ ISA-95 hierarchy (Site → Area → WorkCenter) created
+✅ Parts created
+✅ Routings created
+✅ Quality plans created
+✅ Work orders created
+✅ Quality inspections created
+✅ NCRs created
+✅ ISA-95 Equipment with OEE tracking created
+✅ Personnel classifications created
+✅ Personnel qualifications created
+✅ Users updated with ISA-95 personnel fields
+✅ Personnel certifications created
+✅ Personnel skills created
+✅ Personnel skill assignments (competency matrix) created
+✅ Personnel work center assignments created
+✅ Personnel availability (shift schedules) created
+✅ ISA-95 Personnel Hierarchy complete
+✅ Material classes created
+✅ Material definitions created
+✅ Material properties created
+✅ Material lots created
+✅ Material sublots (split operations) created
+✅ Material lot genealogy created
+✅ Material state history created
+✅ ISA-95 Material Hierarchy complete
+✅ Process segments created (4 segments)
+✅ Process segment parameters created (3 parameters)
+✅ Process segment dependencies created (2 dependencies)
+✅ Personnel segment specifications created (2 specs)
+✅ Equipment segment specifications created (2 specs)
+✅ Material segment specifications created (2 specs)
+✅ Physical asset segment specifications created (3 assets)
+✅ ISA-95 Process Segment Hierarchy complete
+✅ Serialized parts created
+✅ Test data for traceability created
+✅ Test FAI reports created
+✅ Inventory created
+✅ Production schedules created (2 schedules, 6 entries, 4 constraints)
+
+📋 Seeding Task 1.7: Production Dispatching & Execution data...
+✅ Production dispatching & execution data created:
+   - 6 status history records (WO1: 3, WO2: 3)
+   - 2 dispatch logs
+   - 7 work performance records (2 labor, 1 material, 1 equipment, 1 quality, 1 downtime, 1 additional labor)
+   - 5 production variances (quantity, time, material, efficiency, yield)
+🎉 Database seed completed successfully!
+✅ GE Proficy Historian integration configuration created
+✅ IBM Maximo CMMS integration configuration created
+✅ Indysoft Gauge Calibration integration configuration created
+✅ Covalent Skills Tracking integration configuration created
+✅ Shop Floor Connect integration configuration created
+✅ Predator PDM integration configuration created
+✅ Predator DNC integration configuration created
+
+📊 Seed Summary:
+👥 Users: 24
+🏭 Sites: 1
+📍 Areas: 1
+🏭 Work Centers: 2
+🔧 Parts: 276
+📋 Work Orders: 5 (CREATED: 1, IN_PROGRESS: 2, RELEASED: 1, COMPLETED: 1)
+🔍 Quality Plans: 1
+📝 Quality Inspections: 1
+⚠️  NCRs: 1
+🏗️  Equipment: 2
+🔢 Serialized Parts: 42
+📦 Inventory Items: 1
+
+👤 ISA-95 Personnel Hierarchy:
+   📊 Personnel Classes: 5
+   📜 Qualifications: 4
+   🎓 Certifications: 6
+   🔧 Skills: 5
+   📈 Skill Assignments: 5
+   🏭 Work Center Assignments: 2
+   📅 Availability Records: 30
+
+📦 ISA-95 Material Hierarchy:
+   🏷️  Material Classes: 4
+   📋 Material Definitions: 4
+   🔬 Material Properties: 5
+   📦 Material Lots: 5
+   🔀 Material Sublots: 2
+   🔗 Lot Genealogy Records: 1
+   📊 State History Records: 737
+
+⚙️  ISA-95 Process Segment Hierarchy:
+   📋 Process Segments: 7
+   🔧 Segment Parameters: 3
+   🔗 Segment Dependencies: 2
+   👥 Personnel Specifications: 294
+   🏭 Equipment Specifications: 294
+   📦 Material Specifications: 294
+   🔨 Physical Asset Specifications: 441
+
+📅 ISA-95 Production Scheduling:
+   📋 Production Schedules: 245
+   📝 Schedule Entries: 17
+   ⚠️  Schedule Constraints: 114
+   📊 State History Records: 612
+
+🏭 ISA-95 Production Dispatching & Execution:
+   📊 Work Order Status History: 6
+   🚀 Dispatch Logs: 2
+   ⚙️  Work Performance Records: 6
+   📉 Production Variances: 5
+E2E test data seeded successfully
+Authenticating test user...
+[Health Monitor] ✅ HEALTHY | Backend: ✓ 1282ms | Frontend: ✓ 5ms | Memory: 45.05MB | Uptime: 7s
+Browser Log: [SiteContext] Initializing site context...
+Browser Log: [SiteContext] Fetching sites from API
+Browser Log: [SiteContext] No auth token yet, skipping site fetch
+Filling login form...
+Browser Log: [SiteContext] No sites available yet (might be waiting for auth)
+Browser Log: [SiteContext] Auth storage found but token not ready yet, will retry...
+Clicking login button...
+Browser Log: [SiteContext] Auth storage found but token not ready yet, will retry...
+Login API request: POST http://localhost:5278/api/v1/auth/login
+Waiting for login response...
+[E2E Backend] 2025-10-21 22:13:08.672 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "280cba30166e61abf3b8019b7c188733",
+    "span_id": "e9d3f442c86640ad",
+    "trace_flags": "01"
+  }
+}
+Browser Log: [SiteContext] Auth storage found but token not ready yet, will retry...
+[E2E Backend] 2025-10-21 22:13:08.860 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 188,
+    "success": true,
+    "trace_id": "280cba30166e61abf3b8019b7c188733",
+    "span_id": "e9d3f442c86640ad",
+    "trace_flags": "01"
+  }
+}
+Login API response: 200 http://localhost:5278/api/v1/auth/login
+Current URL after login attempt: http://localhost:5278/dashboard
+Login response body: {"message":"Login successful","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWd2aG5wZGEwMDAwOTgza2FyZnZzM29rIiwidXNlcm5hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AbWVzLmNvbSIsInJvbGVzIjpbIlBsYW50IE1hbmFnZXIiLCJTeXN0ZW0gQWRtaW5pc3RyYXRvciJdLCJwZXJtaXNzaW9ucyI6WyJ3b3Jrb3JkZXJzLnJlYWQiLCJ3b3Jrb3JkZXJzLndyaXRlIiwid29ya29yZGVycy5jcmVhdGUiLCJ3b3Jrb3JkZXJzLnVwZGF0ZSIsIndvcmtvcmRlcnMuZGVsZXRlIiwid29ya29yZGVycy5yZWxlYXNlIiwicXVhbGl0eS5yZWFkIiwicXVhbGl0eS53cml0ZSIsInRyYWNlYWJpbGl0eS5yZWFkIiwidHJh
+Login button still loading: false
+Browser Warning: OEE Dashboard data unavailable: Failed to load OEE dashboard data
+Browser Log: [SiteContext] Auth detected, refetching sites...
+Browser Log: [SiteContext] Fetching sites from API
+Browser Log: [SiteContext] Auth detected, refetching sites...
+Browser Log: [SiteContext] Fetching sites from API
+Browser Log: [SiteContext] Auth detected, refetching sites...
+Browser Log: [SiteContext] Fetching sites from API
+Browser Log: [SiteContext] Auth detected, refetching sites...
+Browser Log: [SiteContext] Fetching sites from API
+Current URL after extended wait: http://localhost:5278/dashboard
+Auth localStorage state: {
+  hasAuthData: false,
+  authKeys: [ 'mes-auth-storage' ],
+  authStorageRaw: '{"state":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWd2aG5wZGEwMDAwOTgza2FyZnZzM29rIiwidXNlcm5hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AbWVzLmNvbSIsInJvbGVzIjpbIlBsYW50IE1hbmFnZXIiLCJT...',
+  isAuthenticated: true,
+  hasToken: true,
+  userId: 'cmgvhnpda0000983karfvs3ok'
+}
+Auth state is valid, manually navigating to dashboard for test setup...
+Browser Log: [SiteContext] Initializing site context...
+Browser Log: [SiteContext] Using cached sites
+Browser Log: [SiteContext] Defaulting to site: Manufacturing Plant 1
+Browser Log: [SiteContext] Initialization complete. Sites loaded: 1
+Browser Warning: OEE Dashboard data unavailable: Failed to load OEE dashboard data
+Dashboard navigation completed, URL: http://localhost:5278/dashboard
+Authentication completed and state saved
+
+=== PRE-AUTHENTICATING ALL TEST USERS ===
+This prevents rate limiting (HTTP 429) during test execution
+
+[1/22] Authenticating admin...
+[E2E Backend] 2025-10-21 22:13:12.796 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "8caf27bd14e2744ec70910bedb55d411",
+    "span_id": "6e897d1abb48b6ce",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:12.954 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 158,
+    "success": true,
+    "trace_id": "8caf27bd14e2744ec70910bedb55d411",
+    "span_id": "6e897d1abb48b6ce",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for admin
+[2/22] Authenticating jane.smith...
+[E2E Backend] 2025-10-21 22:13:13.110 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "f2ad86ef0337b90e9db876d85229d999",
+    "span_id": "e7dcc4f4db039cab",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:13.273 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "f2ad86ef0337b90e9db876d85229d999",
+    "span_id": "e7dcc4f4db039cab",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for jane.smith
+[3/22] Authenticating john.doe...
+[E2E Backend] 2025-10-21 22:13:13.430 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "80960b8f75851a118e7cacf64065d177",
+    "span_id": "38284c95ae65b83c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:13.596 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 166,
+    "success": true,
+    "trace_id": "80960b8f75851a118e7cacf64065d177",
+    "span_id": "38284c95ae65b83c",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for john.doe
+[4/22] Authenticating prod.operator...
+[E2E Backend] 2025-10-21 22:13:13.750 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "95a799e909e4618cb1b9265b8d5e5a6a",
+    "span_id": "da37984ddb786ce3",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:13.915 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 165,
+    "success": true,
+    "trace_id": "95a799e909e4618cb1b9265b8d5e5a6a",
+    "span_id": "da37984ddb786ce3",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for prod.operator
+[5/22] Authenticating prod.supervisor...
+[E2E Backend] 2025-10-21 22:13:14.071 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "0e46ddfad059597a4e7fa920934aaa1a",
+    "span_id": "85a0edf5a6e67c6a",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:14.228 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 157,
+    "success": true,
+    "trace_id": "0e46ddfad059597a4e7fa920934aaa1a",
+    "span_id": "85a0edf5a6e67c6a",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for prod.supervisor
+[6/22] Authenticating prod.planner...
+[E2E Backend] 2025-10-21 22:13:14.384 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "b83756fa1cdd2046fc90f8b01ecf35fd",
+    "span_id": "e27ee2ffc83ab419",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:14.552 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 168,
+    "success": true,
+    "trace_id": "b83756fa1cdd2046fc90f8b01ecf35fd",
+    "span_id": "e27ee2ffc83ab419",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for prod.planner
+[7/22] Authenticating prod.scheduler...
+[E2E Backend] 2025-10-21 22:13:14.707 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "ea0672798b6cead6faa69b37d5c9dd48",
+    "span_id": "c226f3f75ac4f1e4",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:14.869 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "ea0672798b6cead6faa69b37d5c9dd48",
+    "span_id": "c226f3f75ac4f1e4",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for prod.scheduler
+[8/22] Authenticating mfg.engineer...
+[E2E Backend] 2025-10-21 22:13:15.025 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "9a79c3cd99fb2afec9f1d194ebcca177",
+    "span_id": "1e5621e363afad12",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:15.188 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "9a79c3cd99fb2afec9f1d194ebcca177",
+    "span_id": "1e5621e363afad12",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for mfg.engineer
+[9/22] Authenticating quality.engineer...
+[E2E Backend] 2025-10-21 22:13:15.342 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "36768d60affae027e5bbc2f8a1d5c3d7",
+    "span_id": "cf7df59f7525f65c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:15.499 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 157,
+    "success": true,
+    "trace_id": "36768d60affae027e5bbc2f8a1d5c3d7",
+    "span_id": "cf7df59f7525f65c",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for quality.engineer
+[10/22] Authenticating quality.inspector...
+[E2E Backend] 2025-10-21 22:13:15.653 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "eda8b7834c46be7e3484313e95e4abda",
+    "span_id": "db0779b44565f95d",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:15.814 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "eda8b7834c46be7e3484313e95e4abda",
+    "span_id": "db0779b44565f95d",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for quality.inspector
+[11/22] Authenticating dcma.inspector...
+[E2E Backend] 2025-10-21 22:13:15.969 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "bab5087718997ed5a8ff7c15fcb6b899",
+    "span_id": "9587a4d6782a1f17",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:16.133 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "bab5087718997ed5a8ff7c15fcb6b899",
+    "span_id": "9587a4d6782a1f17",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for dcma.inspector
+[12/22] Authenticating process.engineer...
+[E2E Backend] 2025-10-21 22:13:16.301 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "185d6b9f222697d7d128f5d69ff8fad9",
+    "span_id": "d508d29cdc07f58a",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:16.463 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "185d6b9f222697d7d128f5d69ff8fad9",
+    "span_id": "d508d29cdc07f58a",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for process.engineer
+[13/22] Authenticating warehouse.manager...
+[E2E Backend] 2025-10-21 22:13:16.618 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "9292875db093e28a6d139a9eb14810d9",
+    "span_id": "63c88419feeed776",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:16.775 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 156,
+    "success": true,
+    "trace_id": "9292875db093e28a6d139a9eb14810d9",
+    "span_id": "63c88419feeed776",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for warehouse.manager
+[14/22] Authenticating materials.handler...
+[E2E Backend] 2025-10-21 22:13:16.929 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "d7c501efaaa99a5859b45c49d7840a49",
+    "span_id": "b1509df3f18ce6d4",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:17.093 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "d7c501efaaa99a5859b45c49d7840a49",
+    "span_id": "b1509df3f18ce6d4",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for materials.handler
+[15/22] Authenticating shipping.specialist...
+[E2E Backend] 2025-10-21 22:13:17.247 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "0909359dd2f27b6c7a423b435b998de6",
+    "span_id": "94ad87344a7b885e",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:17.411 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "0909359dd2f27b6c7a423b435b998de6",
+    "span_id": "94ad87344a7b885e",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for shipping.specialist
+[16/22] Authenticating logistics.coordinator...
+[E2E Backend] 2025-10-21 22:13:17.566 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "672c2bcb7d8a66881583781e5a545064",
+    "span_id": "b34d966ff8d38b73",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:17.728 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "672c2bcb7d8a66881583781e5a545064",
+    "span_id": "b34d966ff8d38b73",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for logistics.coordinator
+[17/22] Authenticating maint.technician...
+[E2E Backend] 2025-10-21 22:13:17.882 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "29d08ed4df602d25c60b5e61570da49c",
+    "span_id": "bf14bcab92a8e2d0",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:18.040 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 158,
+    "success": true,
+    "trace_id": "29d08ed4df602d25c60b5e61570da49c",
+    "span_id": "bf14bcab92a8e2d0",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for maint.technician
+[18/22] Authenticating maint.supervisor...
+[E2E Backend] 2025-10-21 22:13:18.194 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "a51f321ff157b3671b0b289ef7067e3a",
+    "span_id": "8400be59a43b6c7e",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:18.355 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "a51f321ff157b3671b0b289ef7067e3a",
+    "span_id": "8400be59a43b6c7e",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for maint.supervisor
+[19/22] Authenticating plant.manager...
+[E2E Backend] 2025-10-21 22:13:18.509 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "e7fe5c06e3a85c3460b414c95cb2f9bf",
+    "span_id": "8e56c85b4ba133ba",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:18.671 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "e7fe5c06e3a85c3460b414c95cb2f9bf",
+    "span_id": "8e56c85b4ba133ba",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for plant.manager
+[20/22] Authenticating sys.admin...
+[E2E Backend] 2025-10-21 22:13:18.825 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "a93bcf12fc3f307cfe0f3b560778640a",
+    "span_id": "c01500fcf26635fa",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:18.988 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "a93bcf12fc3f307cfe0f3b560778640a",
+    "span_id": "c01500fcf26635fa",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for sys.admin
+[21/22] Authenticating superuser...
+[E2E Backend] 2025-10-21 22:13:19.143 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "dfc65b9df8cfd18a77327aa06ea2f1c2",
+    "span_id": "b43d167d88e19223",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:19.301 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 158,
+    "success": true,
+    "trace_id": "dfc65b9df8cfd18a77327aa06ea2f1c2",
+    "span_id": "b43d167d88e19223",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for superuser
+[22/22] Authenticating inventory.specialist...
+[E2E Backend] 2025-10-21 22:13:19.455 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "node",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "b64d1f862c280d50d6553698a97056a6",
+    "span_id": "617a2e9e2feac5e1",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:19.616 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "b64d1f862c280d50d6553698a97056a6",
+    "span_id": "617a2e9e2feac5e1",
+    "trace_flags": "01"
+  }
+}
+  ✓ Cached token for inventory.specialist
+
+=== PRE-AUTHENTICATION COMPLETE ===
+✓ Successfully cached: 22/22 users
+
+Auth Cache Statistics:
+  Total tokens: 22
+  Valid tokens: 22
+  Expired tokens: 0
+  Cache file: /home/tony/GitHub/mes/test-results/auth-cache.json
+=====================================
+
+Global setup completed.
+
+Running 26 tests using 4 workers
+
+[1A[2K[1/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api
+[1A[2K[2/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api
+[1A[2K[3/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:455:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should prevent self-dependency @api
+[1A[2K[4/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:337:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should prevent circular references @api
+[E2E Backend] 2025-10-21 22:13:20.185 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "8d6f36efe9d35be61bd194fe61bdcb27",
+    "span_id": "0dbc07fa54b7b361",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.187 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "b590f7b07ea825ac04abeb9f2f1c0caa",
+    "span_id": "df3c10fb77d6845c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.188 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "122ac786e7521bd6c123e068cd2d11d6",
+    "span_id": "17fff49c46400235",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.190 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "1e811d224266f4166b7ff86fa1a39711",
+    "span_id": "d5bf217d5ad80f18",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.350 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 165,
+    "success": true,
+    "trace_id": "8d6f36efe9d35be61bd194fe61bdcb27",
+    "span_id": "0dbc07fa54b7b361",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.351 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "b590f7b07ea825ac04abeb9f2f1c0caa",
+    "span_id": "df3c10fb77d6845c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.352 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "122ac786e7521bd6c123e068cd2d11d6",
+    "span_id": "17fff49c46400235",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.353 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "1e811d224266f4166b7ff86fa1a39711",
+    "span_id": "d5bf217d5ad80f18",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:455:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should prevent self-dependency @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:337:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should prevent circular references @api
+✅ Authentication successful
+
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend Error] Error adding dependency: PrismaClientValidationError: 
+Invalid `this.prisma.processSegment.findUnique()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:54
+
+  137  * Get process segment by ID
+  138  */
+  139 async getProcessSegmentById(id: string, includeRelations = true) {
+→ 140   const segment = await this.prisma.processSegment.findUnique({
+          where: {
+            id: undefined,
+        ?   segmentCode?: String,
+        ?   AND?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   OR?: ProcessSegmentWhereInput[],
+        ?   NOT?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   segmentName?: StringFilter | String,
+        ?   description?: StringNullableFilter | String | Null,
+        ?   siteId?: StringNullableFilter | String | Null,
+        ?   isStandardOperation?: BoolFilter | Boolean,
+        ?   level?: IntFilter | Int,
+        ?   parentSegmentId?: StringNullableFilter | String | Null,
+        ?   segmentType?: EnumProcessSegmentTypeFilter | ProcessSegmentType,
+        ?   category?: StringNullableFilter | String | Null,
+        ?   duration?: IntNullableFilter | Int | Null,
+        ?   setupTime?: IntNullableFilter | Int | Null,
+        ?   teardownTime?: IntNullableFilter | Int | Null,
+        ?   minCycleTime?: IntNullableFilter | Int | Null,
+        ?   maxCycleTime?: IntNullableFilter | Int | Null,
+        ?   version?: StringFilter | String,
+        ?   effectiveDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   expirationDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   isActive?: BoolFilter | Boolean,
+        ?   requiresApproval?: BoolFilter | Boolean,
+        ?   approvedBy?: StringNullableFilter | String | Null,
+        ?   approvedAt?: DateTimeNullableFilter | DateTime | Null,
+        ?   createdAt?: DateTimeFilter | DateTime,
+        ?   updatedAt?: DateTimeFilter | DateTime,
+        ?   parentSegment?: ProcessSegmentNullableRelationFilter | ProcessSegmentWhereInput | Null,
+        ?   childSegments?: ProcessSegmentListRelationFilter,
+        ?   site?: SiteNullableRelationFilter | SiteWhereInput | Null,
+        ?   routingSteps?: RoutingStepListRelationFilter,
+        ?   parameters?: ProcessSegmentParameterListRelationFilter,
+        ?   dependencies?: ProcessSegmentDependencyListRelationFilter,
+        ?   prerequisiteFor?: ProcessSegmentDependencyListRelationFilter,
+        ?   personnelSpecs?: PersonnelSegmentSpecificationListRelationFilter,
+        ?   equipmentSpecs?: EquipmentSegmentSpecificationListRelationFilter,
+        ?   materialSpecs?: MaterialSegmentSpecificationListRelationFilter,
+        ?   assetSpecs?: PhysicalAssetSegmentSpecificationListRelationFilter,
+        ?   bomItems?: BOMItemListRelationFilter
+          },
+          include: undefined
+        })
+
+Argument `where` of type ProcessSegmentWhereUniqueInput needs at least one of `id` or `segmentCode` arguments. Available options are marked with ?.
+    at wn (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.getProcessSegmentById (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:21)
+    at async ProcessSegmentService.addDependency (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:527:5)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:274:24) {
+  clientVersion: '5.22.0'
+}
+[1A[2K[5/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:476:9 › Process Segment Hierarchy Tests › Resource Specifications › should add personnel specification @api
+[1A[2K[6/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:114:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get process segment by ID @api
+[1A[2K[7/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:126:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get process segment by code @api
+[1A[2K[8/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:138:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get all process segments @api
+[1A[2K[9/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:150:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should filter process segments by type @api
+[1A[2K[10/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:164:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should filter process segments by level @api
+[1A[2K[11/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:178:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should update process segment @api
+[1A[2K[12/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:196:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should soft delete process segment @api
+[1A[2K[13/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:337:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should prevent circular references @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:20.807 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "1ef7c57d6f4959932bb64eb42f905cd6",
+    "span_id": "7d4546c1beec2058",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[14/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api (retry #1)
+[1A[2K[15/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:20.839 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "6e32eeeebdfabc2413ce4780af22ce02",
+    "span_id": "757d3ce81df48b78",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.841 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "3526989bc1ba62b9e4f7f220c312a7cc",
+    "span_id": "e28391e1f59340d5",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[16/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:476:9 › Process Segment Hierarchy Tests › Resource Specifications › should add personnel specification @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:20.874 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "3f1a12d457b340136f67e40fe109ebb3",
+    "span_id": "5a7081d2ec9bd213",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:20.971 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "1ef7c57d6f4959932bb64eb42f905cd6",
+    "span_id": "7d4546c1beec2058",
+    "trace_flags": "01"
+  }
+}
+[1A[2K✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:21.004 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 165,
+    "success": true,
+    "trace_id": "6e32eeeebdfabc2413ce4780af22ce02",
+    "span_id": "757d3ce81df48b78",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:21.007 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 166,
+    "success": true,
+    "trace_id": "3526989bc1ba62b9e4f7f220c312a7cc",
+    "span_id": "e28391e1f59340d5",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:21.043 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 169,
+    "success": true,
+    "trace_id": "3f1a12d457b340136f67e40fe109ebb3",
+    "span_id": "5a7081d2ec9bd213",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:476:9 › Process Segment Hierarchy Tests › Resource Specifications › should add personnel specification @api
+✅ Authentication successful
+
+[1A[2K  1) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:337:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should prevent circular references @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m400[39m
+    Received: [31m404[39m
+
+      345 |
+      346 |       expect(response.ok()).toBeFalsy();
+    > 347 |       expect(response.status()).toBe(400);
+          |                                 ^
+      348 |     });
+      349 |   });
+      350 |
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:347:33
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m400[39m
+    Received: [31m404[39m
+
+      345 |
+      346 |       expect(response.ok()).toBeFalsy();
+    > 347 |       expect(response.status()).toBe(400);
+          |                                 ^
+      348 |     });
+      349 |   });
+      350 |
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:347:33
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--9d01f-prevent-circular-references-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--9d01f-prevent-circular-references-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      100 |       });
+      101 |
+    > 102 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      103 |       const data = await response.json();
+      104 |
+      105 |       expect(data).toHaveProperty('id');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:102:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      100 |       });
+      101 |
+    > 102 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      103 |       const data = await response.json();
+      104 |
+      105 |       expect(data).toHaveProperty('id');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:102:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--ad171-reate-a-new-process-segment-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--ad171-reate-a-new-process-segment-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[17/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:114:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get process segment by ID @api (retry #1)
+[1A[2K[18/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:126:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get process segment by code @api (retry #1)
+[1A[2K[19/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:138:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should get all process segments @api (retry #1)
+[1A[2K[20/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:150:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should filter process segments by type @api (retry #1)
+[1A[2K[21/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:164:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should filter process segments by level @api (retry #1)
+[1A[2K[22/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:178:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should update process segment @api (retry #1)
+[1A[2K[23/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:196:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should soft delete process segment @api (retry #1)
+[1A[2K  3) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      249 |       });
+      250 |
+    > 251 |       expect(roughResponse.ok()).toBeTruthy();
+          |                                  ^
+      252 |       const roughData = await roughResponse.json();
+      253 |       roughMillingStepId = roughData.id;
+      254 |
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:251:34
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      249 |       });
+      250 |
+    > 251 |       expect(roughResponse.ok()).toBeTruthy();
+          |                                  ^
+      252 |       const roughData = await roughResponse.json();
+      253 |       roughMillingStepId = roughData.id;
+      254 |
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:251:34
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--8ccbc-hould-create-child-segments-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--8ccbc-hould-create-child-segments-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  4) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:476:9 › Process Segment Hierarchy Tests › Resource Specifications › should add personnel specification @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      486 |       });
+      487 |
+    > 488 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      489 |       const data = await response.json();
+      490 |
+      491 |       expect(data.minimumCompetency).toBe('COMPETENT');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:488:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      486 |       });
+      487 |
+    > 488 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      489 |       const data = await response.json();
+      490 |
+      491 |       expect(data.minimumCompetency).toBe('COMPETENT');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:488:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--0d959-add-personnel-specification-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--0d959-add-personnel-specification-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[24/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api
+[E2E Backend] 2025-10-21 22:13:21.466 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "08684cd6ce400195cfa7461330bb3c62",
+    "span_id": "87a9d105bdce6905",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[25/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api
+[1A[2K[26/26] [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api
+[E2E Backend] 2025-10-21 22:13:21.500 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "f50ab089dddaa3018160f5533ccc5ec0",
+    "span_id": "781899b104310e1a",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:21.504 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "c392e146aef4f18d6c8b8603951866ae",
+    "span_id": "04a8bc302823df84",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[27/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api
+[E2E Backend] 2025-10-21 22:13:21.532 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "9dad1a02b85746dada7a71ffb80119b4",
+    "span_id": "1b9ca0835fe07f2a",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:21.630 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "08684cd6ce400195cfa7461330bb3c62",
+    "span_id": "87a9d105bdce6905",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:21.662 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "f50ab089dddaa3018160f5533ccc5ec0",
+    "span_id": "781899b104310e1a",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:21.666 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "c392e146aef4f18d6c8b8603951866ae",
+    "span_id": "04a8bc302823df84",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:21.693 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "9dad1a02b85746dada7a71ffb80119b4",
+    "span_id": "1b9ca0835fe07f2a",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api
+✅ Authentication successful
+
+[1A[2K[28/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api (retry #1)
+[1A[2K[29/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api (retry #1)
+[1A[2K[30/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:22.082 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "1b101f314c837e6b7af7da5aea93e9b9",
+    "span_id": "aa78c168eb503f6c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.105 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "91cc76b25c902cce5091cb3b721a32fc",
+    "span_id": "d4947b9a6e3ec59d",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[31/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:22.109 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "96dd3ec3d7508818c3c949048357bd2f",
+    "span_id": "793ff9c45ba30936",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.135 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "4b0d2a1dadaa1745b2f80ea8f53f25d4",
+    "span_id": "638cdcef3eac4e4c",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.243 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "1b101f314c837e6b7af7da5aea93e9b9",
+    "span_id": "aa78c168eb503f6c",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:22.267 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "91cc76b25c902cce5091cb3b721a32fc",
+    "span_id": "d4947b9a6e3ec59d",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.270 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 161,
+    "success": true,
+    "trace_id": "96dd3ec3d7508818c3c949048357bd2f",
+    "span_id": "793ff9c45ba30936",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:22.301 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 166,
+    "success": true,
+    "trace_id": "4b0d2a1dadaa1745b2f80ea8f53f25d4",
+    "span_id": "638cdcef3eac4e4c",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api
+✅ Authentication successful
+
+[1A[2K  5) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      370 |       });
+      371 |
+    > 372 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      373 |       const data = await response.json();
+      374 |
+      375 |       expect(data.parameterName).toBe('Spindle Speed');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:372:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      370 |       });
+      371 |
+    > 372 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      373 |       const data = await response.json();
+      374 |
+      375 |       expect(data.parameterName).toBe('Spindle Speed');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:372:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--99aaa-ld-add-parameter-to-segment-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--99aaa-ld-add-parameter-to-segment-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  6) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      555 |       });
+      556 |
+    > 557 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      558 |       const data = await response.json();
+      559 |
+      560 |       expect(data).toHaveProperty('personnel');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:557:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      555 |       });
+      556 |
+    > 557 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      558 |       const data = await response.json();
+      559 |
+      560 |       expect(data).toHaveProperty('personnel');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:557:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--e063c-all-resource-specifications-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--e063c-all-resource-specifications-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  7) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      280 |       });
+      281 |
+    > 282 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      283 |       const children = await response.json();
+      284 |
+      285 |       expect(Array.isArray(children)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:282:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      280 |       });
+      281 |
+    > 282 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      283 |       const children = await response.json();
+      284 |
+      285 |       expect(Array.isArray(children)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:282:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--962ae-y-should-get-child-segments-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--962ae-y-should-get-child-segments-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  8) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      505 |       });
+      506 |
+    > 507 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      508 |       const data = await response.json();
+      509 |
+      510 |       expect(data.equipmentClass).toBe('PRODUCTION');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:507:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      505 |       });
+      506 |
+    > 507 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      508 |       const data = await response.json();
+      509 |
+      510 |       expect(data.equipmentClass).toBe('PRODUCTION');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:507:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--ceab6-add-equipment-specification-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--ceab6-add-equipment-specification-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[32/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api
+[1A[2K[33/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:577:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should get process segment statistics @api
+[1A[2K[34/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:293:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get root segments @api
+[E2E Backend] 2025-10-21 22:13:22.725 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "49ea89ecb83e7b04b784b88c0397a818",
+    "span_id": "83dd5674c0e78ec8",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.741 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "32ea25e545c94db37326c208af8f0332",
+    "span_id": "48c8db5af27c0a6e",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.748 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "082c3ede0f1df019da4f3dba74e5f343",
+    "span_id": "9f295376828f0a54",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[35/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api
+[E2E Backend] 2025-10-21 22:13:22.780 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "a6f94d3e97b04cd03f0d741c1546ed7b",
+    "span_id": "81a95ad853ce2320",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.890 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 165,
+    "success": true,
+    "trace_id": "49ea89ecb83e7b04b784b88c0397a818",
+    "span_id": "83dd5674c0e78ec8",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:22.905 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "32ea25e545c94db37326c208af8f0332",
+    "span_id": "48c8db5af27c0a6e",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:22.911 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "082c3ede0f1df019da4f3dba74e5f343",
+    "span_id": "9f295376828f0a54",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:577:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should get process segment statistics @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:293:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get root segments @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:22.944 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "a6f94d3e97b04cd03f0d741c1546ed7b",
+    "span_id": "81a95ad853ce2320",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api
+✅ Authentication successful
+
+[1A[2K[36/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:594:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should calculate total segment time @api
+[1A[2K[37/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:307:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get hierarchy tree @api
+[1A[2K[38/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:23.354 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "54b4cfbec2e9ae91cc5588b42cebd044",
+    "span_id": "8616d54b311bab1f",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[39/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:594:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should calculate total segment time @api (retry #1)
+[1A[2K[40/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:307:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get hierarchy tree @api (retry #1)
+[1A[2K[41/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:23.386 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "6e3fb856fe3a0181b778d24e4910f600",
+    "span_id": "e62e7bde8a4a8d71",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:23.389 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "23ffc3a034b1f02c1ffb3e11f6dca3bb",
+    "span_id": "0cace78beb424f10",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:23.406 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "bad11765cb36eb5974188c0b73896999",
+    "span_id": "dd68e17226cd3461",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:23.512 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 158,
+    "success": true,
+    "trace_id": "54b4cfbec2e9ae91cc5588b42cebd044",
+    "span_id": "8616d54b311bab1f",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:23.545 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 159,
+    "success": true,
+    "trace_id": "6e3fb856fe3a0181b778d24e4910f600",
+    "span_id": "e62e7bde8a4a8d71",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:23.547 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 158,
+    "success": true,
+    "trace_id": "23ffc3a034b1f02c1ffb3e11f6dca3bb",
+    "span_id": "0cace78beb424f10",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:594:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should calculate total segment time @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:307:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get hierarchy tree @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:23.570 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "bad11765cb36eb5974188c0b73896999",
+    "span_id": "dd68e17226cd3461",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api
+✅ Authentication successful
+
+[1A[2K  9) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      384 |       });
+      385 |
+    > 386 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      387 |       const parameters = await response.json();
+      388 |
+      389 |       expect(Array.isArray(parameters)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:386:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      384 |       });
+      385 |
+    > 386 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      387 |       const parameters = await response.json();
+      388 |
+      389 |       expect(Array.isArray(parameters)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:386:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--a60a4-ould-get-segment-parameters-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--a60a4-ould-get-segment-parameters-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  10) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:594:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should calculate total segment time @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      597 |       });
+      598 |
+    > 599 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      600 |       const data = await response.json();
+      601 |
+      602 |       expect(data).toHaveProperty('totalTimeSeconds');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:599:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      597 |       });
+      598 |
+    > 599 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      600 |       const data = await response.json();
+      601 |
+      602 |       expect(data).toHaveProperty('totalTimeSeconds');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:599:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--e5f18-alculate-total-segment-time-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--e5f18-alculate-total-segment-time-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  11) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:307:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get hierarchy tree @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      310 |       });
+      311 |
+    > 312 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      313 |       const tree = await response.json();
+      314 |
+      315 |       expect(tree.id).toBe(millingSegmentId);
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:312:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      310 |       });
+      311 |
+    > 312 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      313 |       const tree = await response.json();
+      314 |
+      315 |       expect(tree.id).toBe(millingSegmentId);
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:312:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--40868-y-should-get-hierarchy-tree-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--40868-y-should-get-hierarchy-tree-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  12) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      524 |       });
+      525 |
+    > 526 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      527 |       const data = await response.json();
+      528 |
+      529 |       expect(data.materialType).toBe('RAW_MATERIAL');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:526:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      524 |       });
+      525 |
+    > 526 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      527 |       const data = await response.json();
+      528 |
+      529 |       expect(data.materialType).toBe('RAW_MATERIAL');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:526:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--453b2--add-material-specification-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--453b2--add-material-specification-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[42/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api
+[E2E Backend] 2025-10-21 22:13:23.982 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "f680098afe6f700f270e845f06f639bf",
+    "span_id": "54ee230072c7c988",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[43/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api
+[1A[2K[44/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api
+[E2E Backend] 2025-10-21 22:13:24.020 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "bac3e023e045b63380b2f9b452924664",
+    "span_id": "924f978cb03e5ed7",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:24.038 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "a1d7824aed6e21a4a2f22fdc9c13fba7",
+    "span_id": "91e0cd67c865f66e",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:24.145 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 163,
+    "success": true,
+    "trace_id": "f680098afe6f700f270e845f06f639bf",
+    "span_id": "54ee230072c7c988",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api
+✅ Authentication successful
+
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend] 2025-10-21 22:13:24.184 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 164,
+    "success": true,
+    "trace_id": "bac3e023e045b63380b2f9b452924664",
+    "span_id": "924f978cb03e5ed7",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend Error] Error adding dependency: PrismaClientValidationError: 
+Invalid `this.prisma.processSegment.findUnique()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:54
+
+  137  * Get process segment by ID
+  138  */
+  139 async getProcessSegmentById(id: string, includeRelations = true) {
+→ 140   const segment = await this.prisma.processSegment.findUnique({
+          where: {
+            id: undefined,
+        ?   segmentCode?: String,
+        ?   AND?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   OR?: ProcessSegmentWhereInput[],
+        ?   NOT?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   segmentName?: StringFilter | String,
+        ?   description?: StringNullableFilter | String | Null,
+        ?   siteId?: StringNullableFilter | String | Null,
+        ?   isStandardOperation?: BoolFilter | Boolean,
+        ?   level?: IntFilter | Int,
+        ?   parentSegmentId?: StringNullableFilter | String | Null,
+        ?   segmentType?: EnumProcessSegmentTypeFilter | ProcessSegmentType,
+        ?   category?: StringNullableFilter | String | Null,
+        ?   duration?: IntNullableFilter | Int | Null,
+        ?   setupTime?: IntNullableFilter | Int | Null,
+        ?   teardownTime?: IntNullableFilter | Int | Null,
+        ?   minCycleTime?: IntNullableFilter | Int | Null,
+        ?   maxCycleTime?: IntNullableFilter | Int | Null,
+        ?   version?: StringFilter | String,
+        ?   effectiveDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   expirationDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   isActive?: BoolFilter | Boolean,
+        ?   requiresApproval?: BoolFilter | Boolean,
+        ?   approvedBy?: StringNullableFilter | String | Null,
+        ?   approvedAt?: DateTimeNullableFilter | DateTime | Null,
+        ?   createdAt?: DateTimeFilter | DateTime,
+        ?   updatedAt?: DateTimeFilter | DateTime,
+        ?   parentSegment?: ProcessSegmentNullableRelationFilter | ProcessSegmentWhereInput | Null,
+        ?   childSegments?: ProcessSegmentListRelationFilter,
+        ?   site?: SiteNullableRelationFilter | SiteWhereInput | Null,
+        ?   routingSteps?: RoutingStepListRelationFilter,
+        ?   parameters?: ProcessSegmentParameterListRelationFilter,
+        ?   dependencies?: ProcessSegmentDependencyListRelationFilter,
+        ?   prerequisiteFor?: ProcessSegmentDependencyListRelationFilter,
+        ?   personnelSpecs?: PersonnelSegmentSpecificationListRelationFilter,
+        ?   equipmentSpecs?: EquipmentSegmentSpecificationListRelationFilter,
+        ?   materialSpecs?: MaterialSegmentSpecificationListRelationFilter,
+        ?   assetSpecs?: PhysicalAssetSegmentSpecificationListRelationFilter,
+        ?   bomItems?: BOMItemListRelationFilter
+          },
+          include: undefined
+        })
+
+Argument `where` of type ProcessSegmentWhereUniqueInput needs at least one of `id` or `segmentCode` arguments. Available options are marked with ?.
+    at wn (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.getProcessSegmentById (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:21)
+    at async ProcessSegmentService.addDependency (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:527:5)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:274:24) {
+  clientVersion: '5.22.0'
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api
+✅ Authentication successful
+
+[E2E Backend] 2025-10-21 22:13:24.200 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "a1d7824aed6e21a4a2f22fdc9c13fba7",
+    "span_id": "91e0cd67c865f66e",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api
+✅ Authentication successful
+
+[1A[2K[45/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api (retry #1)
+[1A[2K[46/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:24.611 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "9226326e1079336de336f4c25a0d2752",
+    "span_id": "986996b9d6945f0c",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[47/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:24.659 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "f1baf07dc33a0bf4f2da678023e6da24",
+    "span_id": "00f15ade19bbded8",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:24.662 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "37e8d7a9e645124dc083e222b0a27f2c",
+    "span_id": "85eefef376fd2153",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:24.768 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 157,
+    "success": true,
+    "trace_id": "9226326e1079336de336f4c25a0d2752",
+    "span_id": "986996b9d6945f0c",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api
+✅ Authentication successful
+
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[E2E Backend] 2025-10-21 22:13:24.816 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 157,
+    "success": true,
+    "trace_id": "f1baf07dc33a0bf4f2da678023e6da24",
+    "span_id": "00f15ade19bbded8",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:24.819 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 157,
+    "success": true,
+    "trace_id": "37e8d7a9e645124dc083e222b0a27f2c",
+    "span_id": "85eefef376fd2153",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api
+✅ Authentication successful
+
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api
+✅ Authentication successful
+
+[E2E Backend Error] Error adding dependency: PrismaClientValidationError: 
+Invalid `this.prisma.processSegment.findUnique()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:54
+
+  137  * Get process segment by ID
+  138  */
+  139 async getProcessSegmentById(id: string, includeRelations = true) {
+→ 140   const segment = await this.prisma.processSegment.findUnique({
+          where: {
+            id: undefined,
+        ?   segmentCode?: String,
+        ?   AND?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   OR?: ProcessSegmentWhereInput[],
+        ?   NOT?: ProcessSegmentWhereInput | ProcessSegmentWhereInput[],
+        ?   segmentName?: StringFilter | String,
+        ?   description?: StringNullableFilter | String | Null,
+        ?   siteId?: StringNullableFilter | String | Null,
+        ?   isStandardOperation?: BoolFilter | Boolean,
+        ?   level?: IntFilter | Int,
+        ?   parentSegmentId?: StringNullableFilter | String | Null,
+        ?   segmentType?: EnumProcessSegmentTypeFilter | ProcessSegmentType,
+        ?   category?: StringNullableFilter | String | Null,
+        ?   duration?: IntNullableFilter | Int | Null,
+        ?   setupTime?: IntNullableFilter | Int | Null,
+        ?   teardownTime?: IntNullableFilter | Int | Null,
+        ?   minCycleTime?: IntNullableFilter | Int | Null,
+        ?   maxCycleTime?: IntNullableFilter | Int | Null,
+        ?   version?: StringFilter | String,
+        ?   effectiveDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   expirationDate?: DateTimeNullableFilter | DateTime | Null,
+        ?   isActive?: BoolFilter | Boolean,
+        ?   requiresApproval?: BoolFilter | Boolean,
+        ?   approvedBy?: StringNullableFilter | String | Null,
+        ?   approvedAt?: DateTimeNullableFilter | DateTime | Null,
+        ?   createdAt?: DateTimeFilter | DateTime,
+        ?   updatedAt?: DateTimeFilter | DateTime,
+        ?   parentSegment?: ProcessSegmentNullableRelationFilter | ProcessSegmentWhereInput | Null,
+        ?   childSegments?: ProcessSegmentListRelationFilter,
+        ?   site?: SiteNullableRelationFilter | SiteWhereInput | Null,
+        ?   routingSteps?: RoutingStepListRelationFilter,
+        ?   parameters?: ProcessSegmentParameterListRelationFilter,
+        ?   dependencies?: ProcessSegmentDependencyListRelationFilter,
+        ?   prerequisiteFor?: ProcessSegmentDependencyListRelationFilter,
+        ?   personnelSpecs?: PersonnelSegmentSpecificationListRelationFilter,
+        ?   equipmentSpecs?: EquipmentSegmentSpecificationListRelationFilter,
+        ?   materialSpecs?: MaterialSegmentSpecificationListRelationFilter,
+        ?   assetSpecs?: PhysicalAssetSegmentSpecificationListRelationFilter,
+        ?   bomItems?: BOMItemListRelationFilter
+          },
+          include: undefined
+        })
+
+Argument `where` of type ProcessSegmentWhereUniqueInput needs at least one of `id` or `segmentCode` arguments. Available options are marked with ?.
+    at wn (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.getProcessSegmentById (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:140:21)
+    at async ProcessSegmentService.addDependency (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:527:5)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:274:24) {
+  clientVersion: '5.22.0'
+}
+[1A[2K  13) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      430 |       });
+      431 |
+    > 432 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      433 |       const data = await response.json();
+      434 |
+      435 |       expect(data.dependentSegmentId).toBe(inspectionSegmentId);
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:432:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      430 |       });
+      431 |
+    > 432 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      433 |       const data = await response.json();
+      434 |
+      435 |       expect(data.dependentSegmentId).toBe(inspectionSegmentId);
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:432:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--3dd5c-dependency-between-segments-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--3dd5c-dependency-between-segments-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  14) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      324 |       });
+      325 |
+    > 326 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      327 |       const ancestors = await response.json();
+      328 |
+      329 |       expect(Array.isArray(ancestors)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:326:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      324 |       });
+      325 |
+    > 326 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      327 |       const ancestors = await response.json();
+      328 |
+      329 |       expect(Array.isArray(ancestors)).toBeTruthy();
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:326:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--d4529-y-should-get-ancestor-chain-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--d4529-y-should-get-ancestor-chain-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  15) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      543 |       });
+      544 |
+    > 545 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      546 |       const data = await response.json();
+      547 |
+      548 |       expect(data.assetType).toBe('TOOLING');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:545:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      543 |       });
+      544 |
+    > 545 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      546 |       const data = await response.json();
+      547 |
+      548 |       expect(data.assetType).toBe('TOOLING');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:545:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--979fa-hysical-asset-specification-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--979fa-hysical-asset-specification-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[48/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:440:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should get segment dependencies @api
+[E2E Backend] 2025-10-21 22:13:25.259 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "dbba0c0e323bc4c7cd7ff0492b76cfa8",
+    "span_id": "708b6510f6c15061",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:25.421 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 162,
+    "success": true,
+    "trace_id": "dbba0c0e323bc4c7cd7ff0492b76cfa8",
+    "span_id": "708b6510f6c15061",
+    "trace_flags": "01"
+  }
+}
+[1A[2K[process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:440:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should get segment dependencies @api
+✅ Authentication successful
+
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[1A[2K[49/26] (retries) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:440:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should get segment dependencies @api (retry #1)
+[E2E Backend] 2025-10-21 22:13:25.845 [[33mwarn[39m]: Security operation started
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36",
+    "method": "POST",
+    "url": "/login",
+    "trace_id": "dd2d11b3fd505ac3d18901e381c7d55a",
+    "span_id": "8c97c094285d80e2",
+    "trace_flags": "01"
+  }
+}
+[E2E Backend] 2025-10-21 22:13:26.004 [[33mwarn[39m]: Security operation completed
+{
+  "metadata": {
+    "service": "mes-api",
+    "environment": "test",
+    "version": "1.0.0",
+    "operation": "USER_LOGIN",
+    "ip": "::ffff:127.0.0.1",
+    "statusCode": 200,
+    "duration": 159,
+    "success": true,
+    "trace_id": "dd2d11b3fd505ac3d18901e381c7d55a",
+    "span_id": "8c97c094285d80e2",
+    "trace_flags": "01"
+  }
+}
+[1A[2K✅ Authentication successful
+
+[E2E Backend Error] Error creating process segment: PrismaClientKnownRequestError: 
+Invalid `this.prisma.processSegment.create()` invocation in
+/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:54
+
+  96   }
+  97 }
+  98 
+→ 99 const segment = await this.prisma.processSegment.create(
+Unique constraint failed on the fields: (`segmentCode`)
+    at $n.handleRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/home/tony/GitHub/mes/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async ProcessSegmentService.createProcessSegment (/home/tony/GitHub/mes/src/services/ProcessSegmentService.ts:99:21)
+    at async <anonymous> (/home/tony/GitHub/mes/src/routes/processSegments.ts:23:21) {
+  code: 'P2002',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ProcessSegment', target: [ 'segmentCode' ] }
+}
+[1A[2K  16) [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:440:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should get segment dependencies @api 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      443 |       });
+      444 |
+    > 445 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      446 |       const data = await response.json();
+      447 |
+      448 |       expect(data).toHaveProperty('dependencies');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:445:29
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      443 |       });
+      444 |
+    > 445 |       expect(response.ok()).toBeTruthy();
+          |                             ^
+      446 |       const data = await response.json();
+      447 |
+      448 |       expect(data).toHaveProperty('dependencies');
+        at /home/tony/GitHub/mes/src/tests/e2e/process-segment-hierarchy.spec.ts:445:29
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/process-segment-hierarchy--2c6ea-ld-get-segment-dependencies-process-segment-hierarchy-tests-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/process-segment-hierarchy--2c6ea-ld-get-segment-dependencies-process-segment-hierarchy-tests-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+Starting global teardown...
+Stopping health monitoring...
+[Health Monitor] Stopped monitoring
+
+========== Server Health Summary ==========
+Total health checks performed: 1
+Healthy checks: 1 (100.00%)
+Unhealthy checks: 0
+Crashed checks: 0
+
+Final Server Status:
+  Overall Status: HEALTHY
+  Backend: ✓ Available (1282ms)
+  Frontend: ✓ Available (5ms)
+  Memory Usage: 45.05 MB
+  Test Suite Uptime: 7s
+==========================================
+
+Health monitoring stopped
+Stopping E2E servers...
+Sent SIGTERM to E2E backend server (PID: 4134306)
+Sent SIGTERM to E2E frontend server (PID: 4134452)
+Sent SIGTERM to process 4134334 on port 3101
+Sent SIGTERM to process 4134480 on port 5278
+E2E servers stopped
+Cleaning up E2E test database...
+E2E test database cleanup skipped (might not exist)
+Cleaning up authentication files...
+Authentication files cleaned up
+Cleaning up temporary files...
+Temporary files cleaned up
+Global teardown completed.
+[1A[2K  16 failed
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:85:9 › Process Segment Hierarchy Tests › Process Segment CRUD › should create a new process segment @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:236:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should create child segments @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:277:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get child segments @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:307:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get hierarchy tree @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:321:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should get ancestor chain @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:337:9 › Process Segment Hierarchy Tests › Process Segment Hierarchy › should prevent circular references @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:356:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should add parameter to segment @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:381:9 › Process Segment Hierarchy Tests › Process Segment Parameters › should get segment parameters @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:420:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should add dependency between segments @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:440:9 › Process Segment Hierarchy Tests › Process Segment Dependencies › should get segment dependencies @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:476:9 › Process Segment Hierarchy Tests › Resource Specifications › should add personnel specification @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:495:9 › Process Segment Hierarchy Tests › Resource Specifications › should add equipment specification @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:514:9 › Process Segment Hierarchy Tests › Resource Specifications › should add material specification @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:533:9 › Process Segment Hierarchy Tests › Resource Specifications › should add physical asset specification @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:552:9 › Process Segment Hierarchy Tests › Resource Specifications › should get all resource specifications @api 
+    [process-segment-hierarchy-tests] › src/tests/e2e/process-segment-hierarchy.spec.ts:594:9 › Process Segment Hierarchy Tests › Statistics and Reporting › should calculate total segment time @api 
+  7 did not run
+  3 passed (31.6s)

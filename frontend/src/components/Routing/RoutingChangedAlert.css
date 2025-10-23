@@ -1,0 +1,106 @@
+/**
+ * Routing Changed Alert Styles
+ * Sprint 4: Collaborative Routing Features
+ */
+
+.routing-changed-alert {
+  margin-bottom: 24px;
+  animation: slideInDown 0.5s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alert styling */
+.routing-changed-alert .ant-alert {
+  border: 2px solid #faad14;
+  box-shadow: 0 4px 12px rgba(250, 173, 20, 0.2);
+}
+
+.routing-changed-alert .ant-alert-message {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d46b08;
+}
+
+.routing-changed-alert .ant-alert-description {
+  font-size: 14px;
+}
+
+/* Button styling */
+.routing-changed-alert .ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.routing-changed-alert .ant-btn-primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* Descriptions styling */
+.routing-changed-alert .ant-descriptions-bordered .ant-descriptions-item-label {
+  background-color: #fafafa;
+  font-weight: 500;
+}
+
+/* Tags in descriptions */
+.routing-changed-alert .ant-tag {
+  font-weight: 600;
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+/* Info alert within warning alert */
+.routing-changed-alert .ant-alert-info {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .routing-changed-alert .ant-alert-message {
+    font-size: 14px;
+  }
+
+  .routing-changed-alert .ant-alert-description {
+    font-size: 13px;
+  }
+
+  .routing-changed-alert .ant-descriptions {
+    font-size: 12px;
+  }
+
+  .routing-changed-alert .ant-btn {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .routing-changed-alert .ant-space {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+/* Pulse animation for icon */
+.routing-changed-alert .ant-alert-icon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

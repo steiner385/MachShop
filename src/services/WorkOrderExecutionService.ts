@@ -139,6 +139,28 @@ export class WorkOrderExecutionService {
       throw new Error(`Work order ${workOrderId} cannot be dispatched. Current status: ${workOrder.status}. Only CREATED work orders can be dispatched.`);
     }
 
+    // Validate assignedToId if provided
+    if (dispatchData.assignedToId) {
+      const assignedUser = await this.prisma.user.findUnique({
+        where: { id: dispatchData.assignedToId }
+      });
+      if (!assignedUser) {
+        // Set to undefined so it becomes NULL in database (nullable foreign key)
+        dispatchData.assignedToId = undefined;
+      }
+    }
+
+    // Validate workCenterId if provided
+    if (dispatchData.workCenterId) {
+      const workCenter = await this.prisma.workCenter.findUnique({
+        where: { id: dispatchData.workCenterId }
+      });
+      if (!workCenter) {
+        // Set to undefined so it becomes NULL in database (nullable foreign key)
+        dispatchData.workCenterId = undefined;
+      }
+    }
+
     // Create dispatch log and transition status in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
       // Create dispatch log
@@ -593,11 +615,55 @@ export class WorkOrderExecutionService {
       URGENT: workOrders.filter(wo => wo.priority === 'URGENT').length
     };
 
+    // Today's stats (work orders that transitioned today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const dispatchLogsToday = await this.prisma.dispatchLog.count({
+      where: {
+        dispatchedAt: {
+          gte: today,
+          lte: todayEnd
+        }
+      }
+    });
+
+    const workOrdersStartedToday = await this.prisma.workOrder.count({
+      where: {
+        startedAt: {
+          gte: today,
+          lte: todayEnd
+        }
+      }
+    });
+
+    const workOrdersCompletedToday = await this.prisma.workOrder.count({
+      where: {
+        completedAt: {
+          gte: today,
+          lte: todayEnd
+        }
+      }
+    });
+
     // Performance summary
     const totalPerformanceRecords = await this.prisma.workPerformance.count();
     const performanceByType = await this.prisma.workPerformance.groupBy({
       by: ['performanceType'],
       _count: true
+    });
+
+    // Performance stats aggregation
+    const laborPerformance = await this.prisma.workPerformance.aggregate({
+      where: { performanceType: 'LABOR' },
+      _sum: { laborHours: true }
+    });
+
+    const downtimePerformance = await this.prisma.workPerformance.aggregate({
+      where: { performanceType: 'DOWNTIME' },
+      _sum: { downtimeMinutes: true }
     });
 
     // Variance summary
@@ -619,6 +685,11 @@ export class WorkOrderExecutionService {
       priorityCounts,
       activeWorkOrders: statusCounts.IN_PROGRESS + statusCounts.RELEASED,
       completionRate: workOrders.length > 0 ? (statusCounts.COMPLETED / workOrders.length) * 100 : 0,
+      todayStats: {
+        dispatched: dispatchLogsToday,
+        started: workOrdersStartedToday,
+        completed: workOrdersCompletedToday
+      },
       performance: {
         totalRecords: totalPerformanceRecords,
         byType: performanceByType.reduce((acc, item) => {
@@ -626,11 +697,20 @@ export class WorkOrderExecutionService {
           return acc;
         }, {} as Record<string, number>)
       },
+      performanceStats: {
+        totalLaborHours: laborPerformance._sum.laborHours || 0,
+        totalDowntimeMinutes: downtimePerformance._sum.downtimeMinutes || 0
+      },
       variances: {
         total: totalVariances,
         favorable: favorableVariances,
         unfavorable: unfavorableVariances,
         totalCostImpact: varianceCostImpact._sum.costImpact || 0
+      },
+      varianceStats: {
+        totalVariances,
+        favorableCount: favorableVariances,
+        unfavorableCount: unfavorableVariances
       }
     };
   }

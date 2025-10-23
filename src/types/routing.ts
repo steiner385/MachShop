@@ -308,6 +308,9 @@ export interface UpdateRoutingDTO {
   // Metadata
   createdBy?: string;
   notes?: string;
+
+  // Optimistic locking - version control for collaborative editing
+  currentVersion?: string; // The version the client has - used to detect conflicts
 }
 
 /**

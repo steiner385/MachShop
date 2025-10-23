@@ -136,11 +136,13 @@ router.get('/equipment/data/:equipmentId/latest', async (req: Request, res: Resp
 router.get('/equipment/data/:equipmentId/summary', async (req: Request, res: Response): Promise<any> => {
   try {
     const { equipmentId } = req.params;
+    const dataCollectionType = req.query.dataCollectionType as DataCollectionType | undefined;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
     const result = await EquipmentDataCollectionService.generateDataCollectionSummary(
       equipmentId,
+      dataCollectionType,
       startDate,
       endDate
     );
@@ -189,15 +191,63 @@ router.get('/equipment/data/:equipmentId/trend', async (req: Request, res: Respo
       limit ? parseInt(limit as string) : undefined
     );
 
+    // Calculate statistics for numeric data points if there are any data points
+    let statistics;
+    if (result.dataPoints.length > 0) {
+      statistics = await EquipmentDataCollectionService.calculateDataPointStatistics(
+        equipmentId,
+        dataPointName as string,
+        new Date(startDate as string),
+        new Date(endDate as string)
+      );
+    }
+
     res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        statistics,
+      },
     });
   } catch (error: any) {
     console.error('Error getting data point trend:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to get data point trend',
+    });
+  }
+});
+
+/**
+ * POST /equipment/data/utilization
+ * Calculate equipment utilization from status data points
+ */
+router.post('/equipment/data/utilization', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { equipmentId, startDate, endDate } = req.body;
+
+    if (!equipmentId || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'equipmentId, startDate, and endDate are required',
+      });
+    }
+
+    const result = await EquipmentDataCollectionService.calculateEquipmentUtilization(
+      equipmentId,
+      new Date(startDate),
+      new Date(endDate)
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('Error calculating equipment utilization:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to calculate equipment utilization',
     });
   }
 });
@@ -297,18 +347,18 @@ router.put('/equipment/commands/:commandId/complete', async (req: Request, res: 
 router.put('/equipment/commands/:commandId/fail', async (req: Request, res: Response): Promise<any> => {
   try {
     const { commandId } = req.params;
-    const { errorMessage, responseCode, responsePayload } = req.body;
+    const { responseMessage, responseCode, responsePayload } = req.body;
 
-    if (!errorMessage) {
+    if (!responseMessage) {
       return res.status(400).json({
         success: false,
-        error: 'errorMessage is required',
+        error: 'responseMessage is required',
       });
     }
 
     const result = await EquipmentCommandService.failCommand(
       commandId,
-      errorMessage,
+      responseMessage,
       responseCode,
       responsePayload
     );
@@ -432,6 +482,28 @@ router.get('/equipment/commands/:equipmentId/summary', async (req: Request, res:
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to generate command execution summary',
+    });
+  }
+});
+
+/**
+ * GET /equipment/commands/check-timeouts
+ * Check for timed out commands and mark them
+ */
+router.get('/equipment/commands/check-timeouts', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const result = await EquipmentCommandService.checkAndMarkTimedOutCommands();
+
+    res.status(200).json({
+      success: true,
+      message: `Detected and marked ${result.timedOutCount} timed out commands`,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('Error checking for timed out commands:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check for timed out commands',
     });
   }
 });

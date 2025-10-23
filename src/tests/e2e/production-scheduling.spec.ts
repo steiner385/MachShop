@@ -36,7 +36,7 @@ test.describe('Production Scheduling - Schedule CRUD Operations', () => {
     const response = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `TEST-SCH-${Date.now()}`,
+        scheduleNumber: `TEST-SCH-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Test Production Schedule',
         description: 'Test schedule for E2E testing',
         periodStart: new Date('2025-03-01T00:00:00Z').toISOString(),
@@ -118,6 +118,9 @@ test.describe('Production Scheduling - Schedule CRUD Operations', () => {
 });
 
 test.describe('Production Scheduling - Schedule Entry Operations', () => {
+  // Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testScheduleId: string;
   let testEntryId: string;
@@ -131,7 +134,7 @@ test.describe('Production Scheduling - Schedule Entry Operations', () => {
     const scheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `ENTRY-TEST-${Date.now()}`,
+        scheduleNumber: `ENTRY-TEST-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for Entry Testing',
         periodStart: new Date('2025-04-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-04-30T23:59:59Z').toISOString(),
@@ -252,7 +255,7 @@ test.describe('Production Scheduling - Schedule Entry Operations', () => {
       headers: authHeaders,
       data: {
         reason: 'Customer cancelled order',
-        cancelledBy: 'test-user',
+        cancelledBy: 'admin',
       },
     });
 
@@ -264,6 +267,9 @@ test.describe('Production Scheduling - Schedule Entry Operations', () => {
 });
 
 test.describe('Production Scheduling - Constraint Operations', () => {
+  // Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testScheduleId: string;
   let testEntryId: string;
@@ -276,7 +282,7 @@ test.describe('Production Scheduling - Constraint Operations', () => {
     const scheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `CONSTRAINT-TEST-${Date.now()}`,
+        scheduleNumber: `CONSTRAINT-TEST-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for Constraint Testing',
         periodStart: new Date('2025-05-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-05-31T23:59:59Z').toISOString(),
@@ -411,7 +417,7 @@ test.describe('Production Scheduling - Constraint Operations', () => {
       const response = await request.post(`/api/v1/production-schedules/constraints/${violatedConstraint.id}/resolve`, {
         headers: authHeaders,
         data: {
-          resolvedBy: 'test-user',
+          resolvedBy: 'admin',
           resolutionNotes: 'Material procurement completed, inventory replenished',
         },
       });
@@ -425,6 +431,9 @@ test.describe('Production Scheduling - Constraint Operations', () => {
 });
 
 test.describe('Production Scheduling - State Management', () => {
+  // Configure serial mode: tests must run in sequence because they depend on shared state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testScheduleId: string;
 
@@ -435,7 +444,7 @@ test.describe('Production Scheduling - State Management', () => {
     const scheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `STATE-TEST-${Date.now()}`,
+        scheduleNumber: `STATE-TEST-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for State Transition Testing',
         periodStart: new Date('2025-06-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-06-30T23:59:59Z').toISOString(),
@@ -452,7 +461,7 @@ test.describe('Production Scheduling - State Management', () => {
       data: {
         newState: 'RELEASED',
         reason: 'Schedule approved by production manager',
-        changedBy: 'test-user',
+        changedBy: 'admin',
         notificationsSent: true,
         notes: 'Released for execution',
       },
@@ -501,7 +510,7 @@ test.describe('Production Scheduling - Scheduling Algorithms', () => {
     const scheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `SEQ-TEST-${Date.now()}`,
+        scheduleNumber: `SEQ-TEST-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for Sequencing Testing',
         periodStart: new Date('2025-07-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-07-31T23:59:59Z').toISOString(),
@@ -603,6 +612,9 @@ test.describe('Production Scheduling - Scheduling Algorithms', () => {
 });
 
 test.describe('Production Scheduling - Dispatch Operations', () => {
+  // Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testScheduleId: string;
   let testEntryId: string;
@@ -614,7 +626,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
     const scheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `DISPATCH-TEST-${Date.now()}`,
+        scheduleNumber: `DISPATCH-TEST-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for Dispatch Testing',
         periodStart: new Date('2025-08-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-08-31T23:59:59Z').toISOString(),
@@ -657,7 +669,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
       data: {
         newState: 'RELEASED',
         reason: 'Ready for dispatch',
-        changedBy: 'test-user',
+        changedBy: 'admin',
       },
     });
   });
@@ -676,7 +688,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
     const response = await request.post(`/api/v1/production-schedules/entries/${testEntryId}/dispatch`, {
       headers: authHeaders,
       data: {
-        dispatchedBy: 'test-user',
+        dispatchedBy: 'admin',
       },
     });
 
@@ -704,7 +716,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
 
       expect(workOrderResponse.status()).toBe(200);
       const workOrder = await workOrderResponse.json();
-      expect(workOrder.quantity).toBe(100);
+      expect(workOrder.quantityOrdered).toBe(100); // Fixed: API returns 'quantityOrdered', not 'quantity'
       expect(workOrder.status).toBe('CREATED');
     }
   });
@@ -714,7 +726,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
     const newScheduleResponse = await request.post('/api/v1/production-schedules', {
       headers: authHeaders,
       data: {
-        scheduleNumber: `BULK-DISPATCH-${Date.now()}`,
+        scheduleNumber: `BULK-DISPATCH-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         scheduleName: 'Schedule for Bulk Dispatch',
         periodStart: new Date('2025-09-01T00:00:00Z').toISOString(),
         periodEnd: new Date('2025-09-30T23:59:59Z').toISOString(),
@@ -758,7 +770,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
       data: {
         newState: 'RELEASED',
         reason: 'Ready for bulk dispatch',
-        changedBy: 'test-user',
+        changedBy: 'admin',
       },
     });
 
@@ -766,7 +778,7 @@ test.describe('Production Scheduling - Dispatch Operations', () => {
     const response = await request.post(`/api/v1/production-schedules/${newSchedule.id}/dispatch/all`, {
       headers: authHeaders,
       data: {
-        dispatchedBy: 'test-user',
+        dispatchedBy: 'admin',
       },
     });
 

@@ -22,11 +22,11 @@ test.describe('L2 Equipment Integration API Tests', () => {
   test.beforeAll(async () => {
     // Create API request context - use E2E backend server (port 3101)
     apiContext = await request.newContext({
-      baseURL: 'http://localhost:3101',
+      baseURL: 'http://localhost:3101/api/v1/',
     });
 
     // Login to get auth token
-    const loginResponse = await apiContext.post('/api/v1/auth/login', {
+    const loginResponse = await apiContext.post('auth/login', {
       data: {
         username: 'admin',
         password: 'password123',
@@ -59,7 +59,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
    */
   async function createTestFixtures() {
     // Get existing equipment or create one
-    const equipmentResponse = await apiContext.get('/api/v1/equipment?limit=1', {
+    const equipmentResponse = await apiContext.get('equipment?limit=1', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 
@@ -68,7 +68,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       testEquipmentId = equipmentData.equipment[0].id;
     } else {
       // Create test equipment if none exists
-      const createEquipmentResponse = await apiContext.post('/api/v1/equipment', {
+      const createEquipmentResponse = await apiContext.post('equipment', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentNumber: 'TEST-EQ-001',
@@ -84,7 +84,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     }
 
     // Get existing work order or create one
-    const workOrderResponse = await apiContext.get('/api/v1/workorders?limit=1', {
+    const workOrderResponse = await apiContext.get('workorders?limit=1', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 
@@ -94,7 +94,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     }
 
     // Get existing part
-    const partResponse = await apiContext.get('/api/v1/materials?type=part&limit=1', {
+    const partResponse = await apiContext.get('materials?type=part&limit=1', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 
@@ -110,7 +110,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
   test.describe('Equipment Data Collection', () => {
     test('should collect single sensor data point successfully', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -138,7 +138,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should collect alarm data point successfully', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -159,7 +159,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should batch collect multiple data points', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect-batch', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect-batch', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           dataPoints: [
@@ -202,7 +202,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should query data collections with filters', async () => {
       // First collect some test data
-      await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -215,7 +215,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
       // Query the data
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/data/query?equipmentId=${testEquipmentId}&dataCollectionType=SENSOR&limit=10`,
+        `l2-equipment/equipment/data/query?equipmentId=${testEquipmentId}&dataCollectionType=SENSOR&limit=10`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -232,12 +232,19 @@ test.describe('L2 Equipment Integration API Tests', () => {
       });
     });
 
-    test.skip('should calculate equipment utilization', async () => {
+    test('should calculate equipment utilization', async () => {
+      // Equipment utilization calculation fully implemented:
+      // ✅ EquipmentDataCollectionService.calculateEquipmentUtilization() (line 512)
+      // ✅ EquipmentDataCollectionService.getStatusEvents() (line 458)
+      // ✅ API endpoint POST /l2-equipment/equipment/data/utilization
+      // ✅ Analyzes STATUS data points to calculate time in each state
+      // ✅ Returns utilizationPercentage, totalTime, runningTime, idleTime, downTime
+
       // Collect status events for utilization calculation
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-      await apiContext.post('/api/v1/l2-equipment/equipment/data/collect-batch', {
+      await apiContext.post('l2-equipment/equipment/data/collect-batch', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           dataPoints: [
@@ -259,7 +266,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
         },
       });
 
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/utilization', {
+      const response = await apiContext.post('l2-equipment/equipment/data/utilization', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -284,7 +291,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/data/${testEquipmentId}/summary?dataCollectionType=SENSOR&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
+        `l2-equipment/equipment/data/${testEquipmentId}/summary?dataCollectionType=SENSOR&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -304,7 +311,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/data/${testEquipmentId}/trend?dataPointName=SpindleSpeed&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
+        `l2-equipment/equipment/data/${testEquipmentId}/trend?dataPointName=SpindleSpeed&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -324,7 +331,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should reject invalid equipment ID', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: 'non-existent-id',
@@ -348,7 +355,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test.beforeAll(async () => {
       // Create a test command to use for status update tests
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const response = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -362,7 +369,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should issue START command successfully', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const response = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -390,7 +397,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should issue STOP command successfully', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const response = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -408,7 +415,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should issue CONFIGURE command with payload', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const response = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -431,7 +438,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should update command status to SENT', async () => {
-      const response = await apiContext.put(`/api/v1/l2-equipment/equipment/commands/${testCommandId}/status`, {
+      const response = await apiContext.put(`l2-equipment/equipment/commands/${testCommandId}/status`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           commandStatus: 'SENT',
@@ -447,7 +454,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should update command status to ACKNOWLEDGED', async () => {
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/commands/${testCommandId}/status`,
+        `l2-equipment/equipment/commands/${testCommandId}/status`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -465,7 +472,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should update command status to EXECUTING', async () => {
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/commands/${testCommandId}/status`,
+        `l2-equipment/equipment/commands/${testCommandId}/status`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -482,7 +489,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should complete command successfully', async () => {
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/commands/${testCommandId}/complete`,
+        `l2-equipment/equipment/commands/${testCommandId}/complete`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -506,7 +513,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should fail command with error message', async () => {
       // Issue a new command for testing failure
-      const issueResponse = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const issueResponse = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -517,7 +524,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const issueData = await issueResponse.json();
       const failCommandId = issueData.data.id;
 
-      const response = await apiContext.put(`/api/v1/l2-equipment/equipment/commands/${failCommandId}/fail`, {
+      const response = await apiContext.put(`l2-equipment/equipment/commands/${failCommandId}/fail`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           responseCode: 'ERR_404',
@@ -534,7 +541,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should retry failed command', async () => {
       // Issue a command and fail it
-      const issueResponse = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const issueResponse = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -546,14 +553,14 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const issueData = await issueResponse.json();
       const retryCommandId = issueData.data.id;
 
-      await apiContext.put(`/api/v1/l2-equipment/equipment/commands/${retryCommandId}/fail`, {
+      await apiContext.put(`l2-equipment/equipment/commands/${retryCommandId}/fail`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: { responseCode: 'ERR_TIMEOUT' },
       });
 
       // Retry the command
       const response = await apiContext.post(
-        `/api/v1/l2-equipment/equipment/commands/${retryCommandId}/retry`,
+        `l2-equipment/equipment/commands/${retryCommandId}/retry`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -568,7 +575,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should cancel pending command', async () => {
       // Issue a new command
-      const issueResponse = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const issueResponse = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -580,7 +587,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const cancelCommandId = issueData.data.id;
 
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/commands/${cancelCommandId}/status`,
+        `l2-equipment/equipment/commands/${cancelCommandId}/status`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -597,7 +604,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should query pending commands for equipment', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/commands/${testEquipmentId}/pending`,
+        `l2-equipment/equipment/commands/${testEquipmentId}/pending`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -611,7 +618,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should query command history', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/commands/query?equipmentId=${testEquipmentId}&limit=10`,
+        `l2-equipment/equipment/commands/query?equipmentId=${testEquipmentId}&limit=10`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -624,8 +631,14 @@ test.describe('L2 Equipment Integration API Tests', () => {
       expect(data.data.length).toBeGreaterThan(0);
     });
 
-    test.skip('should detect timed-out commands', async () => {
-      const response = await apiContext.get('/api/v1/l2-equipment/equipment/commands/check-timeouts', {
+    test('should detect timed-out commands', async () => {
+      // Command timeout detection fully implemented:
+      // ✅ EquipmentCommandService.checkAndMarkTimedOutCommands() (line 376)
+      // ✅ API endpoint GET /l2-equipment/equipment/commands/check-timeouts
+      // ✅ Finds commands in SENT/ACKNOWLEDGED/EXECUTING status past timeout
+      // ✅ Marks them as TIMED_OUT and returns count
+
+      const response = await apiContext.get('l2-equipment/equipment/commands/check-timeouts', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
@@ -645,7 +658,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     let testMovementId: string;
 
     test('should record material load', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      const response = await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'LOAD',
@@ -675,7 +688,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
         return;
       }
 
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      const response = await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'CONSUME',
@@ -702,7 +715,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
         return;
       }
 
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      const response = await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'PRODUCE',
@@ -727,7 +740,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should record material scrap', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      const response = await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'SCRAP',
@@ -747,7 +760,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should record material unload', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      const response = await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'UNLOAD',
@@ -769,7 +782,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should query material movements', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/material/query?equipmentId=${testEquipmentId}&limit=20`,
+        `l2-equipment/equipment/material/query?equipmentId=${testEquipmentId}&limit=20`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -784,7 +797,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should build traceability chain', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/material/traceability/${testMovementId}`,
+        `l2-equipment/equipment/material/traceability/${testMovementId}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -801,7 +814,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should get material balance for equipment', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/material/${testEquipmentId}/balance`,
+        `l2-equipment/equipment/material/${testEquipmentId}/balance`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -826,7 +839,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/material/${testEquipmentId}/summary?startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
+        `l2-equipment/equipment/material/${testEquipmentId}/summary?startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -849,7 +862,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     let testProcessDataId: string;
 
     test('should start process data collection', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/process/start', {
+      const response = await apiContext.post('l2-equipment/equipment/process/start', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -878,7 +891,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should update process parameters during collection', async () => {
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/process/${testProcessDataId}/parameters`,
+        `l2-equipment/equipment/process/${testProcessDataId}/parameters`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -900,7 +913,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should complete process data collection', async () => {
       const response = await apiContext.put(
-        `/api/v1/l2-equipment/equipment/process/${testProcessDataId}/complete`,
+        `l2-equipment/equipment/process/${testProcessDataId}/complete`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
           data: {
@@ -929,7 +942,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
 
     test('should query process data collections', async () => {
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/process/query?equipmentId=${testEquipmentId}&limit=10`,
+        `l2-equipment/equipment/process/query?equipmentId=${testEquipmentId}&limit=10`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -946,7 +959,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/process/${testEquipmentId}/summary?processName=CNC_MILLING&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
+        `l2-equipment/equipment/process/${testEquipmentId}/summary?processName=CNC_MILLING&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -965,7 +978,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const response = await apiContext.get(
-        `/api/v1/l2-equipment/equipment/process/${testEquipmentId}/trend?processName=CNC_MILLING&parameterName=spindleSpeed&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
+        `l2-equipment/equipment/process/${testEquipmentId}/trend?processName=CNC_MILLING&parameterName=spindleSpeed&startDate=${encodeURIComponent(oneDayAgo.toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -986,7 +999,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
   test.describe('Integration & Error Handling', () => {
     test('should handle end-to-end equipment workflow', async () => {
       // 1. Issue START command
-      const commandResponse = await apiContext.post('/api/v1/l2-equipment/equipment/commands/issue', {
+      const commandResponse = await apiContext.post('l2-equipment/equipment/commands/issue', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -998,7 +1011,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const commandId = commandData.data.id;
 
       // 2. Start process data collection
-      const processResponse = await apiContext.post('/api/v1/l2-equipment/equipment/process/start', {
+      const processResponse = await apiContext.post('l2-equipment/equipment/process/start', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -1011,7 +1024,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       const processId = processData.data.id;
 
       // 3. Collect sensor data
-      await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,
@@ -1022,7 +1035,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       });
 
       // 4. Record material consumption
-      await apiContext.post('/api/v1/l2-equipment/equipment/material/movement', {
+      await apiContext.post('l2-equipment/equipment/material/movement', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           movementType: 'CONSUME',
@@ -1035,7 +1048,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       });
 
       // 5. Complete process
-      await apiContext.put(`/api/v1/l2-equipment/equipment/process/${processId}/complete`, {
+      await apiContext.put(`l2-equipment/equipment/process/${processId}/complete`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           endTimestamp: new Date().toISOString(),
@@ -1045,7 +1058,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
       });
 
       // 6. Complete command
-      await apiContext.put(`/api/v1/l2-equipment/equipment/commands/${commandId}/complete`, {
+      await apiContext.put(`l2-equipment/equipment/commands/${commandId}/complete`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: { responseCode: '200' },
       });
@@ -1056,7 +1069,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should reject requests without authentication', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect', {
         data: {
           equipmentId: testEquipmentId,
           dataCollectionType: 'SENSOR',
@@ -1069,7 +1082,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
     });
 
     test('should validate data collection input', async () => {
-      const response = await apiContext.post('/api/v1/l2-equipment/equipment/data/collect', {
+      const response = await apiContext.post('l2-equipment/equipment/data/collect', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentId: testEquipmentId,

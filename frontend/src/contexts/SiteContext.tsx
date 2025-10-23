@@ -69,7 +69,10 @@ const fetchSitesFromAPI = async (): Promise<Site[]> => {
       return [];
     }
 
-    const accessToken = authData?.state?.token;
+    // Try multiple possible token locations for robustness
+    const accessToken = authData?.state?.token ||  // Zustand persist format
+                        authData?.token ||          // Direct token format
+                        (typeof authData === 'string' ? authData : null); // Token as string
 
     if (!accessToken) {
       console.log('[SiteContext] No access token in auth data, skipping site fetch');
@@ -305,30 +308,65 @@ export const SiteProvider: React.FC<SiteProviderProps> = ({ children }) => {
    * Monitor auth changes and refetch sites when auth becomes available
    */
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 10;
+
     const checkAndRefetchSites = async () => {
       // Only refetch if we don't have sites yet and auth is available
-      if (allSites.length === 0 && !isLoading) {
+      if (allSites.length === 0 && !isLoading && retryCount < maxRetries) {
         const token = localStorage.getItem('mes-auth-storage');
         if (token) {
-          console.log('[SiteContext] Auth detected, refetching sites...');
-          await refreshSites();
+          try {
+            const authData = JSON.parse(token);
+            // Check if auth data has valid token structure
+            const hasValidToken = authData?.state?.token ||
+                                  authData?.token ||
+                                  (typeof authData === 'string' && authData.length > 20);
+
+            if (hasValidToken) {
+              console.log('[SiteContext] Auth detected, refetching sites...');
+              retryCount++;
+              await refreshSites();
+            } else {
+              console.log('[SiteContext] Auth storage found but token not ready yet, will retry...');
+            }
+          } catch (e) {
+            // Invalid JSON, continue waiting
+            console.log('[SiteContext] Auth storage format invalid, will retry...');
+          }
         }
       }
     };
 
-    // Set up interval to check for auth availability
-    const interval = setInterval(checkAndRefetchSites, 1000);
+    // Set up interval to check for auth availability with exponential backoff
+    // Start with 500ms, then 1s, then 2s intervals
+    const getInterval = () => {
+      if (retryCount < 3) return 500;  // First 3 attempts: 500ms
+      if (retryCount < 6) return 1000; // Next 3 attempts: 1s
+      return 2000; // Final attempts: 2s
+    };
 
-    // Also check immediately
+    let interval: NodeJS.Timeout;
+    const scheduleNextCheck = () => {
+      interval = setTimeout(async () => {
+        await checkAndRefetchSites();
+        if (allSites.length === 0 && retryCount < maxRetries) {
+          scheduleNextCheck();
+        }
+      }, getInterval());
+    };
+
+    // Start checking immediately
     checkAndRefetchSites();
+    scheduleNextCheck();
 
-    // Stop checking after 10 seconds or when sites are loaded
+    // Stop checking after 20 seconds or when sites are loaded
     const timeout = setTimeout(() => {
-      clearInterval(interval);
-    }, 10000);
+      if (interval) clearTimeout(interval);
+    }, 20000);
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearTimeout(interval);
       clearTimeout(timeout);
     };
   }, [allSites.length, isLoading, refreshSites]);

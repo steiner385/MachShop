@@ -58,6 +58,22 @@ routingClient.interceptors.request.use(
   }
 );
 
+// Custom error class for version conflicts
+export class VersionConflictError extends Error {
+  public readonly details: {
+    currentVersion: string;
+    attemptedVersion: string;
+    lastModified: string;
+    lastModifiedBy?: string;
+  };
+
+  constructor(message: string, details: any) {
+    super(message);
+    this.name = 'VersionConflictError';
+    this.details = details;
+  }
+}
+
 // Response interceptor for error handling
 routingClient.interceptors.response.use(
   (response) => response.data,
@@ -69,6 +85,13 @@ routingClient.interceptors.response.use(
         const redirectUrl = window.location.pathname + window.location.search;
         window.location.href = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
       }
+    }
+
+    // Handle 409 VERSION_CONFLICT with detailed conflict information
+    if (error.response?.status === 409 && error.response?.data?.error === 'VERSION_CONFLICT') {
+      const message = error.response.data.message || 'Version conflict detected';
+      const details = error.response.data.details || {};
+      throw new VersionConflictError(message, details);
     }
 
     // Extract error message

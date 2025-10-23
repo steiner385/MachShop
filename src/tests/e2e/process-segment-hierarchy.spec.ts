@@ -15,13 +15,14 @@ import { test, expect, request, APIRequestContext } from '@playwright/test';
 import { config } from '../../config/config';
 
 // Test configuration
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5278';
+// Fix: Use backend API server (port 3101), not frontend server (port 5278)
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3101';
 const API_BASE = `${BASE_URL}/api/v1`;
 
-// Test user credentials
+// Test user credentials - use valid test user from seed data
 const TEST_USER = {
-  username: 'testuser',
-  password: 'testpassword123'
+  username: 'admin',
+  password: 'password123'
 };
 
 let authToken: string;
@@ -33,30 +34,140 @@ let roughMillingStepId: string;
 let finishMillingStepId: string;
 let inspectionSegmentId: string;
 
+// Generate unique test prefix to avoid conflicts between test runs
+// Use 'API-TEST-' prefix instead of 'OP-TEST-' to avoid conflicts with seed data
+const testRunId = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+const TEST_PREFIX = `API-TEST-${testRunId}`;
+
 test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
+  // Configure serial mode at the top level - all tests depend on setup data
+  // millingSegmentId is set by the first test and used throughout
+  test.describe.configure({ mode: 'serial' });
+
   // ======================
   // SETUP & TEARDOWN
   // ======================
 
   test.beforeAll(async () => {
-    // Create API context
+    // Create API context - match L2 Equipment test pattern with trailing slash
     apiContext = await request.newContext({
-      baseURL: API_BASE,
+      baseURL: 'http://localhost:3101/api/v1/',
       extraHTTPHeaders: {
         'Content-Type': 'application/json'
       }
     });
 
-    // Authenticate and get token
-    const loginResponse = await apiContext.post('/auth/login', {
+    // Authenticate and get token - no leading slash to match L2 Equipment pattern
+    const loginResponse = await apiContext.post('auth/login', {
       data: TEST_USER
     });
 
-    expect(loginResponse.ok()).toBeTruthy();
+    // Add better error handling like L2 Equipment tests
+    if (!loginResponse.ok()) {
+      const errorText = await loginResponse.text();
+      throw new Error(
+        `API login failed during test setup. Status: ${loginResponse.status()}. ` +
+          `Response: ${errorText}. ` +
+          `Ensure E2E backend is running on port 3101.`
+      );
+    }
+
     const loginData = await loginResponse.json();
     authToken = loginData.token;
+    expect(authToken).toBeDefined();
 
     console.log('✅ Authentication successful');
+
+    // Clean up any existing test data to ensure test isolation
+    // Fetch all process segments and delete any test segments (those starting with 'OP-TEST-')
+    const listResponse = await apiContext.get('process-segments', {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+
+    if (listResponse.ok()) {
+      const segments = await listResponse.json();
+      let testSegments = segments.filter((seg: any) =>
+        seg.segmentCode && (seg.segmentCode.startsWith('API-TEST-') || seg.segmentCode.startsWith(TEST_PREFIX))
+      );
+
+      // STEP 1: Delete ALL dependencies first (both directions)
+      // This prevents constraint violations when deleting segments
+      let dependenciesDeleted = 0;
+      for (const segment of testSegments) {
+        try {
+          // Get dependencies for this segment
+          const depsResponse = await apiContext.get(`process-segments/${segment.id}/dependencies`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+          });
+
+          if (depsResponse.ok()) {
+            const { dependencies, prerequisites } = await depsResponse.json();
+
+            // Delete all dependencies where this segment is dependent
+            for (const dep of dependencies || []) {
+              const delResponse = await apiContext.delete(`process-segments/dependencies/${dep.id}`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              });
+              if (delResponse.ok()) dependenciesDeleted++;
+            }
+
+            // Delete all prerequisites where this segment is prerequisite
+            for (const prereq of prerequisites || []) {
+              const delResponse = await apiContext.delete(`process-segments/dependencies/${prereq.id}`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              });
+              if (delResponse.ok()) dependenciesDeleted++;
+            }
+          }
+        } catch (error) {
+          // Continue even if dependency deletion fails for a segment
+        }
+      }
+
+      if (dependenciesDeleted > 0) {
+        console.log(`🧹 Deleted ${dependenciesDeleted} dependency relationship(s)`);
+      }
+
+      // STEP 2: Delete test segments in hierarchical order (leaf nodes first)
+      // Make multiple passes, deleting segments with no children each time
+      let deletedCount = 0;
+      let maxPasses = 10; // Safety limit to prevent infinite loops
+      let pass = 0;
+
+      while (testSegments.length > 0 && pass < maxPasses) {
+        pass++;
+        const beforeCount = testSegments.length;
+
+        // Find segments with no children (leaf nodes)
+        const leafSegments = testSegments.filter((seg: any) => {
+          const hasChildren = testSegments.some((other: any) => other.parentSegmentId === seg.id);
+          return !hasChildren;
+        });
+
+        // Delete each leaf segment
+        for (const segment of leafSegments) {
+          const deleteResponse = await apiContext.delete(`process-segments/${segment.id}?hardDelete=true`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+          });
+
+          if (deleteResponse.ok()) {
+            deletedCount++;
+            // Remove from testSegments array
+            testSegments = testSegments.filter((seg: any) => seg.id !== segment.id);
+          }
+        }
+
+        // If no segments were deleted in this pass, break to avoid infinite loop
+        if (beforeCount === testSegments.length) {
+          console.warn(`⚠️  Could not delete ${testSegments.length} segments (may need manual cleanup)`);
+          break;
+        }
+      }
+
+      if (deletedCount > 0) {
+        console.log(`🧹 Cleaned up ${deletedCount} existing test segment(s) in ${pass} pass(es)`);
+      }
+    }
   });
 
   test.afterAll(async () => {
@@ -69,10 +180,10 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
   test.describe('Process Segment CRUD', () => {
     test('should create a new process segment', async () => {
-      const response = await apiContext.post('/process-segments', {
+      const response = await apiContext.post('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
-          segmentCode: 'OP-TEST-001',
+          segmentCode: `${TEST_PREFIX}-001`,
           segmentName: 'Test Milling Operation',
           description: 'Test description',
           level: 1,
@@ -89,7 +200,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       const data = await response.json();
 
       expect(data).toHaveProperty('id');
-      expect(data.segmentCode).toBe('OP-TEST-001');
+      expect(data.segmentCode).toBe(`${TEST_PREFIX}-001`);
       expect(data.segmentName).toBe('Test Milling Operation');
       expect(data.level).toBe(1);
       expect(data.segmentType).toBe('PRODUCTION');
@@ -98,7 +209,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get process segment by ID', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -106,23 +217,23 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       const data = await response.json();
 
       expect(data.id).toBe(millingSegmentId);
-      expect(data.segmentCode).toBe('OP-TEST-001');
+      expect(data.segmentCode).toBe(`${TEST_PREFIX}-001`);
     });
 
     test('should get process segment by code', async () => {
-      const response = await apiContext.get('/process-segments/code/OP-TEST-001', {
+      const response = await apiContext.get(`process-segments/code/${TEST_PREFIX}-001`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
       expect(response.ok()).toBeTruthy();
       const data = await response.json();
 
-      expect(data.segmentCode).toBe('OP-TEST-001');
+      expect(data.segmentCode).toBe(`${TEST_PREFIX}-001`);
       expect(data.id).toBe(millingSegmentId);
     });
 
     test('should get all process segments', async () => {
-      const response = await apiContext.get('/process-segments', {
+      const response = await apiContext.get('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -134,7 +245,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should filter process segments by type', async () => {
-      const response = await apiContext.get('/process-segments?segmentType=PRODUCTION', {
+      const response = await apiContext.get('process-segments?segmentType=PRODUCTION', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -148,7 +259,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should filter process segments by level', async () => {
-      const response = await apiContext.get('/process-segments?level=1', {
+      const response = await apiContext.get('process-segments?level=1', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -162,7 +273,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should update process segment', async () => {
-      const response = await apiContext.put(`/process-segments/${millingSegmentId}`, {
+      const response = await apiContext.put(`process-segments/${millingSegmentId}`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           segmentName: 'Updated Milling Operation',
@@ -181,10 +292,10 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
     test('should soft delete process segment', async () => {
       // Create a test segment to delete
-      const createResponse = await apiContext.post('/process-segments', {
+      const createResponse = await apiContext.post('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
-          segmentCode: 'OP-DELETE-TEST',
+          segmentCode: `${TEST_PREFIX}-DELETE`,
           segmentName: 'To Delete',
           level: 1,
           segmentType: 'PRODUCTION',
@@ -195,7 +306,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       const created = await createResponse.json();
 
       // Soft delete
-      const deleteResponse = await apiContext.delete(`/process-segments/${created.id}`, {
+      const deleteResponse = await apiContext.delete(`process-segments/${created.id}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -205,7 +316,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       expect(deleteData.hardDelete).toBe(false);
 
       // Verify segment still exists but is inactive
-      const getResponse = await apiContext.get(`/process-segments/${created.id}`, {
+      const getResponse = await apiContext.get(`process-segments/${created.id}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -221,10 +332,10 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
   test.describe('Process Segment Hierarchy', () => {
     test('should create child segments', async () => {
       // Create rough milling step
-      const roughResponse = await apiContext.post('/process-segments', {
+      const roughResponse = await apiContext.post('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
-          segmentCode: 'OP-TEST-001-010',
+          segmentCode: `${TEST_PREFIX}-001-010`,
           segmentName: 'Rough Milling Step',
           level: 2,
           parentSegmentId: millingSegmentId,
@@ -242,10 +353,10 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       expect(roughData.level).toBe(2);
 
       // Create finish milling step
-      const finishResponse = await apiContext.post('/process-segments', {
+      const finishResponse = await apiContext.post('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
-          segmentCode: 'OP-TEST-001-020',
+          segmentCode: `${TEST_PREFIX}-001-020`,
           segmentName: 'Finish Milling Step',
           level: 2,
           parentSegmentId: millingSegmentId,
@@ -261,7 +372,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get child segments', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}/children`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}/children`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -272,12 +383,12 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
       expect(children.length).toBeGreaterThanOrEqual(2);
 
       const segmentCodes = children.map((c: any) => c.segmentCode);
-      expect(segmentCodes).toContain('OP-TEST-001-010');
-      expect(segmentCodes).toContain('OP-TEST-001-020');
+      expect(segmentCodes).toContain(`${TEST_PREFIX}-001-010`);
+      expect(segmentCodes).toContain(`${TEST_PREFIX}-001-020`);
     });
 
     test('should get root segments', async () => {
-      const response = await apiContext.get('/process-segments/hierarchy/roots', {
+      const response = await apiContext.get('process-segments/hierarchy/roots', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -291,7 +402,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get hierarchy tree', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}/hierarchy-tree`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}/hierarchy-tree`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -305,7 +416,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get ancestor chain', async () => {
-      const response = await apiContext.get(`/process-segments/${roughMillingStepId}/ancestors`, {
+      const response = await apiContext.get(`process-segments/${roughMillingStepId}/ancestors`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -322,7 +433,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
     test('should prevent circular references', async () => {
       // Try to set parent as its own child
-      const response = await apiContext.put(`/process-segments/${millingSegmentId}`, {
+      const response = await apiContext.put(`process-segments/${millingSegmentId}`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           parentSegmentId: roughMillingStepId // Child trying to be parent
@@ -340,7 +451,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
   test.describe('Process Segment Parameters', () => {
     test('should add parameter to segment', async () => {
-      const response = await apiContext.post(`/process-segments/${millingSegmentId}/parameters`, {
+      const response = await apiContext.post(`process-segments/${millingSegmentId}/parameters`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           parameterName: 'Spindle Speed',
@@ -365,7 +476,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get segment parameters', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}/parameters`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}/parameters`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -387,10 +498,10 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
   test.describe('Process Segment Dependencies', () => {
     test.beforeAll(async () => {
       // Create inspection segment for dependency testing
-      const response = await apiContext.post('/process-segments', {
+      const response = await apiContext.post('process-segments', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
-          segmentCode: 'OP-TEST-002',
+          segmentCode: `${TEST_PREFIX}-002`,
           segmentName: 'Test Inspection',
           level: 1,
           segmentType: 'QUALITY',
@@ -404,7 +515,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should add dependency between segments', async () => {
-      const response = await apiContext.post('/process-segments/dependencies', {
+      const response = await apiContext.post('process-segments/dependencies', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           dependentSegmentId: inspectionSegmentId,
@@ -424,7 +535,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get segment dependencies', async () => {
-      const response = await apiContext.get(`/process-segments/${inspectionSegmentId}/dependencies`, {
+      const response = await apiContext.get(`process-segments/${inspectionSegmentId}/dependencies`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -439,7 +550,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should prevent self-dependency', async () => {
-      const response = await apiContext.post('/process-segments/dependencies', {
+      const response = await apiContext.post('process-segments/dependencies', {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           dependentSegmentId: millingSegmentId,
@@ -460,7 +571,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
   test.describe('Resource Specifications', () => {
     test('should add personnel specification', async () => {
-      const response = await apiContext.post(`/process-segments/${millingSegmentId}/personnel-specs`, {
+      const response = await apiContext.post(`process-segments/${millingSegmentId}/personnel-specs`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           minimumCompetency: 'COMPETENT',
@@ -479,7 +590,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should add equipment specification', async () => {
-      const response = await apiContext.post(`/process-segments/${millingSegmentId}/equipment-specs`, {
+      const response = await apiContext.post(`process-segments/${millingSegmentId}/equipment-specs`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           equipmentClass: 'PRODUCTION',
@@ -498,7 +609,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should add material specification', async () => {
-      const response = await apiContext.post(`/process-segments/${millingSegmentId}/material-specs`, {
+      const response = await apiContext.post(`process-segments/${millingSegmentId}/material-specs`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           materialType: 'RAW_MATERIAL',
@@ -517,7 +628,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should add physical asset specification', async () => {
-      const response = await apiContext.post(`/process-segments/${millingSegmentId}/asset-specs`, {
+      const response = await apiContext.post(`process-segments/${millingSegmentId}/asset-specs`, {
         headers: { Authorization: `Bearer ${authToken}` },
         data: {
           assetType: 'TOOLING',
@@ -536,7 +647,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should get all resource specifications', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}/resource-specs`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}/resource-specs`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -561,7 +672,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
 
   test.describe('Statistics and Reporting', () => {
     test('should get process segment statistics', async () => {
-      const response = await apiContext.get('/process-segments/statistics/overview', {
+      const response = await apiContext.get('process-segments/statistics/overview', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 
@@ -578,7 +689,7 @@ test.describe('Process Segment Hierarchy Tests', { tag: '@api' }, () => {
     });
 
     test('should calculate total segment time', async () => {
-      const response = await apiContext.get(`/process-segments/${millingSegmentId}/total-time`, {
+      const response = await apiContext.get(`process-segments/${millingSegmentId}/total-time`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
 

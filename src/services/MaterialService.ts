@@ -193,8 +193,15 @@ export class MaterialService {
    * Create material property
    */
   async createMaterialProperty(data: any) {
+    const { materialId, ...propertyData } = data;
+
     return this.prisma.materialProperty.create({
-      data,
+      data: {
+        ...propertyData,
+        material: {
+          connect: { id: materialId }
+        }
+      },
       include: { material: true },
     });
   }

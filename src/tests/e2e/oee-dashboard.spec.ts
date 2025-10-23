@@ -12,13 +12,13 @@ let apiContext: APIRequestContext;
 let authToken: string;
 
 test.beforeAll(async () => {
-  // Create API request context - use E2E backend server (port 3101)
+  // Fix: Use correct baseURL pattern with trailing slash to match L2 Equipment tests
   apiContext = await request.newContext({
-    baseURL: 'http://localhost:3101',
+    baseURL: 'http://localhost:3101/api/v1/',
   });
 
-  // Login to get auth token
-  const loginResponse = await apiContext.post('/api/v1/auth/login', {
+  // Login to get auth token - remove /api/v1/ prefix to match correct pattern
+  const loginResponse = await apiContext.post('auth/login', {
     data: {
       username: 'admin',
       password: 'password123'
@@ -147,7 +147,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should return OEE dashboard data with correct structure', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard', {
+    const response = await apiContext.get('equipment/oee/dashboard', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -183,7 +183,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should calculate OEE distribution correctly', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard', {
+    const response = await apiContext.get('equipment/oee/dashboard', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -205,7 +205,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should return top performers ordered by OEE descending', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard?limit=10', {
+    const response = await apiContext.get('equipment/oee/dashboard?limit=10', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -237,7 +237,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should return bottom performers ordered by OEE ascending', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard?limit=10', {
+    const response = await apiContext.get('equipment/oee/dashboard?limit=10', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -257,7 +257,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should filter by equipment class', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard?equipmentClass=PRODUCTION', {
+    const response = await apiContext.get('equipment/oee/dashboard?equipmentClass=PRODUCTION', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -277,7 +277,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should calculate average OEE correctly', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard', {
+    const response = await apiContext.get('equipment/oee/dashboard', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -321,14 +321,14 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should handle request without authentication', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard');
+    const response = await apiContext.get('equipment/oee/dashboard');
 
     // Should return 401 Unauthorized
     expect(response.status()).toBe(401);
   });
 
   test('should calculate status breakdown correctly', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard', {
+    const response = await apiContext.get('equipment/oee/dashboard', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 
@@ -346,7 +346,7 @@ test.describe('OEE Dashboard API - /api/v1/equipment/oee/dashboard', () => {
   });
 
   test('should calculate state breakdown correctly', async () => {
-    const response = await apiContext.get('/api/v1/equipment/oee/dashboard', {
+    const response = await apiContext.get('equipment/oee/dashboard', {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
 

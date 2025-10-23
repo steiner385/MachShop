@@ -15,7 +15,7 @@ import { expectPageTitle } from '../../helpers/roleTestHelper';
 test.describe('Warehouse Manager - Core Functions', () => {
   test('WARE-MGR-AUTH-001: Can access materials and inventory', async ({ page }) => {
     await navigateAuthenticated(page, '/materials', 'warehouseManager');
-    await expectPageTitle(page, 'Materials');
+    await expectPageTitle(page, 'Material Movement Tracking');
   });
 
   test('WARE-MGR-INV-001: Execute cycle count program and reconcile variances', async ({ page }) => {

@@ -1,110 +1,103 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Card, 
-  Descriptions, 
-  Button, 
-  Space, 
-  Tag, 
-  Progress, 
+import {
+  Card,
+  Descriptions,
+  Button,
+  Space,
+  Tag,
+  Progress,
   Table,
   Typography,
   Row,
   Col,
   Timeline,
-  Breadcrumb
+  Breadcrumb,
+  Spin,
+  Alert,
+  message
 } from 'antd';
-import { 
-  ArrowLeftOutlined, 
-  EditOutlined, 
+import {
+  ArrowLeftOutlined,
+  EditOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
+import axios from 'axios';
 
 const { Title } = Typography;
 
 const WorkOrderDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [workOrder, setWorkOrder] = useState<any>(null);
+  const [operations, setOperations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Set page title
   useEffect(() => {
     document.title = 'Work Order Details - Manufacturing Execution System';
   }, []);
 
-  // Mock data
-  const workOrder = {
-    id: 'WO-2024-001001',
-    partNumber: 'ENG-BLADE-001',
-    partName: 'Turbine Blade',
-    quantity: 10,
-    completed: 6,
-    scrapped: 1,
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    dueDate: '2024-02-15',
-    customerOrder: 'CO-2024-001',
-    createdDate: '2024-01-15',
-    startedDate: '2024-01-20',
+  // Fetch work order details
+  useEffect(() => {
+    if (id) {
+      fetchWorkOrderDetails();
+    }
+  }, [id]);
+
+  const fetchWorkOrderDetails = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('mes-auth-storage');
+      let authData;
+      try {
+        authData = JSON.parse(token || '{}');
+      } catch {
+        throw new Error('Invalid authentication token');
+      }
+
+      const accessToken = authData?.state?.token || authData?.token;
+      if (!accessToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await axios.get(`/api/v1/workorders/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      setWorkOrder(response.data.workOrder || response.data);
+
+      // Fetch operations if available
+      try {
+        const opsResponse = await axios.get(`/api/v1/workorders/${id}/operations`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        // Backend returns array directly, not wrapped in {operations: [...]}
+        setOperations(Array.isArray(opsResponse.data) ? opsResponse.data : []);
+      } catch (opsError) {
+        console.warn('Could not fetch operations:', opsError);
+        // Operations are optional, so don't fail the whole page
+      }
+
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to load work order';
+      setError(errorMessage);
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const operations = [
-    {
-      key: '1',
-      operationNumber: 10,
-      operationName: 'Rough Machining',
-      status: 'COMPLETED',
-      completed: 10,
-      scrapped: 0,
-      progress: 100,
-    },
-    {
-      key: '2',
-      operationNumber: 20,
-      operationName: 'Finish Machining',
-      status: 'IN_PROGRESS',
-      completed: 6,
-      scrapped: 1,
-      progress: 60,
-    },
-    {
-      key: '3',
-      operationNumber: 30,
-      operationName: 'Quality Inspection',
-      status: 'PENDING',
-      completed: 0,
-      scrapped: 0,
-      progress: 0,
-    },
-  ];
-
-  const history = [
-    {
-      time: '2024-01-20 09:30',
-      action: 'Work Order Released',
-      user: 'Production Planner',
-      status: 'success',
-    },
-    {
-      time: '2024-01-20 10:15',
-      action: 'Operation 10 Started',
-      user: 'Operator Smith',
-      status: 'success',
-    },
-    {
-      time: '2024-01-22 16:45',
-      action: 'Operation 10 Completed',
-      user: 'Operator Smith',
-      status: 'success',
-    },
-    {
-      time: '2024-01-23 08:00',
-      action: 'Operation 20 Started',
-      user: 'Operator Jones',
-      status: 'processing',
-    },
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,6 +119,15 @@ const WorkOrderDetails: React.FC = () => {
       title: 'Operation',
       dataIndex: 'operationName',
       key: 'operationName',
+      render: (operationName: string, record: any) => (
+        <Button
+          type="link"
+          onClick={() => navigate(`/workorders/${id}/execute/${record.operationNumber}`)}
+          style={{ padding: 0, height: 'auto' }}
+        >
+          {operationName}
+        </Button>
+      ),
     },
     {
       title: 'Status',
@@ -141,34 +143,82 @@ const WorkOrderDetails: React.FC = () => {
       title: 'Quantity',
       key: 'quantity',
       render: (record: any) => (
-        <span>{record.completed}/{workOrder.quantity}</span>
+        <span>{record.completed || record.quantityCompleted || 0}/{record.quantity || workOrder.quantity}</span>
       ),
     },
     {
       title: 'Scrapped',
       dataIndex: 'scrapped',
       key: 'scrapped',
+      render: (scrapped: number, record: any) => scrapped || record.quantityScrap || 0,
     },
     {
       title: 'Progress',
       dataIndex: 'progress',
       key: 'progress',
       render: (progress: number) => (
-        <Progress percent={progress} size="small" />
+        <Progress percent={progress || 0} size="small" />
       ),
     },
   ];
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" />
+        <p style={{ marginTop: 16 }}>Loading work order details...</p>
+      </div>
+    );
+  }
+
+  if (error || !workOrder) {
+    return (
+      <div>
+        <Breadcrumb
+          style={{ marginBottom: 16 }}
+          items={[
+            {
+              title: (
+                <Button
+                  type="link"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => navigate('/workorders')}
+                  style={{ padding: 0 }}
+                >
+                  Work Orders
+                </Button>
+              )
+            },
+            {
+              title: 'Error'
+            }
+          ]}
+        />
+        <Alert
+          message="Error Loading Work Order"
+          description={error || 'Work order not found'}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" onClick={fetchWorkOrderDetails}>
+              Retry
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Breadcrumb */}
-      <Breadcrumb 
+      <Breadcrumb
         style={{ marginBottom: 16 }}
         items={[
           {
             title: (
-              <Button 
-                type="link" 
+              <Button
+                type="link"
                 icon={<ArrowLeftOutlined />}
                 onClick={() => navigate('/workorders')}
                 style={{ padding: 0 }}
@@ -178,20 +228,20 @@ const WorkOrderDetails: React.FC = () => {
             )
           },
           {
-            title: workOrder.id
+            title: workOrder.workOrderNumber || workOrder.id
           }
         ]}
       />
 
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24 
+        marginBottom: 24
       }}>
         <Title level={2} style={{ margin: 0 }}>
-          Work Order {workOrder.id}
+          Work Order {workOrder.workOrderNumber || workOrder.id}
         </Title>
         <Space>
           <Button icon={<EditOutlined />}>
@@ -211,7 +261,7 @@ const WorkOrderDetails: React.FC = () => {
           <Card title="Work Order Information">
             <Descriptions column={{ xs: 1, sm: 2, md: 2 }}>
               <Descriptions.Item label="Work Order #">
-                {workOrder.id}
+                {workOrder.workOrderNumber || workOrder.id}
               </Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Tag color={getStatusColor(workOrder.status)}>
@@ -289,22 +339,9 @@ const WorkOrderDetails: React.FC = () => {
 
           {/* History Timeline */}
           <Card title="Activity History" style={{ marginTop: 16 }}>
-            <Timeline 
-              items={history.map((item) => ({
-                key: `${item.time}-${item.action}`,
-                dot: item.status === 'success' ? 
-                  <CheckCircleOutlined style={{ color: '#52c41a' }} /> :
-                  <ClockCircleOutlined style={{ color: '#1890ff' }} />,
-                children: (
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{item.action}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>
-                      {item.user} • {item.time}
-                    </div>
-                  </div>
-                )
-              }))}
-            />
+            <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>
+              Activity history will be available soon
+            </div>
           </Card>
         </Col>
       </Row>

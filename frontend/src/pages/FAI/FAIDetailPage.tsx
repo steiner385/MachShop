@@ -290,7 +290,7 @@ const FAIDetailPage: React.FC = () => {
   if (isLoadingDetail) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="Loading FAI report..." />
+        <Spin size="large" tip="Loading FAI report..."><div /></Spin>
       </div>
     );
   }
@@ -476,7 +476,7 @@ const FAIDetailPage: React.FC = () => {
       >
         {signaturesLoading ? (
           <div style={{ textAlign: 'center', padding: '24px' }}>
-            <Spin tip="Loading signatures..." />
+            <Spin tip="Loading signatures..."><div /></Spin>
           </div>
         ) : signatures && signatures.length > 0 ? (
           <SignatureDisplay signatures={convertToSignatureInfo(signatures)} showDetails />

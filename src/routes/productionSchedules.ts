@@ -13,7 +13,7 @@
  */
 
 import express, { Request, Response } from 'express';
-import ProductionScheduleService from '../services/ProductionScheduleService';
+import scheduleService from '../services/ProductionScheduleService';
 import {
   authMiddleware,
   requirePermission,
@@ -36,11 +36,29 @@ router.use(authMiddleware);
  */
 router.post('/', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
-    const schedule = await ProductionScheduleService.createSchedule(req.body);
+    const schedule = await scheduleService.createSchedule(req.body);
     res.status(201).json(schedule);
   } catch (error: any) {
     console.error('Error creating production schedule:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/v1/production-schedules/number/:scheduleNumber
+ * Get schedule by schedule number
+ * NOTE: This must come BEFORE /:id route to avoid "number" being treated as an ID
+ */
+router.get('/number/:scheduleNumber', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { scheduleNumber } = req.params;
+    const includeRelations = req.query.includeRelations !== 'false';
+
+    const schedule = await scheduleService.getScheduleByNumber(scheduleNumber, includeRelations);
+    res.json(schedule);
+  } catch (error: any) {
+    console.error('Error fetching production schedule by number:', error);
+    res.status(404).json({ error: error.message });
   }
 });
 
@@ -53,27 +71,10 @@ router.get('/:id', requireProductionAccess, async (req: Request, res: Response):
     const { id } = req.params;
     const includeRelations = req.query.includeRelations !== 'false';
 
-    const schedule = await ProductionScheduleService.getScheduleById(id, includeRelations);
+    const schedule = await scheduleService.getScheduleById(id, includeRelations);
     res.json(schedule);
   } catch (error: any) {
     console.error('Error fetching production schedule:', error);
-    res.status(404).json({ error: error.message });
-  }
-});
-
-/**
- * GET /api/v1/production-schedules/number/:scheduleNumber
- * Get schedule by schedule number
- */
-router.get('/number/:scheduleNumber', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
-  try {
-    const { scheduleNumber } = req.params;
-    const includeRelations = req.query.includeRelations !== 'false';
-
-    const schedule = await ProductionScheduleService.getScheduleByNumber(scheduleNumber, includeRelations);
-    res.json(schedule);
-  } catch (error: any) {
-    console.error('Error fetching production schedule by number:', error);
     res.status(404).json({ error: error.message });
   }
 });
@@ -116,7 +117,7 @@ router.get('/', requireProductionAccess, async (req: Request, res: Response): Pr
 
     const includeRelations = req.query.includeRelations === 'true';
 
-    const schedules = await ProductionScheduleService.getAllSchedules(filters, includeRelations);
+    const schedules = await scheduleService.getAllSchedules(filters, includeRelations);
     res.json(schedules);
   } catch (error: any) {
     console.error('Error fetching production schedules:', error);
@@ -131,7 +132,7 @@ router.get('/', requireProductionAccess, async (req: Request, res: Response): Pr
 router.put('/:id', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const schedule = await ProductionScheduleService.updateSchedule(id, req.body);
+    const schedule = await scheduleService.updateSchedule(id, req.body);
     res.json(schedule);
   } catch (error: any) {
     console.error('Error updating production schedule:', error);
@@ -148,7 +149,7 @@ router.delete('/:id', requirePermission('scheduling.write'), async (req: Request
     const { id } = req.params;
     const hardDelete = req.query.hardDelete === 'true';
 
-    const result = await ProductionScheduleService.deleteSchedule(id, hardDelete);
+    const result = await scheduleService.deleteSchedule(id, hardDelete);
     res.json(result);
   } catch (error: any) {
     console.error('Error deleting production schedule:', error);
@@ -167,7 +168,7 @@ router.delete('/:id', requirePermission('scheduling.write'), async (req: Request
 router.post('/:id/entries', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const entry = await ProductionScheduleService.addScheduleEntry(id, req.body);
+    const entry = await scheduleService.addScheduleEntry(id, req.body);
     res.status(201).json(entry);
   } catch (error: any) {
     console.error('Error adding schedule entry:', error);
@@ -184,7 +185,7 @@ router.get('/:id/entries', requireProductionAccess, async (req: Request, res: Re
     const { id } = req.params;
     const includeConstraints = req.query.includeConstraints !== 'false';
 
-    const entries = await ProductionScheduleService.getScheduleEntries(id, includeConstraints);
+    const entries = await scheduleService.getScheduleEntries(id, includeConstraints);
     res.json(entries);
   } catch (error: any) {
     console.error('Error fetching schedule entries:', error);
@@ -199,7 +200,7 @@ router.get('/:id/entries', requireProductionAccess, async (req: Request, res: Re
 router.put('/entries/:entryId', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { entryId } = req.params;
-    const entry = await ProductionScheduleService.updateScheduleEntry(entryId, req.body);
+    const entry = await scheduleService.updateScheduleEntry(entryId, req.body);
     res.json(entry);
   } catch (error: any) {
     console.error('Error updating schedule entry:', error);
@@ -216,7 +217,7 @@ router.post('/entries/:entryId/cancel', requirePermission('scheduling.write'), a
     const { entryId } = req.params;
     const { reason, cancelledBy } = req.body;
 
-    const entry = await ProductionScheduleService.cancelScheduleEntry(entryId, reason, cancelledBy);
+    const entry = await scheduleService.cancelScheduleEntry(entryId, reason, cancelledBy);
     res.json(entry);
   } catch (error: any) {
     console.error('Error cancelling schedule entry:', error);
@@ -235,7 +236,7 @@ router.post('/entries/:entryId/cancel', requirePermission('scheduling.write'), a
 router.post('/entries/:entryId/constraints', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { entryId } = req.params;
-    const constraint = await ProductionScheduleService.addConstraint(entryId, req.body);
+    const constraint = await scheduleService.addConstraint(entryId, req.body);
     res.status(201).json(constraint);
   } catch (error: any) {
     console.error('Error adding constraint:', error);
@@ -250,7 +251,7 @@ router.post('/entries/:entryId/constraints', requirePermission('scheduling.write
 router.get('/entries/:entryId/constraints', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { entryId } = req.params;
-    const constraints = await ProductionScheduleService.getEntryConstraints(entryId);
+    const constraints = await scheduleService.getEntryConstraints(entryId);
     res.json(constraints);
   } catch (error: any) {
     console.error('Error fetching entry constraints:', error);
@@ -265,7 +266,7 @@ router.get('/entries/:entryId/constraints', requireProductionAccess, async (req:
 router.put('/constraints/:constraintId', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { constraintId } = req.params;
-    const constraint = await ProductionScheduleService.updateConstraint(constraintId, req.body);
+    const constraint = await scheduleService.updateConstraint(constraintId, req.body);
     res.json(constraint);
   } catch (error: any) {
     console.error('Error updating constraint:', error);
@@ -282,7 +283,7 @@ router.post('/constraints/:constraintId/resolve', requirePermission('scheduling.
     const { constraintId } = req.params;
     const { resolvedBy, resolutionNotes } = req.body;
 
-    const constraint = await ProductionScheduleService.resolveConstraint(constraintId, resolvedBy, resolutionNotes);
+    const constraint = await scheduleService.resolveConstraint(constraintId, resolvedBy, resolutionNotes);
     res.json(constraint);
   } catch (error: any) {
     console.error('Error resolving constraint:', error);
@@ -297,7 +298,7 @@ router.post('/constraints/:constraintId/resolve', requirePermission('scheduling.
 router.post('/constraints/:constraintId/check', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { constraintId } = req.params;
-    const result = await ProductionScheduleService.checkConstraintViolation(constraintId);
+    const result = await scheduleService.checkConstraintViolation(constraintId);
     res.json(result);
   } catch (error: any) {
     console.error('Error checking constraint violation:', error);
@@ -316,7 +317,7 @@ router.post('/constraints/:constraintId/check', requireProductionAccess, async (
 router.post('/:id/state/transition', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const stateHistory = await ProductionScheduleService.transitionScheduleState(id, req.body);
+    const stateHistory = await scheduleService.transitionScheduleState(id, req.body);
     res.status(201).json(stateHistory);
   } catch (error: any) {
     console.error('Error transitioning schedule state:', error);
@@ -331,7 +332,7 @@ router.post('/:id/state/transition', requirePermission('scheduling.write'), asyn
 router.get('/:id/state/history', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const history = await ProductionScheduleService.getScheduleStateHistory(id);
+    const history = await scheduleService.getScheduleStateHistory(id);
     res.json(history);
   } catch (error: any) {
     console.error('Error fetching state history:', error);
@@ -350,7 +351,7 @@ router.get('/:id/state/history', requireProductionAccess, async (req: Request, r
 router.post('/:id/sequencing/priority', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const count = await ProductionScheduleService.applyPrioritySequencing(id);
+    const count = await scheduleService.applyPrioritySequencing(id);
     res.json({ message: `Priority sequencing applied to ${count} entries`, entriesAffected: count });
   } catch (error: any) {
     console.error('Error applying priority sequencing:', error);
@@ -365,7 +366,7 @@ router.post('/:id/sequencing/priority', requirePermission('scheduling.write'), a
 router.post('/:id/sequencing/edd', requirePermission('scheduling.write'), async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const count = await ProductionScheduleService.applyEDDSequencing(id);
+    const count = await scheduleService.applyEDDSequencing(id);
     res.json({ message: `EDD sequencing applied to ${count} entries`, entriesAffected: count });
   } catch (error: any) {
     console.error('Error applying EDD sequencing:', error);
@@ -380,7 +381,7 @@ router.post('/:id/sequencing/edd', requirePermission('scheduling.write'), async 
 router.post('/:id/feasibility/check', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const result = await ProductionScheduleService.checkScheduleFeasibility(id);
+    const result = await scheduleService.checkScheduleFeasibility(id);
     res.json(result);
   } catch (error: any) {
     console.error('Error checking schedule feasibility:', error);
@@ -401,7 +402,7 @@ router.post('/entries/:entryId/dispatch', requirePermission('scheduling.write'),
     const { entryId } = req.params;
     const { dispatchedBy } = req.body;
 
-    const result = await ProductionScheduleService.dispatchScheduleEntry(entryId, dispatchedBy);
+    const result = await scheduleService.dispatchScheduleEntry(entryId, dispatchedBy);
     res.status(201).json(result);
   } catch (error: any) {
     console.error('Error dispatching schedule entry:', error);
@@ -418,7 +419,7 @@ router.post('/:id/dispatch/all', requirePermission('scheduling.write'), async (r
     const { id } = req.params;
     const { dispatchedBy } = req.body;
 
-    const result = await ProductionScheduleService.dispatchAllEntries(id, dispatchedBy);
+    const result = await scheduleService.dispatchAllEntries(id, dispatchedBy);
     res.json(result);
   } catch (error: any) {
     console.error('Error dispatching all entries:', error);
@@ -433,7 +434,7 @@ router.post('/:id/dispatch/all', requirePermission('scheduling.write'), async (r
 router.get('/dispatch/ready', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const siteId = req.query.siteId as string | undefined;
-    const entries = await ProductionScheduleService.getEntriesReadyForDispatch(siteId);
+    const entries = await scheduleService.getEntriesReadyForDispatch(siteId);
     res.json(entries);
   } catch (error: any) {
     console.error('Error fetching entries ready for dispatch:', error);
@@ -451,7 +452,7 @@ router.get('/dispatch/ready', requireProductionAccess, async (req: Request, res:
  */
 router.get('/statistics/overview', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
-    const stats = await ProductionScheduleService.getStatistics();
+    const stats = await scheduleService.getStatistics();
     res.json(stats);
   } catch (error: any) {
     console.error('Error fetching statistics:', error);
@@ -466,7 +467,7 @@ router.get('/statistics/overview', requireProductionAccess, async (req: Request,
 router.get('/state/:state', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { state } = req.params;
-    const schedules = await ProductionScheduleService.getSchedulesByState(state as any);
+    const schedules = await scheduleService.getSchedulesByState(state as any);
     res.json(schedules);
   } catch (error: any) {
     console.error('Error fetching schedules by state:', error);

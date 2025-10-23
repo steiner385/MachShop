@@ -62,10 +62,6 @@ export class ProductionScheduleService {
           constraints: true,
         },
       },
-      stateHistory: {
-        orderBy: { transitionDate: 'desc' },
-        take: 5,
-      },
     },
   });
 
@@ -83,7 +79,25 @@ export class ProductionScheduleService {
     },
   });
 
-  return schedule;
+  // Refetch schedule with state history included
+  const scheduleWithHistory = await this.prisma.productionSchedule.findUnique({
+    where: { id: schedule.id },
+    include: {
+      entries: {
+        include: {
+          part: true,
+          workCenter: true,
+          constraints: true,
+        },
+      },
+      stateHistory: {
+        orderBy: { transitionDate: 'desc' },
+        take: 5,
+      },
+    },
+  });
+
+  return scheduleWithHistory!;
 }
 
   /**
@@ -862,19 +876,28 @@ export class ProductionScheduleService {
     throw new Error(`Cannot dispatch entry from schedule in ${entry.schedule.state} state`);
   }
 
+  // Look up user by username to get user ID for foreign key constraint
+  const user = await this.prisma.user.findUnique({
+    where: { username: dispatchedBy }
+  });
+
+  if (!user) {
+    throw new Error(`User with username '${dispatchedBy}' not found`);
+  }
+
   // Create work order from schedule entry
   const workOrder = await this.prisma.workOrder.create({
     data: {
-      orderNumber: `WO-${entry.schedule.scheduleNumber}-${entry.entryNumber}`,
+      workOrderNumber: `WO-${entry.schedule.scheduleNumber}-${entry.entryNumber}`,
       partId: entry.partId,
       quantity: entry.plannedQuantity,
-      unitOfMeasure: entry.unitOfMeasure,
       priority: entry.priority as any, // Map schedule priority to work order priority
       status: 'CREATED',
       dueDate: entry.customerDueDate || entry.plannedEndDate,
       customerOrder: entry.customerOrder,
-      createdById: dispatchedBy,
-      notes: `Dispatched from schedule ${entry.schedule.scheduleName} - Entry ${entry.entryNumber}\n${entry.description || ''}`,
+      createdById: user.id, // Use user ID, not username (fixes foreign key constraint)
+      // Note: WorkOrder model doesn't have a notes field
+      // Dispatch context is tracked via WorkOrderStatusHistory.notes and DispatchLog
     },
   });
 

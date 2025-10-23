@@ -78,11 +78,11 @@ const Breadcrumbs: React.FC = () => {
   pathSegments.forEach((segment, index) => {
     currentPath += `/${segment}`;
 
-    // Check if segment is a UUID or numeric ID (don't create breadcrumb for IDs)
+    // Check if segment is a UUID, cuid, or numeric ID (don't create breadcrumb for IDs)
     const isId =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        segment
-      ) || /^\d+$/.test(segment);
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) || // UUID format
+      /^c[a-z0-9]{24}$/i.test(segment) || // cuid format (starts with 'c', 25 chars total)
+      /^\d+$/.test(segment); // Numeric ID
 
     if (isId) {
       // For IDs, just show "Details" as the label

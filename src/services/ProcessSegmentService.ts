@@ -96,6 +96,9 @@ export class ProcessSegmentService {
       }
     }
 
+    // Create segment WITHOUT include to avoid Prisma proxy object issues with foreign keys
+    // Foreign keys like parentSegmentId return null when using include with create
+    // Tests can call GET endpoint if relations are needed
     const segment = await this.prisma.processSegment.create({
       data: {
         segmentCode: data.segmentCode,
@@ -117,16 +120,6 @@ export class ProcessSegmentService {
         requiresApproval: data.requiresApproval ?? false,
         approvedBy: data.approvedBy,
         approvedAt: data.approvedAt
-      },
-      include: {
-        parentSegment: true,
-        childSegments: true,
-        parameters: true,
-        dependencies: true,
-        personnelSpecs: true,
-        equipmentSpecs: true,
-        materialSpecs: true,
-        assetSpecs: true
       }
     });
 
@@ -272,12 +265,13 @@ export class ProcessSegmentService {
       }
 
       // Prevent circular references by checking if new parent is a descendant
-      const isCircular = await this.isDescendant(id, data.parentSegmentId);
+      const isCircular = await this.isDescendant(data.parentSegmentId, id);
       if (isCircular) {
         throw new Error('Circular reference detected: new parent is a descendant of this segment');
       }
     }
 
+    // Update WITHOUT include to avoid Prisma proxy object issues with foreign keys
     const segment = await this.prisma.processSegment.update({
       where: { id },
       data: {
@@ -299,16 +293,6 @@ export class ProcessSegmentService {
         requiresApproval: data.requiresApproval,
         approvedBy: data.approvedBy,
         approvedAt: data.approvedAt
-      },
-      include: {
-        parentSegment: true,
-        childSegments: true,
-        parameters: true,
-        dependencies: true,
-        personnelSpecs: true,
-        equipmentSpecs: true,
-        materialSpecs: true,
-        assetSpecs: true
       }
     });
 
@@ -414,7 +398,19 @@ export class ProcessSegmentService {
    */
   async getAncestorChain(segmentId: string): Promise<any[]> {
     const ancestors: any[] = [];
-    let currentId: string | null = segmentId;
+
+    // First, get the starting segment to find its parent
+    const startSegment = await this.prisma.processSegment.findUnique({
+      where: { id: segmentId },
+      include: { parentSegment: true }
+    });
+
+    if (!startSegment) {
+      throw new Error(`Process segment with ID ${segmentId} not found`);
+    }
+
+    // Start from the parent (not the segment itself)
+    let currentId: string | null = startSegment.parentSegmentId;
 
     while (currentId) {
       const segment = await this.prisma.processSegment.findUnique({

@@ -6,12 +6,12 @@
  * including production performance export, material transactions, and personnel sync
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import { getAuthToken } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
-const BASE_URL = process.env.API_URL || 'http://localhost:3001';
+// Use E2E backend server on port 3101
+const BASE_URL = process.env.API_URL || 'http://localhost:3101';
 
 let authToken: string;
 let testConfigId: string;
@@ -20,16 +20,39 @@ let testPartId: string;
 let testUserId: string;
 
 test.beforeAll(async () => {
-  // Get authentication token
-  authToken = await getAuthToken('admin', 'admin123');
+  // Get authentication token by logging in via API
+  const apiContext = await playwrightRequest.newContext({ baseURL: BASE_URL });
+  const loginResponse = await apiContext.post('/api/v1/auth/login', {
+    data: {
+      username: 'admin',
+      password: 'password123', // Correct password for test users
+    },
+  });
+
+  if (!loginResponse.ok()) {
+    throw new Error(`API login failed during test setup. Status: ${loginResponse.status()}. Response: ${await loginResponse.text()}. Ensure E2E backend is running on port 3101.`);
+  }
+
+  const loginData = await loginResponse.json();
+  authToken = loginData.token;
+
+  // Clean up any existing test data from previous runs
+  await prisma.integrationConfig.deleteMany({
+    where: { name: 'TEST_ERP_B2M' },
+  });
+  await prisma.part.deleteMany({
+    where: { partNumber: 'B2M-TEST-PART-001' },  // Fix #14: Match actual partNumber used in test
+  });
+  await prisma.user.deleteMany({
+    where: { username: 'b2m-test-user' },
+  });
 
   // Create test integration config
   const config = await prisma.integrationConfig.create({
     data: {
       name: 'TEST_ERP_B2M',
       displayName: 'Test ERP for B2M',
-      type: 'oracle_fusion',
-      systemType: 'ERP',
+      type: 'ERP',
       enabled: true,
       config: {
         baseUrl: 'https://test.erp.com',
@@ -43,26 +66,43 @@ test.beforeAll(async () => {
   const part = await prisma.part.create({
     data: {
       partNumber: 'B2M-TEST-PART-001',
+      partName: 'B2M Test Part 001',  // Required field
+      partType: 'COMPONENT',  // Required field - FIX #11
       description: 'Test Part for B2M Integration',
-      category: 'TEST',
       unitOfMeasure: 'EA',
-      quantityOnHand: 100,
     },
   });
   testPartId = part.id;
 
+  // Fix #18: Get admin user ID for createdBy field
+  const adminUser = await prisma.user.findUnique({
+    where: { username: 'admin' },
+    select: { id: true },
+  });
+  if (!adminUser) throw new Error('Admin user not found');
+
   // Create test work order with completed status
+  // Fix #16: Use relation syntax for partId instead of direct assignment
   const workOrder = await prisma.workOrder.create({
     data: {
       workOrderNumber: 'WO-B2M-TEST-001',
-      partId: testPartId,
+      part: {
+        connect: { id: testPartId }
+      },
+      createdBy: {
+        connect: { id: adminUser.id }
+      },
       partNumber: part.partNumber,
       quantity: 10,
+      quantityCompleted: 9, // Track completed quantity
+      quantityScrapped: 1, // Track scrapped quantity
       status: 'COMPLETED',
-      priority: 'MEDIUM',
+      priority: 'NORMAL',
       customerOrder: 'SO-12345',
-      scheduledStartDate: new Date('2025-10-01'),
-      scheduledEndDate: new Date('2025-10-15'),
+      dueDate: new Date('2025-10-15'),
+      startedAt: new Date('2025-10-02'),
+      completedAt: new Date('2025-10-14'),
+      // Required for B2M export - actual production dates
       actualStartDate: new Date('2025-10-02'),
       actualEndDate: new Date('2025-10-14'),
     },
@@ -100,19 +140,29 @@ test.beforeAll(async () => {
     ],
   });
 
+  // Create inventory record for the part
+  const inventory = await prisma.inventory.create({
+    data: {
+      partId: testPartId,
+      location: 'WH-01',
+      lotNumber: 'LOT-2025-001',
+      quantity: 100,
+      unitOfMeasure: 'EA',
+      unitCost: 10.0,
+      receivedDate: new Date('2025-10-01'),
+    },
+  });
+
   // Create material transactions for work order
   await prisma.materialTransaction.create({
     data: {
-      partId: testPartId,
+      inventoryId: inventory.id,
       workOrderId: testWorkOrderId,
       quantity: 12,
-      transactionType: 'CONSUMPTION',
+      transactionType: 'ISSUE', // Changed from CONSUMPTION to valid enum value
+      unitOfMeasure: 'EA',
+      reference: 'Material consumed for B2M test work order',
       transactionDate: new Date('2025-10-10'),
-      fromLocation: 'WH-01',
-      toLocation: 'PROD-LINE-01',
-      lotNumber: 'LOT-2025-001',
-      notes: 'Material consumed for B2M test work order',
-      createdBy: 'test-operator',
     },
   });
 
@@ -120,11 +170,13 @@ test.beforeAll(async () => {
   const user = await prisma.user.create({
     data: {
       username: 'b2m-test-user',
-      name: 'B2M Test User',
+      firstName: 'B2M',
+      lastName: 'Test User',
       email: 'b2m.test@company.com',
-      password: 'test123',
-      employeeId: 'EMP-B2M-001',
-      role: 'OPERATOR',
+      passwordHash: '$2b$10$abcdefghijklmnopqrstuv', // Dummy hashed password for testing
+      employeeNumber: 'EMP-B2M-001',
+      roles: ['Production Operator'],
+      permissions: ['workorders.read', 'workorders.execute'],
       isActive: true,
     },
   });
@@ -153,19 +205,82 @@ test.afterAll(async () => {
     where: { configId: testConfigId },
   });
 
-  await prisma.workOrder.delete({
+  // Delete work performance records that reference the work order
+  await prisma.workPerformance.deleteMany({
+    where: { workOrderId: testWorkOrderId },
+  });
+
+  // Delete material transactions that reference the work order
+  // Fix #15: MaterialTransaction model doesn't have partId field, only inventoryId and workOrderId
+  await prisma.materialTransaction.deleteMany({
+    where: { workOrderId: testWorkOrderId },
+  });
+
+  // Delete quality inspections that reference the work order
+  await prisma.qualityInspection.deleteMany({
+    where: { workOrderId: testWorkOrderId },
+  });
+
+  await prisma.workOrder.deleteMany({
     where: { id: testWorkOrderId },
   });
 
-  await prisma.part.delete({
+  // Delete schedule entries that reference the part
+  await prisma.scheduleEntry.deleteMany({
+    where: { partId: testPartId },
+  });
+
+  // Delete BOM items that reference the part (as parent or component)
+  // Fix #17: Model name is BOMItem (capital letters), not bomItem
+  // Fix #19: Field name is componentPartId, not childPartId
+  await prisma.BOMItem.deleteMany({
+    where: {
+      OR: [
+        { parentPartId: testPartId },
+        { componentPartId: testPartId },
+      ],
+    },
+  });
+
+  // Delete inventory records before deleting the part (foreign key: inventory_partId_fkey)
+  await prisma.inventory.deleteMany({
+    where: { partId: testPartId },
+  });
+
+  await prisma.part.deleteMany({
     where: { id: testPartId },
   });
 
-  await prisma.user.delete({
+  // Fix #20: Delete NCRs before user (foreign key: ncrs_createdById_fkey)
+  await prisma.nCR.deleteMany({
+    where: { createdById: testUserId },
+  });
+
+  // Fix #22: Delete personnel certifications before user (foreign key: personnel_certifications_personnelId_fkey)
+  await prisma.personnelCertification.deleteMany({
+    where: { personnelId: testUserId },
+  });
+
+  // Fix #23: Delete personnel skill assignments before user (foreign key: personnel_skill_assignments_personnelId_fkey)
+  await prisma.personnelSkillAssignment.deleteMany({
+    where: { personnelId: testUserId },
+  });
+
+  // Fix #25: Delete personnel availability before user (foreign key: personnel_availability_personnelId_fkey)
+  await prisma.personnelAvailability.deleteMany({
+    where: { personnelId: testUserId },
+  });
+
+  // Delete quality inspections that reference the user (foreign key: quality_inspections_inspectorId_fkey)
+  await prisma.qualityInspection.deleteMany({
+    where: { inspectorId: testUserId },
+  });
+
+  await prisma.user.deleteMany({
     where: { id: testUserId },
   });
 
-  await prisma.integrationConfig.delete({
+  await prisma.integrationConfig.deleteMany({
     where: { id: testConfigId },
   });
 
@@ -175,6 +290,9 @@ test.afterAll(async () => {
 // ============================================================================
 // Production Performance Export Tests
 // ============================================================================
+
+// Force serial execution to prevent parallel test data conflicts - FIX #12
+test.describe.configure({ mode: 'serial' });
 
 test.describe('Production Performance Export', () => {
   test('should export work order production actuals to ERP', async ({ request }) => {

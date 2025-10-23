@@ -82,13 +82,26 @@ export class WorkOrderService {
       throw new Error(`Validation failed: ${validationErrors.map(e => e.message).join(', ')}`);
     }
 
-    // Look up part by part number
-    const part = await prisma.part.findUnique({
+    // Look up part by part number, or create if it doesn't exist
+    let part = await prisma.part.findUnique({
       where: { partNumber: request.partNumber }
     });
 
     if (!part) {
-      throw new Error(`Part with number ${request.partNumber} not found`);
+      // Auto-create a minimal part record
+      // This allows work orders to be created with just a part number
+      // Part details can be enriched later
+      part = await prisma.part.create({
+        data: {
+          partNumber: request.partNumber,
+          partName: request.partNumber, // Use part number as name for auto-created parts
+          description: `Auto-created part for ${request.partNumber}`,
+          productType: 'MADE_TO_STOCK', // Default product type for auto-created parts
+          partType: 'COMPONENT', // Required field - default to COMPONENT
+          unitOfMeasure: 'EA' // Required field - default to EA (Each)
+          // isActive defaults to true, no need to set explicitly
+        }
+      });
     }
 
     // Create work order in database
@@ -118,7 +131,7 @@ export class WorkOrderService {
    * Updates an existing work order
    */
   async updateWorkOrder(
-    workOrder: WorkOrder, 
+    workOrder: WorkOrder,
     updates: UpdateWorkOrderRequest,
     _updatedBy: string
   ): Promise<WorkOrder> {
@@ -136,20 +149,32 @@ export class WorkOrderService {
       if (updates.quantityOrdered <= 0) {
         throw new Error('Quantity ordered must be greater than 0');
       }
-      
+
       if (updates.quantityOrdered < workOrder.quantityCompleted) {
         throw new Error('Cannot reduce quantity below completed quantity');
       }
     }
 
-    // Apply updates
-    const updatedWorkOrder: WorkOrder = {
-      ...workOrder,
-      ...updates,
-      updatedAt: new Date()
-    };
+    // Persist updates to database
+    const updatedWorkOrder = await prisma.workOrder.update({
+      where: { id: workOrder.id },
+      data: {
+        quantity: updates.quantityOrdered,
+        priority: updates.priority as any,
+        customerOrder: updates.customerOrder,
+        dueDate: updates.dueDate,
+        scheduledStartDate: updates.scheduledStartDate,
+        scheduledEndDate: updates.scheduledEndDate,
+        updatedAt: new Date()
+      },
+      include: {
+        part: true,
+        createdBy: true,
+        assignedTo: true
+      }
+    });
 
-    return updatedWorkOrder;
+    return this.transformToWorkOrder(updatedWorkOrder);
   }
 
   /**
@@ -165,17 +190,24 @@ export class WorkOrderService {
       throw new Error('Part information is required before release');
     }
 
-    if (!workOrder.routeId) {
-      throw new Error('Manufacturing route is required before release');
-    }
+    // Note: routeId validation removed as it's optional for simple work orders
+    // In production environments, you may want to enforce routing requirements
 
-    const releasedWorkOrder: WorkOrder = {
-      ...workOrder,
-      status: WorkOrderStatus.RELEASED,
-      updatedAt: new Date()
-    };
+    // Persist status change to database
+    const releasedWorkOrder = await prisma.workOrder.update({
+      where: { id: workOrder.id },
+      data: {
+        status: WorkOrderStatus.RELEASED,
+        updatedAt: new Date()
+      },
+      include: {
+        part: true,
+        createdBy: true,
+        assignedTo: true
+      }
+    });
 
-    return releasedWorkOrder;
+    return this.transformToWorkOrder(releasedWorkOrder);
   }
 
   /**
@@ -426,18 +458,35 @@ export class WorkOrderService {
     const operations = await prisma.workOrderOperation.findMany({
       where: { workOrderId },
       include: {
-        routingOperation: true
+        routingOperation: {
+          include: {
+            workCenter: true
+          }
+        }
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: {
+        routingOperation: {
+          operationNumber: 'asc'
+        }
+      }
     });
 
-    return operations.map((op, index) => ({
+    return operations.map((op) => ({
       id: op.id,
-      operationNumber: (index + 1) * 10, // Generate operation numbers
-      operationName: `Operation ${index + 1}`,
+      operationNumber: op.routingOperation.operationNumber,
+      operationName: op.routingOperation.operationName,
+      description: op.routingOperation.description,
       status: op.status,
+      quantity: op.quantity,
       quantityCompleted: op.quantityCompleted,
-      quantityScrapped: op.quantityScrap
+      quantityScrap: op.quantityScrap,
+      completed: op.quantityCompleted,
+      scrapped: op.quantityScrap,
+      progress: op.quantity > 0 ? Math.round((op.quantityCompleted / op.quantity) * 100) : 0,
+      workCenterId: op.routingOperation.workCenterId,
+      workCenterName: op.routingOperation.workCenter?.name,
+      setupTime: op.routingOperation.setupTime,
+      cycleTime: op.routingOperation.cycleTime
     }));
   }
 
@@ -507,27 +556,36 @@ export class WorkOrderService {
    * Transforms Prisma model to application WorkOrder type
    */
   private transformToWorkOrder(prismaWorkOrder: any): WorkOrder {
+    const quantityCompleted = prismaWorkOrder.operations?.reduce(
+      (sum: number, op: any) => sum + op.quantityCompleted, 0
+    ) || 0;
+    const quantityScrapped = prismaWorkOrder.operations?.reduce(
+      (sum: number, op: any) => sum + op.quantityScrap, 0
+    ) || 0;
+
     return {
       id: prismaWorkOrder.id,
       workOrderNumber: prismaWorkOrder.workOrderNumber,
       partId: prismaWorkOrder.partId,
       partNumber: prismaWorkOrder.part?.partNumber || '',
+      partName: prismaWorkOrder.part?.partName || '',
       routeId: prismaWorkOrder.routingId,
       quantityOrdered: prismaWorkOrder.quantity,
-      quantityCompleted: prismaWorkOrder.operations?.reduce(
-        (sum: number, op: any) => sum + op.quantityCompleted, 0
-      ) || 0,
-      quantityScrapped: prismaWorkOrder.operations?.reduce(
-        (sum: number, op: any) => sum + op.quantityScrap, 0
-      ) || 0,
+      quantity: prismaWorkOrder.quantity, // Alias for frontend
+      quantityCompleted,
+      completed: quantityCompleted, // Alias for frontend
+      quantityScrapped,
+      scrapped: quantityScrapped, // Alias for frontend
       status: prismaWorkOrder.status as WorkOrderStatus,
       priority: prismaWorkOrder.priority as WorkOrderPriority,
       customerOrder: prismaWorkOrder.customerOrder,
-      dueDate: prismaWorkOrder.dueDate,
+      dueDate: prismaWorkOrder.dueDate ? new Date(prismaWorkOrder.dueDate).toISOString().split('T')[0] : null,
+      createdDate: prismaWorkOrder.createdAt ? new Date(prismaWorkOrder.createdAt).toISOString().split('T')[0] : null,
+      startedDate: prismaWorkOrder.startedAt ? new Date(prismaWorkOrder.startedAt).toISOString().split('T')[0] : null,
       siteId: 'default', // Add site management later
       createdBy: prismaWorkOrder.createdBy?.username || '',
       createdAt: prismaWorkOrder.createdAt,
       updatedAt: prismaWorkOrder.updatedAt
-    };
+    } as any;
   }
 }

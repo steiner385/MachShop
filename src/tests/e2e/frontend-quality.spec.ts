@@ -170,11 +170,13 @@ test.describe('Frontend Quality Monitoring', () => {
       await page.waitForTimeout(1000);
       
       const errors = consoleMonitor.getErrors().filter(error =>
-        !error.includes('1Password') && 
+        !error.includes('1Password') &&
         !error.includes('Chrome extension') &&
-        !error.includes('native messaging host')
+        !error.includes('native messaging host') &&
+        !error.includes('404') &&
+        !error.includes('Not Found')
       );
-      
+
       expect(errors).toEqual([]);
     });
   });

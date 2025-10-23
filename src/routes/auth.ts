@@ -197,8 +197,12 @@ router.post('/refresh',
       throw new AuthenticationError('User not found or inactive');
     }
 
-    // Generate new access token
-    const { accessToken } = generateTokens(user);
+    // Generate new access token and refresh token
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+    // Remove old refresh token and add new one
+    refreshTokens.delete(refreshToken);
+    refreshTokens.add(newRefreshToken);
 
     logger.info('Token refreshed successfully', {
       userId: user.id,
@@ -209,6 +213,7 @@ router.post('/refresh',
     res.status(200).json({
       message: 'Token refreshed successfully',
       token: accessToken,
+      refreshToken: newRefreshToken,
       expiresIn: config.jwt.expire
     });
   })
@@ -283,20 +288,18 @@ router.get('/me',
     }
 
     res.status(200).json({
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        roles: user.roles,
-        permissions: user.permissions,
-        // siteId: user.siteId, // TODO: Add siteId to User model if needed
-        isActive: user.isActive,
-        lastLogin: user.lastLoginAt?.toISOString(),
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString()
-      }
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      roles: user.roles,
+      permissions: user.permissions,
+      // siteId: user.siteId, // TODO: Add siteId to User model if needed
+      isActive: user.isActive,
+      lastLogin: user.lastLoginAt?.toISOString(),
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString()
     });
   })
 );

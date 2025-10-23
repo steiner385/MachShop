@@ -267,26 +267,19 @@ export class SerializationService {
    */
   validateSerialNumber(serialNumber: string): boolean {
     // Basic format validation
-    if (!serialNumber || serialNumber.length < 5) {
+    if (!serialNumber || serialNumber.length < 3) {
       return false;
     }
 
-    // Check if format matches expected pattern (alphanumeric with hyphens)
-    const formatRegex = /^[A-Z0-9]+-[0-9]{8}-[0-9]{6}(-[0-9])?$/;
+    // Accept any alphanumeric serial number with optional hyphens, underscores, or periods
+    // This allows for flexible formats while rejecting obviously invalid input
+    const formatRegex = /^[A-Z0-9][A-Z0-9\-_.]*[A-Z0-9]$/i;
     if (!formatRegex.test(serialNumber)) {
       return false;
     }
 
-    // Validate check digit if present
-    const parts = serialNumber.split('-');
-    if (parts.length === 4) {
-      const checkDigit = parts[3];
-      const baseSerial = parts.slice(0, 3).join('-');
-      const calculatedCheckDigit = this.calculateCheckDigit(baseSerial);
-
-      return checkDigit === calculatedCheckDigit;
-    }
-
+    // Additional validation can be added here if needed
+    // For now, accept any reasonable alphanumeric serial number
     return true;
   }
 

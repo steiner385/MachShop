@@ -163,7 +163,7 @@ const WorkInstructionDetailPage: React.FC = () => {
   if (isLoadingDetail) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="Loading work instruction..." />
+        <Spin size="large" tip="Loading work instruction..."><div /></Spin>
       </div>
     );
   }
@@ -368,7 +368,7 @@ const WorkInstructionDetailPage: React.FC = () => {
       >
         {signaturesLoading ? (
           <div style={{ textAlign: 'center', padding: '24px' }}>
-            <Spin tip="Loading signatures..." />
+            <Spin tip="Loading signatures..."><div /></Spin>
           </div>
         ) : signatures && signatures.length > 0 ? (
           <SignatureDisplay signatures={convertToSignatureInfo(signatures)} showDetails />

@@ -1,0 +1,252 @@
+{
+  "scenario-1": {
+    "title": "Executive Dashboard Overview",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "Opening Shot",
+        "text": "In modern manufacturing, visibility is everything. Meet Sarah, Plant Manager at Apex Manufacturing."
+      },
+      {
+        "timeRange": "0:30-1:30",
+        "name": "Real-Time OEE Metrics",
+        "text": "Sarah's day starts with complete visibility. The OEE dashboard shows her exactly how the plant performed overnight."
+      },
+      {
+        "timeRange": "1:30-2:15",
+        "name": "Equipment Status at a Glance",
+        "text": "She notices CNC-03 has lower performance than usual."
+      },
+      {
+        "timeRange": "2:15-3:00",
+        "name": "Active Work Orders",
+        "text": "The dashboard shows all active work orders with real-time status updates."
+      },
+      {
+        "timeRange": "3:00-3:45",
+        "name": "Global Search & Quick Actions",
+        "text": "Need specific information? The global search finds anything instantly."
+      },
+      {
+        "timeRange": "3:45-4:00",
+        "name": "Closing",
+        "text": "Complete visibility. Instant insights. Data-driven decisions. That's modern manufacturing."
+      }
+    ]
+  },
+  "scenario-2": {
+    "title": "Collaborative Routing Management",
+    "segments": [
+      {
+        "timeRange": "0:00-0:45",
+        "name": "The Challenge",
+        "text": "Meet Mike and Jennifer, manufacturing engineers tasked with reducing cycle time for Widget A by 15%."
+      },
+      {
+        "timeRange": "0:45-1:45",
+        "name": "Gantt Chart Analysis",
+        "text": "The Gantt chart view visualizes the entire process, making bottlenecks obvious."
+      },
+      {
+        "timeRange": "1:45-2:45",
+        "name": "Real-Time Collaboration",
+        "text": "Jennifer joins the routing. The system shows Mike she's here, preventing conflicting changes."
+      },
+      {
+        "timeRange": "2:45-3:45",
+        "name": "Making Changes",
+        "text": "They reconfigure the routing together, with all changes automatically tracked."
+      },
+      {
+        "timeRange": "3:45-4:30",
+        "name": "Review and Activation",
+        "text": "Before activating, they review all changes and run a validation check."
+      },
+      {
+        "timeRange": "4:30-5:00",
+        "name": "Impact & Closing",
+        "text": "The new routing is instantly available to operators, and work orders automatically update."
+      }
+    ]
+  },
+  "scenario-3": {
+    "title": "Operator Work Execution",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "Clocking In",
+        "text": "Tom arrives at Assembly Station 3 and starts his shift. No more paper travelers or clipboards."
+      },
+      {
+        "timeRange": "0:30-1:15",
+        "name": "Selecting Work Order",
+        "text": "The system shows Tom exactly what needs to be done, prioritized by due date."
+      },
+      {
+        "timeRange": "1:15-2:30",
+        "name": "Step-by-Step Instructions",
+        "text": "Digital work instructions guide Tom through each step with photos, videos, and automated data collection."
+      },
+      {
+        "timeRange": "2:30-3:15",
+        "name": "Quality Checkpoints",
+        "text": "Built-in quality checkpoints prevent defects from moving forward."
+      },
+      {
+        "timeRange": "3:15-3:45",
+        "name": "Completion",
+        "text": "When Tom finishes, the system updates inventory, notifies the next operation, and creates a complete quality record."
+      },
+      {
+        "timeRange": "3:45-4:00",
+        "name": "Closing",
+        "text": "No paperwork. No data entry errors. Complete traceability. That's the future of manufacturing."
+      }
+    ]
+  },
+  "scenario-4": {
+    "title": "Material Traceability Investigation",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "The Alert",
+        "text": "A customer reports a bearing failure in Widget A. Quality Engineer Linda needs to find the root cause—fast."
+      },
+      {
+        "timeRange": "0:30-1:30",
+        "name": "Genealogy Tree Visualization",
+        "text": "The genealogy tree shows the complete history of this product and every material that went into it."
+      },
+      {
+        "timeRange": "1:30-2:15",
+        "name": "Identifying the Pattern",
+        "text": "Linda searches for other products using bearings from the same lot."
+      },
+      {
+        "timeRange": "2:15-3:00",
+        "name": "Root Cause Analysis",
+        "text": "Drilling deeper, Linda discovers the assembly process used higher-than-spec torque for position 1."
+      },
+      {
+        "timeRange": "3:00-3:30",
+        "name": "Containment & Corrective Action",
+        "text": "With the root cause identified, Linda immediately takes action."
+      },
+      {
+        "timeRange": "3:30-3:35",
+        "name": "Closing",
+        "text": "Five minutes. Complete root cause analysis. Proactive containment. That's the power of digital traceability."
+      }
+    ]
+  },
+  "scenario-5": {
+    "title": "First Article Inspection (FAI) Workflow",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "Initiating FAI",
+        "text": "A new aerospace part requires First Article Inspection. Quality Engineer Rachel starts the digital FAI process."
+      },
+      {
+        "timeRange": "0:30-1:30",
+        "name": "Automated Balloon Drawing",
+        "text": "The system automatically balloons the drawing, identifying every feature that requires measurement."
+      },
+      {
+        "timeRange": "1:30-2:30",
+        "name": "Measurement Data Collection",
+        "text": "Rachel performs measurements, and the system validates against specifications in real-time."
+      },
+      {
+        "timeRange": "2:30-3:15",
+        "name": "Non-Conformance Handling",
+        "text": "When a non-conformance is detected, the system ensures proper documentation and approval."
+      },
+      {
+        "timeRange": "3:15-3:45",
+        "name": "Final Package Generation",
+        "text": "With all measurements complete and deviations documented, the system generates the full AS9102 package automatically."
+      },
+      {
+        "timeRange": "3:45-4:00",
+        "name": "Closing",
+        "text": "Complete AS9102 compliance in a fraction of the time. Automated documentation. Zero errors."
+      }
+    ]
+  },
+  "scenario-6": {
+    "title": "Production Supervisor Daily Management",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "Shift Startup",
+        "text": "7 AM. Carlos starts his shift by reviewing the team work queue and production targets."
+      },
+      {
+        "timeRange": "0:30-1:30",
+        "name": "Work Allocation",
+        "text": "Carlos assigns work orders to his team based on skills, equipment availability, and priorities."
+      },
+      {
+        "timeRange": "1:30-2:30",
+        "name": "Real-Time Monitoring",
+        "text": "Throughout the shift, Carlos monitors progress in real-time, seeing exactly what's happening on the floor."
+      },
+      {
+        "timeRange": "2:30-3:15",
+        "name": "Issue Resolution",
+        "text": "Carlos responds immediately, minimizing downtime and keeping production on track."
+      },
+      {
+        "timeRange": "3:15-4:00",
+        "name": "Performance Review",
+        "text": "At shift end, Carlos reviews team performance and hands off seamlessly to the next shift."
+      },
+      {
+        "timeRange": "4:00-4:30",
+        "name": "Shift Handoff",
+        "text": "The night shift supervisor gets complete visibility, ensuring continuity."
+      }
+    ]
+  },
+  "scenario-7": {
+    "title": "Smart Factory Integration Showcase",
+    "segments": [
+      {
+        "timeRange": "0:00-0:30",
+        "name": "The Ecosystem Overview",
+        "text": "Modern manufacturing isn't about isolated systems. It's about seamless integration. Watch how this MES connects everything."
+      },
+      {
+        "timeRange": "0:30-1:30",
+        "name": "ERP Integration: Order to Production",
+        "text": "When a sales order is entered in the ERP, the MES automatically creates production schedules and work orders."
+      },
+      {
+        "timeRange": "1:30-2:30",
+        "name": "B2M Integration: Machine Connectivity",
+        "text": "The MES communicates directly with production equipment through B2M protocol, collecting data in real-time."
+      },
+      {
+        "timeRange": "2:30-3:30",
+        "name": "Automated Quality Integration",
+        "text": "Measurement data from CMMs, calipers, and test equipment flows directly into quality records."
+      },
+      {
+        "timeRange": "3:30-4:15",
+        "name": "Analytics & Business Intelligence",
+        "text": "All MES data flows to analytics platforms, turning production data into business insights."
+      },
+      {
+        "timeRange": "4:15-4:45",
+        "name": "Warehouse & Logistics Integration",
+        "text": "When production completes, the MES updates the warehouse system and triggers shipping."
+      },
+      {
+        "timeRange": "4:45-5:00",
+        "name": "Closing: The Connected Factory",
+        "text": "From order to shipment, every system connected. Every process optimized. That's smart manufacturing."
+      }
+    ]
+  }
+}

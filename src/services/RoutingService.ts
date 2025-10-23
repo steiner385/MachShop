@@ -11,6 +11,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
+import { VersionConflictError } from '../middleware/errorHandler';
 import {
   RoutingLifecycleState,
   DependencyType,
@@ -322,13 +323,29 @@ export class RoutingService {
    * Update routing
    */
   async updateRouting(id: string, data: UpdateRoutingDTO): Promise<RoutingWithRelations> {
+    // Get current routing state
+    const existing = await prisma.routing.findUnique({ where: { id } });
+    if (!existing) {
+      throw new Error(`Routing ${id} not found`);
+    }
+
+    // OPTIMISTIC LOCKING: Check version if currentVersion is provided
+    if (data.currentVersion !== undefined) {
+      if (existing.version !== data.currentVersion) {
+        throw new VersionConflictError(
+          `Routing has been modified by another user. Current version is ${existing.version}, but you are trying to update version ${data.currentVersion}.`,
+          {
+            currentVersion: existing.version,
+            attemptedVersion: data.currentVersion,
+            lastModified: existing.updatedAt,
+            lastModifiedBy: existing.createdBy // Note: In a real system, track lastModifiedBy separately
+          }
+        );
+      }
+    }
+
     // If updating to a version that already exists for this part/site, reject
     if (data.version || data.partId || data.siteId) {
-      const existing = await prisma.routing.findUnique({ where: { id } });
-      if (!existing) {
-        throw new Error(`Routing ${id} not found`);
-      }
-
       const checkVersion = await prisma.routing.findFirst({
         where: {
           partId: data.partId || existing.partId,

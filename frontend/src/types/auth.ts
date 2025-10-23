@@ -76,6 +76,7 @@ export const PERMISSIONS = {
   WORKORDERS_UPDATE: 'workorders.update',
   WORKORDERS_DELETE: 'workorders.delete',
   WORKORDERS_RELEASE: 'workorders.release',
+  WORKORDERS_EXECUTE: 'workorders.execute',
 
   // Work Instruction permissions
   WORKINSTRUCTIONS_READ: 'workinstructions.read',

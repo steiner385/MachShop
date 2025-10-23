@@ -49,6 +49,7 @@ import predatorPDMRoutes from './routes/predatorPDMRoutes';
 import predatorDNCRoutes from './routes/predatorDNCRoutes';
 import cmmRoutes from './routes/cmmRoutes';
 import searchRoutes from './routes/search';
+import presenceRoutes from './routes/presence';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
@@ -92,15 +93,20 @@ app.use(cors({
 // Compression middleware
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// Rate limiting (disabled in test environment to prevent HTTP 429 errors during E2E tests)
+if (config.env !== 'test') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter);
+  logger.info('Rate limiting enabled: 1000 requests per 15 minutes per IP');
+} else {
+  logger.info('Rate limiting DISABLED in test environment');
+}
 
 // Request parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -141,6 +147,7 @@ apiRouter.use('/products', authMiddleware, productRoutes);
 apiRouter.use('/production-schedules', authMiddleware, productionScheduleRoutes);
 apiRouter.use('/work-order-execution', authMiddleware, workOrderExecutionRoutes);
 apiRouter.use('/routings', authMiddleware, routingRoutes);
+apiRouter.use('/presence', authMiddleware, presenceRoutes);
 apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/upload', authMiddleware, uploadRoutes);

@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { traceabilityApi, ManufacturingHistoryEntry, MaterialCertificate, QualityRecord } from '../../services/traceabilityApi';
 import { GenealogyTreeVisualization } from '@/components/Traceability/GenealogyTreeVisualization';
+import { safeAPICall } from '@/utils/apiErrorHandler';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -65,13 +66,23 @@ const Traceability: React.FC = () => {
     }
 
     setForwardLoading(true);
-    try {
-      setForwardSearchValue(lotNumber);
+    setForwardSearchValue(lotNumber);
 
-      // Call API to get forward traceability data
-      const result = await traceabilityApi.getForwardTraceability(lotNumber);
+    const result = await safeAPICall(
+      () => traceabilityApi.getForwardTraceability(lotNumber),
+      {
+        errorMessage: `Failed to search for lot number ${lotNumber}`,
+        onError: (error) => {
+          setForwardResults([]);
+          if (error.response?.status === 404) {
+            message.error(`Lot number ${lotNumber} not found`);
+          }
+        }
+      }
+    );
 
-      if (result && result.usedInParts && result.usedInParts.length > 0) {
+    if (result) {
+      if (result.usedInParts && result.usedInParts.length > 0) {
         // Format data for display in table
         const formattedResults = result.usedInParts.map((part: any, index: number) => ({
           key: `${part.serialNumber}-${index}`,
@@ -86,17 +97,9 @@ const Traceability: React.FC = () => {
         setForwardResults([]);
         message.info('No products found using this lot number');
       }
-    } catch (error: any) {
-      console.error('Forward traceability error:', error);
-      setForwardResults([]);
-      if (error.response?.status === 404) {
-        message.error(`Lot number ${lotNumber} not found`);
-      } else {
-        message.error('Failed to perform forward traceability search');
-      }
-    } finally {
-      setForwardLoading(false);
     }
+
+    setForwardLoading(false);
   };
 
   const handleBackwardTraceability = async (serialNumber: string) => {
@@ -106,13 +109,23 @@ const Traceability: React.FC = () => {
     }
 
     setBackwardLoading(true);
-    try {
-      setBackwardSearchValue(serialNumber);
+    setBackwardSearchValue(serialNumber);
 
-      // Call API to get backward traceability data
-      const result = await traceabilityApi.getBackwardTraceability(serialNumber);
+    const result = await safeAPICall(
+      () => traceabilityApi.getBackwardTraceability(serialNumber),
+      {
+        errorMessage: `Failed to search for serial number ${serialNumber}`,
+        onError: (error) => {
+          setBackwardResults([]);
+          if (error.response?.status === 404) {
+            message.error(`Serial number ${serialNumber} not found`);
+          }
+        }
+      }
+    );
 
-      if (result && result.components && result.components.length > 0) {
+    if (result) {
+      if (result.components && result.components.length > 0) {
         // Format data for display in table
         const formattedResults = result.components.map((component: any, index: number) => ({
           key: `${component.serialNumber || component.lotNumber}-${index}`,
@@ -127,17 +140,9 @@ const Traceability: React.FC = () => {
         setBackwardResults([]);
         message.info('No component data found for this serial number');
       }
-    } catch (error: any) {
-      console.error('Backward traceability error:', error);
-      setBackwardResults([]);
-      if (error.response?.status === 404) {
-        message.error(`Serial number ${serialNumber} not found`);
-      } else {
-        message.error('Failed to perform backward traceability search');
-      }
-    } finally {
-      setBackwardLoading(false);
     }
+
+    setBackwardLoading(false);
   };
 
   const handleSearch = async (value: string) => {
@@ -146,14 +151,29 @@ const Traceability: React.FC = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      setSearchValue(value);
-      setError(null); // Clear any previous errors
+    setLoading(true);
+    setSearchValue(value);
+    setError(null); // Clear any previous errors
 
-      // Fetch complete traceability data
-      const data = await traceabilityApi.getTraceabilityBySerialNumber(value);
+    // Fetch complete traceability data
+    const data = await safeAPICall(
+      () => traceabilityApi.getTraceabilityBySerialNumber(value),
+      {
+        onError: (error) => {
+          const errorMessage = error.response?.status === 404
+            ? 'No traceability data found for this serial number'
+            : 'Failed to load traceability data. Please try again.';
 
+          setError(errorMessage);
+          setTraceabilityData(null);
+          setManufacturingHistory([]);
+          setMaterialCertificates([]);
+          setQualityRecords([]);
+        }
+      }
+    );
+
+    if (data) {
       // Set the basic part information
       setTraceabilityData({
         serialNumber: data.serialNumber,
@@ -173,22 +193,9 @@ const Traceability: React.FC = () => {
       setManufacturingHistory(data.manufacturingHistory);
       setMaterialCertificates(data.materialCertificates);
       setQualityRecords(data.qualityRecords);
-
-    } catch (error: any) {
-      console.error('Failed to load traceability data:', error);
-      const errorMessage = error.response?.status === 404
-        ? 'No traceability data found for this serial number'
-        : 'Failed to load traceability data. Please try again.';
-
-      setError(errorMessage);
-      message.error(errorMessage);
-      setTraceabilityData(null);
-      setManufacturingHistory([]);
-      setMaterialCertificates([]);
-      setQualityRecords([]);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   const materialColumns = [
@@ -278,7 +285,7 @@ const Traceability: React.FC = () => {
             <Search
               placeholder="Enter lot number (e.g., LOT-20251015-001)"
               allowClear
-              enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
+              enterButton={<Button type="primary" icon={<SearchOutlined />} data-testid="forward-search-button">Search</Button>}
               size="large"
               onSearch={handleForwardTraceability}
               loading={forwardLoading}
@@ -321,7 +328,7 @@ const Traceability: React.FC = () => {
             <Search
               placeholder="Enter serial number (e.g., SN-20251015-000001-7)"
               allowClear
-              enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
+              enterButton={<Button type="primary" icon={<SearchOutlined />} data-testid="backward-search-button">Search</Button>}
               size="large"
               onSearch={handleBackwardTraceability}
               loading={backwardLoading}
@@ -488,9 +495,9 @@ const Traceability: React.FC = () => {
         <Row gutter={16} align="middle">
           <Col xs={24} md={18}>
             <Search
-              placeholder="Enter serial number, lot number, or work order..."
+              placeholder="Enter serial number, lot number or work order to search"
               allowClear
-              enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
+              enterButton={<Button type="primary" icon={<SearchOutlined />} data-testid="main-search-button">Search</Button>}
               size="large"
               onSearch={handleSearch}
               loading={loading}

@@ -14,19 +14,24 @@ import {
   Progress,
   Tooltip
 } from 'antd';
-import { 
-  PlusOutlined, 
-  SearchOutlined, 
+import {
+  PlusOutlined,
+  SearchOutlined,
   FilterOutlined,
   EyeOutlined,
   EditOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  ThunderboltOutlined,
+  CalendarOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { workOrderApi, WorkOrder, WorkOrderFilters } from '@/services/workOrderApi';
 import { message } from 'antd';
 import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
 import { PERMISSIONS } from '@/types/auth';
+import { WorkOrderCreate } from '@/components/WorkOrders/WorkOrderCreate';
+import { WorkOrderPriorityChange } from '@/components/WorkOrders/WorkOrderPriorityChange';
+import { WorkOrderReschedule } from '@/components/WorkOrders/WorkOrderReschedule';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -36,6 +41,10 @@ const WorkOrders: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [priorityChangeModalVisible, setPriorityChangeModalVisible] = useState(false);
+  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState<any>(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -103,6 +112,9 @@ const WorkOrders: React.FC = () => {
     priority: wo.priority,
     dueDate: wo.dueDate,
     progress: wo.progress,
+    scheduledStartDate: wo.scheduledStartDate,
+    scheduledEndDate: wo.scheduledEndDate,
+    rawWorkOrder: wo, // Keep reference to full work order object
   }));
 
   const getStatusColor = (status: string) => {
@@ -217,6 +229,32 @@ const WorkOrders: React.FC = () => {
                 disabled={!canEdit}
               />
             </Tooltip>
+            {canEdit && (
+              <>
+                <Tooltip title="Change Priority">
+                  <Button
+                    icon={<ThunderboltOutlined />}
+                    size="small"
+                    onClick={() => {
+                      setSelectedWorkOrder(record);
+                      setPriorityChangeModalVisible(true);
+                    }}
+                    data-testid="change-priority-button"
+                  />
+                </Tooltip>
+                <Tooltip title="Reschedule">
+                  <Button
+                    icon={<CalendarOutlined />}
+                    size="small"
+                    onClick={() => {
+                      setSelectedWorkOrder(record);
+                      setRescheduleModalVisible(true);
+                    }}
+                    data-testid="reschedule-button"
+                  />
+                </Tooltip>
+              </>
+            )}
             {record.status === 'CREATED' && (
               <Tooltip title={!canRelease ? "No permission to release" : "Release"}>
                 <Button
@@ -245,6 +283,8 @@ const WorkOrders: React.FC = () => {
             type="primary"
             icon={<PlusOutlined />}
             disabled={!canCreateWorkOrder}
+            onClick={() => setCreateModalVisible(true)}
+            data-testid="create-work-order-button"
           >
             Create Work Order
           </Button>
@@ -261,6 +301,7 @@ const WorkOrders: React.FC = () => {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               onPressEnter={handleSearch}
+              data-testid="work-order-search-input"
             />
           </Col>
           <Col xs={24} sm={8} md={4}>
@@ -270,6 +311,7 @@ const WorkOrders: React.FC = () => {
               value={statusFilter}
               onChange={setStatusFilter}
               allowClear
+              data-testid="status-filter-select"
             >
               <Select.Option value="CREATED">Created</Select.Option>
               <Select.Option value="RELEASED">Released</Select.Option>
@@ -316,6 +358,56 @@ const WorkOrders: React.FC = () => {
           }}
         />
       </Card>
+
+      {/* Create Work Order Modal */}
+      <WorkOrderCreate
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onSuccess={() => {
+          setCreateModalVisible(false);
+          loadWorkOrders();
+        }}
+      />
+
+      {/* Priority Change Modal */}
+      {selectedWorkOrder && (
+        <WorkOrderPriorityChange
+          workOrderId={selectedWorkOrder.key}
+          workOrderNumber={selectedWorkOrder.id}
+          currentPriority={selectedWorkOrder.priority}
+          visible={priorityChangeModalVisible}
+          onClose={() => {
+            setPriorityChangeModalVisible(false);
+            setSelectedWorkOrder(null);
+          }}
+          onSuccess={() => {
+            setPriorityChangeModalVisible(false);
+            setSelectedWorkOrder(null);
+            loadWorkOrders();
+          }}
+        />
+      )}
+
+      {/* Reschedule Modal */}
+      {selectedWorkOrder && (
+        <WorkOrderReschedule
+          workOrderId={selectedWorkOrder.key}
+          workOrderNumber={selectedWorkOrder.id}
+          currentStartDate={selectedWorkOrder.scheduledStartDate}
+          currentEndDate={selectedWorkOrder.scheduledEndDate}
+          currentDueDate={selectedWorkOrder.dueDate}
+          visible={rescheduleModalVisible}
+          onClose={() => {
+            setRescheduleModalVisible(false);
+            setSelectedWorkOrder(null);
+          }}
+          onSuccess={() => {
+            setRescheduleModalVisible(false);
+            setSelectedWorkOrder(null);
+            loadWorkOrders();
+          }}
+        />
+      )}
     </div>
   );
 };

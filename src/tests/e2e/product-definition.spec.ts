@@ -119,6 +119,9 @@ test.describe('Product Definition - Part CRUD Operations', () => {
 });
 
 test.describe('Product Specifications', () => {
+  // Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testPartId: string;
   let testSpecId: string;
@@ -424,6 +427,9 @@ test.describe('Product Lifecycle Management', () => {
 });
 
 test.describe('BOM Operations with Process Segment Integration', () => {
+  // Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let parentPartId: string;
   let componentPartId: string;

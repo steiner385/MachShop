@@ -305,19 +305,19 @@ const Dashboard: React.FC = () => {
   return (
     <div style={{ padding: 0 }}>
       {/* Header with Title, Date Picker, and Export */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-        <Title level={1} style={{ margin: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 12, minWidth: 0, overflow: 'hidden' }}>
+        <Title level={1} style={{ margin: 0, fontSize: 28, minWidth: 0, flex: 'none' }}>
           Manufacturing Dashboard
         </Title>
 
-        <Space size="middle" wrap>
+        <Space size="small" style={{ flexShrink: 0 }}>
           {/* Date Range Picker */}
           <RangePicker
             value={dateRange}
             onChange={handleDateRangeChange}
             format="YYYY-MM-DD"
             allowClear={false}
-            style={{ width: 280 }}
+            style={{ width: 240 }}
           />
 
           {/* Export Dropdown */}

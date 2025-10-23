@@ -66,7 +66,8 @@ const updateRoutingSchema = z.object({
   approvedBy: z.string().optional(),
   approvedAt: z.string().datetime().optional(),
   createdBy: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  currentVersion: z.string().optional() // For optimistic locking
 });
 
 const createRoutingStepSchema = z.object({
