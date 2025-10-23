@@ -6,7 +6,7 @@
  */
 
 import express, { Request, Response } from 'express';
-import ProcessSegmentService from '../services/ProcessSegmentService';
+import OperationService from '../services/OperationService';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const router = express.Router();
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const segment = await ProcessSegmentService.createProcessSegment(req.body);
+    const segment = await OperationService.createOperation(req.body);
     res.status(201).json(segment);
   } catch (error: any) {
     console.error('Error creating process segment:', error);
@@ -61,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const includeRelations = req.query.includeRelations === 'true';
 
-    const segments = await ProcessSegmentService.getAllProcessSegments(filters, includeRelations);
+    const segments = await OperationService.getAllOperations(filters, includeRelations);
     res.json(segments);
   } catch (error: any) {
     console.error('Error fetching process segments:', error);
@@ -79,7 +79,7 @@ router.get('/code/:segmentCode', async (req: Request, res: Response) => {
     const { segmentCode } = req.params;
     const includeRelations = req.query.includeRelations !== 'false';
 
-    const segment = await ProcessSegmentService.getProcessSegmentByCode(segmentCode, includeRelations);
+    const segment = await OperationService.getOperationByCode(segmentCode, includeRelations);
     res.json(segment);
   } catch (error: any) {
     console.error('Error fetching process segment by code:', error);
@@ -101,7 +101,7 @@ router.get('/code/:segmentCode', async (req: Request, res: Response) => {
 router.get('/by-code/:operationCode', async (req: Request, res: Response) => {
   try {
     const { operationCode } = req.params;
-    const segment = await ProcessSegmentService.getOperationByCode(operationCode);
+    const segment = await OperationService.getOperationByCode(operationCode);
     res.json(segment);
   } catch (error: any) {
     console.error('Error fetching operation by code:', error);
@@ -118,7 +118,7 @@ router.get('/by-code/:operationCode', async (req: Request, res: Response) => {
 router.get('/by-classification/:classification', async (req: Request, res: Response) => {
   try {
     const { classification } = req.params;
-    const segments = await ProcessSegmentService.getOperationsByClassification(classification);
+    const segments = await OperationService.getOperationsByClassification(classification);
     res.json(segments);
   } catch (error: any) {
     console.error('Error fetching operations by classification:', error);
@@ -141,7 +141,7 @@ router.get('/search', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const segments = await ProcessSegmentService.searchOperations(searchTerm);
+    const segments = await OperationService.searchOperations(searchTerm);
     res.json(segments);
   } catch (error: any) {
     console.error('Error searching operations:', error);
@@ -161,7 +161,7 @@ router.get('/search', async (req: Request, res: Response): Promise<void> => {
  */
 router.get('/hierarchy/roots', async (req: Request, res: Response) => {
   try {
-    const roots = await ProcessSegmentService.getRootSegments();
+    const roots = await OperationService.getRootOperations();
     res.json(roots);
   } catch (error: any) {
     console.error('Error fetching root segments:', error);
@@ -181,7 +181,7 @@ router.get('/hierarchy/roots', async (req: Request, res: Response) => {
  */
 router.get('/statistics/overview', async (req: Request, res: Response) => {
   try {
-    const stats = await ProcessSegmentService.getStatistics();
+    const stats = await OperationService.getStatistics();
     res.json(stats);
   } catch (error: any) {
     console.error('Error fetching statistics:', error);
@@ -204,7 +204,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const includeRelations = req.query.includeRelations !== 'false';
 
-    const segment = await ProcessSegmentService.getProcessSegmentById(id, includeRelations);
+    const segment = await OperationService.getOperationById(id, includeRelations);
     res.json(segment);
   } catch (error: any) {
     console.error('Error fetching process segment:', error);
@@ -219,7 +219,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const segment = await ProcessSegmentService.updateProcessSegment(id, req.body);
+    const segment = await OperationService.updateOperation(id, req.body);
     res.json(segment);
   } catch (error: any) {
     console.error('Error updating process segment:', error);
@@ -236,7 +236,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const hardDelete = req.query.hardDelete === 'true';
 
-    const result = await ProcessSegmentService.deleteProcessSegment(id, hardDelete);
+    const result = await OperationService.deleteOperation(id, hardDelete);
     res.json(result);
   } catch (error: any) {
     console.error('Error deleting process segment:', error);
@@ -251,7 +251,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.get('/:id/hierarchy-tree', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const tree = await ProcessSegmentService.getSegmentHierarchyTree(id);
+    const tree = await OperationService.getOperationHierarchyTree(id);
     res.json(tree);
   } catch (error: any) {
     console.error('Error fetching hierarchy tree:', error);
@@ -266,7 +266,7 @@ router.get('/:id/hierarchy-tree', async (req: Request, res: Response) => {
 router.get('/:id/ancestors', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const ancestors = await ProcessSegmentService.getAncestorChain(id);
+    const ancestors = await OperationService.getAncestorChain(id);
     res.json(ancestors);
   } catch (error: any) {
     console.error('Error fetching ancestor chain:', error);
@@ -281,7 +281,7 @@ router.get('/:id/ancestors', async (req: Request, res: Response) => {
 router.get('/:id/children', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const children = await ProcessSegmentService.getChildSegments(id);
+    const children = await OperationService.getChildOperations(id);
     res.json(children);
   } catch (error: any) {
     console.error('Error fetching child segments:', error);
@@ -300,7 +300,7 @@ router.get('/:id/children', async (req: Request, res: Response) => {
 router.post('/:id/parameters', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const parameter = await ProcessSegmentService.addParameter(id, req.body);
+    const parameter = await OperationService.addParameter(id, req.body);
     res.status(201).json(parameter);
   } catch (error: any) {
     console.error('Error adding parameter:', error);
@@ -315,7 +315,7 @@ router.post('/:id/parameters', async (req: Request, res: Response) => {
 router.get('/:id/parameters', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const parameters = await ProcessSegmentService.getSegmentParameters(id);
+    const parameters = await OperationService.getOperationParameters(id);
     res.json(parameters);
   } catch (error: any) {
     console.error('Error fetching parameters:', error);
@@ -330,7 +330,7 @@ router.get('/:id/parameters', async (req: Request, res: Response) => {
 router.put('/parameters/:parameterId', async (req: Request, res: Response) => {
   try {
     const { parameterId } = req.params;
-    const parameter = await ProcessSegmentService.updateParameter(parameterId, req.body);
+    const parameter = await OperationService.updateParameter(parameterId, req.body);
     res.json(parameter);
   } catch (error: any) {
     console.error('Error updating parameter:', error);
@@ -345,7 +345,7 @@ router.put('/parameters/:parameterId', async (req: Request, res: Response) => {
 router.delete('/parameters/:parameterId', async (req: Request, res: Response) => {
   try {
     const { parameterId } = req.params;
-    const result = await ProcessSegmentService.deleteParameter(parameterId);
+    const result = await OperationService.deleteParameter(parameterId);
     res.json(result);
   } catch (error: any) {
     console.error('Error deleting parameter:', error);
@@ -363,7 +363,7 @@ router.delete('/parameters/:parameterId', async (req: Request, res: Response) =>
  */
 router.post('/dependencies', async (req: Request, res: Response) => {
   try {
-    const dependency = await ProcessSegmentService.addDependency(req.body);
+    const dependency = await OperationService.addDependency(req.body);
     res.status(201).json(dependency);
   } catch (error: any) {
     console.error('Error adding dependency:', error);
@@ -378,7 +378,7 @@ router.post('/dependencies', async (req: Request, res: Response) => {
 router.get('/:id/dependencies', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dependencies = await ProcessSegmentService.getSegmentDependencies(id);
+    const dependencies = await OperationService.getOperationDependencies(id);
     res.json(dependencies);
   } catch (error: any) {
     console.error('Error fetching dependencies:', error);
@@ -393,7 +393,7 @@ router.get('/:id/dependencies', async (req: Request, res: Response) => {
 router.delete('/dependencies/:dependencyId', async (req: Request, res: Response) => {
   try {
     const { dependencyId } = req.params;
-    const result = await ProcessSegmentService.deleteDependency(dependencyId);
+    const result = await OperationService.deleteDependency(dependencyId);
     res.json(result);
   } catch (error: any) {
     console.error('Error deleting dependency:', error);
@@ -412,7 +412,7 @@ router.delete('/dependencies/:dependencyId', async (req: Request, res: Response)
 router.post('/:id/personnel-specs', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const spec = await ProcessSegmentService.addPersonnelSpec(id, req.body);
+    const spec = await OperationService.addPersonnelSpec(id, req.body);
     res.status(201).json(spec);
   } catch (error: any) {
     console.error('Error adding personnel spec:', error);
@@ -427,7 +427,7 @@ router.post('/:id/personnel-specs', async (req: Request, res: Response) => {
 router.post('/:id/equipment-specs', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const spec = await ProcessSegmentService.addEquipmentSpec(id, req.body);
+    const spec = await OperationService.addEquipmentSpec(id, req.body);
     res.status(201).json(spec);
   } catch (error: any) {
     console.error('Error adding equipment spec:', error);
@@ -442,7 +442,7 @@ router.post('/:id/equipment-specs', async (req: Request, res: Response) => {
 router.post('/:id/material-specs', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const spec = await ProcessSegmentService.addMaterialSpec(id, req.body);
+    const spec = await OperationService.addMaterialSpec(id, req.body);
     res.status(201).json(spec);
   } catch (error: any) {
     console.error('Error adding material spec:', error);
@@ -457,7 +457,7 @@ router.post('/:id/material-specs', async (req: Request, res: Response) => {
 router.post('/:id/asset-specs', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const spec = await ProcessSegmentService.addPhysicalAssetSpec(id, req.body);
+    const spec = await OperationService.addPhysicalAssetSpec(id, req.body);
     res.status(201).json(spec);
   } catch (error: any) {
     console.error('Error adding asset spec:', error);
@@ -472,7 +472,7 @@ router.post('/:id/asset-specs', async (req: Request, res: Response) => {
 router.get('/:id/resource-specs', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const specs = await ProcessSegmentService.getSegmentResourceSpecs(id);
+    const specs = await OperationService.getOperationResourceSpecs(id);
     res.json(specs);
   } catch (error: any) {
     console.error('Error fetching resource specs:', error);
@@ -487,7 +487,7 @@ router.get('/:id/resource-specs', async (req: Request, res: Response) => {
 router.get('/:id/total-time', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const totalTime = await ProcessSegmentService.getSegmentTotalTime(id);
+    const totalTime = await OperationService.getOperationTotalTime(id);
     res.json({ segmentId: id, totalTimeSeconds: totalTime });
   } catch (error: any) {
     console.error('Error calculating total time:', error);
@@ -507,7 +507,7 @@ router.get('/:id/total-time', async (req: Request, res: Response) => {
 router.put('/:id/terminology', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const segment = await ProcessSegmentService.updateOperationTerminology(id, req.body);
+    const segment = await OperationService.updateOperationTerminology(id, req.body);
     res.json(segment);
   } catch (error: any) {
     console.error('Error updating operation terminology:', error);
@@ -534,7 +534,7 @@ router.post('/:id/work-instruction', async (req: Request, res: Response): Promis
       return;
     }
 
-    const segment = await ProcessSegmentService.assignStandardWorkInstruction(id, workInstructionId);
+    const segment = await OperationService.assignStandardWorkInstruction(id, workInstructionId);
     res.json(segment);
   } catch (error: any) {
     console.error('Error assigning standard work instruction:', error);
@@ -549,7 +549,7 @@ router.post('/:id/work-instruction', async (req: Request, res: Response): Promis
 router.get('/:id/work-instruction', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const workInstruction = await ProcessSegmentService.getStandardWorkInstruction(id);
+    const workInstruction = await OperationService.getStandardWorkInstruction(id);
 
     if (!workInstruction) {
       res.status(404).json({ error: 'No standard work instruction assigned to this process segment' });
@@ -570,7 +570,7 @@ router.get('/:id/work-instruction', async (req: Request, res: Response): Promise
 router.delete('/:id/work-instruction', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const segment = await ProcessSegmentService.removeStandardWorkInstruction(id);
+    const segment = await OperationService.removeStandardWorkInstruction(id);
     res.json(segment);
   } catch (error: any) {
     console.error('Error removing standard work instruction:', error);

@@ -19,51 +19,51 @@ import {
   ApartmentOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { getAllProcessSegments } from '@/api/processSegment';
-import { useProcessSegmentStore } from '@/store/processSegmentStore';
-import type { ProcessSegment, ProcessSegmentType } from '@/types/processSegment';
+import { getAllOperations } from '@/api/operation';
+import { useOperationStore } from '@/store/operationStore';
+import type { Operation, OperationType } from '@/types/operation';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 /**
- * Process Segment List Page
- * Displays all process segments with filtering and search capabilities
+ * Operation List Page
+ * Displays all operations with filtering and search capabilities
  */
 
-const ProcessSegmentListPage: React.FC = () => {
+const OperationListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { processSegments, setProcessSegments, setLoading, loading } = useProcessSegmentStore();
+  const { operations, setOperations, setLoading, loading } = useOperationStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<ProcessSegmentType | undefined>();
+  const [typeFilter, setTypeFilter] = useState<OperationType | undefined>();
   const [levelFilter, setLevelFilter] = useState<number | undefined>();
   const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | undefined>();
 
   useEffect(() => {
-    fetchProcessSegments();
+    fetchOperations();
   }, []);
 
-  const fetchProcessSegments = async () => {
+  const fetchOperations = async () => {
     try {
       setLoading(true);
-      const segments = await getAllProcessSegments({
-        segmentType: typeFilter,
+      const ops = await getAllOperations({
+        operationType: typeFilter,
         level: levelFilter,
         isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
         searchTerm,
       });
-      setProcessSegments(segments);
+      setOperations(ops);
     } catch (error) {
-      message.error('Failed to load process segments');
-      console.error('Error fetching process segments:', error);
+      message.error('Failed to load operations');
+      console.error('Error fetching operations:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSearch = () => {
-    fetchProcessSegments();
+    fetchOperations();
   };
 
   const handleReset = () => {
@@ -88,8 +88,8 @@ const ProcessSegmentListPage: React.FC = () => {
     }
   };
 
-  const getTypeColor = (type: ProcessSegmentType): string => {
-    const colors: Record<ProcessSegmentType, string> = {
+  const getTypeColor = (type: OperationType): string => {
+    const colors: Record<OperationType, string> = {
       PRODUCTION: 'blue',
       QUALITY: 'green',
       MATERIAL_HANDLING: 'orange',
@@ -104,29 +104,29 @@ const ProcessSegmentListPage: React.FC = () => {
     return colors[type] || 'default';
   };
 
-  const columns: ColumnsType<ProcessSegment> = [
+  const columns: ColumnsType<Operation> = [
     {
       title: 'Code',
-      dataIndex: 'segmentCode',
-      key: 'segmentCode',
+      dataIndex: 'operationCode',
+      key: 'operationCode',
       width: 120,
       fixed: 'left',
-      render: (code: string, record: ProcessSegment) => (
-        <a onClick={() => navigate(`/process-segments/${record.id}`)}>{code}</a>
+      render: (code: string, record: Operation) => (
+        <a onClick={() => navigate(`/operations/${record.id}`)}>{code}</a>
       ),
     },
     {
       title: 'Name',
-      dataIndex: 'segmentName',
-      key: 'segmentName',
+      dataIndex: 'operationName',
+      key: 'operationName',
       width: 200,
     },
     {
       title: 'Type',
-      dataIndex: 'segmentType',
-      key: 'segmentType',
+      dataIndex: 'operationType',
+      key: 'operationType',
       width: 140,
-      render: (type: ProcessSegmentType) => (
+      render: (type: OperationType) => (
         <Tag color={getTypeColor(type)}>{type.replace(/_/g, ' ')}</Tag>
       ),
       filters: [
@@ -138,7 +138,7 @@ const ProcessSegmentListPage: React.FC = () => {
         { text: 'Testing', value: 'TESTING' },
         { text: 'Other', value: 'OTHER' },
       ],
-      onFilter: (value, record) => record.segmentType === value,
+      onFilter: (value, record) => record.operationType === value,
     },
     {
       title: 'Level',
@@ -199,7 +199,7 @@ const ProcessSegmentListPage: React.FC = () => {
       dataIndex: 'requiresApproval',
       key: 'requiresApproval',
       width: 120,
-      render: (requiresApproval: boolean, record: ProcessSegment) => {
+      render: (requiresApproval: boolean, record: Operation) => {
         if (!requiresApproval) {
           return <Tag>No Approval Needed</Tag>;
         }
@@ -231,18 +231,18 @@ const ProcessSegmentListPage: React.FC = () => {
           <div>
             <Title level={2} style={{ margin: 0 }}>
               <ApartmentOutlined style={{ marginRight: 8 }} />
-              Process Segments
+              Operations
             </Title>
             <Text type="secondary">
-              Manufacturing routes and operation definitions (ISA-95 compliant)
+              Manufacturing operations and process definitions (ISA-95 compliant)
             </Text>
           </div>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate('/process-segments/create')}
+            onClick={() => navigate('/operations/create')}
           >
-            Create Process Segment
+            Create Operation
           </Button>
         </div>
 
@@ -313,14 +313,14 @@ const ProcessSegmentListPage: React.FC = () => {
         <Card>
           <Table
             columns={columns}
-            dataSource={processSegments}
+            dataSource={operations}
             loading={loading}
             rowKey="id"
             scroll={{ x: 1400 }}
             pagination={{
               pageSize: 20,
               showSizeChanger: true,
-              showTotal: (total) => `Total ${total} process segments`,
+              showTotal: (total) => `Total ${total} operations`,
             }}
           />
         </Card>
@@ -329,4 +329,4 @@ const ProcessSegmentListPage: React.FC = () => {
   );
 };
 
-export default ProcessSegmentListPage;
+export default OperationListPage;

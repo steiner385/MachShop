@@ -104,10 +104,10 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>
-            {record.processSegment?.segmentName || 'N/A'}
+            {record.operation?.operationName || 'N/A'}
           </div>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.processSegment?.operationType || ''}
+            {record.operation?.operationType || ''}
           </div>
         </div>
       ),
@@ -124,7 +124,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.setupTimeOverride ?? record.processSegment?.setupTime ?? 0;
+        const time = record.setupTimeOverride ?? record.operation?.setupTime ?? 0;
         return formatTime(time);
       },
     },
@@ -134,7 +134,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.cycleTimeOverride ?? record.processSegment?.duration ?? 0;
+        const time = record.cycleTimeOverride ?? record.operation?.duration ?? 0;
         return formatTime(time);
       },
     },
@@ -144,7 +144,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.teardownTimeOverride ?? record.processSegment?.teardownTime ?? 0;
+        const time = record.teardownTimeOverride ?? record.operation?.teardownTime ?? 0;
         return formatTime(time);
       },
     },

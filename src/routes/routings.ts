@@ -45,7 +45,7 @@ const createRoutingSchema = z.object({
   notes: z.string().optional(),
   steps: z.array(z.object({
     stepNumber: z.number().int().positive(),
-    processSegmentId: z.string().uuid(),
+    operationId: z.string().uuid(), // ISA-95: processSegmentId
     workCenterId: z.string().uuid().optional(),
     setupTimeOverride: z.number().int().nonnegative().optional(),
     cycleTimeOverride: z.number().int().nonnegative().optional(),
@@ -79,7 +79,7 @@ const updateRoutingSchema = z.object({
 const createRoutingStepSchema = z.object({
   routingId: z.string().uuid(),
   stepNumber: z.number().int().positive(),
-  processSegmentId: z.string().uuid(),
+  operationId: z.string().uuid(), // ISA-95: processSegmentId
   workCenterId: z.string().uuid().optional(),
   setupTimeOverride: z.number().int().nonnegative().optional(),
   cycleTimeOverride: z.number().int().nonnegative().optional(),
@@ -93,7 +93,7 @@ const createRoutingStepSchema = z.object({
 
 const updateRoutingStepSchema = z.object({
   stepNumber: z.number().int().positive().optional(),
-  processSegmentId: z.string().uuid().optional(),
+  operationId: z.string().uuid().optional(), // ISA-95: processSegmentId
   workCenterId: z.string().uuid().optional(),
   setupTimeOverride: z.number().int().nonnegative().optional(),
   cycleTimeOverride: z.number().int().nonnegative().optional(),

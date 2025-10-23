@@ -48,9 +48,9 @@ export interface Site {
   siteCode: string;
 }
 
-export interface ProcessSegment {
+export interface Operation {
   id: string;
-  segmentName: string;
+  operationName: string;
   operationType: string;
   setupTime?: number;
   duration?: number;
@@ -95,7 +95,7 @@ export interface RoutingStep {
   id: string;
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string;
   workCenterId?: string;
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
@@ -110,7 +110,7 @@ export interface RoutingStep {
 
   // Relations
   routing?: Routing;
-  processSegment?: ProcessSegment;
+  operation?: Operation;
   workCenter?: WorkCenter;
   dependencies?: RoutingStepDependency[];
   prerequisites?: RoutingStepDependency[];
@@ -172,7 +172,7 @@ export interface CreateRoutingRequest {
 export interface CreateRoutingStepRequest {
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string;
   workCenterId?: string;
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
@@ -206,7 +206,7 @@ export interface UpdateRoutingRequest {
 
 export interface UpdateRoutingStepRequest {
   stepNumber?: number;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
@@ -284,7 +284,7 @@ export interface RoutingQueryParams {
 
 export interface RoutingStepQueryParams {
   routingId?: string;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
   isOptional?: boolean;
   isQualityInspection?: boolean;
@@ -398,7 +398,7 @@ export interface RoutingFormData {
 
 export interface RoutingStepFormData {
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string;
   workCenterId: string | null;
   setupTimeOverride: number | null;
   cycleTimeOverride: number | null;

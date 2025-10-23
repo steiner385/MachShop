@@ -32,7 +32,7 @@ const testRouting = {
 
 const testStep = {
   stepNumber: 10,
-  processSegmentId: '', // Will be set during setup
+  operationId: '', // Will be set during setup
   setupTimeOverride: 300,
   cycleTimeOverride: 600,
   teardownTimeOverride: 120,
@@ -97,13 +97,13 @@ test.describe('Routing Management E2E Tests', () => {
       });
     }
 
-    testProcessSegment = await prisma.processSegment.findFirst({
+    testProcessSegment = await prisma.operation.findFirst({
       where: { isActive: true },
     });
     if (!testProcessSegment) {
-      testProcessSegment = await prisma.processSegment.create({
+      testProcessSegment = await prisma.operation.create({
         data: {
-          segmentName: 'Test Process Segment',
+          operationName: 'Test Operation',
           operationType: 'MACHINING',
           setupTime: 300,
           duration: 600,
@@ -117,7 +117,7 @@ test.describe('Routing Management E2E Tests', () => {
     // Set test data IDs
     testRouting.partId = testPart.id;
     testRouting.siteId = testSite.id;
-    testStep.processSegmentId = testProcessSegment.id;
+    testStep.operationId = testProcessSegment.id;
   });
 
   test.afterAll(async () => {
@@ -138,9 +138,9 @@ test.describe('Routing Management E2E Tests', () => {
       }).catch(() => {});
     }
 
-    // Cleanup: Delete test process segment
+    // Cleanup: Delete test operation
     if (testProcessSegment?.id) {
-      await prisma.processSegment.delete({
+      await prisma.operation.delete({
         where: { id: testProcessSegment.id },
       }).catch(() => {});
     }
@@ -505,7 +505,7 @@ test.describe('Routing Management E2E Tests', () => {
       const step = await prisma.routingStep.create({
         data: {
           routingId: routingWithSteps.id,
-          processSegmentId: testProcessSegment.id,
+          operationId: testProcessSegment.id,
           stepNumber: 10,
           setupTimeOverride: 300,
           cycleTimeOverride: 600,

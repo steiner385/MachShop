@@ -462,7 +462,7 @@ export class GlobalSearchService {
     limit: number,
     includeInactive: boolean
   ): Promise<SearchResult[]> {
-    const segments = await prisma.processSegment.findMany({
+    const segments = await prisma.operation.findMany({
       where: {
         AND: [
           {

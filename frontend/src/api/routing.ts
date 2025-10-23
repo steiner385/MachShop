@@ -349,9 +349,9 @@ export const formatTime = (seconds: number): string => {
  */
 export const calculateTotalTime = (steps: RoutingStep[]): number => {
   return steps.reduce((total, step) => {
-    const setup = step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0;
-    const cycle = step.cycleTimeOverride ?? step.processSegment?.duration ?? 0;
-    const teardown = step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0;
+    const setup = step.setupTimeOverride ?? step.operation?.setupTime ?? 0;
+    const cycle = step.cycleTimeOverride ?? step.operation?.duration ?? 0;
+    const teardown = step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0;
     return total + setup + cycle + teardown;
   }, 0);
 };

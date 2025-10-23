@@ -152,7 +152,7 @@ INTEGRATION INTEGRATION
     
 
 
-        ProcessSegmentType {
+        OperationType {
             PRODUCTION PRODUCTION
 QUALITY QUALITY
 MATERIAL_HANDLING MATERIAL_HANDLING
@@ -1009,17 +1009,15 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segments" {
+  "operations" {
     String id "🗝️"
-    String segmentCode 
-    String segmentName 
     String description "❓"
     Boolean isStandardOperation 
-    String operationCode "❓"
-    String operationName "❓"
+    String operationCode 
+    String operationName 
     OperationClassification operationClassification "❓"
     Int level 
-    ProcessSegmentType segmentType 
+    OperationType operationType 
     String category "❓"
     Int duration "❓"
     Int setupTime "❓"
@@ -1038,7 +1036,7 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segment_parameters" {
+  "operation_parameters" {
     String id "🗝️"
     String parameterName 
     ParameterType parameterType 
@@ -1058,7 +1056,7 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segment_dependencies" {
+  "operation_dependencies" {
     String id "🗝️"
     DependencyType dependencyType 
     DependencyTimingType timingType 
@@ -1072,7 +1070,7 @@ CANCELLED CANCELLED
     }
   
 
-  "personnel_segment_specifications" {
+  "personnel_operation_specifications" {
     String id "🗝️"
     String personnelClassId "❓"
     String skillId "❓"
@@ -1088,7 +1086,7 @@ CANCELLED CANCELLED
     }
   
 
-  "equipment_segment_specifications" {
+  "equipment_operation_specifications" {
     String id "🗝️"
     EquipmentClass equipmentClass "❓"
     String equipmentType "❓"
@@ -1105,7 +1103,7 @@ CANCELLED CANCELLED
     }
   
 
-  "material_segment_specifications" {
+  "material_operation_specifications" {
     String id "🗝️"
     String materialDefinitionId "❓"
     String materialClassId "❓"
@@ -1123,7 +1121,7 @@ CANCELLED CANCELLED
     }
   
 
-  "physical_asset_segment_specifications" {
+  "physical_asset_operation_specifications" {
     String id "🗝️"
     PhysicalAssetType assetType 
     String assetCode "❓"
@@ -2490,7 +2488,7 @@ CANCELLED CANCELLED
     "sites" o|--|o "enterprises" : "enterprise"
     "sites" o{--}o "routings" : ""
     "sites" o{--}o "part_site_availability" : ""
-    "sites" o{--}o "process_segments" : ""
+    "sites" o{--}o "operations" : ""
     "sites" o{--}o "work_orders" : ""
     "sites" o{--}o "equipment" : ""
     "sites" o{--}o "ncrs" : ""
@@ -2568,36 +2566,36 @@ CANCELLED CANCELLED
     "material_state_history" o|--|o "MaterialLotStatus" : "enum:newStatus"
     "material_state_history" o|--|| "StateTransitionType" : "enum:transitionType"
     "material_state_history" o|--|| "material_lots" : "lot"
-    "process_segments" o|--|o "OperationClassification" : "enum:operationClassification"
-    "process_segments" o|--|o "work_instructions" : "standardWorkInstruction"
-    "process_segments" o|--|| "ProcessSegmentType" : "enum:segmentType"
-    "process_segments" o|--|o "process_segments" : "parentSegment"
-    "process_segments" o|--|o "sites" : "site"
-    "process_segments" o{--}o "routing_steps" : ""
-    "process_segments" o{--}o "process_segment_parameters" : ""
-    "process_segments" o{--}o "process_segment_dependencies" : ""
-    "process_segments" o{--}o "process_segment_dependencies" : ""
-    "process_segments" o{--}o "personnel_segment_specifications" : ""
-    "process_segments" o{--}o "equipment_segment_specifications" : ""
-    "process_segments" o{--}o "material_segment_specifications" : ""
-    "process_segments" o{--}o "physical_asset_segment_specifications" : ""
-    "process_segments" o{--}o "bom_items" : ""
-    "process_segment_parameters" o|--|| "ParameterType" : "enum:parameterType"
-    "process_segment_parameters" o|--|| "ParameterDataType" : "enum:dataType"
-    "process_segment_parameters" o|--|| "process_segments" : "segment"
-    "process_segment_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
-    "process_segment_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
-    "process_segment_dependencies" o|--|| "process_segments" : "dependentSegment"
-    "process_segment_dependencies" o|--|| "process_segments" : "prerequisiteSegment"
-    "personnel_segment_specifications" o|--|o "CompetencyLevel" : "enum:minimumCompetency"
-    "personnel_segment_specifications" o|--|| "process_segments" : "segment"
-    "equipment_segment_specifications" o|--|o "EquipmentClass" : "enum:equipmentClass"
-    "equipment_segment_specifications" o|--|| "process_segments" : "segment"
-    "material_segment_specifications" o|--|o "MaterialType" : "enum:materialType"
-    "material_segment_specifications" o|--|| "ConsumptionType" : "enum:consumptionType"
-    "material_segment_specifications" o|--|| "process_segments" : "segment"
-    "physical_asset_segment_specifications" o|--|| "PhysicalAssetType" : "enum:assetType"
-    "physical_asset_segment_specifications" o|--|| "process_segments" : "segment"
+    "operations" o|--|o "OperationClassification" : "enum:operationClassification"
+    "operations" o|--|o "work_instructions" : "standardWorkInstruction"
+    "operations" o|--|| "OperationType" : "enum:operationType"
+    "operations" o|--|o "operations" : "parentOperation"
+    "operations" o|--|o "sites" : "site"
+    "operations" o{--}o "routing_steps" : ""
+    "operations" o{--}o "operation_parameters" : ""
+    "operations" o{--}o "operation_dependencies" : ""
+    "operations" o{--}o "operation_dependencies" : ""
+    "operations" o{--}o "personnel_operation_specifications" : ""
+    "operations" o{--}o "equipment_operation_specifications" : ""
+    "operations" o{--}o "material_operation_specifications" : ""
+    "operations" o{--}o "physical_asset_operation_specifications" : ""
+    "operations" o{--}o "bom_items" : ""
+    "operation_parameters" o|--|| "ParameterType" : "enum:parameterType"
+    "operation_parameters" o|--|| "ParameterDataType" : "enum:dataType"
+    "operation_parameters" o|--|| "operations" : "operation"
+    "operation_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
+    "operation_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
+    "operation_dependencies" o|--|| "operations" : "dependentOperation"
+    "operation_dependencies" o|--|| "operations" : "prerequisiteOperation"
+    "personnel_operation_specifications" o|--|o "CompetencyLevel" : "enum:minimumCompetency"
+    "personnel_operation_specifications" o|--|| "operations" : "operation"
+    "equipment_operation_specifications" o|--|o "EquipmentClass" : "enum:equipmentClass"
+    "equipment_operation_specifications" o|--|| "operations" : "operation"
+    "material_operation_specifications" o|--|o "MaterialType" : "enum:materialType"
+    "material_operation_specifications" o|--|| "ConsumptionType" : "enum:consumptionType"
+    "material_operation_specifications" o|--|| "operations" : "operation"
+    "physical_asset_operation_specifications" o|--|| "PhysicalAssetType" : "enum:assetType"
+    "physical_asset_operation_specifications" o|--|| "operations" : "operation"
     "parts" o|--|| "ProductType" : "enum:productType"
     "parts" o|--|| "ProductLifecycleState" : "enum:lifecycleState"
     "parts" o|--|o "parts" : "replacementPart"
@@ -2620,7 +2618,7 @@ CANCELLED CANCELLED
     "part_site_availability" o|--|| "sites" : "site"
     "bom_items" o|--|| "parts" : "parentPart"
     "bom_items" o|--|| "parts" : "componentPart"
-    "bom_items" o|--|o "process_segments" : "processSegment"
+    "bom_items" o|--|o "operations" : "operation"
     "product_specifications" o|--|| "SpecificationType" : "enum:specificationType"
     "product_specifications" o|--|| "parts" : "part"
     "product_configurations" o|--|| "ConfigurationType" : "enum:configurationType"
@@ -2668,7 +2666,7 @@ CANCELLED CANCELLED
     "routing_operations" o{--}o "work_order_operations" : ""
     "routing_steps" o|--|o "work_instructions" : "workInstruction"
     "routing_steps" o|--|| "routings" : "routing"
-    "routing_steps" o|--|| "process_segments" : "processSegment"
+    "routing_steps" o|--|| "operations" : "operation"
     "routing_steps" o|--|o "work_centers" : "workCenter"
     "routing_steps" o{--}o "routing_step_dependencies" : ""
     "routing_steps" o{--}o "routing_step_dependencies" : ""

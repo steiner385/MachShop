@@ -175,12 +175,12 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
       type: 'routingStep',
       position: { x: 250, y: 100 + index * 120 }, // Default vertical layout
       data: {
-        label: step.operationDescription || `Step ${step.stepNumber}`,
+        label: step.operation?.operationName || `Step ${step.stepNumber}`,
         stepNumber: step.stepNumber.toString(),
         stepType: (step.stepType as StepType) || 'PROCESS',
-        operationCode: step.operationCode,
+        operationId: step.operationId,
         workCenterId: step.workCenterId,
-        description: step.operationDescription,
+        description: step.operation?.operationName,
         standardTime: step.standardTime,
         setupTime: step.setupTime,
       } as RoutingStepNodeData,

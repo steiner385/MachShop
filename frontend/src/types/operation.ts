@@ -1,9 +1,14 @@
 /**
- * Process Segment Types
- * ISA-95 Process Segment model types for manufacturing route management
+ * Operation Types
+ * ISA-95 Operation model types for manufacturing route management
+ *
+ * Operations (formerly Process Segments) define the standard manufacturing
+ * operations that can be used to build routings. Each operation represents
+ * a discrete manufacturing step with defined parameters, timing, and resource
+ * requirements.
  */
 
-export enum ProcessSegmentType {
+export enum OperationType {
   PRODUCTION = 'PRODUCTION',
   QUALITY = 'QUALITY',
   MATERIAL_HANDLING = 'MATERIAL_HANDLING',
@@ -64,21 +69,21 @@ export enum CompetencyLevel {
   EXPERT = 'EXPERT',
 }
 
-// Process Segment
-export interface ProcessSegment {
+// Operation
+export interface Operation {
   id: string;
-  segmentCode: string;
-  segmentName: string;
+  operationCode: string;
+  operationName: string;
   description?: string;
 
   // Hierarchy
   level: number;
-  parentSegmentId?: string;
-  parentSegment?: ProcessSegment;
-  childSegments?: ProcessSegment[];
+  parentOperationId?: string;
+  parentOperation?: Operation;
+  childOperations?: Operation[];
 
   // Classification
-  segmentType: ProcessSegmentType;
+  operationType: OperationType;
   category?: string;
 
   // Timing
@@ -104,19 +109,19 @@ export interface ProcessSegment {
   updatedAt: string;
 
   // Relations (loaded on demand)
-  parameters?: ProcessSegmentParameter[];
-  dependencies?: ProcessSegmentDependency[];
-  prerequisiteFor?: ProcessSegmentDependency[];
-  personnelSpecs?: PersonnelSegmentSpecification[];
-  equipmentSpecs?: EquipmentSegmentSpecification[];
-  materialSpecs?: MaterialSegmentSpecification[];
-  assetSpecs?: PhysicalAssetSegmentSpecification[];
+  parameters?: OperationParameter[];
+  dependencies?: OperationDependency[];
+  prerequisiteFor?: OperationDependency[];
+  personnelSpecs?: PersonnelOperationSpecification[];
+  equipmentSpecs?: EquipmentOperationSpecification[];
+  materialSpecs?: MaterialOperationSpecification[];
+  assetSpecs?: PhysicalAssetOperationSpecification[];
 }
 
-// Process Segment Parameter
-export interface ProcessSegmentParameter {
+// Operation Parameter
+export interface OperationParameter {
   id: string;
-  segmentId: string;
+  operationId: string;
 
   // Parameter definition
   parameterName: string;
@@ -146,11 +151,11 @@ export interface ProcessSegmentParameter {
   updatedAt: string;
 }
 
-// Process Segment Dependency
-export interface ProcessSegmentDependency {
+// Operation Dependency
+export interface OperationDependency {
   id: string;
-  dependentSegmentId: string;
-  prerequisiteSegmentId: string;
+  dependentOperationId: string;
+  prerequisiteOperationId: string;
 
   // Dependency details
   dependencyType: DependencyType;
@@ -170,14 +175,14 @@ export interface ProcessSegmentDependency {
   updatedAt: string;
 
   // Relations
-  dependentSegment?: ProcessSegment;
-  prerequisiteSegment?: ProcessSegment;
+  dependentOperation?: Operation;
+  prerequisiteOperation?: Operation;
 }
 
-// Personnel Segment Specification
-export interface PersonnelSegmentSpecification {
+// Personnel Operation Specification
+export interface PersonnelOperationSpecification {
   id: string;
-  segmentId: string;
+  operationId: string;
 
   // Personnel requirements
   personnelClassId?: string;
@@ -201,10 +206,10 @@ export interface PersonnelSegmentSpecification {
   updatedAt: string;
 }
 
-// Equipment Segment Specification
-export interface EquipmentSegmentSpecification {
+// Equipment Operation Specification
+export interface EquipmentOperationSpecification {
   id: string;
-  segmentId: string;
+  operationId: string;
 
   // Equipment requirements
   equipmentClass?: EquipmentClass;
@@ -231,10 +236,10 @@ export interface EquipmentSegmentSpecification {
   updatedAt: string;
 }
 
-// Material Segment Specification
-export interface MaterialSegmentSpecification {
+// Material Operation Specification
+export interface MaterialOperationSpecification {
   id: string;
-  segmentId: string;
+  operationId: string;
 
   // Material requirements
   materialType?: string;
@@ -259,10 +264,10 @@ export interface MaterialSegmentSpecification {
   updatedAt: string;
 }
 
-// Physical Asset Segment Specification
-export interface PhysicalAssetSegmentSpecification {
+// Physical Asset Operation Specification
+export interface PhysicalAssetOperationSpecification {
   id: string;
-  segmentId: string;
+  operationId: string;
 
   // Asset requirements
   assetType?: string;
@@ -287,13 +292,13 @@ export interface PhysicalAssetSegmentSpecification {
 }
 
 // Create/Update DTOs
-export interface CreateProcessSegmentData {
-  segmentCode: string;
-  segmentName: string;
+export interface CreateOperationData {
+  operationCode: string;
+  operationName: string;
   description?: string;
   level?: number;
-  parentSegmentId?: string;
-  segmentType: ProcessSegmentType;
+  parentOperationId?: string;
+  operationType: OperationType;
   category?: string;
   duration?: number;
   setupTime?: number;
@@ -309,11 +314,11 @@ export interface CreateProcessSegmentData {
   approvedAt?: string;
 }
 
-export interface UpdateProcessSegmentData extends Partial<CreateProcessSegmentData> {
+export interface UpdateOperationData extends Partial<CreateOperationData> {
   id: string;
 }
 
-export interface CreateProcessSegmentParameterData {
+export interface CreateOperationParameterData {
   parameterName: string;
   parameterType: ParameterType;
   dataType: ParameterDataType;
@@ -329,8 +334,8 @@ export interface CreateProcessSegmentParameterData {
   notes?: string;
 }
 
-export interface CreateProcessSegmentDependencyData {
-  prerequisiteSegmentId: string;
+export interface CreateOperationDependencyData {
+  prerequisiteOperationId: string;
   dependencyType: DependencyType;
   timingType: DependencyTimingType;
   lagTime?: number;
@@ -341,25 +346,25 @@ export interface CreateProcessSegmentDependencyData {
 }
 
 // API Response types
-export interface ProcessSegmentStatistics {
-  totalSegments: number;
-  byType: Record<ProcessSegmentType, number>;
+export interface OperationStatistics {
+  totalOperations: number;
+  byType: Record<OperationType, number>;
   byLevel: Record<number, number>;
-  activeSegments: number;
-  inactiveSegments: number;
+  activeOperations: number;
+  inactiveOperations: number;
   pendingApproval: number;
 }
 
-export interface ProcessSegmentHierarchyNode {
-  segment: ProcessSegment;
-  children: ProcessSegmentHierarchyNode[];
+export interface OperationHierarchyNode {
+  operation: Operation;
+  children: OperationHierarchyNode[];
   totalTime: number;
   depth: number;
 }
 
 export interface TotalTimeResult {
-  segmentId: string;
-  segmentName: string;
+  operationId: string;
+  operationName: string;
   ownTime: number;
   childrenTime: number;
   totalTime: number;
@@ -371,12 +376,12 @@ export interface TotalTimeResult {
 }
 
 // Filter types for list queries
-export interface ProcessSegmentFilters {
-  segmentType?: ProcessSegmentType;
+export interface OperationFilters {
+  operationType?: OperationType;
   level?: number;
   isActive?: boolean;
   category?: string;
-  parentSegmentId?: string;
+  parentOperationId?: string;
   requiresApproval?: boolean;
   searchTerm?: string;
 }

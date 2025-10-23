@@ -91,7 +91,7 @@ export class RoutingService {
         steps: data.steps ? {
           create: data.steps.map(step => ({
             stepNumber: step.stepNumber,
-            processSegmentId: step.processSegmentId,
+            operationId: step.operationId,
             workCenterId: step.workCenterId,
             setupTimeOverride: step.setupTimeOverride,
             cycleTimeOverride: step.cycleTimeOverride,
@@ -121,11 +121,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -174,11 +174,11 @@ export class RoutingService {
         },
         steps: includeSteps ? {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -227,11 +227,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -295,11 +295,11 @@ export class RoutingService {
         },
         steps: params.includeSteps ? {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -405,11 +405,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -477,7 +477,7 @@ export class RoutingService {
       data: {
         routingId: data.routingId,
         stepNumber: data.stepNumber,
-        processSegmentId: data.processSegmentId,
+        operationId: data.operationId,
         workCenterId: data.workCenterId,
         setupTimeOverride: data.setupTimeOverride,
         cycleTimeOverride: data.cycleTimeOverride,
@@ -490,11 +490,11 @@ export class RoutingService {
       },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -523,11 +523,11 @@ export class RoutingService {
       where: { id },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -556,11 +556,11 @@ export class RoutingService {
       where: { routingId },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -614,7 +614,7 @@ export class RoutingService {
       where: { id },
       data: {
         stepNumber: data.stepNumber,
-        processSegmentId: data.processSegmentId,
+        operationId: data.operationId,
         workCenterId: data.workCenterId,
         setupTimeOverride: data.setupTimeOverride,
         cycleTimeOverride: data.cycleTimeOverride,
@@ -627,11 +627,11 @@ export class RoutingService {
       },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -962,7 +962,7 @@ export class RoutingService {
         steps: (options.includeSteps !== false) && sourceRouting.steps ? {
           create: sourceRouting.steps.map(step => ({
             stepNumber: step.stepNumber,
-            processSegmentId: step.processSegmentId,
+            operationId: step.operationId,
             workCenterId: step.workCenterId,
             setupTimeOverride: step.setupTimeOverride,
             cycleTimeOverride: step.cycleTimeOverride,
@@ -992,11 +992,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -1155,9 +1155,9 @@ export class RoutingService {
     let totalTeardownTime = 0;
 
     for (const step of steps) {
-      const setupTime = step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0;
-      const cycleTime = step.cycleTimeOverride ?? step.processSegment?.duration ?? 0;
-      const teardownTime = step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0;
+      const setupTime = step.setupTimeOverride ?? step.operation?.setupTime ?? 0;
+      const cycleTime = step.cycleTimeOverride ?? step.operation?.duration ?? 0;
+      const teardownTime = step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0;
 
       totalSetupTime += setupTime;
       totalCycleTime += cycleTime;
@@ -1170,9 +1170,9 @@ export class RoutingService {
 
     if (criticalPathSteps.length > 0) {
       for (const step of criticalPathSteps) {
-        const setupTime = step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0;
-        const cycleTime = step.cycleTimeOverride ?? step.processSegment?.duration ?? 0;
-        const teardownTime = step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0;
+        const setupTime = step.setupTimeOverride ?? step.operation?.setupTime ?? 0;
+        const cycleTime = step.cycleTimeOverride ?? step.operation?.duration ?? 0;
+        const teardownTime = step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0;
         criticalPathTime += setupTime + cycleTime + teardownTime;
       }
     } else {
@@ -1628,7 +1628,7 @@ export class RoutingService {
         site: true,
         steps: {
           include: {
-            processSegment: true,
+            operation: true,
             workCenter: true,
             workInstruction: true
           }
@@ -1659,7 +1659,7 @@ export class RoutingService {
         site: true,
         steps: {
           include: {
-            processSegment: true,
+            operation: true,
             workCenter: true,
             workInstruction: true,
             parameterOverrides: true
@@ -1701,7 +1701,7 @@ export class RoutingService {
       include: {
         steps: {
           include: {
-            processSegment: true,
+            operation: true,
             workCenter: true
           },
           orderBy: { stepNumber: 'asc' }
@@ -1772,7 +1772,7 @@ export class RoutingService {
     // Verify routing step exists
     const step = await prisma.routingStep.findUnique({
       where: { id: stepId },
-      include: { processSegment: true }
+      include: { operation: true }
     });
 
     if (!step) {
@@ -1824,7 +1824,7 @@ export class RoutingService {
     const step = await prisma.routingStep.findUnique({
       where: { id: stepId },
       include: {
-        processSegment: {
+        operation: {
           include: {
             parameters: true
           }
@@ -1838,7 +1838,7 @@ export class RoutingService {
     }
 
     // Start with base parameters from ProcessSegment
-    const effectiveParameters = step.processSegment.parameters.map((p) => ({
+    const effectiveParameters = step.operation.parameters.map((p) => ({
       parameterName: p.parameterName,
       parameterValue: p.defaultValue || '',
       unitOfMeasure: p.unitOfMeasure || null,
@@ -1933,7 +1933,7 @@ export class RoutingService {
       data: { workInstructionId },
       include: {
         workInstruction: true,
-        processSegment: {
+        operation: {
           include: {
             standardWorkInstruction: true
           }
@@ -1978,7 +1978,7 @@ export class RoutingService {
             steps: true
           }
         },
-        processSegment: {
+        operation: {
           include: {
             standardWorkInstruction: {
               include: {
@@ -1995,7 +1995,7 @@ export class RoutingService {
     }
 
     // Return step-level override if exists, otherwise standard WI
-    return step.workInstruction || step.processSegment.standardWorkInstruction;
+    return step.workInstruction || step.operation.standardWorkInstruction;
   }
 }
 

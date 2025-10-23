@@ -72,7 +72,7 @@ test.describe('Routing Visual Editor E2E Tests', () => {
       });
     }
 
-    testProcessSegment = await prisma.processSegment.findFirst({
+    testProcessSegment = await prisma.operation.findFirst({
       where: { isActive: true },
     });
   });

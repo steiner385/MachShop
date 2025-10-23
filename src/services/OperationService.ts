@@ -1,9 +1,9 @@
 /**
- * Process Segment Service
- * ISA-95 Process Segment Model (Task 1.4)
+ * Operation Service
+ * ISA-95: Process Segment Service
  *
- * Provides comprehensive business logic for managing process segments (manufacturing "recipes"):
- * - Process segment CRUD with hierarchy support (5 levels)
+ * Provides comprehensive business logic for managing operations (manufacturing "recipes"):
+ * - Operation CRUD with hierarchy support (5 levels)
  * - Parameter management (inputs, outputs, set points, measured values)
  * - Dependency management (prerequisites, sequencing, timing)
  * - Resource specification management (personnel, equipment, materials, physical assets)
@@ -13,13 +13,13 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 
-export interface CreateProcessSegmentData {
-  segmentCode: string;
-  segmentName: string;
+export interface CreateOperationData {
+  operationCode: string;
+  operationName: string;
   description?: string;
   level?: number;
-  parentSegmentId?: string;
-  segmentType: string;
+  parentOperationId?: string;
+  operationType: string;
   category?: string;
   duration?: number;
   setupTime?: number;
@@ -35,12 +35,12 @@ export interface CreateProcessSegmentData {
   approvedAt?: Date;
 }
 
-export interface UpdateProcessSegmentData {
-  segmentName?: string;
+export interface UpdateOperationData {
+  operationName?: string;
   description?: string;
   level?: number;
-  parentSegmentId?: string;
-  segmentType?: string;
+  parentOperationId?: string;
+  operationType?: string;
   category?: string;
   duration?: number;
   setupTime?: number;
@@ -56,15 +56,15 @@ export interface UpdateProcessSegmentData {
   approvedAt?: Date;
 }
 
-export interface ProcessSegmentFilters {
-  segmentType?: string;
+export interface OperationFilters {
+  operationType?: string;
   category?: string;
   level?: number;
-  parentSegmentId?: string;
+  parentOperationId?: string;
   isActive?: boolean;
 }
 
-export class ProcessSegmentService {
+export class OperationService {
   private prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
@@ -72,22 +72,22 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Create a new process segment
+   * Create a new operation
    */
-  async createProcessSegment(data: CreateProcessSegmentData) {
-    // Validate parent segment exists and prevent circular references
-    if (data.parentSegmentId) {
-      const parent = await this.prisma.processSegment.findUnique({
-        where: { id: data.parentSegmentId }
+  async createOperation(data: CreateOperationData) {
+    // Validate parent operation exists and prevent circular references
+    if (data.parentOperationId) {
+      const parent = await this.prisma.operation.findUnique({
+        where: { id: data.parentOperationId }
       });
 
       if (!parent) {
-        throw new Error(`Parent segment ${data.parentSegmentId} not found`);
+        throw new Error(`Parent operation ${data.parentOperationId} not found`);
       }
 
       // Prevent self-parenting
-      if (data.parentSegmentId === data.segmentCode) {
-        throw new Error('Process segment cannot be its own parent');
+      if (data.parentOperationId === data.operationCode) {
+        throw new Error('Operation cannot be its own parent');
       }
 
       // Auto-set level if not provided (parent level + 1)
@@ -96,17 +96,17 @@ export class ProcessSegmentService {
       }
     }
 
-    // Create segment WITHOUT include to avoid Prisma proxy object issues with foreign keys
-    // Foreign keys like parentSegmentId return null when using include with create
+    // Create operation WITHOUT include to avoid Prisma proxy object issues with foreign keys
+    // Foreign keys like parentOperationId return null when using include with create
     // Tests can call GET endpoint if relations are needed
-    const segment = await this.prisma.processSegment.create({
+    const operation = await this.prisma.operation.create({
       data: {
-        segmentCode: data.segmentCode,
-        segmentName: data.segmentName,
+        operationCode: data.operationCode,
+        operationName: data.operationName,
         description: data.description,
         level: data.level ?? 1,
-        parentSegmentId: data.parentSegmentId,
-        segmentType: data.segmentType as any,
+        parentOperationId: data.parentOperationId,
+        operationType: data.operationType as any,
         category: data.category,
         duration: data.duration,
         setupTime: data.setupTime,
@@ -123,27 +123,27 @@ export class ProcessSegmentService {
       }
     });
 
-    return segment;
+    return operation;
   }
 
   /**
-   * Get process segment by ID
+   * Get operation by ID
    */
-  async getProcessSegmentById(id: string, includeRelations = true) {
-    const segment = await this.prisma.processSegment.findUnique({
+  async getOperationById(id: string, includeRelations = true) {
+    const operation = await this.prisma.operation.findUnique({
       where: { id },
       include: includeRelations ? {
-        parentSegment: true,
-        childSegments: true,
+        parentOperation: true,
+        childOperations: true,
         parameters: true,
         dependencies: {
           include: {
-            prerequisiteSegment: true
+            prerequisiteOperation: true
           }
         },
         prerequisiteFor: {
           include: {
-            dependentSegment: true
+            dependentOperation: true
           }
         },
         personnelSpecs: true,
@@ -153,31 +153,31 @@ export class ProcessSegmentService {
       } : undefined
     });
 
-    if (!segment) {
-      throw new Error(`Process segment ${id} not found`);
+    if (!operation) {
+      throw new Error(`Operation ${id} not found`);
     }
 
-    return segment;
+    return operation;
   }
 
   /**
-   * Get process segment by code
+   * Get operation by code
    */
-  async getProcessSegmentByCode(segmentCode: string, includeRelations = true) {
-    const segment = await this.prisma.processSegment.findUnique({
-      where: { segmentCode },
+  async getOperationByCode(operationCode: string, includeRelations = true) {
+    const operation = await this.prisma.operation.findUnique({
+      where: { operationCode },
       include: includeRelations ? {
-        parentSegment: true,
-        childSegments: true,
+        parentOperation: true,
+        childOperations: true,
         parameters: true,
         dependencies: {
           include: {
-            prerequisiteSegment: true
+            prerequisiteOperation: true
           }
         },
         prerequisiteFor: {
           include: {
-            dependentSegment: true
+            dependentOperation: true
           }
         },
         personnelSpecs: true,
@@ -187,21 +187,21 @@ export class ProcessSegmentService {
       } : undefined
     });
 
-    if (!segment) {
-      throw new Error(`Process segment with code ${segmentCode} not found`);
+    if (!operation) {
+      throw new Error(`Operation with code ${operationCode} not found`);
     }
 
-    return segment;
+    return operation;
   }
 
   /**
-   * Get all process segments with optional filters
+   * Get all operations with optional filters
    */
-  async getAllProcessSegments(filters?: ProcessSegmentFilters, includeRelations = false) {
-    const where: Prisma.ProcessSegmentWhereInput = {};
+  async getAllOperations(filters?: OperationFilters, includeRelations = false) {
+    const where: Prisma.OperationWhereInput = {};
 
-    if (filters?.segmentType) {
-      where.segmentType = filters.segmentType as any;
+    if (filters?.operationType) {
+      where.operationType = filters.operationType as any;
     }
 
     if (filters?.category) {
@@ -212,23 +212,23 @@ export class ProcessSegmentService {
       where.level = filters.level;
     }
 
-    if (filters?.parentSegmentId !== undefined) {
-      where.parentSegmentId = filters.parentSegmentId === 'null' ? null : filters.parentSegmentId;
+    if (filters?.parentOperationId !== undefined) {
+      where.parentOperationId = filters.parentOperationId === 'null' ? null : filters.parentOperationId;
     }
 
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;
     }
 
-    const segments = await this.prisma.processSegment.findMany({
+    const operations = await this.prisma.operation.findMany({
       where,
       include: includeRelations ? {
-        parentSegment: true,
-        childSegments: true,
+        parentOperation: true,
+        childOperations: true,
         parameters: true,
         dependencies: {
           include: {
-            prerequisiteSegment: true
+            prerequisiteOperation: true
           }
         },
         personnelSpecs: true,
@@ -238,48 +238,48 @@ export class ProcessSegmentService {
       } : undefined,
       orderBy: [
         { level: 'asc' },
-        { segmentCode: 'asc' }
+        { operationCode: 'asc' }
       ]
     });
 
-    return segments;
+    return operations;
   }
 
   /**
-   * Update process segment
+   * Update operation
    */
-  async updateProcessSegment(id: string, data: UpdateProcessSegmentData) {
-    // Validate parent segment if changing
-    if (data.parentSegmentId) {
-      const parent = await this.prisma.processSegment.findUnique({
-        where: { id: data.parentSegmentId }
+  async updateOperation(id: string, data: UpdateOperationData) {
+    // Validate parent operation if changing
+    if (data.parentOperationId) {
+      const parent = await this.prisma.operation.findUnique({
+        where: { id: data.parentOperationId }
       });
 
       if (!parent) {
-        throw new Error(`Parent segment ${data.parentSegmentId} not found`);
+        throw new Error(`Parent operation ${data.parentOperationId} not found`);
       }
 
       // Prevent self-parenting
-      if (data.parentSegmentId === id) {
-        throw new Error('Process segment cannot be its own parent');
+      if (data.parentOperationId === id) {
+        throw new Error('Operation cannot be its own parent');
       }
 
       // Prevent circular references by checking if new parent is a descendant
-      const isCircular = await this.isDescendant(data.parentSegmentId, id);
+      const isCircular = await this.isDescendant(data.parentOperationId, id);
       if (isCircular) {
-        throw new Error('Circular reference detected: new parent is a descendant of this segment');
+        throw new Error('Circular reference detected: new parent is a descendant of this operation');
       }
     }
 
     // Update WITHOUT include to avoid Prisma proxy object issues with foreign keys
-    const segment = await this.prisma.processSegment.update({
+    const operation = await this.prisma.operation.update({
       where: { id },
       data: {
-        segmentName: data.segmentName,
+        operationName: data.operationName,
         description: data.description,
         level: data.level,
-        parentSegmentId: data.parentSegmentId,
-        segmentType: data.segmentType as any,
+        parentOperationId: data.parentOperationId,
+        operationType: data.operationType as any,
         category: data.category,
         duration: data.duration,
         setupTime: data.setupTime,
@@ -296,32 +296,32 @@ export class ProcessSegmentService {
       }
     });
 
-    return segment;
+    return operation;
   }
 
   /**
-   * Delete process segment (soft delete by setting isActive = false)
+   * Delete operation (soft delete by setting isActive = false)
    */
-  async deleteProcessSegment(id: string, hardDelete = false) {
-    // Check if segment has children
-    const childCount = await this.prisma.processSegment.count({
-      where: { parentSegmentId: id }
+  async deleteOperation(id: string, hardDelete = false) {
+    // Check if operation has children
+    const childCount = await this.prisma.operation.count({
+      where: { parentOperationId: id }
     });
 
     if (childCount > 0) {
-      throw new Error(`Cannot delete segment: ${childCount} child segments exist. Delete children first.`);
+      throw new Error(`Cannot delete operation: ${childCount} child operations exist. Delete children first.`);
     }
 
     if (hardDelete) {
       // Hard delete - delete dependencies and related records first (cascade delete handles this)
-      await this.prisma.processSegment.delete({
+      await this.prisma.operation.delete({
         where: { id }
       });
 
       return { deleted: true, hardDelete: true };
     } else {
       // Soft delete - just mark as inactive
-      await this.prisma.processSegment.update({
+      await this.prisma.operation.update({
         where: { id },
         data: { isActive: false }
       });
@@ -335,60 +335,60 @@ export class ProcessSegmentService {
   // ======================
 
   /**
-   * Get child segments of a process segment
+   * Get child operations of an operation
    */
-  async getChildSegments(segmentId: string) {
-    const children = await this.prisma.processSegment.findMany({
-      where: { parentSegmentId: segmentId },
+  async getChildOperations(operationId: string) {
+    const children = await this.prisma.operation.findMany({
+      where: { parentOperationId: operationId },
       include: {
-        childSegments: true,
+        childOperations: true,
         parameters: true
       },
-      orderBy: { segmentCode: 'asc' }
+      orderBy: { operationCode: 'asc' }
     });
 
     return children;
   }
 
   /**
-   * Get root segments (top-level, no parent)
+   * Get root operations (top-level, no parent)
    */
-  async getRootSegments() {
-    const roots = await this.prisma.processSegment.findMany({
-      where: { parentSegmentId: null },
+  async getRootOperations() {
+    const roots = await this.prisma.operation.findMany({
+      where: { parentOperationId: null },
       include: {
-        childSegments: true,
+        childOperations: true,
         parameters: true
       },
-      orderBy: { segmentCode: 'asc' }
+      orderBy: { operationCode: 'asc' }
     });
 
     return roots;
   }
 
   /**
-   * Get full hierarchy tree starting from a segment
+   * Get full hierarchy tree starting from an operation
    */
-  async getSegmentHierarchyTree(segmentId: string): Promise<any> {
-    const segment = await this.prisma.processSegment.findUnique({
-      where: { id: segmentId },
+  async getOperationHierarchyTree(operationId: string): Promise<any> {
+    const operation = await this.prisma.operation.findUnique({
+      where: { id: operationId },
       include: {
-        childSegments: true,
+        childOperations: true,
         parameters: true
       }
     });
 
-    if (!segment) {
-      throw new Error(`Segment ${segmentId} not found`);
+    if (!operation) {
+      throw new Error(`Operation ${operationId} not found`);
     }
 
     // Recursively get children
     const children = await Promise.all(
-      segment.childSegments.map(child => this.getSegmentHierarchyTree(child.id))
+      operation.childOperations.map(child => this.getOperationHierarchyTree(child.id))
     );
 
     return {
-      ...segment,
+      ...operation,
       children
     };
   }
@@ -396,36 +396,36 @@ export class ProcessSegmentService {
   /**
    * Get ancestor chain (path to root)
    */
-  async getAncestorChain(segmentId: string): Promise<any[]> {
+  async getAncestorChain(operationId: string): Promise<any[]> {
     const ancestors: any[] = [];
 
-    // First, get the starting segment to find its parent
-    const startSegment = await this.prisma.processSegment.findUnique({
-      where: { id: segmentId },
-      include: { parentSegment: true }
+    // First, get the starting operation to find its parent
+    const startOperation = await this.prisma.operation.findUnique({
+      where: { id: operationId },
+      include: { parentOperation: true }
     });
 
-    if (!startSegment) {
-      throw new Error(`Process segment with ID ${segmentId} not found`);
+    if (!startOperation) {
+      throw new Error(`Operation with ID ${operationId} not found`);
     }
 
-    // Start from the parent (not the segment itself)
-    let currentId: string | null = startSegment.parentSegmentId;
+    // Start from the parent (not the operation itself)
+    let currentId: string | null = startOperation.parentOperationId;
 
     while (currentId) {
-      const segment = await this.prisma.processSegment.findUnique({
+      const operation = await this.prisma.operation.findUnique({
         where: { id: currentId },
-        include: { parentSegment: true }
+        include: { parentOperation: true }
       });
 
-      if (!segment) break;
+      if (!operation) break;
 
-      ancestors.push(segment);
-      currentId = segment.parentSegmentId;
+      ancestors.push(operation);
+      currentId = operation.parentOperationId;
 
       // Prevent infinite loops
       if (ancestors.length > 10) {
-        throw new Error('Circular reference detected in segment hierarchy');
+        throw new Error('Circular reference detected in operation hierarchy');
       }
     }
 
@@ -433,10 +433,10 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Check if segment A is a descendant of segment B
+   * Check if operation A is a descendant of operation B
    */
-  async isDescendant(segmentId: string, potentialAncestorId: string): Promise<boolean> {
-    const ancestors = await this.getAncestorChain(segmentId);
+  async isDescendant(operationId: string, potentialAncestorId: string): Promise<boolean> {
+    const ancestors = await this.getAncestorChain(operationId);
     return ancestors.some(ancestor => ancestor.id === potentialAncestorId);
   }
 
@@ -445,15 +445,15 @@ export class ProcessSegmentService {
   // ======================
 
   /**
-   * Add parameter to segment
+   * Add parameter to operation
    */
-  async addParameter(segmentId: string, parameterData: any) {
-    // Verify segment exists
-    await this.getProcessSegmentById(segmentId, false);
+  async addParameter(operationId: string, parameterData: any) {
+    // Verify operation exists
+    await this.getOperationById(operationId, false);
 
-    const parameter = await this.prisma.processSegmentParameter.create({
+    const parameter = await this.prisma.operationParameter.create({
       data: {
-        segmentId,
+        operationId,
         parameterName: parameterData.parameterName,
         parameterType: parameterData.parameterType,
         dataType: parameterData.dataType,
@@ -474,11 +474,11 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Get all parameters for a segment
+   * Get all parameters for an operation
    */
-  async getSegmentParameters(segmentId: string) {
-    const parameters = await this.prisma.processSegmentParameter.findMany({
-      where: { segmentId },
+  async getOperationParameters(operationId: string) {
+    const parameters = await this.prisma.operationParameter.findMany({
+      where: { operationId },
       orderBy: [
         { displayOrder: 'asc' },
         { parameterName: 'asc' }
@@ -492,7 +492,7 @@ export class ProcessSegmentService {
    * Update parameter
    */
   async updateParameter(parameterId: string, data: any) {
-    const parameter = await this.prisma.processSegmentParameter.update({
+    const parameter = await this.prisma.operationParameter.update({
       where: { id: parameterId },
       data
     });
@@ -504,7 +504,7 @@ export class ProcessSegmentService {
    * Delete parameter
    */
   async deleteParameter(parameterId: string) {
-    await this.prisma.processSegmentParameter.delete({
+    await this.prisma.operationParameter.delete({
       where: { id: parameterId }
     });
 
@@ -516,22 +516,22 @@ export class ProcessSegmentService {
   // ======================
 
   /**
-   * Add dependency between segments
+   * Add dependency between operations
    */
   async addDependency(dependencyData: any) {
-    // Verify both segments exist
-    await this.getProcessSegmentById(dependencyData.dependentSegmentId, false);
-    await this.getProcessSegmentById(dependencyData.prerequisiteSegmentId, false);
+    // Verify both operations exist
+    await this.getOperationById(dependencyData.dependentOperationId, false);
+    await this.getOperationById(dependencyData.prerequisiteOperationId, false);
 
     // Prevent self-dependency
-    if (dependencyData.dependentSegmentId === dependencyData.prerequisiteSegmentId) {
-      throw new Error('Segment cannot depend on itself');
+    if (dependencyData.dependentOperationId === dependencyData.prerequisiteOperationId) {
+      throw new Error('Operation cannot depend on itself');
     }
 
-    const dependency = await this.prisma.processSegmentDependency.create({
+    const dependency = await this.prisma.operationDependency.create({
       data: {
-        dependentSegmentId: dependencyData.dependentSegmentId,
-        prerequisiteSegmentId: dependencyData.prerequisiteSegmentId,
+        dependentOperationId: dependencyData.dependentOperationId,
+        prerequisiteOperationId: dependencyData.prerequisiteOperationId,
         dependencyType: dependencyData.dependencyType,
         timingType: dependencyData.timingType,
         lagTime: dependencyData.lagTime,
@@ -541,8 +541,8 @@ export class ProcessSegmentService {
         notes: dependencyData.notes
       },
       include: {
-        dependentSegment: true,
-        prerequisiteSegment: true
+        dependentOperation: true,
+        prerequisiteOperation: true
       }
     });
 
@@ -550,25 +550,25 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Get all dependencies for a segment (both as dependent and prerequisite)
+   * Get all dependencies for an operation (both as dependent and prerequisite)
    */
-  async getSegmentDependencies(segmentId: string) {
+  async getOperationDependencies(operationId: string) {
     const [dependencies, prerequisites] = await Promise.all([
-      // This segment depends on these
-      this.prisma.processSegmentDependency.findMany({
-        where: { dependentSegmentId: segmentId },
-        include: { prerequisiteSegment: true }
+      // This operation depends on these
+      this.prisma.operationDependency.findMany({
+        where: { dependentOperationId: operationId },
+        include: { prerequisiteOperation: true }
       }),
-      // These segments depend on this one
-      this.prisma.processSegmentDependency.findMany({
-        where: { prerequisiteSegmentId: segmentId },
-        include: { dependentSegment: true }
+      // These operations depend on this one
+      this.prisma.operationDependency.findMany({
+        where: { prerequisiteOperationId: operationId },
+        include: { dependentOperation: true }
       })
     ]);
 
     return {
-      dependencies, // What this segment depends on
-      prerequisites // What depends on this segment
+      dependencies, // What this operation depends on
+      prerequisites // What depends on this operation
     };
   }
 
@@ -576,7 +576,7 @@ export class ProcessSegmentService {
    * Delete dependency
    */
   async deleteDependency(dependencyId: string) {
-    await this.prisma.processSegmentDependency.delete({
+    await this.prisma.operationDependency.delete({
       where: { id: dependencyId }
     });
 
@@ -588,14 +588,14 @@ export class ProcessSegmentService {
   // ======================
 
   /**
-   * Add personnel specification to segment
+   * Add personnel specification to operation
    */
-  async addPersonnelSpec(segmentId: string, specData: any) {
-    await this.getProcessSegmentById(segmentId, false);
+  async addPersonnelSpec(operationId: string, specData: any) {
+    await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.personnelSegmentSpecification.create({
+    const spec = await this.prisma.personnelOperationSpecification.create({
       data: {
-        segmentId,
+        operationId,
         personnelClassId: specData.personnelClassId,
         skillId: specData.skillId,
         minimumCompetency: specData.minimumCompetency,
@@ -612,14 +612,14 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Add equipment specification to segment
+   * Add equipment specification to operation
    */
-  async addEquipmentSpec(segmentId: string, specData: any) {
-    await this.getProcessSegmentById(segmentId, false);
+  async addEquipmentSpec(operationId: string, specData: any) {
+    await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.equipmentSegmentSpecification.create({
+    const spec = await this.prisma.equipmentOperationSpecification.create({
       data: {
-        segmentId,
+        operationId,
         equipmentClass: specData.equipmentClass,
         equipmentType: specData.equipmentType,
         specificEquipmentId: specData.specificEquipmentId,
@@ -637,14 +637,14 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Add material specification to segment
+   * Add material specification to operation
    */
-  async addMaterialSpec(segmentId: string, specData: any) {
-    await this.getProcessSegmentById(segmentId, false);
+  async addMaterialSpec(operationId: string, specData: any) {
+    await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.materialSegmentSpecification.create({
+    const spec = await this.prisma.materialOperationSpecification.create({
       data: {
-        segmentId,
+        operationId,
         materialDefinitionId: specData.materialDefinitionId,
         materialClassId: specData.materialClassId,
         materialType: specData.materialType,
@@ -663,14 +663,14 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Add physical asset specification to segment
+   * Add physical asset specification to operation
    */
-  async addPhysicalAssetSpec(segmentId: string, specData: any) {
-    await this.getProcessSegmentById(segmentId, false);
+  async addPhysicalAssetSpec(operationId: string, specData: any) {
+    await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.physicalAssetSegmentSpecification.create({
+    const spec = await this.prisma.physicalAssetOperationSpecification.create({
       data: {
-        segmentId,
+        operationId,
         assetType: specData.assetType,
         assetCode: specData.assetCode,
         assetName: specData.assetName,
@@ -688,21 +688,21 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Get all resource specifications for a segment
+   * Get all resource specifications for an operation
    */
-  async getSegmentResourceSpecs(segmentId: string) {
+  async getOperationResourceSpecs(operationId: string) {
     const [personnel, equipment, materials, assets] = await Promise.all([
-      this.prisma.personnelSegmentSpecification.findMany({
-        where: { segmentId }
+      this.prisma.personnelOperationSpecification.findMany({
+        where: { operationId }
       }),
-      this.prisma.equipmentSegmentSpecification.findMany({
-        where: { segmentId }
+      this.prisma.equipmentOperationSpecification.findMany({
+        where: { operationId }
       }),
-      this.prisma.materialSegmentSpecification.findMany({
-        where: { segmentId }
+      this.prisma.materialOperationSpecification.findMany({
+        where: { operationId }
       }),
-      this.prisma.physicalAssetSegmentSpecification.findMany({
-        where: { segmentId }
+      this.prisma.physicalAssetOperationSpecification.findMany({
+        where: { operationId }
       })
     ]);
 
@@ -719,53 +719,53 @@ export class ProcessSegmentService {
   // ======================
 
   /**
-   * Get process segment statistics
+   * Get operation statistics
    */
   async getStatistics() {
     const [
-      totalSegments,
-      segmentsByType,
-      segmentsByLevel,
-      activeSegments,
-      approvedSegments
+      totalOperations,
+      operationsByType,
+      operationsByLevel,
+      activeOperations,
+      approvedOperations
     ] = await Promise.all([
-      this.prisma.processSegment.count(),
-      this.prisma.processSegment.groupBy({
-        by: ['segmentType'],
+      this.prisma.operation.count(),
+      this.prisma.operation.groupBy({
+        by: ['operationType'],
         _count: true
       }),
-      this.prisma.processSegment.groupBy({
+      this.prisma.operation.groupBy({
         by: ['level'],
         _count: true,
         orderBy: { level: 'asc' }
       }),
-      this.prisma.processSegment.count({ where: { isActive: true } }),
-      this.prisma.processSegment.count({ where: { requiresApproval: true, approvedAt: { not: null } } })
+      this.prisma.operation.count({ where: { isActive: true } }),
+      this.prisma.operation.count({ where: { requiresApproval: true, approvedAt: { not: null } } })
     ]);
 
     return {
-      totalSegments,
-      segmentsByType,
-      segmentsByLevel,
-      activeSegments,
-      inactiveSegments: totalSegments - activeSegments,
-      approvedSegments
+      totalOperations,
+      operationsByType,
+      operationsByLevel,
+      activeOperations,
+      inactiveOperations: totalOperations - activeOperations,
+      approvedOperations
     };
   }
 
   /**
-   * Get total estimated time for a segment (including all children)
+   * Get total estimated time for an operation (including all children)
    */
-  async getSegmentTotalTime(segmentId: string): Promise<number> {
-    const segment = await this.getProcessSegmentById(segmentId, true);
+  async getOperationTotalTime(operationId: string): Promise<number> {
+    const operation = await this.getOperationById(operationId, true);
 
-    let totalTime = segment.duration ?? 0;
-    totalTime += segment.setupTime ?? 0;
-    totalTime += segment.teardownTime ?? 0;
+    let totalTime = operation.duration ?? 0;
+    totalTime += operation.setupTime ?? 0;
+    totalTime += operation.teardownTime ?? 0;
 
-    // Add child segment times recursively
-    for (const child of segment.childSegments) {
-      totalTime += await this.getSegmentTotalTime(child.id);
+    // Add child operation times recursively
+    for (const child of operation.childOperations) {
+      totalTime += await this.getOperationTotalTime(child.id);
     }
 
     return totalTime;
@@ -776,15 +776,15 @@ export class ProcessSegmentService {
   // ============================================================================
 
   /**
-   * Assign standard work instruction to process segment
+   * Assign standard work instruction to operation
    * This WI will be the default for all routing steps using this operation
    */
   async assignStandardWorkInstruction(
-    segmentId: string,
+    operationId: string,
     workInstructionId: string
   ) {
-    // Validate segment exists
-    await this.getProcessSegmentById(segmentId, false);
+    // Validate operation exists
+    await this.getOperationById(operationId, false);
 
     // Validate work instruction exists
     const workInstruction = await this.prisma.workInstruction.findUnique({
@@ -795,9 +795,9 @@ export class ProcessSegmentService {
       throw new Error(`Work instruction ${workInstructionId} not found`);
     }
 
-    // Update segment with standard WI
-    const updated = await this.prisma.processSegment.update({
-      where: { id: segmentId },
+    // Update operation with standard WI
+    const updated = await this.prisma.operation.update({
+      where: { id: operationId },
       data: { standardWorkInstructionId: workInstructionId },
       include: {
         standardWorkInstruction: true
@@ -808,13 +808,13 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Remove standard work instruction from process segment
+   * Remove standard work instruction from operation
    */
-  async removeStandardWorkInstruction(segmentId: string) {
-    await this.getProcessSegmentById(segmentId, false);
+  async removeStandardWorkInstruction(operationId: string) {
+    await this.getOperationById(operationId, false);
 
-    const updated = await this.prisma.processSegment.update({
-      where: { id: segmentId },
+    const updated = await this.prisma.operation.update({
+      where: { id: operationId },
       data: { standardWorkInstructionId: null }
     });
 
@@ -822,11 +822,11 @@ export class ProcessSegmentService {
   }
 
   /**
-   * Get standard work instruction for a process segment
+   * Get standard work instruction for an operation
    */
-  async getStandardWorkInstruction(segmentId: string) {
-    const segment = await this.prisma.processSegment.findUnique({
-      where: { id: segmentId },
+  async getStandardWorkInstruction(operationId: string) {
+    const operation = await this.prisma.operation.findUnique({
+      where: { id: operationId },
       include: {
         standardWorkInstruction: {
           include: {
@@ -836,11 +836,11 @@ export class ProcessSegmentService {
       }
     });
 
-    if (!segment) {
-      throw new Error(`Process segment ${segmentId} not found`);
+    if (!operation) {
+      throw new Error(`Operation ${operationId} not found`);
     }
 
-    return segment.standardWorkInstruction;
+    return operation.standardWorkInstruction;
   }
 
   // ============================================================================
@@ -848,38 +848,35 @@ export class ProcessSegmentService {
   // ============================================================================
 
   /**
-   * Get operation by operation code (Oracle ERP alias for segmentCode)
-   * Searches both operationCode and segmentCode for compatibility
+   * Get operation by operation code (Oracle ERP alias)
+   * Searches operationCode field
    */
-  async getOperationByCode(operationCode: string) {
-    const segment = await this.prisma.processSegment.findFirst({
+  async getByOperationCode(operationCode: string) {
+    const operation = await this.prisma.operation.findFirst({
       where: {
-        OR: [
-          { operationCode },
-          { segmentCode: operationCode } // Fallback to segmentCode
-        ],
+        operationCode,
         isActive: true
       },
       include: {
-        parentSegment: true,
-        childSegments: true,
+        parentOperation: true,
+        childOperations: true,
         parameters: true,
         standardWorkInstruction: true
       }
     });
 
-    if (!segment) {
+    if (!operation) {
       throw new Error(`Operation with code ${operationCode} not found`);
     }
 
-    return segment;
+    return operation;
   }
 
   /**
    * Get operations by classification (Oracle-style MAKE, ASSEMBLY, INSPECTION, etc.)
    */
   async getOperationsByClassification(classification: string) {
-    const segments = await this.prisma.processSegment.findMany({
+    const operations = await this.prisma.operation.findMany({
       where: {
         operationClassification: classification as any,
         isActive: true
@@ -890,32 +887,32 @@ export class ProcessSegmentService {
       },
       orderBy: [
         { level: 'asc' },
-        { segmentCode: 'asc' }
+        { operationCode: 'asc' }
       ]
     });
 
-    return segments;
+    return operations;
   }
 
   /**
    * Update operation terminology fields (for Oracle/Teamcenter alignment)
    */
   async updateOperationTerminology(
-    segmentId: string,
+    operationId: string,
     data: {
       operationCode?: string;
       operationName?: string;
       operationClassification?: string;
     }
   ) {
-    await this.getProcessSegmentById(segmentId, false);
+    await this.getOperationById(operationId, false);
 
     // Validate operationCode uniqueness if provided
     if (data.operationCode) {
-      const existing = await this.prisma.processSegment.findFirst({
+      const existing = await this.prisma.operation.findFirst({
         where: {
           operationCode: data.operationCode,
-          id: { not: segmentId }
+          id: { not: operationId }
         }
       });
 
@@ -926,8 +923,8 @@ export class ProcessSegmentService {
       }
     }
 
-    const updated = await this.prisma.processSegment.update({
-      where: { id: segmentId },
+    const updated = await this.prisma.operation.update({
+      where: { id: operationId },
       data: {
         operationCode: data.operationCode,
         operationName: data.operationName,
@@ -942,11 +939,9 @@ export class ProcessSegmentService {
    * Search operations (searches both ISA-95 and Oracle terminology)
    */
   async searchOperations(searchTerm: string) {
-    const segments = await this.prisma.processSegment.findMany({
+    const operations = await this.prisma.operation.findMany({
       where: {
         OR: [
-          { segmentCode: { contains: searchTerm, mode: 'insensitive' } },
-          { segmentName: { contains: searchTerm, mode: 'insensitive' } },
           { operationCode: { contains: searchTerm, mode: 'insensitive' } },
           { operationName: { contains: searchTerm, mode: 'insensitive' } },
           { description: { contains: searchTerm, mode: 'insensitive' } }
@@ -960,12 +955,12 @@ export class ProcessSegmentService {
       take: 50, // Limit results for performance
       orderBy: [
         { level: 'asc' },
-        { segmentCode: 'asc' }
+        { operationCode: 'asc' }
       ]
     });
 
-    return segments;
+    return operations;
   }
 }
 
-export default new ProcessSegmentService();
+export default new OperationService();

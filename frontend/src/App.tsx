@@ -58,9 +58,9 @@ import MaterialsPage from '@/pages/Materials/MaterialsPage';
 import PersonnelPage from '@/pages/Personnel/PersonnelPage';
 import AdminPage from '@/pages/Admin/AdminPage';
 
-// Process Segments (Manufacturing Routes) - Sprint 6
-import ProcessSegmentListPage from '@/pages/ProcessSegments/ProcessSegmentListPage';
-import ProcessSegmentCreatePage from '@/pages/ProcessSegments/ProcessSegmentCreatePage';
+// Operations (Manufacturing Operations) - Sprint 6
+import OperationListPage from '@/pages/Operations/OperationListPage';
+import OperationCreatePage from '@/pages/Operations/OperationCreatePage';
 
 // Routing Management (Sprint 4 - Multi-Site Routing)
 import RoutingListPage from '@/pages/Routing/RoutingListPage';
@@ -357,20 +357,20 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Process Segments - Manufacturing Routes (Sprint 6) */}
+        {/* Operations - Manufacturing Operations (Sprint 6) */}
         <Route
-          path="/process-segments"
+          path="/operations"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
-              <ProcessSegmentListPage />
+              <OperationListPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/process-segments/create"
+          path="/operations/create"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
-              <ProcessSegmentCreatePage />
+              <OperationCreatePage />
             </ProtectedRoute>
           }
         />

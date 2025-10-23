@@ -67,10 +67,10 @@ export interface RoutingStep {
   id: string;
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string; // ISA-95: processSegmentId
   workCenterId?: string;
 
-  // Timing overrides (optional, defaults come from ProcessSegment)
+  // Timing overrides (optional, defaults come from Operation)
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
   teardownTimeOverride?: number;
@@ -80,7 +80,7 @@ export interface RoutingStep {
   isQualityInspection: boolean;
   isCriticalPath: boolean;
 
-  // Work instruction linkage (NEW) - overrides ProcessSegment standard WI
+  // Work instruction linkage (NEW) - overrides Operation standard WI
   workInstructionId?: string;
 
   // Instructions
@@ -94,7 +94,8 @@ export interface RoutingStep {
 
 /**
  * RoutingStepParameter - Parameter override for a routing step
- * Overrides ProcessSegment base parameter values for site-specific tuning
+ * Overrides Operation base parameter values for site-specific tuning
+ * ISA-95: Overrides ProcessSegment base parameter values
  */
 export interface RoutingStepParameter {
   id: string;
@@ -182,10 +183,10 @@ export interface RoutingWithRelations extends Routing {
  */
 export interface RoutingStepWithRelations extends RoutingStep {
   routing?: Routing;
-  processSegment?: {
+  operation?: {
     id: string;
-    segmentName: string;
-    segmentType: string;
+    operationName: string;
+    operationType: string;
     setupTime?: number;
     duration?: number;
     teardownTime?: number;
@@ -257,7 +258,7 @@ export interface CreateRoutingDTO {
 export interface CreateRoutingStepDTO {
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string;
   workCenterId?: string;
 
   // Timing overrides
@@ -362,7 +363,7 @@ export interface UpdateRoutingDTO {
  */
 export interface UpdateRoutingStepDTO {
   stepNumber?: number;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
 
   // Timing overrides
@@ -422,7 +423,7 @@ export interface RoutingQueryParams {
  */
 export interface RoutingStepQueryParams {
   routingId?: string;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
   isOptional?: boolean;
   isQualityInspection?: boolean;
