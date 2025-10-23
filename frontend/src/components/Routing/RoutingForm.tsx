@@ -377,6 +377,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         </div>
       ) : (
         /* Form Editor Mode */
+        <>
         <Card>
         <Form
           form={form}
@@ -598,6 +599,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
             style={{ marginTop: '24px' }}
           />
         )}
+      </>
       )}
     </div>
   );
