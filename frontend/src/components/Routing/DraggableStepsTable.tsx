@@ -98,8 +98,8 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       sorter: (a, b) => a.stepNumber - b.stepNumber,
     },
     {
-      title: 'Process Segment',
-      key: 'processSegment',
+      title: 'Operation', // ISA-95: Process Segment
+      key: 'operation',
       width: '25%',
       render: (_, record) => (
         <div>
