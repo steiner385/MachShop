@@ -770,6 +770,202 @@ export class ProcessSegmentService {
 
     return totalTime;
   }
+
+  // ============================================================================
+  // NEW: Work Instruction Linkage Methods (MES Enhancement Phase 1)
+  // ============================================================================
+
+  /**
+   * Assign standard work instruction to process segment
+   * This WI will be the default for all routing steps using this operation
+   */
+  async assignStandardWorkInstruction(
+    segmentId: string,
+    workInstructionId: string
+  ) {
+    // Validate segment exists
+    await this.getProcessSegmentById(segmentId, false);
+
+    // Validate work instruction exists
+    const workInstruction = await this.prisma.workInstruction.findUnique({
+      where: { id: workInstructionId }
+    });
+
+    if (!workInstruction) {
+      throw new Error(`Work instruction ${workInstructionId} not found`);
+    }
+
+    // Update segment with standard WI
+    const updated = await this.prisma.processSegment.update({
+      where: { id: segmentId },
+      data: { standardWorkInstructionId: workInstructionId },
+      include: {
+        standardWorkInstruction: true
+      }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove standard work instruction from process segment
+   */
+  async removeStandardWorkInstruction(segmentId: string) {
+    await this.getProcessSegmentById(segmentId, false);
+
+    const updated = await this.prisma.processSegment.update({
+      where: { id: segmentId },
+      data: { standardWorkInstructionId: null }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Get standard work instruction for a process segment
+   */
+  async getStandardWorkInstruction(segmentId: string) {
+    const segment = await this.prisma.processSegment.findUnique({
+      where: { id: segmentId },
+      include: {
+        standardWorkInstruction: {
+          include: {
+            steps: true
+          }
+        }
+      }
+    });
+
+    if (!segment) {
+      throw new Error(`Process segment ${segmentId} not found`);
+    }
+
+    return segment.standardWorkInstruction;
+  }
+
+  // ============================================================================
+  // NEW: Oracle/Teamcenter Terminology Aliases (MES Enhancement Phase 4)
+  // ============================================================================
+
+  /**
+   * Get operation by operation code (Oracle ERP alias for segmentCode)
+   * Searches both operationCode and segmentCode for compatibility
+   */
+  async getOperationByCode(operationCode: string) {
+    const segment = await this.prisma.processSegment.findFirst({
+      where: {
+        OR: [
+          { operationCode },
+          { segmentCode: operationCode } // Fallback to segmentCode
+        ],
+        isActive: true
+      },
+      include: {
+        parentSegment: true,
+        childSegments: true,
+        parameters: true,
+        standardWorkInstruction: true
+      }
+    });
+
+    if (!segment) {
+      throw new Error(`Operation with code ${operationCode} not found`);
+    }
+
+    return segment;
+  }
+
+  /**
+   * Get operations by classification (Oracle-style MAKE, ASSEMBLY, INSPECTION, etc.)
+   */
+  async getOperationsByClassification(classification: string) {
+    const segments = await this.prisma.processSegment.findMany({
+      where: {
+        operationClassification: classification as any,
+        isActive: true
+      },
+      include: {
+        parameters: true,
+        standardWorkInstruction: true
+      },
+      orderBy: [
+        { level: 'asc' },
+        { segmentCode: 'asc' }
+      ]
+    });
+
+    return segments;
+  }
+
+  /**
+   * Update operation terminology fields (for Oracle/Teamcenter alignment)
+   */
+  async updateOperationTerminology(
+    segmentId: string,
+    data: {
+      operationCode?: string;
+      operationName?: string;
+      operationClassification?: string;
+    }
+  ) {
+    await this.getProcessSegmentById(segmentId, false);
+
+    // Validate operationCode uniqueness if provided
+    if (data.operationCode) {
+      const existing = await this.prisma.processSegment.findFirst({
+        where: {
+          operationCode: data.operationCode,
+          id: { not: segmentId }
+        }
+      });
+
+      if (existing) {
+        throw new Error(
+          `Operation code ${data.operationCode} is already in use`
+        );
+      }
+    }
+
+    const updated = await this.prisma.processSegment.update({
+      where: { id: segmentId },
+      data: {
+        operationCode: data.operationCode,
+        operationName: data.operationName,
+        operationClassification: data.operationClassification as any
+      }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Search operations (searches both ISA-95 and Oracle terminology)
+   */
+  async searchOperations(searchTerm: string) {
+    const segments = await this.prisma.processSegment.findMany({
+      where: {
+        OR: [
+          { segmentCode: { contains: searchTerm, mode: 'insensitive' } },
+          { segmentName: { contains: searchTerm, mode: 'insensitive' } },
+          { operationCode: { contains: searchTerm, mode: 'insensitive' } },
+          { operationName: { contains: searchTerm, mode: 'insensitive' } },
+          { description: { contains: searchTerm, mode: 'insensitive' } }
+        ],
+        isActive: true
+      },
+      include: {
+        parameters: true,
+        standardWorkInstruction: true
+      },
+      take: 50, // Limit results for performance
+      orderBy: [
+        { level: 'asc' },
+        { segmentCode: 'asc' }
+      ]
+    });
+
+    return segments;
+  }
 }
 
 export default new ProcessSegmentService();

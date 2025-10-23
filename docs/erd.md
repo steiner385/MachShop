@@ -167,6 +167,19 @@ OTHER OTHER
     
 
 
+        OperationClassification {
+            MAKE MAKE
+ASSEMBLY ASSEMBLY
+INSPECTION INSPECTION
+TEST TEST
+REWORK REWORK
+SETUP SETUP
+SUBCONTRACT SUBCONTRACT
+PACKING PACKING
+        }
+    
+
+
         ParameterType {
             INPUT INPUT
 OUTPUT OUTPUT
@@ -302,6 +315,16 @@ REVIEW REVIEW
 RELEASED RELEASED
 PRODUCTION PRODUCTION
 OBSOLETE OBSOLETE
+        }
+    
+
+
+        RoutingType {
+            PRIMARY PRIMARY
+ALTERNATE ALTERNATE
+REWORK REWORK
+PROTOTYPE PROTOTYPE
+ENGINEERING ENGINEERING
         }
     
 
@@ -992,6 +1015,9 @@ CANCELLED CANCELLED
     String segmentName 
     String description "❓"
     Boolean isStandardOperation 
+    String operationCode "❓"
+    String operationName "❓"
+    OperationClassification operationClassification "❓"
     Int level 
     ProcessSegmentType segmentType 
     String category "❓"
@@ -1292,6 +1318,8 @@ CANCELLED CANCELLED
     Boolean isActive 
     DateTime effectiveDate "❓"
     DateTime expirationDate "❓"
+    RoutingType routingType 
+    Int priority 
     String approvedBy "❓"
     DateTime approvedAt "❓"
     DateTime createdAt 
@@ -1337,6 +1365,17 @@ CANCELLED CANCELLED
     Int lagTime "❓"
     Int leadTime "❓"
     DateTime createdAt 
+    }
+  
+
+  "routing_step_parameters" {
+    String id "🗝️"
+    String parameterName 
+    String parameterValue 
+    String unitOfMeasure "❓"
+    String notes "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
     }
   
 
@@ -1803,6 +1842,8 @@ CANCELLED CANCELLED
     Json approvalHistory "❓"
     DateTime createdAt 
     DateTime updatedAt 
+    String operationType "❓"
+    Boolean requiredForExecution 
     }
   
 
@@ -2527,6 +2568,8 @@ CANCELLED CANCELLED
     "material_state_history" o|--|o "MaterialLotStatus" : "enum:newStatus"
     "material_state_history" o|--|| "StateTransitionType" : "enum:transitionType"
     "material_state_history" o|--|| "material_lots" : "lot"
+    "process_segments" o|--|o "OperationClassification" : "enum:operationClassification"
+    "process_segments" o|--|o "work_instructions" : "standardWorkInstruction"
     "process_segments" o|--|| "ProcessSegmentType" : "enum:segmentType"
     "process_segments" o|--|o "process_segments" : "parentSegment"
     "process_segments" o|--|o "sites" : "site"
@@ -2613,24 +2656,29 @@ CANCELLED CANCELLED
     "work_orders" o{--}o "qif_measurement_plans" : ""
     "work_orders" o{--}o "qif_measurement_results" : ""
     "routings" o|--|| "RoutingLifecycleState" : "enum:lifecycleState"
+    "routings" o|--|| "RoutingType" : "enum:routingType"
     "routings" o|--|o "parts" : "part"
     "routings" o|--|o "sites" : "site"
     "routings" o{--}o "routing_steps" : ""
     "routings" o{--}o "routing_operations" : ""
     "routings" o{--}o "schedule_entries" : ""
+    "routings" o|--|o "routings" : "alternateFor"
     "routing_operations" o|--|| "routings" : "routing"
     "routing_operations" o|--|o "work_centers" : "workCenter"
     "routing_operations" o{--}o "work_order_operations" : ""
+    "routing_steps" o|--|o "work_instructions" : "workInstruction"
     "routing_steps" o|--|| "routings" : "routing"
     "routing_steps" o|--|| "process_segments" : "processSegment"
     "routing_steps" o|--|o "work_centers" : "workCenter"
     "routing_steps" o{--}o "routing_step_dependencies" : ""
     "routing_steps" o{--}o "routing_step_dependencies" : ""
     "routing_steps" o{--}o "work_order_operations" : ""
+    "routing_steps" o{--}o "routing_step_parameters" : ""
     "routing_step_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
     "routing_step_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
     "routing_step_dependencies" o|--|| "routing_steps" : "dependentStep"
     "routing_step_dependencies" o|--|| "routing_steps" : "prerequisiteStep"
+    "routing_step_parameters" o|--|| "routing_steps" : "routingStep"
     "work_centers" o|--|o "areas" : "area"
     "work_centers" o{--}o "work_units" : ""
     "work_centers" o{--}o "equipment" : ""

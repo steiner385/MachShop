@@ -806,6 +806,15 @@ model ProcessSegment {
   siteId              String? // NULL = global/standard operation, NOT NULL = site-specific
   isStandardOperation Boolean @default(false) // Can be reused across routes?
 
+  // NEW: Oracle/Teamcenter terminology aliases
+  operationCode           String? // Alias for segmentCode (Oracle ERP naming)
+  operationName           String? // Alias for segmentName (Oracle ERP naming)
+  operationClassification OperationClassification? // Oracle-style classification
+
+  // NEW: Work instruction linkage
+  standardWorkInstructionId String? // Standard work instruction for this operation
+  standardWorkInstruction   WorkInstruction? @relation("ProcessSegmentStandardWI", fields: [standardWorkInstructionId], references: [id])
+
   // Hierarchy support
   level           Int     @default(1) // Hierarchy level (1=top-level operation, 5=detailed step)
   parentSegmentId String? // Parent process segment for hierarchical operations
@@ -870,6 +879,18 @@ enum ProcessSegmentType {
   TESTING // Testing and validation
   REWORK // Rework operations
   OTHER // Other process types
+}
+
+// NEW: Oracle/Teamcenter-style operation classification
+enum OperationClassification {
+  MAKE // Fabrication/manufacturing operations
+  ASSEMBLY // Assembly operations
+  INSPECTION // Quality inspection operations
+  TEST // Testing operations
+  REWORK // Rework/repair operations
+  SETUP // Setup/teardown operations
+  SUBCONTRACT // Outside processing/subcontract
+  PACKING // Packaging operations
 }
 
 // Process Segment Parameters (Input/output parameters and their values)
@@ -1588,6 +1609,15 @@ enum RoutingLifecycleState {
   OBSOLETE // No longer used, kept for historical reference
 }
 
+// NEW: Routing type classification (Oracle ERP-style)
+enum RoutingType {
+  PRIMARY // Main production route
+  ALTERNATE // Alternative production method (different equipment/process)
+  REWORK // For rework/repair operations
+  PROTOTYPE // For prototype/sample runs
+  ENGINEERING // Engineering test routing
+}
+
 // Routing and Operations
 model Routing {
   id             String                @id @default(cuid())
@@ -1599,10 +1629,15 @@ model Routing {
   description    String?               @db.Text
 
   // Route attributes
-  isPrimaryRoute Boolean   @default(false) // NEW: Is this the preferred route for this part at this site?
+  isPrimaryRoute Boolean   @default(false) // DEPRECATED: Use routingType instead (kept for backward compatibility)
   isActive       Boolean   @default(true)
   effectiveDate  DateTime? // NEW: When route becomes active
   expirationDate DateTime? // NEW: When route expires
+
+  // NEW: Routing type classification (Oracle ERP-style)
+  routingType    RoutingType @default(PRIMARY) // PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING
+  alternateForId String? // If ALTERNATE, links to PRIMARY routing
+  priority       Int         @default(1) // Selection priority (1=highest)
 
   // Approval tracking
   approvedBy String?
@@ -1622,12 +1657,18 @@ model Routing {
   workOrders      WorkOrder[]
   scheduleEntries ScheduleEntry[] // Schedule entries using this routing
 
+  // NEW: Alternate routing relations
+  alternateFor    Routing?  @relation("AlternateRoutes", fields: [alternateForId], references: [id])
+  alternateRoutes Routing[] @relation("AlternateRoutes")
+
   // Indexes
   @@unique([partId, siteId, version]) // NEW: One route per part+site+version
   @@index([siteId])
   @@index([partId])
   @@index([lifecycleState])
   @@index([isActive])
+  @@index([partId, siteId, routingType]) // NEW: Index for routing type queries
+  @@index([alternateForId]) // NEW: Index for alternate routing lookups
   @@map("routings")
 }
 
@@ -1671,6 +1712,10 @@ model RoutingStep {
   isQualityInspection Boolean @default(false) // Is this a quality checkpoint?
   isCriticalPath      Boolean @default(false) // Is this on critical path for scheduling?
 
+  // NEW: Work instruction linkage (overrides ProcessSegment standard WI)
+  workInstructionId String? // Override standard work instruction for this routing step
+  workInstruction   WorkInstruction? @relation("RoutingStepWorkInstruction", fields: [workInstructionId], references: [id])
+
   // Instructions
   stepInstructions String? @db.Text // Additional instructions specific to this route
   notes            String? @db.Text
@@ -1686,6 +1731,7 @@ model RoutingStep {
   dependencies        RoutingStepDependency[] @relation("DependentStep")
   prerequisites       RoutingStepDependency[] @relation("PrerequisiteStep")
   workOrderOperations WorkOrderOperation[] // When work orders are created from this route
+  parameterOverrides  RoutingStepParameter[] // NEW: Parameter overrides for this routing step
 
   // Indexes
   @@unique([routingId, stepNumber]) // One step number per route
@@ -1721,6 +1767,27 @@ model RoutingStepDependency {
   @@index([dependentStepId])
   @@index([prerequisiteStepId])
   @@map("routing_step_dependencies")
+}
+
+// NEW: Routing Step Parameter Overrides - Site-specific parameter tuning
+model RoutingStepParameter {
+  id            String      @id @default(cuid())
+  routingStepId String
+  routingStep   RoutingStep @relation(fields: [routingStepId], references: [id], onDelete: Cascade)
+
+  // Parameter definition
+  parameterName  String // e.g., "spindle_speed", "feed_rate", "temperature"
+  parameterValue String // Override value
+  unitOfMeasure  String? // e.g., "RPM", "IPM", "°F", "PSI"
+
+  // Metadata
+  notes     String?  @db.Text // Why this override is needed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([routingStepId, parameterName]) // One override per parameter per step
+  @@index([routingStepId])
+  @@map("routing_step_parameters")
 }
 
 // Work Centers (ISA-95 Level 3)
@@ -2779,7 +2846,7 @@ model WorkInstruction {
   title           String
   description     String?               @db.Text
   partId          String? // Optional link to Part
-  operationId     String? // Optional link to RoutingOperation
+  operationId     String? // DEPRECATED: Optional link to RoutingOperation (use processSegmentStandard or routingStepOverrides instead)
   version         String                @default("1.0.0")
   status          WorkInstructionStatus @default(DRAFT)
   effectiveDate   DateTime?
@@ -2793,11 +2860,17 @@ model WorkInstruction {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
+  // NEW: Enhanced work instruction attributes
+  operationType        String? // SETUP, PROCESS, INSPECTION, REWORK, etc.
+  requiredForExecution Boolean @default(false) // Must be completed before operation starts
+
   // Relations
-  createdBy  User                  @relation("WorkInstructionCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User                  @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User?                 @relation("WorkInstructionApprovedBy", fields: [approvedById], references: [id])
-  steps      WorkInstructionStep[]
+  createdBy              User                  @relation("WorkInstructionCreatedBy", fields: [createdById], references: [id])
+  updatedBy              User                  @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy             User?                 @relation("WorkInstructionApprovedBy", fields: [approvedById], references: [id])
+  steps                  WorkInstructionStep[]
+  processSegmentStandard ProcessSegment[]      @relation("ProcessSegmentStandardWI") // NEW: Standard WI for operations
+  routingStepOverrides   RoutingStep[]         @relation("RoutingStepWorkInstruction") // NEW: Route-specific overrides
 
   @@index([status])
   @@index([partId])

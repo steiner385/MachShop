@@ -1603,6 +1603,400 @@ export class RoutingService {
       updatedAt: template.updatedAt
     };
   }
+
+  // ============================================================================
+  // NEW: Routing Type Methods (MES Enhancement Phase 3)
+  // ============================================================================
+
+  /**
+   * Get routings by type (PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING)
+   */
+  async getRoutingsByType(
+    partId: string,
+    siteId: string,
+    routingType: string
+  ) {
+    const routings = await prisma.routing.findMany({
+      where: {
+        partId,
+        siteId,
+        routingType: routingType as any,
+        isActive: true
+      },
+      include: {
+        part: true,
+        site: true,
+        steps: {
+          include: {
+            processSegment: true,
+            workCenter: true,
+            workInstruction: true
+          }
+        }
+      },
+      orderBy: [
+        { priority: 'asc' }, // Lower priority number = higher priority
+        { version: 'desc' }
+      ]
+    });
+
+    return routings;
+  }
+
+  /**
+   * Get PRIMARY routing for a part at a site
+   */
+  async getPrimaryRouting(partId: string, siteId: string) {
+    const routing = await prisma.routing.findFirst({
+      where: {
+        partId,
+        siteId,
+        routingType: 'PRIMARY',
+        isActive: true
+      },
+      include: {
+        part: true,
+        site: true,
+        steps: {
+          include: {
+            processSegment: true,
+            workCenter: true,
+            workInstruction: true,
+            parameterOverrides: true
+          },
+          orderBy: { stepNumber: 'asc' }
+        }
+      },
+      orderBy: { priority: 'asc' } // Get highest priority (lowest number)
+    });
+
+    return routing;
+  }
+
+  /**
+   * Get ALTERNATE routings for a PRIMARY routing
+   */
+  async getAlternateRoutings(primaryRoutingId: string) {
+    // Verify primary routing exists
+    const primary = await prisma.routing.findUnique({
+      where: { id: primaryRoutingId }
+    });
+
+    if (!primary) {
+      throw new Error(`Routing ${primaryRoutingId} not found`);
+    }
+
+    if (primary.routingType !== 'PRIMARY') {
+      throw new Error(
+        `Routing ${primaryRoutingId} is not a PRIMARY routing`
+      );
+    }
+
+    const alternates = await prisma.routing.findMany({
+      where: {
+        alternateForId: primaryRoutingId,
+        routingType: 'ALTERNATE',
+        isActive: true
+      },
+      include: {
+        steps: {
+          include: {
+            processSegment: true,
+            workCenter: true
+          },
+          orderBy: { stepNumber: 'asc' }
+        }
+      },
+      orderBy: { priority: 'asc' }
+    });
+
+    return alternates;
+  }
+
+  /**
+   * Validate alternate routing (must link to PRIMARY)
+   */
+  async validateAlternateRouting(routingId: string) {
+    const routing = await prisma.routing.findUnique({
+      where: { id: routingId },
+      include: {
+        alternateFor: true
+      }
+    });
+
+    if (!routing) {
+      throw new Error(`Routing ${routingId} not found`);
+    }
+
+    if (routing.routingType === 'ALTERNATE') {
+      if (!routing.alternateForId) {
+        throw new Error(
+          'ALTERNATE routing must reference a PRIMARY routing via alternateForId'
+        );
+      }
+
+      if (routing.alternateFor?.routingType !== 'PRIMARY') {
+        throw new Error(
+          'alternateForId must reference a routing with routingType=PRIMARY'
+        );
+      }
+
+      // Validate same part and site
+      if (
+        routing.partId !== routing.alternateFor.partId ||
+        routing.siteId !== routing.alternateFor.siteId
+      ) {
+        throw new Error(
+          'ALTERNATE routing must be for the same part and site as the PRIMARY'
+        );
+      }
+    }
+
+    return true;
+  }
+
+  // ============================================================================
+  // NEW: Routing Step Parameter Override Methods (MES Enhancement Phase 2)
+  // ============================================================================
+
+  /**
+   * Set parameter override for a routing step
+   */
+  async setRoutingStepParameterOverride(
+    stepId: string,
+    parameterName: string,
+    parameterValue: string,
+    unitOfMeasure?: string,
+    notes?: string
+  ) {
+    // Verify routing step exists
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: { processSegment: true }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Upsert parameter override
+    const override = await prisma.routingStepParameter.upsert({
+      where: {
+        routingStepId_parameterName: {
+          routingStepId: stepId,
+          parameterName
+        }
+      },
+      update: {
+        parameterValue,
+        unitOfMeasure,
+        notes
+      },
+      create: {
+        routingStepId: stepId,
+        parameterName,
+        parameterValue,
+        unitOfMeasure,
+        notes
+      }
+    });
+
+    return override;
+  }
+
+  /**
+   * Get parameter overrides for a routing step
+   */
+  async getRoutingStepParameterOverrides(stepId: string) {
+    const overrides = await prisma.routingStepParameter.findMany({
+      where: { routingStepId: stepId },
+      orderBy: { parameterName: 'asc' }
+    });
+
+    return overrides;
+  }
+
+  /**
+   * Get effective parameters for a routing step
+   * (merges ProcessSegment base parameters with routing step overrides)
+   */
+  async getEffectiveStepParameters(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: {
+        processSegment: {
+          include: {
+            parameters: true
+          }
+        },
+        parameterOverrides: true
+      }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Start with base parameters from ProcessSegment
+    const effectiveParameters = step.processSegment.parameters.map((p) => ({
+      parameterName: p.parameterName,
+      parameterValue: p.defaultValue || '',
+      unitOfMeasure: p.unitOfMeasure || null,
+      source: 'process_segment',
+      isOverridden: false
+    }));
+
+    // Apply overrides
+    const overrideMap = new Map(
+      step.parameterOverrides.map((o) => [o.parameterName, o])
+    );
+
+    effectiveParameters.forEach((p) => {
+      const override = overrideMap.get(p.parameterName);
+      if (override) {
+        p.parameterValue = override.parameterValue;
+        p.unitOfMeasure = override.unitOfMeasure || p.unitOfMeasure;
+        p.source = 'routing_step_override';
+        p.isOverridden = true;
+      }
+    });
+
+    // Add any override-only parameters (not in base)
+    step.parameterOverrides.forEach((override) => {
+      if (
+        !effectiveParameters.find(
+          (p) => p.parameterName === override.parameterName
+        )
+      ) {
+        effectiveParameters.push({
+          parameterName: override.parameterName,
+          parameterValue: override.parameterValue,
+          unitOfMeasure: override.unitOfMeasure || null,
+          source: 'routing_step_override',
+          isOverridden: true
+        });
+      }
+    });
+
+    return effectiveParameters;
+  }
+
+  /**
+   * Delete parameter override for a routing step
+   */
+  async deleteRoutingStepParameterOverride(
+    stepId: string,
+    parameterName: string
+  ) {
+    const deleted = await prisma.routingStepParameter.deleteMany({
+      where: {
+        routingStepId: stepId,
+        parameterName
+      }
+    });
+
+    return deleted.count > 0;
+  }
+
+  // ============================================================================
+  // NEW: Work Instruction Assignment Methods (MES Enhancement Phase 1)
+  // ============================================================================
+
+  /**
+   * Assign work instruction to routing step (overrides ProcessSegment standard WI)
+   */
+  async assignWorkInstructionToStep(
+    stepId: string,
+    workInstructionId: string
+  ) {
+    // Verify routing step exists
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Verify work instruction exists
+    const workInstruction = await prisma.workInstruction.findUnique({
+      where: { id: workInstructionId }
+    });
+
+    if (!workInstruction) {
+      throw new Error(`Work instruction ${workInstructionId} not found`);
+    }
+
+    // Update routing step
+    const updated = await prisma.routingStep.update({
+      where: { id: stepId },
+      data: { workInstructionId },
+      include: {
+        workInstruction: true,
+        processSegment: {
+          include: {
+            standardWorkInstruction: true
+          }
+        }
+      }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove work instruction override from routing step
+   * (will fall back to ProcessSegment standard WI if available)
+   */
+  async removeWorkInstructionFromStep(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    const updated = await prisma.routingStep.update({
+      where: { id: stepId },
+      data: { workInstructionId: null }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Get effective work instruction for a routing step
+   * Returns step-level override if exists, otherwise ProcessSegment standard WI
+   */
+  async getEffectiveWorkInstruction(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: {
+        workInstruction: {
+          include: {
+            steps: true
+          }
+        },
+        processSegment: {
+          include: {
+            standardWorkInstruction: {
+              include: {
+                steps: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Return step-level override if exists, otherwise standard WI
+    return step.workInstruction || step.processSegment.standardWorkInstruction;
+  }
 }
 
 // Export singleton instance
