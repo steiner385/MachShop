@@ -270,7 +270,8 @@ test.describe('Routing Templates E2E Tests', () => {
         const searchBox = page.locator('[data-testid="template-search-input"] input').or(page.locator('input[placeholder*="search" i]'));
 
         if (await searchBox.count() > 0) {
-          await searchBox.first().fill('Search Test');
+          // Search for a unique part of the template name that we know exists
+          await searchBox.first().fill('Search Test Template');
           await searchBox.first().press('Enter'); // Trigger the search
           await page.waitForTimeout(2000); // Wait for API response
 
