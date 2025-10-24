@@ -86,34 +86,41 @@ router.get(
 
     // Build where clause for filtering
     const where: any = {
-      OR: [
-        { siteId: req.user.siteId },
-        { isPublic: true }
+      AND: [
+        {
+          OR: [
+            { siteId: req.user.siteId },
+            { isPublic: true }
+          ]
+        }
       ]
     };
 
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-        { tags: { hasSome: [query.search] } }
-      ];
+      where.AND.push({
+        OR: [
+          { name: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
+          { tags: { hasSome: [query.search] } }
+        ]
+      });
     }
 
     if (query.category) {
-      where.category = query.category;
+      where.AND.push({ category: query.category });
     }
 
     if (query.tags && query.tags.length > 0) {
-      where.tags = { hasSome: query.tags };
+      where.AND.push({ tags: { hasSome: query.tags } });
     }
 
     if (query.siteId) {
-      where.siteId = query.siteId;
+      // Override the site filter with specific siteId
+      where.AND[0] = { siteId: query.siteId };
     }
 
     if (query.isFavorite !== undefined) {
-      where.isFavorite = query.isFavorite;
+      where.AND.push({ isFavorite: query.isFavorite });
     }
 
     // Execute query with pagination and sorting
