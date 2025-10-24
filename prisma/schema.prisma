@@ -928,11 +928,16 @@ model OperationParameter {
   updatedAt DateTime @updatedAt
 
   // Relations
-  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  operation        Operation         @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  limits           ParameterLimits? // Multi-level limits
+  parameterGroupId String?
+  parameterGroup   ParameterGroup?   @relation("ParameterGrouping", fields: [parameterGroupId], references: [id], onDelete: SetNull)
+  formula          ParameterFormula? @relation("FormulaOutput") // If this is a calculated parameter
 
   @@unique([operationId, parameterName])
   @@index([operationId])
   @@index([parameterType])
+  @@index([parameterGroupId])
   @@map("operation_parameters")
 }
 
@@ -951,6 +956,123 @@ enum ParameterDataType {
   ENUM // Selection from allowed values
   DATE // Date/time
   JSON // Complex JSON object
+}
+
+// Multi-Level Parameter Limits (Engineering, Operating, Quality, Alarm limits)
+model ParameterLimits {
+  id          String             @id @default(cuid())
+  parameterId String             @unique
+  parameter   OperationParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+
+  // Engineering Limits (absolute physical constraints)
+  engineeringMin Float? // Below this, equipment damage may occur
+  engineeringMax Float? // Above this, equipment damage may occur
+
+  // Operating Limits (normal operating range)
+  operatingMin Float? // Below this, process is outside normal range
+  operatingMax Float? // Above this, process is outside normal range
+
+  // Quality Limits (specification limits for SPC)
+  LSL          Float? // Lower Specification Limit (customer requirement)
+  USL          Float? // Upper Specification Limit (customer requirement)
+  nominalValue Float? // Target/ideal value
+
+  // Alarm Limits (for real-time monitoring and alerts)
+  highHighAlarm Float? // Critical high alarm threshold
+  highAlarm     Float? // Warning high alarm threshold
+  lowAlarm      Float? // Warning low alarm threshold
+  lowLowAlarm   Float? // Critical low alarm threshold
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("parameter_limits")
+}
+
+// Parameter Groups (Hierarchical organization and classification)
+model ParameterGroup {
+  id            String           @id @default(cuid())
+  groupName     String
+  parentGroupId String?
+  parentGroup   ParameterGroup?  @relation("GroupHierarchy", fields: [parentGroupId], references: [id], onDelete: Cascade)
+  childGroups   ParameterGroup[] @relation("GroupHierarchy")
+
+  // Classification
+  groupType ParameterGroupType
+
+  // Description
+  description String?  @db.Text
+  tags        String[]
+
+  // Display
+  displayOrder Int?
+  icon         String?
+  color        String?
+
+  // Associated parameters
+  parameters OperationParameter[] @relation("ParameterGrouping")
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentGroupId])
+  @@index([groupType])
+  @@map("parameter_groups")
+}
+
+enum ParameterGroupType {
+  PROCESS // Process-related parameters
+  QUALITY // Quality characteristics
+  MATERIAL // Material properties
+  EQUIPMENT // Equipment settings
+  ENVIRONMENTAL // Environmental conditions
+  CUSTOM // User-defined
+}
+
+// Parameter Formulas (Declarative calculation engine)
+model ParameterFormula {
+  id                String             @id @default(cuid())
+  formulaName       String
+  outputParameterId String             @unique
+  outputParameter   OperationParameter @relation("FormulaOutput", fields: [outputParameterId], references: [id], onDelete: Cascade)
+
+  // Formula Definition
+  formulaExpression String          @db.Text // "OEE = (availability * performance * quality) * 100"
+  formulaLanguage   FormulaLanguage @default(JAVASCRIPT)
+
+  // Dependencies
+  inputParameterIds String[] // Array of parameter IDs used in formula
+
+  // Evaluation
+  evaluationTrigger  EvaluationTrigger @default(ON_CHANGE)
+  evaluationSchedule String? // Cron expression for scheduled evaluation
+
+  // Validation
+  testCases Json? // Test cases for formula validation
+
+  // Metadata
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String
+  lastModifiedBy String?
+
+  @@index([outputParameterId])
+  @@map("parameter_formulas")
+}
+
+enum FormulaLanguage {
+  JAVASCRIPT // Using math.js for safe evaluation
+  PYTHON // Future: Python integration
+  SQL // Future: Database-level calculations
+}
+
+enum EvaluationTrigger {
+  ON_CHANGE // Recalculate when any input changes
+  SCHEDULED // Recalculate on schedule (e.g., hourly)
+  MANUAL // Only calculate when explicitly requested
 }
 
 // Process Segment Dependencies (Prerequisites and sequencing rules)
@@ -1683,7 +1805,7 @@ model Routing {
   operations      RoutingOperation[] // DEPRECATED: Keep for backward compatibility during migration
   workOrders      WorkOrder[]
   scheduleEntries ScheduleEntry[] // Schedule entries using this routing
-  templateSources RoutingTemplate[] @relation("TemplateSource") // Templates created from this routing
+  templateSources RoutingTemplate[]  @relation("TemplateSource") // Templates created from this routing
 
   // NEW: Alternate routing relations
   alternateFor    Routing?  @relation("AlternateRoutes", fields: [alternateForId], references: [id])
@@ -1731,8 +1853,8 @@ model RoutingStep {
   workCenterId String? // Optional: specific work center assignment
 
   // NEW: Advanced routing pattern support (Phase 5.2)
-  stepType     StepType     @default(PROCESS) // Type of step: PROCESS, INSPECTION, DECISION, etc.
-  controlType  ControlType? // Material tracking: LOT_CONTROLLED, SERIAL_CONTROLLED, MIXED
+  stepType    StepType     @default(PROCESS) // Type of step: PROCESS, INSPECTION, DECISION, etc.
+  controlType ControlType? // Material tracking: LOT_CONTROLLED, SERIAL_CONTROLLED, MIXED
 
   // Timing overrides (optional, defaults come from ProcessSegment)
   setupTimeOverride    Int? // Seconds - overrides Operation (ISA-95: ProcessSegment).setupTime
@@ -1825,7 +1947,7 @@ model RoutingStepParameter {
 // Routing Templates - Reusable routing configurations
 model RoutingTemplate {
   id          String   @id @default(cuid())
-  name        String   // Template display name
+  name        String // Template display name
   number      String   @unique @default(cuid()) // Unique template number (auto-generated)
   category    String? // e.g., "Machining", "Assembly", "Inspection"
   description String?  @db.Text

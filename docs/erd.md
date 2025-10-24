@@ -201,6 +201,33 @@ JSON JSON
     
 
 
+        ParameterGroupType {
+            PROCESS PROCESS
+QUALITY QUALITY
+MATERIAL MATERIAL
+EQUIPMENT EQUIPMENT
+ENVIRONMENTAL ENVIRONMENTAL
+CUSTOM CUSTOM
+        }
+    
+
+
+        FormulaLanguage {
+            JAVASCRIPT JAVASCRIPT
+PYTHON PYTHON
+SQL SQL
+        }
+    
+
+
+        EvaluationTrigger {
+            ON_CHANGE ON_CHANGE
+SCHEDULED SCHEDULED
+MANUAL MANUAL
+        }
+    
+
+
         DependencyType {
             MUST_COMPLETE MUST_COMPLETE
 MUST_START MUST_START
@@ -1078,6 +1105,55 @@ CANCELLED CANCELLED
     String notes "❓"
     DateTime createdAt 
     DateTime updatedAt 
+    }
+  
+
+  "parameter_limits" {
+    String id "🗝️"
+    Float engineeringMin "❓"
+    Float engineeringMax "❓"
+    Float operatingMin "❓"
+    Float operatingMax "❓"
+    Float LSL "❓"
+    Float USL "❓"
+    Float nominalValue "❓"
+    Float highHighAlarm "❓"
+    Float highAlarm "❓"
+    Float lowAlarm "❓"
+    Float lowLowAlarm "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "parameter_groups" {
+    String id "🗝️"
+    String groupName 
+    ParameterGroupType groupType 
+    String description "❓"
+    String tags 
+    Int displayOrder "❓"
+    String icon "❓"
+    String color "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "parameter_formulas" {
+    String id "🗝️"
+    String formulaName 
+    String formulaExpression 
+    FormulaLanguage formulaLanguage 
+    String inputParameterIds 
+    EvaluationTrigger evaluationTrigger 
+    String evaluationSchedule "❓"
+    Json testCases "❓"
+    Boolean isActive 
+    DateTime createdAt 
+    DateTime updatedAt 
+    String createdBy 
+    String lastModifiedBy "❓"
     }
   
 
@@ -2630,6 +2706,15 @@ CANCELLED CANCELLED
     "operation_parameters" o|--|| "ParameterType" : "enum:parameterType"
     "operation_parameters" o|--|| "ParameterDataType" : "enum:dataType"
     "operation_parameters" o|--|| "operations" : "operation"
+    "operation_parameters" o{--}o "parameter_limits" : ""
+    "operation_parameters" o|--|o "parameter_groups" : "parameterGroup"
+    "operation_parameters" o{--}o "parameter_formulas" : ""
+    "parameter_limits" o|--|| "operation_parameters" : "parameter"
+    "parameter_groups" o|--|o "parameter_groups" : "parentGroup"
+    "parameter_groups" o|--|| "ParameterGroupType" : "enum:groupType"
+    "parameter_formulas" o|--|| "operation_parameters" : "outputParameter"
+    "parameter_formulas" o|--|| "FormulaLanguage" : "enum:formulaLanguage"
+    "parameter_formulas" o|--|| "EvaluationTrigger" : "enum:evaluationTrigger"
     "operation_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
     "operation_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
     "operation_dependencies" o|--|| "operations" : "dependentOperation"
