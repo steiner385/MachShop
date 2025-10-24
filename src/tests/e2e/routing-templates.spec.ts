@@ -435,7 +435,7 @@ test.describe('Routing Templates E2E Tests', () => {
 
           // Should navigate to new routing form with template data pre-filled
           const url = page.url();
-          expect(url).toContain('/routings/new');
+          expect(url).toContain('/routings/create');
 
           // Check if visual data was loaded
           const visualEditorButton = page.locator('text=Visual Editor');
