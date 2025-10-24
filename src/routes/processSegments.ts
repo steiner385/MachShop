@@ -421,8 +421,27 @@ router.delete('/parameters/:parameterId', async (req: Request, res: Response) =>
  */
 router.post('/dependencies', async (req: Request, res: Response) => {
   try {
-    const dependency = await OperationService.addDependency(req.body);
-    res.status(201).json(dependency);
+    // Map ISA-95 segment terminology to operation fields
+    const dependencyData = {
+      ...req.body,
+      dependentOperationId: req.body.dependentSegmentId || req.body.dependentOperationId,
+      prerequisiteOperationId: req.body.prerequisiteSegmentId || req.body.prerequisiteOperationId,
+    };
+
+    // Remove segment-specific fields to avoid conflicts
+    delete dependencyData.dependentSegmentId;
+    delete dependencyData.prerequisiteSegmentId;
+
+    const dependency = await OperationService.addDependency(dependencyData);
+
+    // Map response back to segment terminology
+    const response = {
+      ...dependency,
+      dependentSegmentId: dependency.dependentOperationId,
+      prerequisiteSegmentId: dependency.prerequisiteOperationId,
+    };
+
+    res.status(201).json(response);
   } catch (error: any) {
     console.error('Error adding dependency:', error);
     res.status(400).json({ error: error.message });
