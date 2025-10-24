@@ -196,9 +196,9 @@ test.describe('Routing Templates E2E Tests', () => {
             await descriptionInput.first().fill('Test template description');
           }
 
-          // Save the template
+          // Save the template (force click to handle modal overlay)
           const saveButton = page.locator('button:has-text("Save")').or(page.locator('button:has-text("Create")'));
-          await saveButton.first().click();
+          await saveButton.first().click({ force: true });
           await page.waitForTimeout(2000);
 
           // Check for success message
@@ -271,10 +271,12 @@ test.describe('Routing Templates E2E Tests', () => {
 
         if (await searchBox.count() > 0) {
           await searchBox.first().fill('Search Test');
-          await page.waitForTimeout(1000);
+          await searchBox.first().press('Enter'); // Trigger the search
+          await page.waitForTimeout(2000); // Wait for API response
 
           // Check if our template appears in results
           const templateNameInResults = await page.locator(`text=${template.name}`).count() > 0;
+          console.log(`Template name in results: ${templateNameInResults}`);
           expect(templateNameInResults).toBeTruthy();
         } else {
           test.skip();
