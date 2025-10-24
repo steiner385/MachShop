@@ -13,8 +13,9 @@
  * - Delete routing
  */
 
-import { test, expect, Page, request } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { PrismaClient, RoutingLifecycleState } from '@prisma/client';
+import { setupTestAuth } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
 
@@ -44,41 +45,15 @@ const testStep = {
 
 test.describe('Routing Management E2E Tests', () => {
   let page: Page;
-  let authToken: string;
   let testPart: any;
   let testSite: any;
   let testProcessSegment: any;
   let createdRoutingId: string;
 
   test.beforeAll(async ({ browser }) => {
-    // Create API context for authentication
-    const apiContext = await request.newContext({
-      baseURL: 'http://localhost:3101/api/v1/',
-    });
-
-    // Login to get auth token
-    const loginResponse = await apiContext.post('auth/login', {
-      data: {
-        username: 'prod.planner',
-        password: 'password123'
-      }
-    });
-
-    if (!loginResponse.ok()) {
-      throw new Error(`Login failed: ${await loginResponse.text()}`);
-    }
-
-    const loginData = await loginResponse.json();
-    authToken = loginData.token;
-
-    // Create browser context with auth token
+    // Create browser context
     const context = await browser.newContext();
     page = await context.newPage();
-
-    // Set auth token in page context
-    await page.addInitScript((token) => {
-      localStorage.setItem('authToken', token);
-    }, authToken);
 
     // Setup test data in database
     testSite = await prisma.site.findFirst({
@@ -118,6 +93,11 @@ test.describe('Routing Management E2E Tests', () => {
     testRouting.partId = testPart.id;
     testRouting.siteId = testSite.id;
     testStep.operationId = testProcessSegment.id;
+  });
+
+  test.beforeEach(async () => {
+    // Setup authentication before each test
+    await setupTestAuth(page, 'manufacturingEngineer');
   });
 
   test.afterAll(async () => {
