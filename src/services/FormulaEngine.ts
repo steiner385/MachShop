@@ -320,7 +320,7 @@ export class FormulaEngineService {
 
       // Extract new dependencies
       const dependencies = this.extractDependencies(updates.formulaExpression);
-      updates.inputParameterIds = dependencies as any;
+      (updates as any).inputParameterIds = dependencies;
 
       // Run test cases if provided
       if (updates.testCases && updates.testCases.length > 0) {
