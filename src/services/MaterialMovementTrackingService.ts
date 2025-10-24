@@ -134,7 +134,7 @@ export class MaterialMovementTrackingService {
       workOrderId: options?.workOrderId,
       fromLocation: options?.fromLocation,
       toLocation: options?.toLocation,
-      recordedBy: options?.recordedBy || 'EQUIPMENT',
+      recordedBy: (options?.recordedBy || 'EQUIPMENT') as any,
     });
   }
 
@@ -170,7 +170,7 @@ export class MaterialMovementTrackingService {
       fromLocation: options?.fromLocation,
       toLocation: options?.toLocation,
       qualityStatus: options?.qualityStatus,
-      recordedBy: options?.recordedBy || 'EQUIPMENT',
+      recordedBy: (options?.recordedBy || 'EQUIPMENT') as any,
     });
   }
 
@@ -204,7 +204,7 @@ export class MaterialMovementTrackingService {
       serialNumber: options?.serialNumber,
       operationId: options?.operationId,
       fromLocation: options?.fromLocation,
-      recordedBy: options?.recordedBy || 'EQUIPMENT',
+      recordedBy: (options?.recordedBy || 'EQUIPMENT') as any,
     });
   }
 
@@ -240,7 +240,7 @@ export class MaterialMovementTrackingService {
       operationId: options?.operationId,
       toLocation: options?.toLocation,
       qualityStatus: options?.qualityStatus,
-      recordedBy: options?.recordedBy || 'EQUIPMENT',
+      recordedBy: (options?.recordedBy || 'EQUIPMENT') as any,
     });
   }
 
@@ -275,7 +275,7 @@ export class MaterialMovementTrackingService {
       operationId: options?.operationId,
       fromLocation: options?.fromLocation,
       qualityStatus: 'SCRAP',
-      recordedBy: options?.recordedBy || 'EQUIPMENT',
+      recordedBy: (options?.recordedBy || 'EQUIPMENT') as any,
     });
   }
 

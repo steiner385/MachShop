@@ -54,15 +54,15 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({ steps, loading =
 
     // Calculate start time and duration for each step
     sortedSteps.forEach((step) => {
-      const setupTime = (step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0) / 60; // Convert to minutes
-      const cycleTime = (step.cycleTimeOverride ?? step.processSegment?.duration ?? 0) / 60;
-      const teardownTime = (step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0) / 60;
+      const setupTime = (step.setupTimeOverride ?? step.operation?.setupTime ?? 0) / 60; // Convert to minutes
+      const cycleTime = (step.cycleTimeOverride ?? step.operation?.duration ?? 0) / 60;
+      const teardownTime = (step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0) / 60;
       const totalDuration = setupTime + cycleTime + teardownTime;
 
       tasks.push({
         id: step.id,
         stepNumber: step.stepNumber,
-        name: step.processSegment?.segmentName || `Step ${step.stepNumber}`,
+        name: step.operation?.operationName || `Step ${step.stepNumber}`,
         startTime: currentTime,
         duration: totalDuration || 10, // Default 10 mins if no time specified
         isCriticalPath: step.isCriticalPath || false,

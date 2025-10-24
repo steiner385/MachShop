@@ -101,6 +101,24 @@ export default defineConfig({
       },
     },
 
+    /* Routing feature tests - manage own auth, standard timeouts */
+    {
+      name: 'routing-feature-tests',
+      testMatch: [
+        '**/routing-management.spec.ts',
+        '**/routing-advanced-patterns.spec.ts',
+        '**/routing-templates.spec.ts',
+        '**/routing-visual-editor.spec.ts',
+      ],
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - tests manage their own authentication
+        actionTimeout: 30000,
+        navigationTimeout: 30000,
+      },
+    },
+
     /* Traceability workflow tests - authenticated with extended timeouts */
     {
       name: 'traceability-tests',

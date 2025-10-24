@@ -203,35 +203,35 @@ test.describe('CSP API Violations Detection', () => {
 
   test('should work correctly with domain-based access', async ({ page }) => {
     const cspViolations: string[] = [];
-    
+
     page.on('console', msg => {
       if (msg.type() === 'error' && msg.text().includes('Content Security Policy')) {
         cspViolations.push(msg.text());
       }
     });
 
-    // Test with domain-based access (local.mes.com)
-    await page.goto('http://local.mes.com/login');
+    // Test with domain-based access (e2e.mes.com) through nginx proxy
+    await page.goto('http://e2e.mes.com/login');
     await page.locator('[data-testid="username-input"]').fill('admin');
     await page.locator('[data-testid="password-input"]').fill('password123');
     await page.locator('[data-testid="login-button"]').click();
 
     await Promise.race([
-      page.waitForURL('http://local.mes.com/dashboard', { timeout: 15000 }),
+      page.waitForURL('http://e2e.mes.com/dashboard', { timeout: 15000 }),
       page.waitForTimeout(10000)
     ]);
 
     // Navigate to API-heavy page
-    await page.goto('http://local.mes.com/workorders');
+    await page.goto('http://e2e.mes.com/workorders');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3000);
 
     // Should not have CSP violations when accessing via domain
-    const domainCspViolations = cspViolations.filter(violation => 
-      violation.includes('connect-src') && 
-      (violation.includes('localhost:3001') || violation.includes('local.mes.com:3001'))
+    const domainCspViolations = cspViolations.filter(violation =>
+      violation.includes('connect-src') &&
+      (violation.includes('localhost:3001') || violation.includes('e2e.mes.com:3001'))
     );
-    
+
     expect(domainCspViolations).toHaveLength(0);
   });
 });

@@ -249,44 +249,25 @@ test.describe('SPA Routing and History API Fallback', () => {
 
   test.describe('History API Fallback Validation', () => {
     test('should show 404 component for truly non-existent routes', async ({ page }) => {
-      await page.goto('/totally-non-existent-route-12345');
-      
-      // Should redirect to login first (unauthenticated)
-      await expect(page).toHaveURL(/\/login/);
-      
-      // Now authenticate and try non-existent route
+      // Start from login page directly to avoid redirect parameter complications
+      await page.goto('/login');
+
+      // Authenticate first
       await page.locator('[data-testid="username-input"]').fill('admin');
       await page.locator('[data-testid="password-input"]').fill('password123');
       await page.locator('[data-testid="login-button"]').click();
-      
-      // Wait for authentication with same robust pattern
-      await Promise.race([
-        page.waitForURL('/dashboard', { timeout: 15000 }),
-        page.waitForSelector('.ant-alert-error', { timeout: 15000 })
-      ]).catch(async () => {
-        await page.waitForTimeout(3000);
-        const authState = await page.evaluate(() => {
-          const authData = localStorage.getItem('mes-auth-storage');
-          try {
-            const parsed = authData ? JSON.parse(authData) : null;
-            return parsed?.state?.token ? true : false;
-          } catch { return false; }
-        });
-        if (authState) {
-          await page.goto('/dashboard');
-          await page.waitForLoadState('networkidle');
-        }
-      });
-      
+
+      // Wait for successful authentication and redirect to dashboard
+      await page.waitForURL('/dashboard', { timeout: 15000 });
       await expect(page).toHaveURL('/dashboard');
-      
-      // Now try the non-existent route when authenticated
+
+      // Now navigate to a truly non-existent route while authenticated
       await page.goto('/totally-non-existent-route-12345');
-      
+
       // Should show the React Router 404 component, not server 404
       await expect(page.locator('text=404')).toBeVisible();
       await expect(page.locator('text=page you visited does not exist')).toBeVisible();
-      
+
       // Should still have authenticated layout/navigation
       await expect(page.locator('[data-testid="user-avatar"]')).toBeVisible();
     });

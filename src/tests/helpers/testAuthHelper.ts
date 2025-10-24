@@ -240,7 +240,7 @@ export const TEST_USERS = {
     password: 'password123',
     email: 'mfg.engineer@mes.com',
     roles: ['Manufacturing Engineer'],
-    permissions: ['routings.read', 'routings.write', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read']
+    permissions: ['routings.read', 'routings.create', 'routings.write', 'routings.update', 'routings.delete', 'bom.read', 'bom.write', 'processSegments.read', 'processSegments.create', 'processSegments.write', 'workorders.read', 'quality.read', 'equipment.read']
   },
 
   // Tier 2: Quality & Compliance (P1 - High)

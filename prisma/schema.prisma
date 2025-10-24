@@ -53,12 +53,13 @@ model Site {
   enterprise          Enterprise?            @relation(fields: [enterpriseId], references: [id])
   routings            Routing[] // NEW: Routes defined for this site
   partAvailability    PartSiteAvailability[] // NEW: Parts that can be made here
-  processSegments     ProcessSegment[] // NEW: Site-specific process segments
+  operations          Operation[] // NEW: Site-specific process segments
   workOrders          WorkOrder[]
   equipment           Equipment[]
   ncrs                NCR[]
   areas               Area[] // ISA-95 hierarchy: Site → Areas
   productionSchedules ProductionSchedule[] // Production schedules for this site
+  routingTemplates    RoutingTemplate[] // Routing templates defined for this site
 
   @@index([enterpriseId])
   @@map("sites")
@@ -144,6 +145,9 @@ model User {
   // Task 1.7: Production Dispatching & Execution relations
   dispatchedWorkOrders   DispatchLog[]     @relation("DispatchAssignedTo")
   workPerformanceRecords WorkPerformance[] @relation("WorkPerformancePersonnel")
+
+  // Routing Template ownership
+  routingTemplates RoutingTemplate[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -796,23 +800,30 @@ enum StateTransitionType {
 // Process Segments define the "recipe" or "how-to" instructions for production operations
 
 // Process Segment (Manufacturing operation definitions)
-model ProcessSegment {
+model Operation {
   id          String  @id @default(cuid())
-  segmentCode String  @unique // Unique code (e.g., "OP-010-MILL", "OP-020-INSPECT")
-  segmentName String // Name of the process segment
   description String? @db.Text
 
   // NEW: Multi-site support
   siteId              String? // NULL = global/standard operation, NOT NULL = site-specific
   isStandardOperation Boolean @default(false) // Can be reused across routes?
 
-  // Hierarchy support
-  level           Int     @default(1) // Hierarchy level (1=top-level operation, 5=detailed step)
-  parentSegmentId String? // Parent process segment for hierarchical operations
+  // NEW: Oracle/Teamcenter terminology aliases
+  operationCode           String                   @unique // ISA-95: segmentCode (Oracle/Teamcenter terminology)
+  operationName           String // ISA-95: segmentName (Oracle/Teamcenter terminology)
+  operationClassification OperationClassification? // Oracle-style classification
 
-  // Segment classification
-  segmentType ProcessSegmentType // PRODUCTION, QUALITY, MATERIAL_HANDLING, MAINTENANCE, etc.
-  category    String? // Additional categorization (MACHINING, ASSEMBLY, INSPECTION)
+  // NEW: Work instruction linkage
+  standardWorkInstructionId String? // Standard work instruction for this operation
+  standardWorkInstruction   WorkInstruction? @relation("OperationStandardWI", fields: [standardWorkInstructionId], references: [id])
+
+  // Hierarchy support
+  level             Int     @default(1) // Hierarchy level (1=top-level operation, 5=detailed step)
+  parentOperationId String? // Parent process segment for hierarchical operations
+
+  // Operation classification
+  operationType OperationType // ISA-95: segmentType - PRODUCTION, QUALITY, MATERIAL_HANDLING, MAINTENANCE, etc.
+  category      String? // Additional categorization (MACHINING, ASSEMBLY, INSPECTION)
 
   // Timing and capacity
   duration     Int? // Standard duration in seconds
@@ -837,29 +848,29 @@ model ProcessSegment {
   updatedAt DateTime @updatedAt
 
   // Relations
-  parentSegment   ProcessSegment?                     @relation("ProcessSegmentHierarchy", fields: [parentSegmentId], references: [id])
-  childSegments   ProcessSegment[]                    @relation("ProcessSegmentHierarchy")
-  site            Site?                               @relation(fields: [siteId], references: [id]) // NEW: Site-specific segments
+  parentOperation Operation?                            @relation("OperationHierarchy", fields: [parentOperationId], references: [id])
+  childOperations Operation[]                           @relation("OperationHierarchy")
+  site            Site?                                 @relation(fields: [siteId], references: [id]) // NEW: Site-specific segments
   routingSteps    RoutingStep[] // NEW: Used in routing steps
-  parameters      ProcessSegmentParameter[]
-  dependencies    ProcessSegmentDependency[]          @relation("DependentSegment")
-  prerequisiteFor ProcessSegmentDependency[]          @relation("PrerequisiteSegment")
-  personnelSpecs  PersonnelSegmentSpecification[]
-  equipmentSpecs  EquipmentSegmentSpecification[]
-  materialSpecs   MaterialSegmentSpecification[]
-  assetSpecs      PhysicalAssetSegmentSpecification[]
+  parameters      OperationParameter[]
+  dependencies    OperationDependency[]                 @relation("DependentOperation")
+  prerequisiteFor OperationDependency[]                 @relation("PrerequisiteOperation")
+  personnelSpecs  PersonnelOperationSpecification[]
+  equipmentSpecs  EquipmentOperationSpecification[]
+  materialSpecs   MaterialOperationSpecification[]
+  assetSpecs      PhysicalAssetOperationSpecification[]
   bomItems        BOMItem[] // BOM items linked to this process segment
 
-  @@index([parentSegmentId])
-  @@index([segmentType])
+  @@index([parentOperationId])
+  @@index([operationType])
   @@index([level])
   @@index([isActive])
   @@index([siteId]) // NEW: Index for site filtering
   @@index([isStandardOperation]) // NEW: Index for standard operations
-  @@map("process_segments")
+  @@map("operations")
 }
 
-enum ProcessSegmentType {
+enum OperationType {
   PRODUCTION // Production operations (machining, assembly, fabrication)
   QUALITY // Quality control and inspection
   MATERIAL_HANDLING // Material movement, loading, unloading
@@ -872,10 +883,22 @@ enum ProcessSegmentType {
   OTHER // Other process types
 }
 
+// NEW: Oracle/Teamcenter-style operation classification
+enum OperationClassification {
+  MAKE // Fabrication/manufacturing operations
+  ASSEMBLY // Assembly operations
+  INSPECTION // Quality inspection operations
+  TEST // Testing operations
+  REWORK // Rework/repair operations
+  SETUP // Setup/teardown operations
+  SUBCONTRACT // Outside processing/subcontract
+  PACKING // Packaging operations
+}
+
 // Process Segment Parameters (Input/output parameters and their values)
-model ProcessSegmentParameter {
-  id        String @id @default(cuid())
-  segmentId String
+model OperationParameter {
+  id          String @id @default(cuid())
+  operationId String
 
   // Parameter definition
   parameterName String // Speed, Feed, Temperature, Pressure, etc.
@@ -905,12 +928,12 @@ model ProcessSegmentParameter {
   updatedAt DateTime @updatedAt
 
   // Relations
-  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
-  @@unique([segmentId, parameterName])
-  @@index([segmentId])
+  @@unique([operationId, parameterName])
+  @@index([operationId])
   @@index([parameterType])
-  @@map("process_segment_parameters")
+  @@map("operation_parameters")
 }
 
 enum ParameterType {
@@ -931,10 +954,10 @@ enum ParameterDataType {
 }
 
 // Process Segment Dependencies (Prerequisites and sequencing rules)
-model ProcessSegmentDependency {
-  id                    String @id @default(cuid())
-  dependentSegmentId    String // Segment that has the dependency
-  prerequisiteSegmentId String // Segment that must be completed first
+model OperationDependency {
+  id                      String @id @default(cuid())
+  dependentOperationId    String // Segment that has the dependency
+  prerequisiteOperationId String // Segment that must be completed first
 
   // Dependency details
   dependencyType DependencyType // MUST_COMPLETE, MUST_START, OVERLAP_ALLOWED
@@ -954,13 +977,13 @@ model ProcessSegmentDependency {
   updatedAt DateTime @updatedAt
 
   // Relations
-  dependentSegment    ProcessSegment @relation("DependentSegment", fields: [dependentSegmentId], references: [id], onDelete: Cascade)
-  prerequisiteSegment ProcessSegment @relation("PrerequisiteSegment", fields: [prerequisiteSegmentId], references: [id], onDelete: Cascade)
+  dependentOperation    Operation @relation("DependentOperation", fields: [dependentOperationId], references: [id], onDelete: Cascade)
+  prerequisiteOperation Operation @relation("PrerequisiteOperation", fields: [prerequisiteOperationId], references: [id], onDelete: Cascade)
 
-  @@unique([dependentSegmentId, prerequisiteSegmentId])
-  @@index([dependentSegmentId])
-  @@index([prerequisiteSegmentId])
-  @@map("process_segment_dependencies")
+  @@unique([dependentOperationId, prerequisiteOperationId])
+  @@index([dependentOperationId])
+  @@index([prerequisiteOperationId])
+  @@map("operation_dependencies")
 }
 
 enum DependencyType {
@@ -978,9 +1001,9 @@ enum DependencyTimingType {
 }
 
 // Personnel Segment Specification (Required personnel for process segment)
-model PersonnelSegmentSpecification {
-  id        String @id @default(cuid())
-  segmentId String
+model PersonnelOperationSpecification {
+  id          String @id @default(cuid())
+  operationId String
 
   // Personnel requirements
   personnelClassId  String? // Required personnel class
@@ -1004,17 +1027,17 @@ model PersonnelSegmentSpecification {
   updatedAt DateTime @updatedAt
 
   // Relations
-  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
-  @@index([segmentId])
+  @@index([operationId])
   @@index([personnelClassId])
-  @@map("personnel_segment_specifications")
+  @@map("personnel_operation_specifications")
 }
 
 // Equipment Segment Specification (Required equipment for process segment)
-model EquipmentSegmentSpecification {
-  id        String @id @default(cuid())
-  segmentId String
+model EquipmentOperationSpecification {
+  id          String @id @default(cuid())
+  operationId String
 
   // Equipment requirements
   equipmentClass      EquipmentClass? // Required equipment class
@@ -1039,17 +1062,17 @@ model EquipmentSegmentSpecification {
   updatedAt DateTime @updatedAt
 
   // Relations
-  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
-  @@index([segmentId])
+  @@index([operationId])
   @@index([equipmentClass])
-  @@map("equipment_segment_specifications")
+  @@map("equipment_operation_specifications")
 }
 
 // Material Segment Specification (Required materials for process segment)
-model MaterialSegmentSpecification {
-  id        String @id @default(cuid())
-  segmentId String
+model MaterialOperationSpecification {
+  id          String @id @default(cuid())
+  operationId String
 
   // Material requirements
   materialDefinitionId String? // Specific material definition
@@ -1075,11 +1098,11 @@ model MaterialSegmentSpecification {
   updatedAt DateTime @updatedAt
 
   // Relations
-  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
-  @@index([segmentId])
+  @@index([operationId])
   @@index([materialDefinitionId])
-  @@map("material_segment_specifications")
+  @@map("material_operation_specifications")
 }
 
 enum ConsumptionType {
@@ -1090,9 +1113,9 @@ enum ConsumptionType {
 }
 
 // Physical Asset Segment Specification (Tooling, fixtures, consumables)
-model PhysicalAssetSegmentSpecification {
-  id        String @id @default(cuid())
-  segmentId String
+model PhysicalAssetOperationSpecification {
+  id          String @id @default(cuid())
+  operationId String
 
   // Asset identification
   assetType PhysicalAssetType // TOOLING, FIXTURE, GAUGE, CONSUMABLE, PPE
@@ -1119,11 +1142,11 @@ model PhysicalAssetSegmentSpecification {
   updatedAt DateTime @updatedAt
 
   // Relations
-  segment ProcessSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
-  @@index([segmentId])
+  @@index([operationId])
   @@index([assetType])
-  @@map("physical_asset_segment_specifications")
+  @@map("physical_asset_operation_specifications")
 }
 
 enum PhysicalAssetType {
@@ -1320,8 +1343,8 @@ model BOMItem {
   referenceDesignator String? // Electronic component reference (R1, C2, U3, etc.)
 
   // Manufacturing process linkage (ISA-95 integration)
-  processSegmentId String? // Link to ProcessSegment for this BOM item
-  operationNumber  Int? // Operation where this component is consumed
+  operationId     String? // Link to Operation (ISA-95: Process Segment) for this BOM item
+  operationNumber Int? // Operation where this component is consumed
 
   // Lifecycle management
   effectiveDate DateTime? // When this BOM item becomes effective
@@ -1339,13 +1362,13 @@ model BOMItem {
   updatedAt DateTime @updatedAt
 
   // Relations
-  parentPart     Part            @relation("ParentPart", fields: [parentPartId], references: [id])
-  componentPart  Part            @relation("ComponentPart", fields: [componentPartId], references: [id])
-  processSegment ProcessSegment? @relation(fields: [processSegmentId], references: [id])
+  parentPart    Part       @relation("ParentPart", fields: [parentPartId], references: [id])
+  componentPart Part       @relation("ComponentPart", fields: [componentPartId], references: [id])
+  operation     Operation? @relation(fields: [operationId], references: [id])
 
   @@index([parentPartId])
   @@index([componentPartId])
-  @@index([processSegmentId])
+  @@index([operationId])
   @@index([effectiveDate])
   @@map("bom_items")
 }
@@ -1588,6 +1611,37 @@ enum RoutingLifecycleState {
   OBSOLETE // No longer used, kept for historical reference
 }
 
+// NEW: Routing type classification (Oracle ERP-style)
+enum RoutingType {
+  PRIMARY // Main production route
+  ALTERNATE // Alternative production method (different equipment/process)
+  REWORK // For rework/repair operations
+  PROTOTYPE // For prototype/sample runs
+  ENGINEERING // Engineering test routing
+}
+
+// NEW: Step type classification for advanced routing patterns
+enum StepType {
+  PROCESS // Standard processing step
+  INSPECTION // Quality inspection checkpoint
+  DECISION // Decision point (conditional branching)
+  PARALLEL_SPLIT // Split into parallel paths
+  PARALLEL_JOIN // Join parallel paths
+  OSP // Outside service provider
+  LOT_SPLIT // Split lot into multiple lots
+  LOT_MERGE // Merge multiple lots into one
+  TELESCOPING // Optional telescoping operation
+  START // Start node (visual editor)
+  END // End node (visual editor)
+}
+
+// NEW: Material control type classification
+enum ControlType {
+  LOT_CONTROLLED // Track by lot/batch
+  SERIAL_CONTROLLED // Track by serial number
+  MIXED // Both lot and serial tracking
+}
+
 // Routing and Operations
 model Routing {
   id             String                @id @default(cuid())
@@ -1599,14 +1653,22 @@ model Routing {
   description    String?               @db.Text
 
   // Route attributes
-  isPrimaryRoute Boolean   @default(false) // NEW: Is this the preferred route for this part at this site?
+  isPrimaryRoute Boolean   @default(false) // DEPRECATED: Use routingType instead (kept for backward compatibility)
   isActive       Boolean   @default(true)
   effectiveDate  DateTime? // NEW: When route becomes active
   expirationDate DateTime? // NEW: When route expires
 
+  // NEW: Routing type classification (Oracle ERP-style)
+  routingType    RoutingType @default(PRIMARY) // PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING
+  alternateForId String? // If ALTERNATE, links to PRIMARY routing
+  priority       Int         @default(1) // Selection priority (1=highest)
+
   // Approval tracking
   approvedBy String?
   approvedAt DateTime?
+
+  // Visual routing data (ReactFlow nodes/edges for visual editor)
+  visualData Json? // Stores ReactFlow graph structure for visual editor
 
   // Metadata
   createdAt DateTime @default(now())
@@ -1621,6 +1683,11 @@ model Routing {
   operations      RoutingOperation[] // DEPRECATED: Keep for backward compatibility during migration
   workOrders      WorkOrder[]
   scheduleEntries ScheduleEntry[] // Schedule entries using this routing
+  templateSources RoutingTemplate[] @relation("TemplateSource") // Templates created from this routing
+
+  // NEW: Alternate routing relations
+  alternateFor    Routing?  @relation("AlternateRoutes", fields: [alternateForId], references: [id])
+  alternateRoutes Routing[] @relation("AlternateRoutes")
 
   // Indexes
   @@unique([partId, siteId, version]) // NEW: One route per part+site+version
@@ -1628,6 +1695,8 @@ model Routing {
   @@index([partId])
   @@index([lifecycleState])
   @@index([isActive])
+  @@index([partId, siteId, routingType]) // NEW: Index for routing type queries
+  @@index([alternateForId]) // NEW: Index for alternate routing lookups
   @@map("routings")
 }
 
@@ -1653,23 +1722,31 @@ model RoutingOperation {
 }
 
 // NEW: RoutingStep - Replaces RoutingOperation for multi-site routing
-// Links routing to ProcessSegment for operation reuse
+// Links routing to Operation (ISA-95: Process Segment) for operation reuse
 model RoutingStep {
-  id               String  @id @default(cuid())
-  routingId        String
-  stepNumber       Int // Sequence: 10, 20, 30, 40... (allows inserts between steps)
-  processSegmentId String // KEY: Links to standard operation
-  workCenterId     String? // Optional: specific work center assignment
+  id           String  @id @default(cuid())
+  routingId    String
+  stepNumber   Int // Sequence: 10, 20, 30, 40... (allows inserts between steps)
+  operationId  String // KEY: Links to standard operation
+  workCenterId String? // Optional: specific work center assignment
+
+  // NEW: Advanced routing pattern support (Phase 5.2)
+  stepType     StepType     @default(PROCESS) // Type of step: PROCESS, INSPECTION, DECISION, etc.
+  controlType  ControlType? // Material tracking: LOT_CONTROLLED, SERIAL_CONTROLLED, MIXED
 
   // Timing overrides (optional, defaults come from ProcessSegment)
-  setupTimeOverride    Int? // Seconds - overrides ProcessSegment.setupTime
-  cycleTimeOverride    Int? // Seconds - overrides ProcessSegment.duration
-  teardownTimeOverride Int? // Seconds - overrides ProcessSegment.teardownTime
+  setupTimeOverride    Int? // Seconds - overrides Operation (ISA-95: ProcessSegment).setupTime
+  cycleTimeOverride    Int? // Seconds - overrides Operation (ISA-95: ProcessSegment).duration
+  teardownTimeOverride Int? // Seconds - overrides Operation (ISA-95: ProcessSegment).teardownTime
 
   // Step attributes
   isOptional          Boolean @default(false) // Can this step be skipped?
   isQualityInspection Boolean @default(false) // Is this a quality checkpoint?
   isCriticalPath      Boolean @default(false) // Is this on critical path for scheduling?
+
+  // NEW: Work instruction linkage (overrides Operation (ISA-95: ProcessSegment) standard WI)
+  workInstructionId String? // Override standard work instruction for this routing step
+  workInstruction   WorkInstruction? @relation("RoutingStepWorkInstruction", fields: [workInstructionId], references: [id])
 
   // Instructions
   stepInstructions String? @db.Text // Additional instructions specific to this route
@@ -1681,16 +1758,17 @@ model RoutingStep {
 
   // Relations
   routing             Routing                 @relation(fields: [routingId], references: [id], onDelete: Cascade)
-  processSegment      ProcessSegment          @relation(fields: [processSegmentId], references: [id])
+  operation           Operation               @relation(fields: [operationId], references: [id]) // ISA-95: Process Segment
   workCenter          WorkCenter?             @relation(fields: [workCenterId], references: [id])
   dependencies        RoutingStepDependency[] @relation("DependentStep")
   prerequisites       RoutingStepDependency[] @relation("PrerequisiteStep")
   workOrderOperations WorkOrderOperation[] // When work orders are created from this route
+  parameterOverrides  RoutingStepParameter[] // NEW: Parameter overrides for this routing step
 
   // Indexes
   @@unique([routingId, stepNumber]) // One step number per route
   @@index([routingId])
-  @@index([processSegmentId])
+  @@index([operationId])
   @@index([workCenterId])
   @@map("routing_steps")
 }
@@ -1721,6 +1799,66 @@ model RoutingStepDependency {
   @@index([dependentStepId])
   @@index([prerequisiteStepId])
   @@map("routing_step_dependencies")
+}
+
+// NEW: Routing Step Parameter Overrides - Site-specific parameter tuning
+model RoutingStepParameter {
+  id            String      @id @default(cuid())
+  routingStepId String
+  routingStep   RoutingStep @relation(fields: [routingStepId], references: [id], onDelete: Cascade)
+
+  // Parameter definition
+  parameterName  String // e.g., "spindle_speed", "feed_rate", "temperature"
+  parameterValue String // Override value
+  unitOfMeasure  String? // e.g., "RPM", "IPM", "°F", "PSI"
+
+  // Metadata
+  notes     String?  @db.Text // Why this override is needed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([routingStepId, parameterName]) // One override per parameter per step
+  @@index([routingStepId])
+  @@map("routing_step_parameters")
+}
+
+// Routing Templates - Reusable routing configurations
+model RoutingTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Template display name
+  number      String   @unique @default(cuid()) // Unique template number (auto-generated)
+  category    String? // e.g., "Machining", "Assembly", "Inspection"
+  description String?  @db.Text
+  tags        String[] // Searchable tags for categorization
+
+  // Template metadata
+  isPublic   Boolean @default(false) // Can other users see/use this template
+  isFavorite Boolean @default(false) // User-marked favorite
+  usageCount Int     @default(0) // How many times this template has been used
+  rating     Float? // User rating (1-5 stars)
+
+  // Visual routing data (ReactFlow nodes/edges for visual editor)
+  visualData Json? // Stores ReactFlow graph structure
+
+  // Source routing (optional - if created from existing routing)
+  sourceRoutingId String?
+  sourceRouting   Routing? @relation("TemplateSource", fields: [sourceRoutingId], references: [id])
+
+  // Ownership and multi-tenancy
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  siteId      String
+  site        Site   @relation(fields: [siteId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([siteId])
+  @@index([createdById])
+  @@index([category])
+  @@index([isFavorite])
+  @@map("routing_templates")
 }
 
 // Work Centers (ISA-95 Level 3)
@@ -2779,7 +2917,7 @@ model WorkInstruction {
   title           String
   description     String?               @db.Text
   partId          String? // Optional link to Part
-  operationId     String? // Optional link to RoutingOperation
+  operationId     String? // DEPRECATED: Optional link to RoutingOperation (use operationStandard or routingStepOverrides instead)
   version         String                @default("1.0.0")
   status          WorkInstructionStatus @default(DRAFT)
   effectiveDate   DateTime?
@@ -2793,11 +2931,17 @@ model WorkInstruction {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
+  // NEW: Enhanced work instruction attributes
+  operationType        String? // SETUP, PROCESS, INSPECTION, REWORK, etc.
+  requiredForExecution Boolean @default(false) // Must be completed before operation starts
+
   // Relations
-  createdBy  User                  @relation("WorkInstructionCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User                  @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User?                 @relation("WorkInstructionApprovedBy", fields: [approvedById], references: [id])
-  steps      WorkInstructionStep[]
+  createdBy            User                  @relation("WorkInstructionCreatedBy", fields: [createdById], references: [id])
+  updatedBy            User                  @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy           User?                 @relation("WorkInstructionApprovedBy", fields: [approvedById], references: [id])
+  steps                WorkInstructionStep[]
+  operationStandard    Operation[]           @relation("OperationStandardWI") // ISA-95: Process Segments - Standard WI for operations
+  routingStepOverrides RoutingStep[]         @relation("RoutingStepWorkInstruction") // NEW: Route-specific overrides
 
   @@index([status])
   @@index([partId])
@@ -3716,6 +3860,7 @@ enum B2MMessageStatus {
   PROCESSED // Successfully processed
   SENT // Sent to external system
   CONFIRMED // Confirmed by external system
+  ACCEPTED // Accepted and ready for execution
   FAILED // Processing failed
   REJECTED // Rejected by business rules
   TIMEOUT // Processing timeout

@@ -21,7 +21,13 @@ import {
   HolderOutlined,
 } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { RoutingStep } from '@/types/routing';
+import {
+  RoutingStep,
+  STEP_TYPE_LABELS,
+  STEP_TYPE_COLORS,
+  CONTROL_TYPE_LABELS,
+  CONTROL_TYPE_COLORS,
+} from '@/types/routing';
 import { formatTime } from '@/api/routing';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -98,16 +104,26 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       sorter: (a, b) => a.stepNumber - b.stepNumber,
     },
     {
-      title: 'Process Segment',
-      key: 'processSegment',
-      width: '25%',
+      title: 'Type',
+      key: 'stepType',
+      width: 120,
+      render: (_, record) => (
+        <Tag color={STEP_TYPE_COLORS[record.stepType]}>
+          {STEP_TYPE_LABELS[record.stepType]}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Operation', // ISA-95: Process Segment
+      key: 'operation',
+      width: '20%',
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>
-            {record.processSegment?.segmentName || 'N/A'}
+            {record.operation?.operationName || 'N/A'}
           </div>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.processSegment?.operationType || ''}
+            {record.operation?.operationType || ''}
           </div>
         </div>
       ),
@@ -124,7 +140,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.setupTimeOverride ?? record.processSegment?.setupTime ?? 0;
+        const time = record.setupTimeOverride ?? record.operation?.setupTime ?? 0;
         return formatTime(time);
       },
     },
@@ -134,7 +150,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.cycleTimeOverride ?? record.processSegment?.duration ?? 0;
+        const time = record.cycleTimeOverride ?? record.operation?.duration ?? 0;
         return formatTime(time);
       },
     },
@@ -144,7 +160,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.teardownTimeOverride ?? record.processSegment?.teardownTime ?? 0;
+        const time = record.teardownTimeOverride ?? record.operation?.teardownTime ?? 0;
         return formatTime(time);
       },
     },
@@ -153,11 +169,27 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
       key: 'flags',
       width: 150,
       render: (_, record) => (
-        <Space size="small">
+        <Space size="small" wrap>
           {record.isOptional && <Tag color="blue">Optional</Tag>}
           {record.isQualityInspection && <Tag color="green">QC</Tag>}
           {record.isCriticalPath && <Tag color="red">Critical</Tag>}
+          {record.controlType && (
+            <Tag color={CONTROL_TYPE_COLORS[record.controlType]}>
+              {CONTROL_TYPE_LABELS[record.controlType]}
+            </Tag>
+          )}
         </Space>
+      ),
+    },
+    {
+      title: 'Notes',
+      key: 'notes',
+      width: 200,
+      ellipsis: true,
+      render: (_, record) => (
+        <Tooltip title={record.notes}>
+          {record.notes || '-'}
+        </Tooltip>
       ),
     },
     {
@@ -239,7 +271,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
               rowKey="id"
               loading={loading || reordering}
               pagination={false}
-              scroll={{ x: 1200 }}
+              scroll={{ x: 1500 }}
               bordered
               components={{
                 body: {

@@ -417,15 +417,18 @@ test.describe('Routing Edge Cases and Advanced Scenarios', () => {
     });
 
     test('should handle navigation during page load', async ({ page }) => {
-      // Start navigation to a route
-      const navigationPromise = page.goto('/workorders');
-      
+      // Start navigation to a route (don't await - it will be aborted)
+      const navigationPromise = page.goto('/workorders').catch(() => {
+        // Expected to be aborted when second navigation starts
+        return null;
+      });
+
       // Immediately navigate to another route before first completes
-      await page.goto('/quality');
-      
-      // Wait for both to complete
-      await Promise.allSettled([navigationPromise]);
-      
+      const secondNavigation = page.goto('/quality');
+
+      // Wait for both to settle (first will be aborted, second should succeed)
+      await Promise.allSettled([navigationPromise, secondNavigation]);
+
       // Should end up on the last requested route
       await expect(page).toHaveURL('/quality');
       await expect(page.locator('text=404')).not.toBeVisible();

@@ -1,8 +1,9 @@
 /**
  * Routing Form Component
- * Sprint 4: Routing Management UI
+ * Phase 2: Visual + Tabular UI
  *
- * Form for creating and editing routings
+ * Enhanced form for creating and editing routings with support for both
+ * visual (ReactFlow) and tabular (form-based) editing modes
  */
 
 import React, { useEffect, useState } from 'react';
@@ -20,14 +21,20 @@ import {
   Col,
   Typography,
   Divider,
+  Segmented,
+  Tooltip,
 } from 'antd';
 import {
   SaveOutlined,
   CheckCircleOutlined,
   ArrowLeftOutlined,
   ControlOutlined,
+  AppstoreOutlined,
+  TableOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Node, Edge } from 'reactflow';
 import { useRoutingStore } from '@/store/routingStore';
 import { useSite } from '@/contexts/SiteContext';
 import {
@@ -35,10 +42,17 @@ import {
   UpdateRoutingRequest,
   RoutingLifecycleState,
 } from '@/types/routing';
+import { VisualRoutingEditor } from './VisualRoutingEditor';
+import { ActiveUsersIndicator } from './ActiveUsersIndicator';
+import { RoutingChangedAlert } from './RoutingChangedAlert';
+import { VersionConflictModal } from './VersionConflictModal';
+import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text } = Typography;
+
+type EditorMode = 'form' | 'visual';
 
 interface RoutingFormProps {
   mode: 'create' | 'edit';
@@ -48,12 +62,25 @@ interface RoutingFormProps {
  * Routing Form Component
  *
  * Handles creating and editing routings with validation
+ * Supports both form-based (tabular) and visual (ReactFlow) editing modes
  */
 export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+
+  // Editor mode state
+  const [editorMode, setEditorMode] = useState<EditorMode>('form');
+
+  // Visual routing state
+  const [routingNodes, setRoutingNodes] = useState<Node[]>([]);
+  const [routingEdges, setRoutingEdges] = useState<Edge[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Collaboration state
+  const [showVersionConflict, setShowVersionConflict] = useState(false);
+  const [versionConflictError, setVersionConflictError] = useState<any>(null);
 
   const { currentSite, allSites } = useSite();
 
@@ -65,6 +92,18 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
     createRouting,
     updateRouting,
   } = useRoutingStore();
+
+  // Routing change detection for collaboration
+  const {
+    hasChanged,
+    changeInfo,
+    dismissChange,
+    checkForChanges,
+  } = useRoutingChangeDetection({
+    routingId: id || null,
+    enabled: mode === 'edit' && !!id,
+    pollingInterval: 10000, // Check every 10 seconds
+  });
 
   // Load routing if in edit mode
   useEffect(() => {
@@ -100,6 +139,24 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
     }
   }, [mode, currentRouting, currentSite, form]);
 
+  // Handle visual routing changes
+  const handleNodesChange = (nodes: Node[]) => {
+    setRoutingNodes(nodes);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleEdgesChange = (edges: Edge[]) => {
+    setRoutingEdges(edges);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleVisualSave = (nodes: Node[], edges: Edge[]) => {
+    setRoutingNodes(nodes);
+    setRoutingEdges(edges);
+    setHasUnsavedChanges(false);
+    message.success('Visual routing saved');
+  };
+
   // Handle form submission
   const handleSubmit = async (values: any, lifecycleState: RoutingLifecycleState) => {
     try {
@@ -108,6 +165,11 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
       const formData: CreateRoutingRequest | UpdateRoutingRequest = {
         ...values,
         lifecycleState,
+        // Include visual routing data if available
+        visualData: routingNodes.length > 0 ? {
+          nodes: routingNodes,
+          edges: routingEdges,
+        } : undefined,
       };
 
       if (mode === 'create') {
@@ -127,10 +189,27 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         message.success('Routing updated successfully');
         navigate(`/routings/${id}`);
       }
+
+      setHasUnsavedChanges(false);
     } catch (error: any) {
-      message.error(error.message || 'Failed to save routing');
+      // Check if this is a version conflict error
+      if (error.code === 'VERSION_CONFLICT' || error.message?.includes('version conflict')) {
+        setVersionConflictError(error);
+        setShowVersionConflict(true);
+      } else {
+        message.error(error.message || 'Failed to save routing');
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle reload after version conflict
+  const handleReloadAfterConflict = () => {
+    if (id) {
+      fetchRoutingById(id);
+      setHasUnsavedChanges(false);
+      checkForChanges();
     }
   };
 
@@ -185,26 +264,121 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ padding: '24px', maxWidth: editorMode === 'visual' ? '100%' : '900px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
-            Back
-          </Button>
-        </Space>
-        <Title level={2} style={{ marginTop: '16px', marginBottom: '8px' }}>
-          <ControlOutlined style={{ marginRight: '8px' }} />
-          {mode === 'create' ? 'Create New Routing' : 'Edit Routing'}
-        </Title>
-        <Text type="secondary">
-          {mode === 'create'
-            ? 'Define a new manufacturing routing for a part at a specific site'
-            : 'Update routing information and settings'}
-        </Text>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <Space>
+            <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
+              Back
+            </Button>
+          </Space>
+
+          {/* Active Users Indicator (for edit mode) */}
+          {mode === 'edit' && id && (
+            <ActiveUsersIndicator
+              resourceType="routing"
+              resourceId={id}
+              action="editing"
+              enabled={true}
+              showDetails={false}
+            />
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+          <div>
+            <Title level={2} style={{ marginBottom: '8px' }}>
+              <ControlOutlined style={{ marginRight: '8px' }} />
+              {mode === 'create' ? 'Create New Routing' : 'Edit Routing'}
+            </Title>
+            <Text type="secondary">
+              {mode === 'create'
+                ? 'Define a new manufacturing routing for a part at a specific site'
+                : 'Update routing information and settings'}
+            </Text>
+          </div>
+
+          {/* Editor Mode Toggle */}
+          <Space direction="vertical" align="end">
+            <Segmented
+              value={editorMode}
+              onChange={(value) => setEditorMode(value as EditorMode)}
+              options={[
+                {
+                  label: (
+                    <Tooltip title="Form-based tabular editor">
+                      <Space>
+                        <TableOutlined />
+                        <span>Form View</span>
+                      </Space>
+                    </Tooltip>
+                  ),
+                  value: 'form',
+                },
+                {
+                  label: (
+                    <Tooltip title="Visual drag-and-drop editor">
+                      <Space>
+                        <AppstoreOutlined />
+                        <span>Visual Editor</span>
+                      </Space>
+                    </Tooltip>
+                  ),
+                  value: 'visual',
+                },
+              ]}
+              size="large"
+            />
+            {hasUnsavedChanges && (
+              <Text type="warning" style={{ fontSize: '12px' }}>
+                <InfoCircleOutlined /> Unsaved changes in visual editor
+              </Text>
+            )}
+          </Space>
+        </div>
       </div>
 
-      <Card>
+      {/* Routing Changed Alert (when another user modifies) */}
+      {hasChanged && changeInfo && (
+        <div style={{ marginBottom: '24px' }}>
+          <RoutingChangedAlert
+            changeInfo={changeInfo}
+            onReload={handleReloadAfterConflict}
+            onDismiss={dismissChange}
+          />
+        </div>
+      )}
+
+      {/* Version Conflict Modal */}
+      {showVersionConflict && versionConflictError && (
+        <VersionConflictModal
+          visible={showVersionConflict}
+          error={versionConflictError}
+          localChanges={form.getFieldsValue()}
+          onReload={handleReloadAfterConflict}
+          onClose={() => setShowVersionConflict(false)}
+        />
+      )}
+
+      {/* Visual Editor Mode */}
+      {editorMode === 'visual' ? (
+        <div style={{ height: 'calc(100vh - 200px)' }}>
+          <VisualRoutingEditor
+            initialNodes={routingNodes}
+            initialEdges={routingEdges}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onSave={handleVisualSave}
+            readOnly={false}
+            routingId={id}
+            routingName={form.getFieldValue('routingNumber') || 'New Routing'}
+          />
+        </div>
+      ) : (
+        /* Form Editor Mode */
+        <>
+        <Card>
         <Form
           form={form}
           layout="vertical"
@@ -400,14 +574,33 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         </Form>
       </Card>
 
-      {/* Help Text */}
-      <Alert
-        message="Routing Information"
-        description="After creating the routing, you can add manufacturing steps, define dependencies, and configure timing. The routing must be in DRAFT or REVIEW state to be edited."
-        type="info"
-        showIcon
-        style={{ marginTop: '24px' }}
-      />
+        {/* Help Text */}
+        {editorMode === 'form' && (
+          <Alert
+            message="Routing Information"
+            description={
+              <div>
+                <div style={{ marginBottom: '8px' }}>
+                  Fill in the basic routing information above, then switch to <strong>Visual Editor</strong> mode to:
+                </div>
+                <ul style={{ marginBottom: 0, paddingLeft: '20px' }}>
+                  <li>Add manufacturing steps with drag-and-drop</li>
+                  <li>Define step dependencies and connections</li>
+                  <li>Configure timing and control flow</li>
+                  <li>Use advanced patterns (parallel operations, decision points, telescoping, etc.)</li>
+                </ul>
+                <div style={{ marginTop: '8px', color: '#8c8c8c', fontSize: '12px' }}>
+                  Note: The routing must be in DRAFT or REVIEW state to be edited.
+                </div>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginTop: '24px' }}
+          />
+        )}
+      </>
+      )}
     </div>
   );
 };

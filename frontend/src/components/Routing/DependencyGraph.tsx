@@ -49,8 +49,8 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
       const nodes = new DataSet(
         steps.map((step) => ({
           id: step.id,
-          label: `Step ${step.stepNumber}\n${step.processSegment?.segmentName || 'Unknown'}`,
-          title: `${step.processSegment?.segmentName}\n${step.stepInstructions || 'No instructions'}`,
+          label: `Step ${step.stepNumber}\n${step.operation?.operationName || 'Unknown'}`,
+          title: `${step.operation?.operationName}\n${step.stepInstructions || 'No instructions'}`,
           shape: 'box',
           color: {
             background: step.isCriticalPath

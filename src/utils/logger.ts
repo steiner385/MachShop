@@ -21,9 +21,9 @@ const consoleFormat = config.env === 'production'
   : winston.format.combine(
       logFormat,
       winston.format.colorize(),
-      winston.format.printf(({ level, message, timestamp, metadata }) => {
-        const metaStr = Object.keys(metadata).length > 0 
-          ? `\n${JSON.stringify(metadata, null, 2)}` 
+      winston.format.printf(({ level, message, timestamp, metadata }: any) => {
+        const metaStr = Object.keys(metadata || {}).length > 0
+          ? `\n${JSON.stringify(metadata, null, 2)}`
           : '';
         return `${timestamp} [${level}]: ${message}${metaStr}`;
       })

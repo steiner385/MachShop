@@ -48,8 +48,7 @@ router.post('/sync-gauges', async (req: Request, res: Response): Promise<any> =>
     const result = await adapter.syncGaugesFromIndysoft(activeOnly !== false);
 
     res.json({
-      success: true,
-      message: `Synced ${result.syncedCount} gauges from Indysoft`,
+      message: `Synced gauges from Indysoft`,
       ...result,
     });
   } catch (error: any) {

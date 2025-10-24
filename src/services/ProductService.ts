@@ -91,7 +91,7 @@ async getPartById(id: string, includeRelations: boolean = true) {
       bomItems: {
         include: {
           componentPart: true,
-          processSegment: true,
+          operation: true,
         },
       },
       componentItems: {
@@ -134,7 +134,7 @@ async getPartByPartNumber(partNumber: string, includeRelations: boolean = true) 
       bomItems: {
         include: {
           componentPart: true,
-          processSegment: true,
+          operation: true,
         },
       },
     } : undefined,
@@ -595,7 +595,7 @@ async addBOMItem(data: {
   sequence?: number;
   findNumber?: string;
   referenceDesignator?: string;
-  processSegmentId?: string;
+  operationId?: string;
   operationNumber?: number;
   effectiveDate?: Date;
   obsoleteDate?: Date;
@@ -612,7 +612,7 @@ async addBOMItem(data: {
     include: {
       parentPart: true,
       componentPart: true,
-      processSegment: true,
+      operation: true,
     },
   });
 
@@ -627,7 +627,7 @@ async getPartBOM(partId: string, includeProcessSegments: boolean = true) {
     where: { parentPartId: partId, isActive: true },
     include: {
       componentPart: true,
-      processSegment: includeProcessSegments,
+      operation: includeProcessSegments,
     },
     orderBy: [
       { sequence: 'asc' },
@@ -646,7 +646,7 @@ async getPartWhereUsed(partId: string) {
     where: { componentPartId: partId, isActive: true },
     include: {
       parentPart: true,
-      processSegment: true,
+      operation: true,
     },
     orderBy: { parentPart: { partNumber: 'asc' } },
   });
@@ -664,7 +664,7 @@ async updateBOMItem(bomItemId: string, data: Partial<{
   sequence: number;
   findNumber: string;
   referenceDesignator: string;
-  processSegmentId: string;
+  operationId: string;
   operationNumber: number;
   effectiveDate: Date;
   obsoleteDate: Date;
@@ -680,7 +680,7 @@ async updateBOMItem(bomItemId: string, data: Partial<{
     include: {
       parentPart: true,
       componentPart: true,
-      processSegment: true,
+      operation: true,
     },
   });
 

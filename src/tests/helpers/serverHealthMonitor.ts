@@ -36,12 +36,12 @@ export class ServerHealthMonitor {
   private isMonitoring = false;
   private crashDetectedCallback: (() => void) | null = null;
   private consecutiveFailures = 0;
-  private readonly maxConsecutiveFailures = 3;
+  private readonly maxConsecutiveFailures = 5; // Increased from 3 to 5 to reduce false positives
 
   private constructor(
     backendUrl = 'http://localhost:3101',
     frontendUrl = 'http://localhost:5278',
-    checkIntervalMs = 30000 // 30 seconds
+    checkIntervalMs = 60000 // 60 seconds (increased from 30s to reduce false positives during test load)
   ) {
     this.backendUrl = backendUrl;
     this.frontendUrl = frontendUrl;
@@ -163,7 +163,7 @@ export class ServerHealthMonitor {
 
     try {
       const response = await fetch(url, {
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: AbortSignal.timeout(10000) // 10 second timeout (increased from 5s for heavy test load)
       });
 
       const responseTime = Date.now() - startTime;

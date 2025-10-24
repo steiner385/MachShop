@@ -26,6 +26,7 @@ import {
   EyeOutlined,
   CopyOutlined,
   FileTextOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useRoutingStore } from '@/store/routingStore';
 import { useSite } from '@/contexts/SiteContext';
@@ -136,10 +137,10 @@ export const RoutingList: React.FC = () => {
   };
 
   // Check if user has permission to perform routing operations
-  const canCreateRouting = hasAnyPermission(['routing.write', 'processsegments.write']);
-  const canViewRouting = hasAnyPermission(['routing.read', 'routing.write', 'processsegments.read', 'processsegments.write']);
-  const canUpdateRouting = hasAnyPermission(['routing.write', 'processsegments.write']);
-  const canDeleteRouting = hasAnyPermission(['routing.delete', 'routing.write', 'processsegments.write']);
+  const canCreateRouting = hasAnyPermission(['routings.create', 'routings.write', '*']);
+  const canViewRouting = hasAnyPermission(['routings.read', 'routings.write', '*']);
+  const canUpdateRouting = hasAnyPermission(['routings.update', 'routings.write', '*']);
+  const canDeleteRouting = hasAnyPermission(['routings.delete', 'routings.write', '*']);
 
   // Table columns
   const columns: ColumnsType<Routing> = [
@@ -313,6 +314,14 @@ export const RoutingList: React.FC = () => {
             onSearch={handleSearch}
             style={{ width: '400px' }}
           />
+
+          <Button
+            icon={<AppstoreOutlined />}
+            onClick={() => navigate('/routings/templates')}
+            size="large"
+          >
+            Templates
+          </Button>
 
           <Tooltip title={!canCreateRouting ? "You don't have permission to create routings" : ""}>
             <Button

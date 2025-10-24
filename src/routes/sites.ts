@@ -76,7 +76,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<any> => {
           select: {
             workOrders: true,
             routings: true,
-            processSegments: true
+            operations: true
           }
         }
       }

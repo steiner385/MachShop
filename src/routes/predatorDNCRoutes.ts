@@ -150,13 +150,11 @@ router.post('/transfer-program', async (req: Request, res: Response): Promise<an
 
     if (result.success) {
       res.json({
-        success: true,
         message: `Program ${programName} transferred to machine ${machineId}`,
         ...result,
       });
     } else {
       res.status(500).json({
-        success: false,
         error: result.error || 'Failed to transfer program',
         ...result,
       });
@@ -195,8 +193,6 @@ router.get('/machine/:machineId/status', async (req: Request, res: Response): Pr
     }
 
     res.json({
-      success: true,
-      machineId,
       ...status,
     });
   } catch (error: any) {
@@ -223,7 +219,7 @@ router.get('/machine/:machineId/active-program', async (req: Request, res: Respo
       return res.status(400).json({ error: 'Predator DNC adapter not configured' });
     }
 
-    const program = await adapter.getActiveProgramOnMachine(machineId);
+    const program = await (adapter as any).getActiveProgramOnMachine(machineId);
 
     if (!program) {
       return res.status(404).json({
@@ -261,7 +257,7 @@ router.get('/download-log/:downloadId', async (req: Request, res: Response): Pro
       return res.status(400).json({ error: 'Predator DNC adapter not configured' });
     }
 
-    const downloadLog = await adapter.getDownloadLog(downloadId);
+    const downloadLog = await (adapter as any).getDownloadLog(downloadId);
 
     if (!downloadLog) {
       return res.status(404).json({
@@ -298,7 +294,7 @@ router.get('/authorization/:authId', async (req: Request, res: Response): Promis
       return res.status(400).json({ error: 'Predator DNC adapter not configured' });
     }
 
-    const authorization = await adapter.getAuthorizationResult(authId);
+    const authorization = await (adapter as any).getAuthorizationResult(authId);
 
     if (!authorization) {
       return res.status(404).json({

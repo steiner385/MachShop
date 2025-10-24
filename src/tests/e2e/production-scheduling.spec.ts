@@ -23,10 +23,11 @@ test.describe('Production Scheduling - Schedule CRUD Operations', () => {
     authHeaders = await loginAsTestUser(request);
 
     // Get site for schedule creation
-    const sitesResponse = await request.get('/api/v1/equipment/sites', {
+    const sitesResponse = await request.get('/api/v1/sites', {
       headers: authHeaders,
     });
-    const sites = await sitesResponse.json();
+    const sitesData = await sitesResponse.json();
+    const sites = sitesData.data || sitesData.sites || [];
     if (sites.length > 0) {
       testSiteId = sites[0].id;
     }

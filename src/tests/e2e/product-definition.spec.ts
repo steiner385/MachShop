@@ -486,7 +486,7 @@ test.describe('BOM Operations with Process Segment Integration', () => {
         sequence: 10,
         findNumber: '1',
         referenceDesignator: 'C1, C2, C3, C4',
-        processSegmentId: processSegmentId || undefined,
+        operationId: processSegmentId || undefined,
         operationNumber: 20,
         isCritical: true,
         notes: 'Install during assembly operation',

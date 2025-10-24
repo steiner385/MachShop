@@ -422,7 +422,7 @@ export class QIFService {
   }): QIFDocument {
     const now = new Date().toISOString();
 
-    const devices = params.measurementDevices.map((dev, index) => ({
+    const devices: any = params.measurementDevices.map((dev, index) => ({
       id: `DEVICE_${index + 1}`,
       DeviceType: dev.deviceType,
       Manufacturer: dev.manufacturer,

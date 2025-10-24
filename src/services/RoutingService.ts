@@ -32,7 +32,15 @@ import {
   RoutingTimingCalculation,
   RoutingStepResequenceRequest,
   RoutingValidationResult,
-  RoutingValidationError
+  RoutingValidationError,
+  // Phase 3.2: Template types
+  RoutingTemplate,
+  CreateRoutingTemplateDTO,
+  UpdateRoutingTemplateDTO,
+  RoutingTemplateQueryParams,
+  VisualRoutingData,
+  CreateRoutingWithVisualDTO,
+  UpdateRoutingWithVisualDTO
 } from '../types/routing';
 
 const prisma = new PrismaClient();
@@ -83,8 +91,10 @@ export class RoutingService {
         steps: data.steps ? {
           create: data.steps.map(step => ({
             stepNumber: step.stepNumber,
-            processSegmentId: step.processSegmentId,
+            operationId: step.operationId,
             workCenterId: step.workCenterId,
+            stepType: step.stepType,
+            controlType: step.controlType,
             setupTimeOverride: step.setupTimeOverride,
             cycleTimeOverride: step.cycleTimeOverride,
             teardownTimeOverride: step.teardownTimeOverride,
@@ -113,11 +123,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -166,11 +176,11 @@ export class RoutingService {
         },
         steps: includeSteps ? {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -219,11 +229,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -287,11 +297,11 @@ export class RoutingService {
         },
         steps: params.includeSteps ? {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -338,7 +348,7 @@ export class RoutingService {
             currentVersion: existing.version,
             attemptedVersion: data.currentVersion,
             lastModified: existing.updatedAt,
-            lastModifiedBy: existing.createdBy // Note: In a real system, track lastModifiedBy separately
+            lastModifiedBy: existing.createdBy ?? undefined // Note: In a real system, track lastModifiedBy separately
           }
         );
       }
@@ -397,11 +407,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -469,8 +479,10 @@ export class RoutingService {
       data: {
         routingId: data.routingId,
         stepNumber: data.stepNumber,
-        processSegmentId: data.processSegmentId,
+        operationId: data.operationId,
         workCenterId: data.workCenterId,
+        stepType: data.stepType,
+        controlType: data.controlType,
         setupTimeOverride: data.setupTimeOverride,
         cycleTimeOverride: data.cycleTimeOverride,
         teardownTimeOverride: data.teardownTimeOverride,
@@ -482,11 +494,11 @@ export class RoutingService {
       },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -515,11 +527,11 @@ export class RoutingService {
       where: { id },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -548,11 +560,11 @@ export class RoutingService {
       where: { routingId },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -606,8 +618,10 @@ export class RoutingService {
       where: { id },
       data: {
         stepNumber: data.stepNumber,
-        processSegmentId: data.processSegmentId,
+        operationId: data.operationId,
         workCenterId: data.workCenterId,
+        stepType: data.stepType,
+        controlType: data.controlType,
         setupTimeOverride: data.setupTimeOverride,
         cycleTimeOverride: data.cycleTimeOverride,
         teardownTimeOverride: data.teardownTimeOverride,
@@ -619,11 +633,11 @@ export class RoutingService {
       },
       include: {
         routing: true,
-        processSegment: {
+        operation: {
           select: {
             id: true,
-            segmentName: true,
-            segmentType: true,
+            operationName: true,
+            operationType: true,
             setupTime: true,
             duration: true,
             teardownTime: true,
@@ -954,8 +968,10 @@ export class RoutingService {
         steps: (options.includeSteps !== false) && sourceRouting.steps ? {
           create: sourceRouting.steps.map(step => ({
             stepNumber: step.stepNumber,
-            processSegmentId: step.processSegmentId,
+            operationId: step.operationId,
             workCenterId: step.workCenterId,
+            stepType: step.stepType,
+            controlType: step.controlType,
             setupTimeOverride: step.setupTimeOverride,
             cycleTimeOverride: step.cycleTimeOverride,
             teardownTimeOverride: step.teardownTimeOverride,
@@ -984,11 +1000,11 @@ export class RoutingService {
         },
         steps: {
           include: {
-            processSegment: {
+            operation: {
               select: {
                 id: true,
-                segmentName: true,
-                segmentType: true,
+                operationName: true,
+                operationType: true,
                 setupTime: true,
                 duration: true,
                 teardownTime: true,
@@ -1147,9 +1163,9 @@ export class RoutingService {
     let totalTeardownTime = 0;
 
     for (const step of steps) {
-      const setupTime = step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0;
-      const cycleTime = step.cycleTimeOverride ?? step.processSegment?.duration ?? 0;
-      const teardownTime = step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0;
+      const setupTime = step.setupTimeOverride ?? step.operation?.setupTime ?? 0;
+      const cycleTime = step.cycleTimeOverride ?? step.operation?.duration ?? 0;
+      const teardownTime = step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0;
 
       totalSetupTime += setupTime;
       totalCycleTime += cycleTime;
@@ -1162,9 +1178,9 @@ export class RoutingService {
 
     if (criticalPathSteps.length > 0) {
       for (const step of criticalPathSteps) {
-        const setupTime = step.setupTimeOverride ?? step.processSegment?.setupTime ?? 0;
-        const cycleTime = step.cycleTimeOverride ?? step.processSegment?.duration ?? 0;
-        const teardownTime = step.teardownTimeOverride ?? step.processSegment?.teardownTime ?? 0;
+        const setupTime = step.setupTimeOverride ?? step.operation?.setupTime ?? 0;
+        const cycleTime = step.cycleTimeOverride ?? step.operation?.duration ?? 0;
+        const teardownTime = step.teardownTimeOverride ?? step.operation?.teardownTime ?? 0;
         criticalPathTime += setupTime + cycleTime + teardownTime;
       }
     } else {
@@ -1273,6 +1289,722 @@ export class RoutingService {
 
     // Increment major version
     return `${major + 1}.0`;
+  }
+
+  // ============================================
+  // ROUTING TEMPLATE OPERATIONS (Phase 3.2)
+  // ============================================
+
+  /**
+   * Create a new routing template
+   */
+  async createRoutingTemplate(data: CreateRoutingTemplateDTO): Promise<RoutingTemplate> {
+    // Validate template name uniqueness
+    const existing = await prisma.routingTemplate.findFirst({
+      where: {
+        name: data.name,
+        createdById: data.createdBy
+      }
+    });
+
+    if (existing) {
+      throw new Error(`Template with name "${data.name}" already exists for this user`);
+    }
+
+    // Create template
+    const template = await prisma.routingTemplate.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        tags: data.tags,
+        visualData: (data.visualData as unknown) as Prisma.InputJsonValue,
+        isFavorite: data.isFavorite ?? false,
+        usageCount: 0,
+        createdById: data.createdBy || '',
+        siteId: data.siteId || ''
+      }
+    });
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Get all routing templates with optional filtering
+   */
+  async getRoutingTemplates(params?: RoutingTemplateQueryParams): Promise<RoutingTemplate[]> {
+    const where: Prisma.RoutingTemplateWhereInput = {};
+
+    if (params?.category) {
+      where.category = params.category;
+    }
+
+    if (params?.isFavorite !== undefined) {
+      where.isFavorite = params.isFavorite;
+    }
+
+    if (params?.createdBy) {
+      where.createdById = params.createdBy;
+    }
+
+    if (params?.tags && params.tags.length > 0) {
+      where.tags = {
+        hasSome: params.tags
+      };
+    }
+
+    if (params?.searchText) {
+      where.OR = [
+        { name: { contains: params.searchText, mode: 'insensitive' } },
+        { description: { contains: params.searchText, mode: 'insensitive' } },
+        { category: { contains: params.searchText, mode: 'insensitive' } }
+      ];
+    }
+
+    const templates = await prisma.routingTemplate.findMany({
+      where,
+      orderBy: [
+        { isFavorite: 'desc' },
+        { usageCount: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+
+    return templates.map(t => this.mapTemplateFromPrisma(t));
+  }
+
+  /**
+   * Get a single routing template by ID
+   */
+  async getRoutingTemplateById(id: string): Promise<RoutingTemplate | null> {
+    const template = await prisma.routingTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      return null;
+    }
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Update a routing template
+   */
+  async updateRoutingTemplate(
+    id: string,
+    data: UpdateRoutingTemplateDTO
+  ): Promise<RoutingTemplate> {
+    const template = await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        tags: data.tags,
+        visualData: data.visualData ? ((data.visualData as unknown) as Prisma.InputJsonValue) : undefined,
+        isFavorite: data.isFavorite
+      }
+    });
+
+    return this.mapTemplateFromPrisma(template);
+  }
+
+  /**
+   * Delete a routing template
+   */
+  async deleteRoutingTemplate(id: string): Promise<void> {
+    await prisma.routingTemplate.delete({
+      where: { id }
+    });
+  }
+
+  /**
+   * Increment template usage count
+   */
+  async incrementTemplateUsage(id: string): Promise<void> {
+    await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        usageCount: {
+          increment: 1
+        }
+      }
+    });
+  }
+
+  /**
+   * Toggle template favorite status
+   */
+  async toggleTemplateFavorite(id: string): Promise<RoutingTemplate> {
+    const template = await prisma.routingTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      throw new Error(`Template ${id} not found`);
+    }
+
+    const updated = await prisma.routingTemplate.update({
+      where: { id },
+      data: {
+        isFavorite: !template.isFavorite
+      }
+    });
+
+    return this.mapTemplateFromPrisma(updated);
+  }
+
+  /**
+   * Get template categories with counts
+   */
+  async getTemplateCategories(): Promise<Array<{ category: string; count: number }>> {
+    const result = await prisma.routingTemplate.groupBy({
+      by: ['category'],
+      _count: {
+        id: true
+      },
+      orderBy: {
+        _count: {
+          id: 'desc'
+        }
+      }
+    });
+
+    return result.map(r => ({
+      category: r.category ?? 'Uncategorized',
+      count: r._count.id
+    }));
+  }
+
+  /**
+   * Create routing from template
+   */
+  async createRoutingFromTemplate(
+    templateId: string,
+    routingData: Omit<CreateRoutingDTO, 'visualData'>,
+    userId?: string
+  ): Promise<RoutingWithRelations> {
+    // Get template
+    const template = await this.getRoutingTemplateById(templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+
+    // Increment usage count
+    await this.incrementTemplateUsage(templateId);
+
+    // Create routing with visual data from template
+    const routingWithVisual: CreateRoutingWithVisualDTO = {
+      ...routingData,
+      visualData: template.visualData,
+      createdBy: userId,
+      notes: `Created from template: ${template.name}`
+    };
+
+    return await this.createRoutingWithVisualData(routingWithVisual);
+  }
+
+  // ============================================
+  // VISUAL ROUTING DATA OPERATIONS (Phase 3.2)
+  // ============================================
+
+  /**
+   * Create routing with visual data
+   */
+  async createRoutingWithVisualData(
+    data: CreateRoutingWithVisualDTO
+  ): Promise<RoutingWithRelations> {
+    // Store visual data as JSON in a separate field or in notes
+    // For now, we'll store it in the notes field as a JSON string
+    const visualDataJson = data.visualData ? JSON.stringify(data.visualData) : null;
+
+    const routingData: CreateRoutingDTO = {
+      ...data,
+      notes: visualDataJson
+        ? `${data.notes || ''}\n\n[VISUAL_DATA]${visualDataJson}[/VISUAL_DATA]`
+        : data.notes
+    };
+
+    return await this.createRouting(routingData);
+  }
+
+  /**
+   * Update routing with visual data
+   */
+  async updateRoutingWithVisualData(
+    id: string,
+    data: UpdateRoutingWithVisualDTO
+  ): Promise<RoutingWithRelations> {
+    const existing = await this.getRoutingById(id);
+    if (!existing) {
+      throw new Error(`Routing ${id} not found`);
+    }
+
+    // Extract existing visual data from notes
+    const existingVisualData = this.extractVisualDataFromNotes(existing.notes || '');
+
+    // Prepare visual data
+    const visualDataJson = data.visualData ? JSON.stringify(data.visualData) : null;
+
+    // Prepare notes with visual data
+    let notes = data.notes !== undefined ? data.notes : existing.notes || '';
+
+    // Remove old visual data marker if exists
+    notes = notes.replace(/\[VISUAL_DATA\].*?\[\/VISUAL_DATA\]/s, '');
+
+    // Add new visual data marker if provided
+    if (visualDataJson) {
+      notes = `${notes}\n\n[VISUAL_DATA]${visualDataJson}[/VISUAL_DATA]`;
+    }
+
+    const routingData: UpdateRoutingDTO = {
+      ...data,
+      notes
+    };
+
+    return await this.updateRouting(id, routingData);
+  }
+
+  /**
+   * Get visual data for a routing
+   */
+  async getRoutingVisualData(routingId: string): Promise<VisualRoutingData | null> {
+    const routing = await this.getRoutingById(routingId);
+    if (!routing) {
+      return null;
+    }
+
+    return this.extractVisualDataFromNotes(routing.notes || '');
+  }
+
+  /**
+   * Helper: Extract visual data from notes field
+   */
+  private extractVisualDataFromNotes(notes: string): VisualRoutingData | null {
+    const match = notes.match(/\[VISUAL_DATA\](.*?)\[\/VISUAL_DATA\]/s);
+    if (match && match[1]) {
+      try {
+        return JSON.parse(match[1]);
+      } catch (e) {
+        console.error('Failed to parse visual data:', e);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Helper: Map Prisma template to RoutingTemplate type
+   */
+  private mapTemplateFromPrisma(template: any): RoutingTemplate {
+    return {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      tags: template.tags,
+      visualData: template.visualData as VisualRoutingData,
+      isFavorite: template.isFavorite,
+      usageCount: template.usageCount,
+      createdBy: template.createdBy,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt
+    };
+  }
+
+  // ============================================================================
+  // NEW: Routing Type Methods (MES Enhancement Phase 3)
+  // ============================================================================
+
+  /**
+   * Get routings by type (PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING)
+   */
+  async getRoutingsByType(
+    partId: string,
+    siteId: string,
+    routingType: string
+  ) {
+    const routings = await prisma.routing.findMany({
+      where: {
+        partId,
+        siteId,
+        routingType: routingType as any,
+        isActive: true
+      },
+      include: {
+        part: true,
+        site: true,
+        steps: {
+          include: {
+            operation: true,
+            workCenter: true,
+            workInstruction: true
+          }
+        }
+      },
+      orderBy: [
+        { priority: 'asc' }, // Lower priority number = higher priority
+        { version: 'desc' }
+      ]
+    });
+
+    return routings;
+  }
+
+  /**
+   * Get PRIMARY routing for a part at a site
+   */
+  async getPrimaryRouting(partId: string, siteId: string) {
+    const routing = await prisma.routing.findFirst({
+      where: {
+        partId,
+        siteId,
+        routingType: 'PRIMARY',
+        isActive: true
+      },
+      include: {
+        part: true,
+        site: true,
+        steps: {
+          include: {
+            operation: true,
+            workCenter: true,
+            workInstruction: true,
+            parameterOverrides: true
+          },
+          orderBy: { stepNumber: 'asc' }
+        }
+      },
+      orderBy: { priority: 'asc' } // Get highest priority (lowest number)
+    });
+
+    return routing;
+  }
+
+  /**
+   * Get ALTERNATE routings for a PRIMARY routing
+   */
+  async getAlternateRoutings(primaryRoutingId: string) {
+    // Verify primary routing exists
+    const primary = await prisma.routing.findUnique({
+      where: { id: primaryRoutingId }
+    });
+
+    if (!primary) {
+      throw new Error(`Routing ${primaryRoutingId} not found`);
+    }
+
+    if (primary.routingType !== 'PRIMARY') {
+      throw new Error(
+        `Routing ${primaryRoutingId} is not a PRIMARY routing`
+      );
+    }
+
+    const alternates = await prisma.routing.findMany({
+      where: {
+        alternateForId: primaryRoutingId,
+        routingType: 'ALTERNATE',
+        isActive: true
+      },
+      include: {
+        steps: {
+          include: {
+            operation: true,
+            workCenter: true
+          },
+          orderBy: { stepNumber: 'asc' }
+        }
+      },
+      orderBy: { priority: 'asc' }
+    });
+
+    return alternates;
+  }
+
+  /**
+   * Validate alternate routing (must link to PRIMARY)
+   */
+  async validateAlternateRouting(routingId: string) {
+    const routing = await prisma.routing.findUnique({
+      where: { id: routingId },
+      include: {
+        alternateFor: true
+      }
+    });
+
+    if (!routing) {
+      throw new Error(`Routing ${routingId} not found`);
+    }
+
+    if (routing.routingType === 'ALTERNATE') {
+      if (!routing.alternateForId) {
+        throw new Error(
+          'ALTERNATE routing must reference a PRIMARY routing via alternateForId'
+        );
+      }
+
+      if (routing.alternateFor?.routingType !== 'PRIMARY') {
+        throw new Error(
+          'alternateForId must reference a routing with routingType=PRIMARY'
+        );
+      }
+
+      // Validate same part and site
+      if (
+        routing.partId !== routing.alternateFor.partId ||
+        routing.siteId !== routing.alternateFor.siteId
+      ) {
+        throw new Error(
+          'ALTERNATE routing must be for the same part and site as the PRIMARY'
+        );
+      }
+    }
+
+    return true;
+  }
+
+  // ============================================================================
+  // NEW: Routing Step Parameter Override Methods (MES Enhancement Phase 2)
+  // ============================================================================
+
+  /**
+   * Set parameter override for a routing step
+   */
+  async setRoutingStepParameterOverride(
+    stepId: string,
+    parameterName: string,
+    parameterValue: string,
+    unitOfMeasure?: string,
+    notes?: string
+  ) {
+    // Verify routing step exists
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: { operation: true }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Upsert parameter override
+    const override = await prisma.routingStepParameter.upsert({
+      where: {
+        routingStepId_parameterName: {
+          routingStepId: stepId,
+          parameterName
+        }
+      },
+      update: {
+        parameterValue,
+        unitOfMeasure,
+        notes
+      },
+      create: {
+        routingStepId: stepId,
+        parameterName,
+        parameterValue,
+        unitOfMeasure,
+        notes
+      }
+    });
+
+    return override;
+  }
+
+  /**
+   * Get parameter overrides for a routing step
+   */
+  async getRoutingStepParameterOverrides(stepId: string) {
+    const overrides = await prisma.routingStepParameter.findMany({
+      where: { routingStepId: stepId },
+      orderBy: { parameterName: 'asc' }
+    });
+
+    return overrides;
+  }
+
+  /**
+   * Get effective parameters for a routing step
+   * (merges ProcessSegment base parameters with routing step overrides)
+   */
+  async getEffectiveStepParameters(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: {
+        operation: {
+          include: {
+            parameters: true
+          }
+        },
+        parameterOverrides: true
+      }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Start with base parameters from ProcessSegment
+    const effectiveParameters = step.operation.parameters.map((p) => ({
+      parameterName: p.parameterName,
+      parameterValue: p.defaultValue || '',
+      unitOfMeasure: p.unitOfMeasure || null,
+      source: 'process_segment',
+      isOverridden: false
+    }));
+
+    // Apply overrides
+    const overrideMap = new Map(
+      step.parameterOverrides.map((o) => [o.parameterName, o])
+    );
+
+    effectiveParameters.forEach((p) => {
+      const override = overrideMap.get(p.parameterName);
+      if (override) {
+        p.parameterValue = override.parameterValue;
+        p.unitOfMeasure = override.unitOfMeasure || p.unitOfMeasure;
+        p.source = 'routing_step_override';
+        p.isOverridden = true;
+      }
+    });
+
+    // Add any override-only parameters (not in base)
+    step.parameterOverrides.forEach((override) => {
+      if (
+        !effectiveParameters.find(
+          (p) => p.parameterName === override.parameterName
+        )
+      ) {
+        effectiveParameters.push({
+          parameterName: override.parameterName,
+          parameterValue: override.parameterValue,
+          unitOfMeasure: override.unitOfMeasure || null,
+          source: 'routing_step_override',
+          isOverridden: true
+        });
+      }
+    });
+
+    return effectiveParameters;
+  }
+
+  /**
+   * Delete parameter override for a routing step
+   */
+  async deleteRoutingStepParameterOverride(
+    stepId: string,
+    parameterName: string
+  ) {
+    const deleted = await prisma.routingStepParameter.deleteMany({
+      where: {
+        routingStepId: stepId,
+        parameterName
+      }
+    });
+
+    return deleted.count > 0;
+  }
+
+  // ============================================================================
+  // NEW: Work Instruction Assignment Methods (MES Enhancement Phase 1)
+  // ============================================================================
+
+  /**
+   * Assign work instruction to routing step (overrides ProcessSegment standard WI)
+   */
+  async assignWorkInstructionToStep(
+    stepId: string,
+    workInstructionId: string
+  ) {
+    // Verify routing step exists
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Verify work instruction exists
+    const workInstruction = await prisma.workInstruction.findUnique({
+      where: { id: workInstructionId }
+    });
+
+    if (!workInstruction) {
+      throw new Error(`Work instruction ${workInstructionId} not found`);
+    }
+
+    // Update routing step
+    const updated = await prisma.routingStep.update({
+      where: { id: stepId },
+      data: { workInstructionId },
+      include: {
+        workInstruction: true,
+        operation: {
+          include: {
+            standardWorkInstruction: true
+          }
+        }
+      }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove work instruction override from routing step
+   * (will fall back to ProcessSegment standard WI if available)
+   */
+  async removeWorkInstructionFromStep(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    const updated = await prisma.routingStep.update({
+      where: { id: stepId },
+      data: { workInstructionId: null }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Get effective work instruction for a routing step
+   * Returns step-level override if exists, otherwise ProcessSegment standard WI
+   */
+  async getEffectiveWorkInstruction(stepId: string) {
+    const step = await prisma.routingStep.findUnique({
+      where: { id: stepId },
+      include: {
+        workInstruction: {
+          include: {
+            steps: true
+          }
+        },
+        operation: {
+          include: {
+            standardWorkInstruction: {
+              include: {
+                steps: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!step) {
+      throw new Error(`Routing step ${stepId} not found`);
+    }
+
+    // Return step-level override if exists, otherwise standard WI
+    return step.workInstruction || step.operation.standardWorkInstruction;
   }
 }
 

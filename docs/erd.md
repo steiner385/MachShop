@@ -152,7 +152,7 @@ INTEGRATION INTEGRATION
     
 
 
-        ProcessSegmentType {
+        OperationType {
             PRODUCTION PRODUCTION
 QUALITY QUALITY
 MATERIAL_HANDLING MATERIAL_HANDLING
@@ -163,6 +163,19 @@ PACKAGING PACKAGING
 TESTING TESTING
 REWORK REWORK
 OTHER OTHER
+        }
+    
+
+
+        OperationClassification {
+            MAKE MAKE
+ASSEMBLY ASSEMBLY
+INSPECTION INSPECTION
+TEST TEST
+REWORK REWORK
+SETUP SETUP
+SUBCONTRACT SUBCONTRACT
+PACKING PACKING
         }
     
 
@@ -302,6 +315,40 @@ REVIEW REVIEW
 RELEASED RELEASED
 PRODUCTION PRODUCTION
 OBSOLETE OBSOLETE
+        }
+    
+
+
+        RoutingType {
+            PRIMARY PRIMARY
+ALTERNATE ALTERNATE
+REWORK REWORK
+PROTOTYPE PROTOTYPE
+ENGINEERING ENGINEERING
+        }
+    
+
+
+        StepType {
+            PROCESS PROCESS
+INSPECTION INSPECTION
+DECISION DECISION
+PARALLEL_SPLIT PARALLEL_SPLIT
+PARALLEL_JOIN PARALLEL_JOIN
+OSP OSP
+LOT_SPLIT LOT_SPLIT
+LOT_MERGE LOT_MERGE
+TELESCOPING TELESCOPING
+START START
+END END
+        }
+    
+
+
+        ControlType {
+            LOT_CONTROLLED LOT_CONTROLLED
+SERIAL_CONTROLLED SERIAL_CONTROLLED
+MIXED MIXED
         }
     
 
@@ -590,6 +637,7 @@ PROCESSING PROCESSING
 PROCESSED PROCESSED
 SENT SENT
 CONFIRMED CONFIRMED
+ACCEPTED ACCEPTED
 FAILED FAILED
 REJECTED REJECTED
 TIMEOUT TIMEOUT
@@ -986,14 +1034,15 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segments" {
+  "operations" {
     String id "🗝️"
-    String segmentCode 
-    String segmentName 
     String description "❓"
     Boolean isStandardOperation 
+    String operationCode 
+    String operationName 
+    OperationClassification operationClassification "❓"
     Int level 
-    ProcessSegmentType segmentType 
+    OperationType operationType 
     String category "❓"
     Int duration "❓"
     Int setupTime "❓"
@@ -1012,7 +1061,7 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segment_parameters" {
+  "operation_parameters" {
     String id "🗝️"
     String parameterName 
     ParameterType parameterType 
@@ -1032,7 +1081,7 @@ CANCELLED CANCELLED
     }
   
 
-  "process_segment_dependencies" {
+  "operation_dependencies" {
     String id "🗝️"
     DependencyType dependencyType 
     DependencyTimingType timingType 
@@ -1046,7 +1095,7 @@ CANCELLED CANCELLED
     }
   
 
-  "personnel_segment_specifications" {
+  "personnel_operation_specifications" {
     String id "🗝️"
     String personnelClassId "❓"
     String skillId "❓"
@@ -1062,7 +1111,7 @@ CANCELLED CANCELLED
     }
   
 
-  "equipment_segment_specifications" {
+  "equipment_operation_specifications" {
     String id "🗝️"
     EquipmentClass equipmentClass "❓"
     String equipmentType "❓"
@@ -1079,7 +1128,7 @@ CANCELLED CANCELLED
     }
   
 
-  "material_segment_specifications" {
+  "material_operation_specifications" {
     String id "🗝️"
     String materialDefinitionId "❓"
     String materialClassId "❓"
@@ -1097,7 +1146,7 @@ CANCELLED CANCELLED
     }
   
 
-  "physical_asset_segment_specifications" {
+  "physical_asset_operation_specifications" {
     String id "🗝️"
     PhysicalAssetType assetType 
     String assetCode "❓"
@@ -1292,8 +1341,11 @@ CANCELLED CANCELLED
     Boolean isActive 
     DateTime effectiveDate "❓"
     DateTime expirationDate "❓"
+    RoutingType routingType 
+    Int priority 
     String approvedBy "❓"
     DateTime approvedAt "❓"
+    Json visualData "❓"
     DateTime createdAt 
     DateTime updatedAt 
     String createdBy "❓"
@@ -1317,6 +1369,8 @@ CANCELLED CANCELLED
   "routing_steps" {
     String id "🗝️"
     Int stepNumber 
+    StepType stepType 
+    ControlType controlType "❓"
     Int setupTimeOverride "❓"
     Int cycleTimeOverride "❓"
     Int teardownTimeOverride "❓"
@@ -1337,6 +1391,34 @@ CANCELLED CANCELLED
     Int lagTime "❓"
     Int leadTime "❓"
     DateTime createdAt 
+    }
+  
+
+  "routing_step_parameters" {
+    String id "🗝️"
+    String parameterName 
+    String parameterValue 
+    String unitOfMeasure "❓"
+    String notes "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "routing_templates" {
+    String id "🗝️"
+    String name 
+    String number 
+    String category "❓"
+    String description "❓"
+    String tags 
+    Boolean isPublic 
+    Boolean isFavorite 
+    Int usageCount 
+    Float rating "❓"
+    Json visualData "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
     }
   
 
@@ -1803,6 +1885,8 @@ CANCELLED CANCELLED
     Json approvalHistory "❓"
     DateTime createdAt 
     DateTime updatedAt 
+    String operationType "❓"
+    Boolean requiredForExecution 
     }
   
 
@@ -2449,12 +2533,13 @@ CANCELLED CANCELLED
     "sites" o|--|o "enterprises" : "enterprise"
     "sites" o{--}o "routings" : ""
     "sites" o{--}o "part_site_availability" : ""
-    "sites" o{--}o "process_segments" : ""
+    "sites" o{--}o "operations" : ""
     "sites" o{--}o "work_orders" : ""
     "sites" o{--}o "equipment" : ""
     "sites" o{--}o "ncrs" : ""
     "sites" o{--}o "areas" : ""
     "sites" o{--}o "production_schedules" : ""
+    "sites" o{--}o "routing_templates" : ""
     "areas" o|--|| "sites" : "site"
     "areas" o{--}o "work_centers" : ""
     "areas" o{--}o "equipment" : ""
@@ -2480,6 +2565,7 @@ CANCELLED CANCELLED
     "users" o{--}o "personnel_availability" : ""
     "users" o{--}o "dispatch_logs" : ""
     "users" o{--}o "work_performance" : ""
+    "users" o{--}o "routing_templates" : ""
     "personnel_classes" o|--|o "personnel_classes" : "parentClass"
     "personnel_classes" o{--}o "personnel_qualifications" : ""
     "personnel_qualifications" o|--|| "QualificationType" : "enum:qualificationType"
@@ -2527,34 +2613,36 @@ CANCELLED CANCELLED
     "material_state_history" o|--|o "MaterialLotStatus" : "enum:newStatus"
     "material_state_history" o|--|| "StateTransitionType" : "enum:transitionType"
     "material_state_history" o|--|| "material_lots" : "lot"
-    "process_segments" o|--|| "ProcessSegmentType" : "enum:segmentType"
-    "process_segments" o|--|o "process_segments" : "parentSegment"
-    "process_segments" o|--|o "sites" : "site"
-    "process_segments" o{--}o "routing_steps" : ""
-    "process_segments" o{--}o "process_segment_parameters" : ""
-    "process_segments" o{--}o "process_segment_dependencies" : ""
-    "process_segments" o{--}o "process_segment_dependencies" : ""
-    "process_segments" o{--}o "personnel_segment_specifications" : ""
-    "process_segments" o{--}o "equipment_segment_specifications" : ""
-    "process_segments" o{--}o "material_segment_specifications" : ""
-    "process_segments" o{--}o "physical_asset_segment_specifications" : ""
-    "process_segments" o{--}o "bom_items" : ""
-    "process_segment_parameters" o|--|| "ParameterType" : "enum:parameterType"
-    "process_segment_parameters" o|--|| "ParameterDataType" : "enum:dataType"
-    "process_segment_parameters" o|--|| "process_segments" : "segment"
-    "process_segment_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
-    "process_segment_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
-    "process_segment_dependencies" o|--|| "process_segments" : "dependentSegment"
-    "process_segment_dependencies" o|--|| "process_segments" : "prerequisiteSegment"
-    "personnel_segment_specifications" o|--|o "CompetencyLevel" : "enum:minimumCompetency"
-    "personnel_segment_specifications" o|--|| "process_segments" : "segment"
-    "equipment_segment_specifications" o|--|o "EquipmentClass" : "enum:equipmentClass"
-    "equipment_segment_specifications" o|--|| "process_segments" : "segment"
-    "material_segment_specifications" o|--|o "MaterialType" : "enum:materialType"
-    "material_segment_specifications" o|--|| "ConsumptionType" : "enum:consumptionType"
-    "material_segment_specifications" o|--|| "process_segments" : "segment"
-    "physical_asset_segment_specifications" o|--|| "PhysicalAssetType" : "enum:assetType"
-    "physical_asset_segment_specifications" o|--|| "process_segments" : "segment"
+    "operations" o|--|o "OperationClassification" : "enum:operationClassification"
+    "operations" o|--|o "work_instructions" : "standardWorkInstruction"
+    "operations" o|--|| "OperationType" : "enum:operationType"
+    "operations" o|--|o "operations" : "parentOperation"
+    "operations" o|--|o "sites" : "site"
+    "operations" o{--}o "routing_steps" : ""
+    "operations" o{--}o "operation_parameters" : ""
+    "operations" o{--}o "operation_dependencies" : ""
+    "operations" o{--}o "operation_dependencies" : ""
+    "operations" o{--}o "personnel_operation_specifications" : ""
+    "operations" o{--}o "equipment_operation_specifications" : ""
+    "operations" o{--}o "material_operation_specifications" : ""
+    "operations" o{--}o "physical_asset_operation_specifications" : ""
+    "operations" o{--}o "bom_items" : ""
+    "operation_parameters" o|--|| "ParameterType" : "enum:parameterType"
+    "operation_parameters" o|--|| "ParameterDataType" : "enum:dataType"
+    "operation_parameters" o|--|| "operations" : "operation"
+    "operation_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
+    "operation_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
+    "operation_dependencies" o|--|| "operations" : "dependentOperation"
+    "operation_dependencies" o|--|| "operations" : "prerequisiteOperation"
+    "personnel_operation_specifications" o|--|o "CompetencyLevel" : "enum:minimumCompetency"
+    "personnel_operation_specifications" o|--|| "operations" : "operation"
+    "equipment_operation_specifications" o|--|o "EquipmentClass" : "enum:equipmentClass"
+    "equipment_operation_specifications" o|--|| "operations" : "operation"
+    "material_operation_specifications" o|--|o "MaterialType" : "enum:materialType"
+    "material_operation_specifications" o|--|| "ConsumptionType" : "enum:consumptionType"
+    "material_operation_specifications" o|--|| "operations" : "operation"
+    "physical_asset_operation_specifications" o|--|| "PhysicalAssetType" : "enum:assetType"
+    "physical_asset_operation_specifications" o|--|| "operations" : "operation"
     "parts" o|--|| "ProductType" : "enum:productType"
     "parts" o|--|| "ProductLifecycleState" : "enum:lifecycleState"
     "parts" o|--|o "parts" : "replacementPart"
@@ -2577,7 +2665,7 @@ CANCELLED CANCELLED
     "part_site_availability" o|--|| "sites" : "site"
     "bom_items" o|--|| "parts" : "parentPart"
     "bom_items" o|--|| "parts" : "componentPart"
-    "bom_items" o|--|o "process_segments" : "processSegment"
+    "bom_items" o|--|o "operations" : "operation"
     "product_specifications" o|--|| "SpecificationType" : "enum:specificationType"
     "product_specifications" o|--|| "parts" : "part"
     "product_configurations" o|--|| "ConfigurationType" : "enum:configurationType"
@@ -2613,24 +2701,35 @@ CANCELLED CANCELLED
     "work_orders" o{--}o "qif_measurement_plans" : ""
     "work_orders" o{--}o "qif_measurement_results" : ""
     "routings" o|--|| "RoutingLifecycleState" : "enum:lifecycleState"
+    "routings" o|--|| "RoutingType" : "enum:routingType"
     "routings" o|--|o "parts" : "part"
     "routings" o|--|o "sites" : "site"
     "routings" o{--}o "routing_steps" : ""
     "routings" o{--}o "routing_operations" : ""
     "routings" o{--}o "schedule_entries" : ""
+    "routings" o{--}o "routing_templates" : ""
+    "routings" o|--|o "routings" : "alternateFor"
     "routing_operations" o|--|| "routings" : "routing"
     "routing_operations" o|--|o "work_centers" : "workCenter"
     "routing_operations" o{--}o "work_order_operations" : ""
+    "routing_steps" o|--|| "StepType" : "enum:stepType"
+    "routing_steps" o|--|o "ControlType" : "enum:controlType"
+    "routing_steps" o|--|o "work_instructions" : "workInstruction"
     "routing_steps" o|--|| "routings" : "routing"
-    "routing_steps" o|--|| "process_segments" : "processSegment"
+    "routing_steps" o|--|| "operations" : "operation"
     "routing_steps" o|--|o "work_centers" : "workCenter"
     "routing_steps" o{--}o "routing_step_dependencies" : ""
     "routing_steps" o{--}o "routing_step_dependencies" : ""
     "routing_steps" o{--}o "work_order_operations" : ""
+    "routing_steps" o{--}o "routing_step_parameters" : ""
     "routing_step_dependencies" o|--|| "DependencyType" : "enum:dependencyType"
     "routing_step_dependencies" o|--|| "DependencyTimingType" : "enum:timingType"
     "routing_step_dependencies" o|--|| "routing_steps" : "dependentStep"
     "routing_step_dependencies" o|--|| "routing_steps" : "prerequisiteStep"
+    "routing_step_parameters" o|--|| "routing_steps" : "routingStep"
+    "routing_templates" o|--|o "routings" : "sourceRouting"
+    "routing_templates" o|--|| "users" : "createdBy"
+    "routing_templates" o|--|| "sites" : "site"
     "work_centers" o|--|o "areas" : "area"
     "work_centers" o{--}o "work_units" : ""
     "work_centers" o{--}o "equipment" : ""

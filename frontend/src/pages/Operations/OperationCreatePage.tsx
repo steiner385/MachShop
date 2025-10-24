@@ -16,53 +16,53 @@ import {
 } from 'antd';
 import { ApartmentOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { createProcessSegment, getAllProcessSegments } from '@/api/processSegment';
-import type { CreateProcessSegmentData, ProcessSegmentType, ProcessSegment } from '@/types/processSegment';
+import { createOperation, getAllOperations } from '@/api/operation';
+import type { CreateOperationData, OperationType, Operation } from '@/types/operation';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
 /**
- * Process Segment Create Page
- * Form for creating new manufacturing process segments
+ * Operation Create Page
+ * Form for creating new manufacturing operations
  */
 
-const ProcessSegmentCreatePage: React.FC = () => {
+const OperationCreatePage: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [parentSegments, setParentSegments] = useState<ProcessSegment[]>([]);
+  const [parentOperations, setParentOperations] = useState<Operation[]>([]);
 
   useEffect(() => {
-    fetchParentSegments();
+    fetchParentOperations();
   }, []);
 
-  const fetchParentSegments = async () => {
+  const fetchParentOperations = async () => {
     try {
-      const segments = await getAllProcessSegments({ isActive: true });
-      setParentSegments(segments);
+      const ops = await getAllOperations({ isActive: true });
+      setParentOperations(ops);
     } catch (error) {
-      console.error('Error fetching parent segments:', error);
+      console.error('Error fetching parent operations:', error);
     }
   };
 
-  const handleSubmit = async (values: CreateProcessSegmentData) => {
+  const handleSubmit = async (values: CreateOperationData) => {
     try {
       setLoading(true);
-      const segment = await createProcessSegment(values);
-      message.success('Process segment created successfully');
-      navigate(`/process-segments/${segment.id}`);
+      const operation = await createOperation(values);
+      message.success('Operation created successfully');
+      navigate(`/operations/${operation.id}`);
     } catch (error) {
-      message.error('Failed to create process segment');
-      console.error('Error creating process segment:', error);
+      message.error('Failed to create operation');
+      console.error('Error creating operation:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/process-segments');
+    navigate('/operations');
   };
 
   return (
@@ -72,7 +72,7 @@ const ProcessSegmentCreatePage: React.FC = () => {
         <div>
           <Title level={2} style={{ margin: 0 }}>
             <ApartmentOutlined style={{ marginRight: 8 }} />
-            Create Process Segment
+            Create Operation
           </Title>
           <Text type="secondary">
             Define a new manufacturing operation or process step
@@ -96,10 +96,10 @@ const ProcessSegmentCreatePage: React.FC = () => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item
-                  label="Segment Code"
-                  name="segmentCode"
+                  label="Operation Code"
+                  name="operationCode"
                   rules={[
-                    { required: true, message: 'Segment code is required' },
+                    { required: true, message: 'Operation code is required' },
                     { pattern: /^[A-Z0-9-]+$/, message: 'Use uppercase letters, numbers, and hyphens only' },
                   ]}
                   tooltip="Unique identifier (e.g., OP-010-MILL, QC-001-INSPECT)"
@@ -110,9 +110,9 @@ const ProcessSegmentCreatePage: React.FC = () => {
 
               <Col span={16}>
                 <Form.Item
-                  label="Segment Name"
-                  name="segmentName"
-                  rules={[{ required: true, message: 'Segment name is required' }]}
+                  label="Operation Name"
+                  name="operationName"
+                  rules={[{ required: true, message: 'Operation name is required' }]}
                 >
                   <Input placeholder="CNC Milling Operation" />
                 </Form.Item>
@@ -122,7 +122,7 @@ const ProcessSegmentCreatePage: React.FC = () => {
             <Form.Item
               label="Description"
               name="description"
-              tooltip="Detailed description of the process segment"
+              tooltip="Detailed description of the operation"
             >
               <TextArea
                 rows={3}
@@ -136,10 +136,10 @@ const ProcessSegmentCreatePage: React.FC = () => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item
-                  label="Segment Type"
-                  name="segmentType"
-                  rules={[{ required: true, message: 'Segment type is required' }]}
-                  tooltip="Primary classification of this process segment"
+                  label="Operation Type"
+                  name="operationType"
+                  rules={[{ required: true, message: 'Operation type is required' }]}
+                  tooltip="Primary classification of this operation"
                 >
                   <Select placeholder="Select type">
                     <Option value="PRODUCTION">Production</Option>
@@ -201,19 +201,19 @@ const ProcessSegmentCreatePage: React.FC = () => {
 
               <Col span={12}>
                 <Form.Item
-                  label="Parent Segment"
-                  name="parentSegmentId"
-                  tooltip="Optional: Select parent process segment for hierarchical operations"
+                  label="Parent Operation"
+                  name="parentOperationId"
+                  tooltip="Optional: Select parent operation for hierarchical operations"
                 >
                   <Select
-                    placeholder="Select parent segment (optional)"
+                    placeholder="Select parent operation (optional)"
                     allowClear
                     showSearch
                     optionFilterProp="children"
                   >
-                    {parentSegments.map((segment) => (
-                      <Option key={segment.id} value={segment.id}>
-                        {segment.segmentCode} - {segment.segmentName}
+                    {parentOperations.map((operation) => (
+                      <Option key={operation.id} value={operation.id}>
+                        {operation.operationCode} - {operation.operationName}
                       </Option>
                     ))}
                   </Select>
@@ -287,7 +287,7 @@ const ProcessSegmentCreatePage: React.FC = () => {
                   label="Active Status"
                   name="isActive"
                   valuePropName="checked"
-                  tooltip="Is this process segment currently active?"
+                  tooltip="Is this operation currently active?"
                 >
                   <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
                 </Form.Item>
@@ -316,7 +316,7 @@ const ProcessSegmentCreatePage: React.FC = () => {
                   icon={<SaveOutlined />}
                   loading={loading}
                 >
-                  Create Process Segment
+                  Create Operation
                 </Button>
                 <Button icon={<CloseOutlined />} onClick={handleCancel}>
                   Cancel
@@ -329,13 +329,13 @@ const ProcessSegmentCreatePage: React.FC = () => {
         <Card>
           <Title level={5}>Next Steps</Title>
           <Text type="secondary">
-            After creating the process segment, you can define:
+            After creating the operation, you can define:
           </Text>
           <ul>
             <li>Process parameters (inputs, outputs, set points)</li>
             <li>Dependencies and sequencing rules</li>
             <li>Resource requirements (personnel, equipment, materials)</li>
-            <li>Child process segments (hierarchical breakdown)</li>
+            <li>Child operations (hierarchical breakdown)</li>
           </ul>
         </Card>
       </Space>
@@ -343,4 +343,4 @@ const ProcessSegmentCreatePage: React.FC = () => {
   );
 };
 
-export default ProcessSegmentCreatePage;
+export default OperationCreatePage;

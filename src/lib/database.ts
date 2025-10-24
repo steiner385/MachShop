@@ -94,7 +94,7 @@ if (process.env.NODE_ENV === 'test') {
         url: getDatabaseUrl()
       }
     },
-    log: getLogConfig()
+    log: getLogConfig() as any
   });
 } else {
   // Use singleton pattern in development/production
@@ -104,7 +104,7 @@ if (process.env.NODE_ENV === 'test') {
         url: getDatabaseUrl()
       }
     },
-    log: getLogConfig()
+    log: getLogConfig() as any
   });
 
   if (process.env.NODE_ENV === 'development') {

@@ -290,6 +290,91 @@ export const requireDashboardAccess = (req: Request, res: Response, next: NextFu
   return next(new AuthorizationError('Dashboard access requires production role or read permissions'));
 };
 
+// Routing authorization for routing management operations
+export const requireRoutingAccess = requireAnyRole([
+  'System Administrator',
+  'Manufacturing Engineer',
+  'Process Engineer',
+  'Production Planner',
+  'Plant Manager'
+]);
+
+// Routing write authorization (create/edit routings)
+export const requireRoutingWrite = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  const writePermissions = [
+    'routings.write',
+    'routings.create',
+    'routings.update',
+    'routings.delete'
+  ];
+
+  const hasWritePermission = writePermissions.some(perm =>
+    req.user!.permissions.includes(perm)
+  );
+
+  if (!hasWritePermission && !req.user.permissions.includes('*')) {
+    logger.warn('Routing write access denied', {
+      userId: req.user.id,
+      username: req.user.username,
+      userPermissions: req.user.permissions,
+      path: req.path,
+      method: req.method
+    });
+
+    return next(new AuthorizationError('Routing write permission required'));
+  }
+
+  next();
+};
+
+// Routing approval authorization
+export const requireRoutingApproval = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  if (!req.user.permissions.includes('routings.approve') &&
+      !req.user.permissions.includes('*')) {
+    logger.warn('Routing approval access denied', {
+      userId: req.user.id,
+      username: req.user.username,
+      userPermissions: req.user.permissions,
+      path: req.path,
+      method: req.method
+    });
+
+    return next(new AuthorizationError('Routing approval permission required'));
+  }
+
+  next();
+};
+
+// Routing activation authorization
+export const requireRoutingActivation = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  if (!req.user.permissions.includes('routings.activate') &&
+      !req.user.permissions.includes('*')) {
+    logger.warn('Routing activation access denied', {
+      userId: req.user.id,
+      username: req.user.username,
+      userPermissions: req.user.permissions,
+      path: req.path,
+      method: req.method
+    });
+
+    return next(new AuthorizationError('Routing activation permission required'));
+  }
+
+  next();
+};
+
 // Optional authentication middleware (for public endpoints with optional user info)
 export const optionalAuth = async (
   req: Request,
@@ -298,13 +383,13 @@ export const optionalAuth = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      
+
       if (token) {
         const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
-        
+
         req.user = {
           id: decoded.userId,
           username: decoded.username,
@@ -315,7 +400,7 @@ export const optionalAuth = async (
         };
       }
     }
-    
+
     next();
   } catch (error) {
     // For optional auth, we don't throw errors, just continue without user

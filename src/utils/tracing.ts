@@ -47,10 +47,9 @@ const sdk = new NodeSDK({
       // Customize auto-instrumentation
       '@opentelemetry/instrumentation-http': {
         enabled: true,
-        ignoreIncomingPaths: ['/health', '/metrics'],
         requestHook: (span, request) => {
           // Add custom attributes to HTTP spans
-          span.setAttribute('http.request_id', request.headers['x-request-id'] || '');
+          span.setAttribute('http.request_id', ((request as any).headers || {})['x-request-id'] || '');
         },
       },
       '@opentelemetry/instrumentation-express': {

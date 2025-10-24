@@ -6,6 +6,9 @@ import * as crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+// Type alias for PDFDocument instances
+type PDFDoc = InstanceType<typeof PDFDocument>;
+
 /**
  * FAIR PDF Generation Options
  */
@@ -197,7 +200,7 @@ export class FAIRPDFService {
   /**
    * Generate cover page
    */
-  private async generateCoverPage(doc: PDFDocument, faiReport: any): Promise<void> {
+  private async generateCoverPage(doc: PDFDoc, faiReport: any): Promise<void> {
     const pageWidth = doc.page.width;
     const centerX = pageWidth / 2;
 
@@ -226,7 +229,7 @@ export class FAIRPDFService {
   /**
    * Generate Form 1 - Part Number Accountability
    */
-  private async generateForm1(doc: PDFDocument, faiReport: any): Promise<void> {
+  private async generateForm1(doc: PDFDoc, faiReport: any): Promise<void> {
     this.addPageHeader(doc, 'Form 1 - Part Number Accountability');
 
     const form1Data = faiReport.form1Data || {};
@@ -260,7 +263,7 @@ export class FAIRPDFService {
   /**
    * Generate Form 2 - Product Accountability
    */
-  private async generateForm2(doc: PDFDocument, faiReport: any): Promise<void> {
+  private async generateForm2(doc: PDFDoc, faiReport: any): Promise<void> {
     this.addPageHeader(doc, 'Form 2 - Product Accountability');
 
     const form2Data = faiReport.form2Data || {};
@@ -294,7 +297,7 @@ export class FAIRPDFService {
    * Generate Form 3 - Characteristic Accountability
    */
   private async generateForm3(
-    doc: PDFDocument,
+    doc: PDFDoc,
     faiReport: any,
     characteristics: any[]
   ): Promise<void> {
@@ -390,7 +393,7 @@ export class FAIRPDFService {
   /**
    * Generate signature page
    */
-  private async generateSignaturePage(doc: PDFDocument, faiReport: any): Promise<void> {
+  private async generateSignaturePage(doc: PDFDoc, faiReport: any): Promise<void> {
     this.addPageHeader(doc, 'Approval Signatures');
 
     doc.fontSize(12).font('Helvetica-Bold');
@@ -436,7 +439,7 @@ export class FAIRPDFService {
   /**
    * Add page header
    */
-  private addPageHeader(doc: PDFDocument, title: string): void {
+  private addPageHeader(doc: PDFDoc, title: string): void {
     doc.fontSize(14).font('Helvetica-Bold');
     doc.text(title, 50, 50);
     doc.moveTo(50, 80).lineTo(doc.page.width - 50, 80).stroke();
@@ -445,7 +448,7 @@ export class FAIRPDFService {
   /**
    * Add page footer
    */
-  private addPageFooter(doc: PDFDocument, documentId: string): void {
+  private addPageFooter(doc: PDFDoc, documentId: string): void {
     const pageHeight = doc.page.height;
     doc.fontSize(8).font('Helvetica');
     doc.text(`Document: ${documentId}`, 50, pageHeight - 40);
@@ -456,14 +459,14 @@ export class FAIRPDFService {
   /**
    * Get current page number
    */
-  private getPageNumber(doc: PDFDocument): number {
+  private getPageNumber(doc: PDFDoc): number {
     return (doc as any)._pageBufferStart || 1;
   }
 
   /**
    * Get total page count
    */
-  private getPageCount(doc: PDFDocument): number {
+  private getPageCount(doc: PDFDoc): number {
     return (doc as any)._pageBuffer?.length || 1;
   }
 }
