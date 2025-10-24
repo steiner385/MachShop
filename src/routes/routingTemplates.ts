@@ -142,7 +142,7 @@ router.get(
           site: {
             select: {
               id: true,
-              name: true
+              siteName: true
             }
           },
           sourceRouting: {
