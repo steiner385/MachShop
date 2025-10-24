@@ -15,7 +15,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { PrismaClient, RoutingLifecycleState } from '@prisma/client';
+import { PrismaClient, RoutingLifecycleState, StepType } from '@prisma/client';
 import { setupTestAuth } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
@@ -25,6 +25,8 @@ test.describe('Routing Templates E2E Tests', () => {
   let testPart: any;
   let testSite: any;
   let testRouting: any;
+  let testOperation: any;
+  let testUser: any;
   let createdTemplateId: string;
 
   test.beforeAll(async ({ browser }) => {
@@ -35,6 +37,8 @@ test.describe('Routing Templates E2E Tests', () => {
     // Setup test data
     testSite = await prisma.site.findFirst({ where: { isActive: true } });
     testPart = await prisma.part.findFirst();
+    testOperation = await prisma.operation.findFirst({ where: { isActive: true } });
+    testUser = await prisma.user.findFirst();
     if (!testPart) {
       testPart = await prisma.part.create({
         data: {
@@ -66,6 +70,28 @@ test.describe('Routing Templates E2E Tests', () => {
             { id: 'e2', source: 'process1', target: 'end' },
           ],
         })}[/VISUAL_DATA]`,
+        steps: {
+          create: [
+            {
+              stepNumber: 10,
+              operationId: testOperation.id,
+              stepType: StepType.PROCESS,
+              stepInstructions: 'Template test step 1',
+              isOptional: false,
+              isQualityInspection: false,
+              isCriticalPath: true,
+            },
+            {
+              stepNumber: 20,
+              operationId: testOperation.id,
+              stepType: StepType.INSPECTION,
+              stepInstructions: 'Template test inspection',
+              isOptional: false,
+              isQualityInspection: true,
+              isCriticalPath: true,
+            },
+          ],
+        },
       },
     });
   });
@@ -223,7 +249,8 @@ test.describe('Routing Templates E2E Tests', () => {
             nodes: [],
             edges: [],
           },
-          createdBy: 'test-user',
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
@@ -302,7 +329,8 @@ test.describe('Routing Templates E2E Tests', () => {
           category: 'MACHINING',
           visualData: { nodes: [], edges: [] },
           isFavorite: false,
-          createdBy: 'test-user',
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
@@ -360,7 +388,8 @@ test.describe('Routing Templates E2E Tests', () => {
               { id: 'e1', source: 'start', target: 'end' },
             ],
           },
-          createdBy: 'test-user',
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
@@ -426,7 +455,8 @@ test.describe('Routing Templates E2E Tests', () => {
           description: 'Original description',
           category: 'ASSEMBLY',
           visualData: { nodes: [], edges: [] },
-          createdBy: 'test-user',
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
@@ -487,7 +517,8 @@ test.describe('Routing Templates E2E Tests', () => {
           description: 'Template to be deleted',
           category: 'OTHER',
           visualData: { nodes: [], edges: [] },
-          createdBy: 'test-user',
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
