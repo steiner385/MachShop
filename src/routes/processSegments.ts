@@ -25,6 +25,7 @@ function mapToSegmentTerminology(operation: any): any {
     segmentCode: operation.operationCode,
     segmentName: operation.operationName,
     segmentType: operation.operationType,
+    parentSegmentId: operation.parentOperationId,
   };
 }
 
@@ -51,12 +52,14 @@ router.post('/', async (req: Request, res: Response) => {
       operationCode: req.body.segmentCode || req.body.operationCode,
       operationName: req.body.segmentName || req.body.operationName,
       operationType: req.body.segmentType || req.body.operationType,
+      parentOperationId: req.body.parentSegmentId || req.body.parentOperationId,
     };
 
     // Remove segment-specific fields to avoid conflicts
     delete operationData.segmentCode;
     delete operationData.segmentName;
     delete operationData.segmentType;
+    delete operationData.parentSegmentId;
 
     const operation = await OperationService.createOperation(operationData);
     res.status(201).json(mapToSegmentTerminology(operation));
@@ -75,8 +78,9 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const filters: any = {};
 
+    // Map ISA-95 segment terminology to operation field names for database query
     if (req.query.segmentType) {
-      filters.segmentType = req.query.segmentType as string;
+      filters.operationType = req.query.segmentType as string;
     }
 
     if (req.query.category) {
@@ -99,8 +103,8 @@ router.get('/', async (req: Request, res: Response) => {
 
     const includeRelations = req.query.includeRelations === 'true';
 
-    const segments = await OperationService.getAllOperations(filters, includeRelations);
-    res.json(segments);
+    const operations = await OperationService.getAllOperations(filters, includeRelations);
+    res.json(mapArrayToSegmentTerminology(operations));
   } catch (error: any) {
     console.error('Error fetching process segments:', error);
     res.status(500).json({ error: error.message });
@@ -117,8 +121,8 @@ router.get('/code/:segmentCode', async (req: Request, res: Response) => {
     const { segmentCode } = req.params;
     const includeRelations = req.query.includeRelations !== 'false';
 
-    const segment = await OperationService.getOperationByCode(segmentCode, includeRelations);
-    res.json(segment);
+    const operation = await OperationService.getOperationByCode(segmentCode, includeRelations);
+    res.json(mapToSegmentTerminology(operation));
   } catch (error: any) {
     console.error('Error fetching process segment by code:', error);
     res.status(404).json({ error: error.message });
@@ -200,7 +204,7 @@ router.get('/search', async (req: Request, res: Response): Promise<void> => {
 router.get('/hierarchy/roots', async (req: Request, res: Response) => {
   try {
     const roots = await OperationService.getRootOperations();
-    res.json(roots);
+    res.json(mapArrayToSegmentTerminology(roots));
   } catch (error: any) {
     console.error('Error fetching root segments:', error);
     res.status(500).json({ error: error.message });
@@ -264,12 +268,14 @@ router.put('/:id', async (req: Request, res: Response) => {
       operationCode: req.body.segmentCode || req.body.operationCode,
       operationName: req.body.segmentName || req.body.operationName,
       operationType: req.body.segmentType || req.body.operationType,
+      parentOperationId: req.body.parentSegmentId || req.body.parentOperationId,
     };
 
     // Remove segment-specific fields to avoid conflicts
     delete operationData.segmentCode;
     delete operationData.segmentName;
     delete operationData.segmentType;
+    delete operationData.parentSegmentId;
 
     const operation = await OperationService.updateOperation(id, operationData);
     res.json(mapToSegmentTerminology(operation));
@@ -334,7 +340,7 @@ router.get('/:id/children', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const children = await OperationService.getChildOperations(id);
-    res.json(children);
+    res.json(mapArrayToSegmentTerminology(children));
   } catch (error: any) {
     console.error('Error fetching child segments:', error);
     res.status(500).json({ error: error.message });
