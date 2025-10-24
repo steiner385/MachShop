@@ -77,7 +77,7 @@ test.describe('Routing Templates E2E Tests', () => {
         routingNumber: `TPL-RT-${Date.now()}`,
         partId: testPart.id,
         siteId: testSite.id,
-        version: '1.0',
+        version: `1.${Date.now()}`,
         lifecycleState: RoutingLifecycleState.DRAFT,
         description: 'Test routing for template creation',
         notes: `Template test routing\n\n[VISUAL_DATA]${JSON.stringify({

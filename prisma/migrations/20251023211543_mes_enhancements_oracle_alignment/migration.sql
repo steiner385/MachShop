@@ -5,9 +5,8 @@ CREATE TYPE "OperationClassification" AS ENUM ('MAKE', 'ASSEMBLY', 'INSPECTION',
 CREATE TYPE "RoutingType" AS ENUM ('PRIMARY', 'ALTERNATE', 'REWORK', 'PROTOTYPE', 'ENGINEERING');
 
 -- AlterTable
-ALTER TABLE "process_segments" ADD COLUMN     "operationClassification" "OperationClassification",
-ADD COLUMN     "operationCode" TEXT,
-ADD COLUMN     "operationName" TEXT,
+-- Note: operationCode and operationName already exist from previous rename migration
+ALTER TABLE "operations" ADD COLUMN     "operationClassification" "OperationClassification",
 ADD COLUMN     "standardWorkInstructionId" TEXT;
 
 -- AlterTable
@@ -49,7 +48,7 @@ CREATE INDEX "routings_partId_siteId_routingType_idx" ON "routings"("partId", "s
 CREATE INDEX "routings_alternateForId_idx" ON "routings"("alternateForId");
 
 -- AddForeignKey
-ALTER TABLE "process_segments" ADD CONSTRAINT "process_segments_standardWorkInstructionId_fkey" FOREIGN KEY ("standardWorkInstructionId") REFERENCES "work_instructions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "operations" ADD CONSTRAINT "operations_standardWorkInstructionId_fkey" FOREIGN KEY ("standardWorkInstructionId") REFERENCES "work_instructions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "routings" ADD CONSTRAINT "routings_alternateForId_fkey" FOREIGN KEY ("alternateForId") REFERENCES "routings"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -60,16 +59,12 @@ ALTER TABLE "routing_steps" ADD CONSTRAINT "routing_steps_workInstructionId_fkey
 -- AddForeignKey
 ALTER TABLE "routing_step_parameters" ADD CONSTRAINT "routing_step_parameters_routingStepId_fkey" FOREIGN KEY ("routingStepId") REFERENCES "routing_steps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Data backfill: Copy segmentCode/segmentName to operationCode/operationName for Oracle/Teamcenter compatibility
-UPDATE "process_segments"
-SET
-  "operationCode" = "segmentCode",
-  "operationName" = "segmentName"
-WHERE "operationCode" IS NULL;
+-- Data backfill: operationCode/operationName already populated by previous rename migration
+-- No backfill needed
 
 -- Add comment explaining the terminology aliases
-COMMENT ON COLUMN "process_segments"."operationCode" IS 'Oracle ERP / Teamcenter PLM terminology alias for segmentCode';
-COMMENT ON COLUMN "process_segments"."operationName" IS 'Oracle ERP / Teamcenter PLM terminology alias for segmentName';
-COMMENT ON COLUMN "process_segments"."operationClassification" IS 'Oracle-style operation classification (MAKE, ASSEMBLY, INSPECTION, etc.)';
+COMMENT ON COLUMN "operations"."operationCode" IS 'Oracle ERP / Teamcenter PLM terminology (formerly segmentCode)';
+COMMENT ON COLUMN "operations"."operationName" IS 'Oracle ERP / Teamcenter PLM terminology (formerly segmentName)';
+COMMENT ON COLUMN "operations"."operationClassification" IS 'Oracle-style operation classification (MAKE, ASSEMBLY, INSPECTION, etc.)';
 COMMENT ON COLUMN "routings"."routingType" IS 'Oracle ERP-style routing type classification';
 COMMENT ON COLUMN "routings"."isPrimaryRoute" IS 'DEPRECATED: Use routingType=PRIMARY instead. Kept for backward compatibility.';

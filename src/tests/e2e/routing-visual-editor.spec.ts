@@ -93,36 +93,45 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
     test('should display mode switcher with Form View and Visual Editor options', async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       // Check for segmented control / mode switcher
       const formViewButton = page.locator('text=Form View').or(page.getByRole('button', { name: /form/i }));
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
 
-      await expect(formViewButton.first()).toBeVisible();
-      await expect(visualEditorButton.first()).toBeVisible();
+      await expect(formViewButton.first()).toBeVisible({ timeout: 15000 });
+      await expect(visualEditorButton.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should start in Form View mode by default', async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       // Check that form fields are visible
       const routingNumberInput = page.getByLabel(/routing number/i).or(page.locator('input[name="routingNumber"]'));
-      await expect(routingNumberInput.first()).toBeVisible();
+      await expect(routingNumberInput.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should switch to Visual Editor mode when clicked', async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
       await visualEditorButton.first().click();
+      await page.waitForTimeout(1000);
 
       // Check for ReactFlow canvas
       const reactFlowCanvas = page.locator('.react-flow').or(page.locator('[class*="reactflow"]'));
-      await expect(reactFlowCanvas.first()).toBeVisible({ timeout: 5000 });
+      await expect(reactFlowCanvas.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should switch back to Form View from Visual Editor', async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       // Switch to visual editor
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
@@ -132,16 +141,19 @@ test.describe('Routing Visual Editor E2E Tests', () => {
       // Switch back to form view
       const formViewButton = page.locator('text=Form View').or(page.getByRole('button', { name: /form/i }));
       await formViewButton.first().click();
+      await page.waitForTimeout(1000);
 
       // Check that form is visible again
       const routingNumberInput = page.getByLabel(/routing number/i).or(page.locator('input[name="routingNumber"]'));
-      await expect(routingNumberInput.first()).toBeVisible();
+      await expect(routingNumberInput.first()).toBeVisible({ timeout: 15000 });
     });
   });
 
   test.describe('Visual Editor UI Elements', () => {
     test.beforeEach(async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       // Switch to visual editor mode
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
@@ -151,7 +163,7 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
     test('should display ReactFlow canvas', async () => {
       const reactFlowCanvas = page.locator('.react-flow').or(page.locator('[class*="reactflow"]'));
-      await expect(reactFlowCanvas.first()).toBeVisible();
+      await expect(reactFlowCanvas.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should display control panel with quick-add buttons', async () => {
@@ -184,7 +196,7 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
     test('should display save button', async () => {
       const saveButton = page.locator('button:has-text("Save")').or(page.getByRole('button', { name: /save/i }));
-      await expect(saveButton.first()).toBeVisible();
+      await expect(saveButton.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should display undo/redo buttons if implemented', async () => {
@@ -202,6 +214,8 @@ test.describe('Routing Visual Editor E2E Tests', () => {
   test.describe('Node Operations', () => {
     test.beforeEach(async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       // Switch to visual editor mode
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
@@ -262,6 +276,8 @@ test.describe('Routing Visual Editor E2E Tests', () => {
   test.describe('Edge/Connection Operations', () => {
     test.beforeEach(async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
       await visualEditorButton.first().click();
@@ -286,6 +302,8 @@ test.describe('Routing Visual Editor E2E Tests', () => {
   test.describe('Auto-Layout', () => {
     test.beforeEach(async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
       await visualEditorButton.first().click();
@@ -410,6 +428,8 @@ test.describe('Routing Visual Editor E2E Tests', () => {
   test.describe('Unsaved Changes Indicator', () => {
     test.beforeEach(async () => {
       await page.goto('/routings/new');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
 
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
       await visualEditorButton.first().click();

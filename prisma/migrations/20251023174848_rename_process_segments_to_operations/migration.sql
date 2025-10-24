@@ -31,20 +31,9 @@ ALTER TYPE "ProcessSegmentType" RENAME TO "OperationType";
 -- STEP 2: Rename columns in operations table
 -- ============================================================================
 
--- Drop the old segmentCode and segmentName columns (data already in operationCode/operationName)
--- First, check if data exists and ensure operationCode/operationName are populated
-UPDATE "operations"
-SET "operationCode" = "segmentCode",
-    "operationName" = "segmentName"
-WHERE "operationCode" IS NULL OR "operationName" IS NULL;
-
--- Make operationCode and operationName NOT NULL since they're now primary fields
-ALTER TABLE "operations" ALTER COLUMN "operationCode" SET NOT NULL;
-ALTER TABLE "operations" ALTER COLUMN "operationName" SET NOT NULL;
-
--- Drop the old fields now that data is migrated
-ALTER TABLE "operations" DROP COLUMN IF EXISTS "segmentCode";
-ALTER TABLE "operations" DROP COLUMN IF EXISTS "segmentName";
+-- Rename segmentCode and segmentName columns to operationCode and operationName
+ALTER TABLE "operations" RENAME COLUMN "segmentCode" TO "operationCode";
+ALTER TABLE "operations" RENAME COLUMN "segmentName" TO "operationName";
 
 -- Rename segmentType column to operationType
 ALTER TABLE "operations" RENAME COLUMN "segmentType" TO "operationType";
@@ -155,9 +144,7 @@ ALTER TABLE "operations" DROP CONSTRAINT IF EXISTS "process_segments_siteId_fkey
 ALTER TABLE "operations" ADD CONSTRAINT "operations_siteId_fkey"
     FOREIGN KEY ("siteId") REFERENCES "sites"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE "operations" DROP CONSTRAINT IF EXISTS "process_segments_standardWorkInstructionId_fkey";
-ALTER TABLE "operations" ADD CONSTRAINT "operations_standardWorkInstructionId_fkey"
-    FOREIGN KEY ("standardWorkInstructionId") REFERENCES "work_instructions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- Note: standardWorkInstructionId column doesn't exist in this schema version, skipping constraint
 
 -- Operation parameters foreign keys
 ALTER TABLE "operation_parameters" DROP CONSTRAINT IF EXISTS "process_segment_parameters_segmentId_fkey";
