@@ -393,6 +393,14 @@ const App: React.FC = () => {
           }
         />
         <Route
+          path="/routings/new"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
+              <RoutingCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/routings/:id"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
