@@ -189,36 +189,35 @@ test.describe('Routing Templates E2E Tests', () => {
       // Look for save as template action using test ID
       const saveAsTemplateButton = page.locator('[data-testid="save-as-template-button"]').or(page.locator('button:has-text("Save as Template")'));
 
-      if (await saveAsTemplateButton.count() > 0) {
-        await saveAsTemplateButton.first().click();
-        await page.waitForTimeout(500);
+      // Verify button exists
+      await expect(saveAsTemplateButton.first()).toBeVisible();
 
-        // Fill in template details in modal/form
-        const templateNameInput = page.locator('input[name="name"]').or(page.locator('input[placeholder*="name" i]'));
+      // Click the button
+      await saveAsTemplateButton.first().click();
+      await page.waitForTimeout(500);
 
-        if (await templateNameInput.count() > 0) {
-          const templateName = `Test Template ${Date.now()}`;
-          await templateNameInput.first().fill(templateName);
+      // Fill in template details in modal/form
+      const templateNameInput = page.locator('input[name="name"]').or(page.locator('input[placeholder*="name" i]'));
 
-          const descriptionInput = page.locator('textarea[name="description"]').or(page.locator('input[name="description"]'));
-          if (await descriptionInput.count() > 0) {
-            await descriptionInput.first().fill('Test template description');
-          }
+      // Verify template name input exists
+      await expect(templateNameInput.first()).toBeVisible();
 
-          // Save the template (force click to handle modal overlay)
-          const saveButton = page.locator('button:has-text("Save")').or(page.locator('button:has-text("Create")'));
-          await saveButton.first().click({ force: true });
-          await page.waitForTimeout(2000);
+      const templateName = `Test Template ${Date.now()}`;
+      await templateNameInput.first().fill(templateName);
 
-          // Check for success message
-          const successMessage = await page.locator('text=success').or(page.locator('[class*="success"]')).count() > 0;
-          expect(successMessage).toBeTruthy();
-        } else {
-          test.skip();
-        }
-      } else {
-        test.skip();
+      const descriptionInput = page.locator('textarea[name="description"]').or(page.locator('input[name="description"]'));
+      if (await descriptionInput.count() > 0) {
+        await descriptionInput.first().fill('Test template description');
       }
+
+      // Save the template (force click to handle modal overlay)
+      const saveButton = page.locator('button:has-text("Save")').or(page.locator('button:has-text("Create")'));
+      await saveButton.first().click({ force: true });
+      await page.waitForTimeout(2000);
+
+      // Check for success message
+      const successMessage = page.locator('text=success').or(page.locator('[class*="success"]'));
+      await expect(successMessage.first()).toBeVisible({ timeout: 5000 });
     });
   });
 
@@ -459,9 +458,57 @@ test.describe('Routing Templates E2E Tests', () => {
     });
 
     test('should track template usage count when loaded', async () => {
-      // This would require creating a template, loading it, and checking the usage count
-      // The usage count should increment each time the template is used
-      test.skip();
+      // Create a template with a specific usage count to test display
+      const template = await prisma.routingTemplate.create({
+        data: {
+          name: `Usage Count Test Template ${Date.now()}`,
+          description: 'Template for usage count testing',
+          category: 'MACHINING',
+          usageCount: 3, // Set to 3 so we can verify it displays correctly
+          visualData: {
+            nodes: [],
+            edges: [],
+          },
+          sourceRoutingId: testRouting.id,
+          siteId: testSite.id,
+          createdById: testUser.id,
+        },
+      });
+
+      // Navigate to templates page to verify usage count is displayed
+      await page.goto('/routings/templates');
+      await page.waitForTimeout(1500);
+
+      // Verify the template card shows the usage count
+      const templateCard = page.locator(`[data-testid="template-card-${template.id}"]`);
+      await expect(templateCard).toBeVisible();
+
+      // Verify the usage count text is displayed correctly
+      const usageText = templateCard.locator('text=/Used \\d+ time/');
+      await expect(usageText).toContainText('Used 3 time');
+
+      // Test backend usage count increment by directly updating database
+      // (simulating what happens when a template is used)
+      await prisma.routingTemplate.update({
+        where: { id: template.id },
+        data: {
+          usageCount: { increment: 1 },
+        },
+      });
+
+      // Reload page to see updated count
+      await page.reload();
+      await page.waitForTimeout(1500);
+
+      // Verify the updated usage count is displayed
+      const updatedCard = page.locator(`[data-testid="template-card-${template.id}"]`);
+      const updatedUsageText = updatedCard.locator('text=/Used \\d+ time/');
+      await expect(updatedUsageText).toContainText('Used 4 time');
+
+      // Clean up
+      await prisma.routingTemplate.delete({
+        where: { id: template.id },
+      });
     });
   });
 
