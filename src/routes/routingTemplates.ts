@@ -30,9 +30,9 @@ const createTemplateSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   isPublic: z.boolean().optional().default(false),
   visualData: z.any().optional(), // ReactFlow graph structure
-  sourceRoutingId: z.string().uuid().optional(),
-  siteId: z.string().uuid(),
-  createdById: z.string().uuid()
+  sourceRoutingId: z.string().optional(), // CUID from Prisma
+  siteId: z.string(), // CUID from Prisma
+  createdById: z.string() // CUID from Prisma
 });
 
 const updateTemplateSchema = z.object({
@@ -50,7 +50,7 @@ const searchTemplatesSchema = z.object({
   search: z.string().optional(),
   category: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  siteId: z.string().uuid().optional(),
+  siteId: z.string().optional(), // CUID from Prisma
   isPublic: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
   sortBy: z.enum(['name', 'usageCount', 'rating', 'createdAt']).optional().default('createdAt'),
