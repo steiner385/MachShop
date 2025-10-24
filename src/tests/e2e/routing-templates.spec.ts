@@ -50,10 +50,17 @@ test.describe('Routing Templates E2E Tests', () => {
       });
     }
 
+    // Delete any existing test routings to avoid unique constraint errors on retry
+    await prisma.routing.deleteMany({
+      where: {
+        routingNumber: { startsWith: 'TPL-RT-' }
+      }
+    });
+
     // Create a test routing to use for creating templates
     testRouting = await prisma.routing.create({
       data: {
-        routingNumber: `TPL-RT-${Date.now()}`,
+        routingNumber: `TPL-RT-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
         partId: testPart.id,
         siteId: testSite.id,
         version: `1.${Date.now()}`,
