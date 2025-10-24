@@ -26,6 +26,7 @@ import {
   EyeOutlined,
   CopyOutlined,
   FileTextOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useRoutingStore } from '@/store/routingStore';
 import { useSite } from '@/contexts/SiteContext';
@@ -313,6 +314,14 @@ export const RoutingList: React.FC = () => {
             onSearch={handleSearch}
             style={{ width: '400px' }}
           />
+
+          <Button
+            icon={<AppstoreOutlined />}
+            onClick={() => navigate('/routings/templates')}
+            size="large"
+          >
+            Templates
+          </Button>
 
           <Tooltip title={!canCreateRouting ? "You don't have permission to create routings" : ""}>
             <Button

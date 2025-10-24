@@ -41,6 +41,7 @@ import {
   TableOutlined,
   BarChartOutlined,
   ApartmentOutlined,
+  FileAddOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoutingStore } from '@/store/routingStore';
@@ -58,6 +59,7 @@ import { DependencyGraph } from './DependencyGraph';
 import { GanttChartView } from './GanttChartView';
 import { ActiveUsersIndicator } from './ActiveUsersIndicator';
 import { RoutingChangedAlert } from './RoutingChangedAlert';
+import { SaveAsTemplateModal } from './SaveAsTemplateModal';
 import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
 
 const { Title, Text } = Typography;
@@ -75,6 +77,7 @@ export const RoutingDetail: React.FC = () => {
   const [stepsView, setStepsView] = useState<'table' | 'graph' | 'gantt'>('table');
   const [stepModalVisible, setStepModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<RoutingStep | undefined>(undefined);
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
 
   const {
     currentRouting,
@@ -475,6 +478,12 @@ export const RoutingDetail: React.FC = () => {
             <Button icon={<CopyOutlined />} onClick={handleClone}>
               Clone
             </Button>
+            <Button
+              icon={<FileAddOutlined />}
+              onClick={() => setTemplateModalVisible(true)}
+            >
+              Save as Template
+            </Button>
 
             {/* Lifecycle transition buttons */}
             {currentRouting.lifecycleState === 'DRAFT' && (
@@ -787,6 +796,20 @@ export const RoutingDetail: React.FC = () => {
           existingSteps={currentSteps}
           onSave={handleSaveStep}
           onCancel={handleCloseStepModal}
+        />
+      )}
+
+      {/* Save as Template Modal */}
+      {currentRouting && (
+        <SaveAsTemplateModal
+          visible={templateModalVisible}
+          routingId={currentRouting.id}
+          routingNumber={currentRouting.routingNumber}
+          onClose={() => setTemplateModalVisible(false)}
+          onSuccess={() => {
+            message.success('Routing saved as template!');
+            setTemplateModalVisible(false);
+          }}
         />
       )}
     </div>

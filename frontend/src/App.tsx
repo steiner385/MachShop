@@ -66,6 +66,7 @@ import OperationCreatePage from '@/pages/Operations/OperationCreatePage';
 import RoutingListPage from '@/pages/Routing/RoutingListPage';
 import RoutingCreatePage from '@/pages/Routing/RoutingCreatePage';
 import RoutingDetailPage from '@/pages/Routing/RoutingDetailPage';
+import RoutingTemplatesPage from '@/pages/Routing/RoutingTemplatesPage';
 
 const { Content } = Layout;
 
@@ -397,6 +398,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/routings/templates"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
+              <RoutingTemplatesPage />
             </ProtectedRoute>
           }
         />
