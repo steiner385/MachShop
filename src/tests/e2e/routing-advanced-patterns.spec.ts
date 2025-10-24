@@ -71,44 +71,42 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'INSPECT',
-                description: 'Initial Inspection',
+                stepInstructions: 'Initial Inspection',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.DECISION,
-                operationCode: 'DECIDE-REWORK',
-                description: 'Decision: Rework or Continue',
+                stepInstructions: 'Decision: Rework or Continue',
+                notes: 'DECIDE-REWORK',
                 operationId: testProcessSegment.id,
-                standardTime: 0,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.PROCESS,
-                operationCode: 'REWORK',
-                description: 'Rework Operation',
+                stepInstructions: 'Rework Operation',
+                notes: 'REWORK',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 60,
+                cycleTimeOverride: 60,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'CONTINUE',
-                description: 'Continue to Assembly',
+                stepInstructions: 'Continue to Assembly',
+                notes: 'CONTINUE',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 30,
+                cycleTimeOverride: 30,
               },
             ],
           },
@@ -119,11 +117,15 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
 
-      // Verify routing is displayed
-      await expect(page.locator(`text=${routingNumber}`)).toBeVisible();
+      // Verify routing is displayed (use .first() to handle multiple matches)
+      await expect(page.locator(`text=${routingNumber}`).first()).toBeVisible();
+
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
       // Check that DECISION step is shown
-      await expect(page.locator('text=DECIDE-REWORK').or(page.locator('text=DECISION'))).toBeVisible();
+      await expect(page.locator('text=DECIDE-REWORK').or(page.locator('text=Decision')).first()).toBeVisible();
 
       // Cleanup
       await prisma.routing.delete({ where: { id: routing.id } });
@@ -145,70 +147,68 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'PREP',
-                description: 'Preparation',
+                stepInstructions: 'Preparation',
+                notes: 'PREP',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.PARALLEL_SPLIT,
-                operationCode: 'SPLIT',
-                description: 'Split for Parallel Operations',
+                stepInstructions: 'Split for Parallel Operations',
+                notes: 'SPLIT',
                 operationId: testProcessSegment.id,
-                standardTime: 0,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.PROCESS,
-                operationCode: 'MACHINING',
-                description: 'Machining Operation',
+                stepInstructions: 'Machining Operation',
+                notes: 'MACHINING',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'HEAT-TREAT',
-                description: 'Heat Treatment',
+                stepInstructions: 'Heat Treatment',
+                notes: 'HEAT-TREAT',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 120,
+                cycleTimeOverride: 120,
               },
               {
-                stepNumber: '50',
+                stepNumber: 50,
                 stepType: StepType.PROCESS,
-                operationCode: 'COATING',
-                description: 'Surface Coating',
+                stepInstructions: 'Surface Coating',
+                notes: 'COATING',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 30,
+                cycleTimeOverride: 30,
               },
               {
-                stepNumber: '60',
+                stepNumber: 60,
                 stepType: StepType.PARALLEL_JOIN,
-                operationCode: 'JOIN',
-                description: 'Join Parallel Operations',
+                stepInstructions: 'Join Parallel Operations',
+                notes: 'JOIN',
                 operationId: testProcessSegment.id,
-                standardTime: 0,
               },
               {
-                stepNumber: '70',
+                stepNumber: 70,
                 stepType: StepType.PROCESS,
-                operationCode: 'FINAL-ASSY',
-                description: 'Final Assembly',
+                stepInstructions: 'Final Assembly',
+                notes: 'FINAL-ASSY',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 60,
+                cycleTimeOverride: 60,
               },
             ],
           },
@@ -219,14 +219,18 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
 
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
+
       // Verify parallel nodes are displayed
-      await expect(page.locator('text=SPLIT').or(page.locator('text=PARALLEL_SPLIT'))).toBeVisible();
-      await expect(page.locator('text=JOIN').or(page.locator('text=PARALLEL_JOIN'))).toBeVisible();
+      await expect(page.locator('text=SPLIT').or(page.locator('text=Parallel Split')).first()).toBeVisible();
+      await expect(page.locator('text=JOIN').or(page.locator('text=Parallel Join')).first()).toBeVisible();
 
       // Verify all parallel operations are present
-      await expect(page.locator('text=MACHINING')).toBeVisible();
-      await expect(page.locator('text=HEAT-TREAT')).toBeVisible();
-      await expect(page.locator('text=COATING')).toBeVisible();
+      await expect(page.locator('text=MACHINING').first()).toBeVisible();
+      await expect(page.locator('text=HEAT-TREAT').first()).toBeVisible();
+      await expect(page.locator('text=COATING').first()).toBeVisible();
 
       // Cleanup
       await prisma.routing.delete({ where: { id: routing.id } });
@@ -247,37 +251,37 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'MACHINING',
-                description: 'Required Machining',
+                stepInstructions: 'Required Machining',
+                notes: 'MACHINING',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.TELESCOPING,
-                operationCode: 'OPTIONAL-DEBURR',
-                description: 'Optional Deburring (if needed)',
+                stepInstructions: 'Optional Deburring (if needed)',
+                notes: 'OPTIONAL-DEBURR',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
                 isOptional: true,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.INSPECTION,
-                operationCode: 'FINAL-INSPECT',
-                description: 'Final Inspection',
+                stepInstructions: 'Final Inspection',
+                notes: 'FINAL-INSPECT',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 10,
+                cycleTimeOverride: 10,
               },
             ],
           },
@@ -287,6 +291,10 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       // Navigate to routing
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
+
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
       // Verify telescoping step is shown
       await expect(page.locator('text=OPTIONAL-DEBURR')).toBeVisible();
@@ -316,45 +324,44 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'PREP',
-                description: 'Preparation for OSP',
+                stepInstructions: 'Preparation for OSP',
+                notes: 'PREP',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 20,
+                cycleTimeOverride: 20,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.OSP,
-                operationCode: 'PAINT-VENDOR',
-                description: 'External Painting (Vendor XYZ)',
+                stepInstructions: 'External Painting (Vendor XYZ)',
+                notes: 'PAINT-VENDOR - Ship to: Vendor XYZ Painting, 123 Industrial Blvd',
                 operationId: testProcessSegment.id,
-                standardTime: 240, // Vendor lead time
-                notes: 'Ship to: Vendor XYZ Painting, 123 Industrial Blvd',
+                cycleTimeOverride: 240,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.INSPECTION,
-                operationCode: 'RECEIVE-INSPECT',
-                description: 'Receiving Inspection from OSP',
+                stepInstructions: 'Receiving Inspection from OSP',
+                notes: 'RECEIVE-INSPECT',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'FINAL-ASSY',
-                description: 'Final Assembly',
+                stepInstructions: 'Final Assembly',
+                notes: 'FINAL-ASSY',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
             ],
           },
@@ -365,12 +372,16 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
 
-      // Verify OSP step is shown
-      await expect(page.locator('text=PAINT-VENDOR')).toBeVisible();
-      await expect(page.locator('text=External Painting')).toBeVisible();
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
-      // Check for OSP indicator
-      const ospIndicator = page.locator('text=OSP').or(page.locator('[class*="osp"]'));
+      // Verify OSP step is shown
+      await expect(page.locator('text=PAINT-VENDOR').first()).toBeVisible();
+      await expect(page.locator('text=Outside Process').first()).toBeVisible();
+
+      // Check for OSP indicator (Outside Process badge in Type column)
+      const ospIndicator = page.locator('text=Outside Process').or(page.locator('[class*="osp"]'));
       const hasOSPIndicator = await ospIndicator.count() > 0;
 
       console.log(`OSP indicator found: ${hasOSPIndicator}`);
@@ -394,46 +405,45 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'BATCH-MIX',
-                description: 'Batch Mixing',
+                stepInstructions: 'Batch Mixing',
+                notes: 'BATCH-MIX',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 30,
+                cycleTimeOverride: 30,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.PROCESS,
-                operationCode: 'CAST',
-                description: 'Casting',
+                stepInstructions: 'Casting',
+                notes: 'CAST',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 60,
+                cycleTimeOverride: 60,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.PROCESS,
-                operationCode: 'SERIALIZE',
-                description: 'Serialization Point - Apply Serial Numbers',
+                stepInstructions: 'Serialization Point - Apply Serial Numbers',
+                notes: 'SERIALIZE - Transition from LOT to SERIAL control',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 5,
-                notes: 'Transition from LOT to SERIAL control',
+                cycleTimeOverride: 5,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'FINAL-TEST',
-                description: 'Final Testing (per serial)',
+                stepInstructions: 'Final Testing (per serial)',
+                notes: 'FINAL-TEST',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
             ],
           },
@@ -443,6 +453,10 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       // Navigate to routing
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
+
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
       // Verify control type indicators
       await expect(page.locator('text=BATCH-MIX')).toBeVisible();
@@ -472,63 +486,61 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'PREP',
-                description: 'Material Preparation',
+                stepInstructions: 'Material Preparation',
+                notes: 'PREP',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 20,
+                cycleTimeOverride: 20,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.LOT_SPLIT,
-                operationCode: 'SPLIT-FOR-LINES',
-                description: 'Split Lot for Multiple Production Lines',
+                stepInstructions: 'Split Lot for Multiple Production Lines',
+                notes: 'SPLIT-FOR-LINES - Split into sub-lots for parallel processing',
                 operationId: testProcessSegment.id,
-                standardTime: 5,
-                notes: 'Split into sub-lots for parallel processing',
+                cycleTimeOverride: 5,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.PROCESS,
-                operationCode: 'MACHINING-LINE1',
-                description: 'Machining on Line 1',
+                stepInstructions: 'Machining on Line 1',
+                notes: 'MACHINING-LINE1',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'MACHINING-LINE2',
-                description: 'Machining on Line 2',
+                stepInstructions: 'Machining on Line 2',
+                notes: 'MACHINING-LINE2',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
               {
-                stepNumber: '50',
+                stepNumber: 50,
                 stepType: StepType.LOT_MERGE,
-                operationCode: 'MERGE-AFTER-MACHINING',
-                description: 'Merge Sub-lots After Machining',
+                stepInstructions: 'Merge Sub-lots After Machining',
+                notes: 'MERGE-AFTER-MACHINING - Consolidate sub-lots back to single lot',
                 operationId: testProcessSegment.id,
-                standardTime: 5,
-                notes: 'Consolidate sub-lots back to single lot',
+                cycleTimeOverride: 5,
               },
               {
-                stepNumber: '60',
+                stepNumber: 60,
                 stepType: StepType.INSPECTION,
-                operationCode: 'FINAL-INSPECT',
-                description: 'Final Inspection',
+                stepInstructions: 'Final Inspection',
+                notes: 'FINAL-INSPECT',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
             ],
           },
@@ -538,6 +550,10 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       // Navigate to routing
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
+
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
       // Verify LOT_SPLIT and LOT_MERGE steps
       await expect(page.locator('text=SPLIT-FOR-LINES')).toBeVisible();
@@ -572,95 +588,93 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
           routingNumber,
           partId: testPart.id,
           siteId: testSite.id,
-          version: '1.0',
+          version: routingNumber,
           lifecycleState: RoutingLifecycleState.DRAFT,
           notes: 'Complex routing with multiple advanced patterns',
           steps: {
             create: [
               {
-                stepNumber: '10',
+                stepNumber: 10,
                 stepType: StepType.PROCESS,
-                operationCode: 'START-PREP',
-                description: 'Initial Preparation',
+                stepInstructions: 'Initial Preparation',
+                notes: 'START-PREP',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 15,
+                cycleTimeOverride: 15,
               },
               {
-                stepNumber: '20',
+                stepNumber: 20,
                 stepType: StepType.LOT_SPLIT,
-                operationCode: 'SPLIT',
-                description: 'Split for Parallel Processing',
+                stepInstructions: 'Split for Parallel Processing',
+                notes: 'SPLIT',
                 operationId: testProcessSegment.id,
-                standardTime: 5,
+                cycleTimeOverride: 5,
               },
               {
-                stepNumber: '30',
+                stepNumber: 30,
                 stepType: StepType.PARALLEL_SPLIT,
-                operationCode: 'PARALLEL-START',
-                description: 'Begin Parallel Operations',
+                stepInstructions: 'Begin Parallel Operations',
+                notes: 'PARALLEL-START',
                 operationId: testProcessSegment.id,
-                standardTime: 0,
               },
               {
-                stepNumber: '40',
+                stepNumber: 40,
                 stepType: StepType.PROCESS,
-                operationCode: 'MACHINING',
-                description: 'Machining',
+                stepInstructions: 'Machining',
+                notes: 'MACHINING',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 45,
+                cycleTimeOverride: 45,
               },
               {
-                stepNumber: '50',
+                stepNumber: 50,
                 stepType: StepType.OSP,
-                operationCode: 'HEAT-TREAT-OSP',
-                description: 'Heat Treatment (External)',
+                stepInstructions: 'Heat Treatment (External)',
+                notes: 'HEAT-TREAT-OSP',
                 operationId: testProcessSegment.id,
-                standardTime: 480,
+                cycleTimeOverride: 480,
               },
               {
-                stepNumber: '60',
+                stepNumber: 60,
                 stepType: StepType.PARALLEL_JOIN,
-                operationCode: 'PARALLEL-END',
-                description: 'End Parallel Operations',
+                stepInstructions: 'End Parallel Operations',
+                notes: 'PARALLEL-END',
                 operationId: testProcessSegment.id,
-                standardTime: 0,
               },
               {
-                stepNumber: '70',
+                stepNumber: 70,
                 stepType: StepType.DECISION,
-                operationCode: 'INSPECT-DECISION',
-                description: 'Quality Decision',
+                stepInstructions: 'Quality Decision',
+                notes: 'INSPECT-DECISION',
                 operationId: testProcessSegment.id,
-                standardTime: 10,
+                cycleTimeOverride: 10,
               },
               {
-                stepNumber: '80',
+                stepNumber: 80,
                 stepType: StepType.TELESCOPING,
-                operationCode: 'OPTIONAL-REWORK',
-                description: 'Optional Rework',
+                stepInstructions: 'Optional Rework',
+                notes: 'OPTIONAL-REWORK',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 30,
+                cycleTimeOverride: 30,
                 isOptional: true,
               },
               {
-                stepNumber: '90',
+                stepNumber: 90,
                 stepType: StepType.LOT_MERGE,
-                operationCode: 'MERGE',
-                description: 'Merge Sub-lots',
+                stepInstructions: 'Merge Sub-lots',
+                notes: 'MERGE',
                 operationId: testProcessSegment.id,
-                standardTime: 5,
+                cycleTimeOverride: 5,
               },
               {
-                stepNumber: '100',
+                stepNumber: 100,
                 stepType: StepType.PROCESS,
-                operationCode: 'FINAL-ASSY',
-                description: 'Final Assembly',
+                stepInstructions: 'Final Assembly',
+                notes: 'FINAL-ASSY',
                 operationId: testProcessSegment.id,
                 workCenterId: testWorkCenter.id,
-                standardTime: 60,
+                cycleTimeOverride: 60,
               },
             ],
           },
@@ -671,15 +685,19 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       await page.goto(`/routings/${routing.id}`);
       await page.waitForTimeout(1000);
 
-      // Verify routing is displayed
-      await expect(page.locator(`text=${routingNumber}`)).toBeVisible();
+      // Verify routing is displayed (use .first() to handle multiple matches)
+      await expect(page.locator(`text=${routingNumber}`).first()).toBeVisible();
+
+      // Click on the Steps tab to view the steps table
+      await page.click('text=Steps');
+      await page.waitForTimeout(500);
 
       // Verify key pattern steps are present
-      await expect(page.locator('text=SPLIT')).toBeVisible();
-      await expect(page.locator('text=PARALLEL')).toBeVisible();
-      await expect(page.locator('text=HEAT-TREAT-OSP')).toBeVisible();
-      await expect(page.locator('text=INSPECT-DECISION')).toBeVisible();
-      await expect(page.locator('text=MERGE')).toBeVisible();
+      await expect(page.locator('text=SPLIT').first()).toBeVisible();
+      await expect(page.locator('text=PARALLEL').first()).toBeVisible();
+      await expect(page.locator('text=HEAT-TREAT-OSP').first()).toBeVisible();
+      await expect(page.locator('text=INSPECT-DECISION').first()).toBeVisible();
+      await expect(page.locator('text=MERGE').first()).toBeVisible();
 
       // Cleanup
       await prisma.routing.delete({ where: { id: routing.id } });

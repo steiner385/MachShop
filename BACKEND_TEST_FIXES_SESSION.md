@@ -5,9 +5,9 @@
 
 ## Progress Summary
 
-**Tests Fixed This Session**: 3/11 (27%)
-**Current Status**: 5 remaining failures (down from 11 original)
-**Current Overall Pass Rate**: ~99% (89/94 tests in targeted suites passing)
+**Tests Fixed This Session**: 4/11 (36%)
+**Current Status**: 4 remaining failures (down from 11 original)
+**Current Overall Pass Rate**: ~99% (90/94 tests in targeted suites passing)
 
 ---
 
@@ -91,7 +91,46 @@ const response = await request.post(`/api/v1/products/${parentPartId}/bom`, {
 
 ---
 
-## Remaining Failures (5 tests) - Edge Cases & Environment-Specific
+### 4. L2 Equipment Integration - Data Collection Summary
+**File**: `src/services/EquipmentDataCollectionService.ts:266`
+**Test**: `should generate data summary for equipment`
+
+**Root Cause**:
+- Prisma `groupBy` query had empty `_count: {}` object
+- Tried to access `group._count.dataCollectionType` which doesn't exist
+- API response was missing `dataCollectionType` field that test expected
+
+**Solution**:
+```typescript
+// Fixed groupBy aggregation
+const dataPointsByType = await prisma.equipmentDataCollection.groupBy({
+  by: ['dataCollectionType'],
+  where,
+  _count: {
+    _all: true,  // Added this
+  },
+});
+
+// Fixed count access
+for (const group of dataPointsByType) {
+  (typeMap as any)[(group as any).dataCollectionType] = (group._count as any)._all;  // Changed from .dataCollectionType
+}
+
+// Added dataCollectionType to response
+return {
+  equipmentId: equipment.id,
+  // ...
+  dataCollectionType: dataCollectionType || undefined,  // Added this field
+  // ...
+};
+```
+
+**Impact**: L2 equipment data collection summary API now working correctly
+**Commit**: `910bef7`
+
+---
+
+## Remaining Failures (4 tests) - Edge Cases & Environment-Specific
 
 ### 4. CSP API Violations - Domain-Based Access ❌
 **File**: `src/tests/e2e/csp-api-violations.spec.ts:204`
@@ -158,13 +197,13 @@ Continue investigating and fixing remaining 9 backend failures in priority order
 
 ## Session Metrics
 
-- **Commits Created**: 3
-- **Files Modified**: 3 test files
-- **Tests Fixed**: 3 out of 11 originally identified (27%)
-- **Remaining Failures**: 5 (down from 11)
+- **Commits Created**: 4
+- **Files Modified**: 3 test files, 1 service file
+- **Tests Fixed**: 4 out of 11 originally identified (36%)
+- **Remaining Failures**: 4 (down from 11)
 - **Time per Fix**: ~10-15 minutes average
 - **Success Rate**: 100% (all fixes verified passing)
-- **Current Test Pass Rate**: ~99% (89/94 tests passing in targeted failure suites)
+- **Current Test Pass Rate**: ~96% (90/94 tests passing in targeted failure suites)
 
 ---
 

@@ -32,6 +32,26 @@ export enum DependencyTimingType {
   MUST_FINISH_ON = 'MUST_FINISH_ON'
 }
 
+export enum StepType {
+  PROCESS = 'PROCESS',
+  INSPECTION = 'INSPECTION',
+  DECISION = 'DECISION',
+  PARALLEL_SPLIT = 'PARALLEL_SPLIT',
+  PARALLEL_JOIN = 'PARALLEL_JOIN',
+  OSP = 'OSP',
+  LOT_SPLIT = 'LOT_SPLIT',
+  LOT_MERGE = 'LOT_MERGE',
+  TELESCOPING = 'TELESCOPING',
+  START = 'START',
+  END = 'END'
+}
+
+export enum ControlType {
+  LOT_CONTROLLED = 'LOT_CONTROLLED',
+  SERIAL_CONTROLLED = 'SERIAL_CONTROLLED',
+  MIXED = 'MIXED'
+}
+
 // ============================================
 // CORE ENTITY TYPES
 // ============================================
@@ -105,6 +125,8 @@ export interface RoutingStep {
   isCriticalPath: boolean;
   stepInstructions?: string;
   notes?: string;
+  stepType: StepType;
+  controlType?: ControlType;
   createdAt: string;
   updatedAt: string;
 
@@ -469,4 +491,48 @@ export const DEPENDENCY_TYPE_LABELS: Record<DependencyType, string> = {
   [DependencyType.START_TO_START]: 'Start to Start',
   [DependencyType.FINISH_TO_FINISH]: 'Finish to Finish',
   [DependencyType.START_TO_FINISH]: 'Start to Finish',
+};
+
+// Step type colors for badges
+export const STEP_TYPE_COLORS: Record<StepType, string> = {
+  [StepType.PROCESS]: 'blue',
+  [StepType.INSPECTION]: 'orange',
+  [StepType.DECISION]: 'purple',
+  [StepType.PARALLEL_SPLIT]: 'cyan',
+  [StepType.PARALLEL_JOIN]: 'cyan',
+  [StepType.OSP]: 'magenta',
+  [StepType.LOT_SPLIT]: 'geekblue',
+  [StepType.LOT_MERGE]: 'geekblue',
+  [StepType.TELESCOPING]: 'volcano',
+  [StepType.START]: 'green',
+  [StepType.END]: 'red',
+};
+
+// Step type labels
+export const STEP_TYPE_LABELS: Record<StepType, string> = {
+  [StepType.PROCESS]: 'Process',
+  [StepType.INSPECTION]: 'Inspection',
+  [StepType.DECISION]: 'Decision',
+  [StepType.PARALLEL_SPLIT]: 'Parallel Split',
+  [StepType.PARALLEL_JOIN]: 'Parallel Join',
+  [StepType.OSP]: 'Outside Process',
+  [StepType.LOT_SPLIT]: 'Lot Split',
+  [StepType.LOT_MERGE]: 'Lot Merge',
+  [StepType.TELESCOPING]: 'Telescoping',
+  [StepType.START]: 'Start',
+  [StepType.END]: 'End',
+};
+
+// Control type colors for badges
+export const CONTROL_TYPE_COLORS: Record<ControlType, string> = {
+  [ControlType.LOT_CONTROLLED]: 'blue',
+  [ControlType.SERIAL_CONTROLLED]: 'green',
+  [ControlType.MIXED]: 'orange',
+};
+
+// Control type labels
+export const CONTROL_TYPE_LABELS: Record<ControlType, string> = {
+  [ControlType.LOT_CONTROLLED]: 'Lot Controlled',
+  [ControlType.SERIAL_CONTROLLED]: 'Serial Controlled',
+  [ControlType.MIXED]: 'Mixed Control',
 };

@@ -329,6 +329,30 @@ ENGINEERING ENGINEERING
     
 
 
+        StepType {
+            PROCESS PROCESS
+INSPECTION INSPECTION
+DECISION DECISION
+PARALLEL_SPLIT PARALLEL_SPLIT
+PARALLEL_JOIN PARALLEL_JOIN
+OSP OSP
+LOT_SPLIT LOT_SPLIT
+LOT_MERGE LOT_MERGE
+TELESCOPING TELESCOPING
+START START
+END END
+        }
+    
+
+
+        ControlType {
+            LOT_CONTROLLED LOT_CONTROLLED
+SERIAL_CONTROLLED SERIAL_CONTROLLED
+MIXED MIXED
+        }
+    
+
+
         WorkOrderOperationStatus {
             PENDING PENDING
 IN_PROGRESS IN_PROGRESS
@@ -1345,6 +1369,8 @@ CANCELLED CANCELLED
   "routing_steps" {
     String id "🗝️"
     Int stepNumber 
+    StepType stepType 
+    ControlType controlType "❓"
     Int setupTimeOverride "❓"
     Int cycleTimeOverride "❓"
     Int teardownTimeOverride "❓"
@@ -2686,6 +2712,8 @@ CANCELLED CANCELLED
     "routing_operations" o|--|| "routings" : "routing"
     "routing_operations" o|--|o "work_centers" : "workCenter"
     "routing_operations" o{--}o "work_order_operations" : ""
+    "routing_steps" o|--|| "StepType" : "enum:stepType"
+    "routing_steps" o|--|o "ControlType" : "enum:controlType"
     "routing_steps" o|--|o "work_instructions" : "workInstruction"
     "routing_steps" o|--|| "routings" : "routing"
     "routing_steps" o|--|| "operations" : "operation"
