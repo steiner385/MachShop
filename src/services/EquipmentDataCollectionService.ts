@@ -267,6 +267,7 @@ export class EquipmentDataCollectionService {
       by: ['dataCollectionType'],
       where,
       _count: {
+        _all: true,
       },
     });
 
@@ -280,7 +281,7 @@ export class EquipmentDataCollectionService {
     };
 
     for (const group of dataPointsByType) {
-      (typeMap as any)[(group as any).dataCollectionType] = (group._count as any).dataCollectionType;
+      (typeMap as any)[(group as any).dataCollectionType] = (group._count as any)._all;
     }
 
     // Get latest and oldest data points
@@ -298,6 +299,7 @@ export class EquipmentDataCollectionService {
       equipmentId: equipment.id,
       equipmentNumber: equipment.equipmentNumber,
       equipmentName: equipment.name,
+      dataCollectionType: dataCollectionType || undefined,
       totalDataPoints,
       dataPointsByType: typeMap,
       latestDataPoint: latestDataPoint as EquipmentDataCollectionRecord | undefined,
