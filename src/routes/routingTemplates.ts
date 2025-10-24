@@ -85,42 +85,46 @@ router.get(
     });
 
     // Build where clause for filtering
-    const where: any = {
-      AND: [
+    // Start with site access filter
+    const where: any = query.siteId
+      ? { siteId: query.siteId }  // Specific site requested
+      : {
+          OR: [
+            { siteId: req.user.siteId },  // User's site
+            { isPublic: true }            // Or public templates
+          ]
+        };
+
+    // Add search filter if provided
+    if (query.search) {
+      where.AND = [
+        ...(where.OR ? [{ OR: where.OR }] : [{ siteId: where.siteId }]),
         {
           OR: [
-            { siteId: req.user.siteId },
-            { isPublic: true }
+            { name: { contains: query.search, mode: 'insensitive' } },
+            { description: { contains: query.search, mode: 'insensitive' } },
+            { tags: { hasSome: [query.search] } }
           ]
         }
-      ]
-    };
-
-    if (query.search) {
-      where.AND.push({
-        OR: [
-          { name: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } },
-          { tags: { hasSome: [query.search] } }
-        ]
-      });
+      ];
+      // Remove the OR or siteId from top level since we moved it into AND
+      delete where.OR;
+      delete where.siteId;
     }
 
+    // Add category filter
     if (query.category) {
-      where.AND.push({ category: query.category });
+      where.category = query.category;
     }
 
+    // Add tags filter
     if (query.tags && query.tags.length > 0) {
-      where.AND.push({ tags: { hasSome: query.tags } });
+      where.tags = { hasSome: query.tags };
     }
 
-    if (query.siteId) {
-      // Override the site filter with specific siteId
-      where.AND[0] = { siteId: query.siteId };
-    }
-
+    // Add favorite filter
     if (query.isFavorite !== undefined) {
-      where.AND.push({ isFavorite: query.isFavorite });
+      where.isFavorite = query.isFavorite;
     }
 
     // Execute query with pagination and sorting
