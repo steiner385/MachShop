@@ -36,6 +36,22 @@ function mapArrayToSegmentTerminology(operations: any[]): any[] {
   return operations.map(mapToSegmentTerminology);
 }
 
+/**
+ * Map statistics object from operation terminology to segment terminology
+ */
+function mapStatisticsToSegmentTerminology(stats: any): any {
+  if (!stats) return stats;
+
+  return {
+    totalSegments: stats.totalOperations,
+    activeSegments: stats.activeOperations,
+    inactiveSegments: stats.inactiveOperations,
+    segmentsByType: stats.operationsByType,
+    segmentsByLevel: stats.operationsByLevel,
+    approvedSegments: stats.approvedOperations,
+  };
+}
+
 // ======================
 // PROCESS SEGMENT CRUD
 // ======================
@@ -224,7 +240,7 @@ router.get('/hierarchy/roots', async (req: Request, res: Response) => {
 router.get('/statistics/overview', async (req: Request, res: Response) => {
   try {
     const stats = await OperationService.getStatistics();
-    res.json(stats);
+    res.json(mapStatisticsToSegmentTerminology(stats));
   } catch (error: any) {
     console.error('Error fetching statistics:', error);
     res.status(500).json({ error: error.message });
