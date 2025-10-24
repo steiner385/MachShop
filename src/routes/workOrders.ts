@@ -376,7 +376,6 @@ router.get('/operations/my-assignments',
       },
       include: {
         part: true,
-        workCenter: true,
       },
       take: 50,
       orderBy: {
@@ -393,12 +392,12 @@ router.get('/operations/my-assignments',
       status: wo.status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PENDING',
       assignedOperatorId: userId,
       assignedOperatorName: req.user?.username,
-      orderedQuantity: wo.quantityOrdered,
+      orderedQuantity: wo.quantity,
       completedQuantity: wo.quantityCompleted || 0,
       scrappedQuantity: 0,
       reworkQuantity: 0,
-      workCenterId: wo.workCenterId || undefined,
-      workCenterName: wo.workCenter?.name,
+      workCenterId: undefined,
+      workCenterName: undefined,
     }));
 
     res.json({
@@ -494,7 +493,6 @@ router.post('/:id/operations/:operationNumber/start',
       },
       include: {
         part: true,
-        workCenter: true,
       },
     });
 
@@ -508,12 +506,12 @@ router.post('/:id/operations/:operationNumber/start',
       status: 'IN_PROGRESS',
       assignedOperatorId: userId,
       assignedOperatorName: req.user?.username,
-      orderedQuantity: workOrder.quantityOrdered,
+      orderedQuantity: workOrder.quantity,
       completedQuantity: workOrder.quantityCompleted || 0,
       scrappedQuantity: 0,
       reworkQuantity: 0,
       startTime: startTime.toISOString(),
-      workCenterId: workOrder.workCenterId || undefined,
+      workCenterId: undefined,
     };
 
     logger.info('Operation started', { workOrderId: id, operationNumber, userId });
@@ -576,11 +574,10 @@ router.post('/:id/operations/:operationNumber/record',
         where: { id },
         data: {
           quantityCompleted: currentCompleted + quantity,
-          status: currentCompleted + quantity >= workOrder.quantityOrdered ? 'COMPLETED' : 'IN_PROGRESS',
+          status: currentCompleted + quantity >= (workOrder as any).quantity ? 'COMPLETED' : 'IN_PROGRESS',
         },
         include: {
           part: true,
-          workCenter: true,
         },
       });
     } else {
@@ -606,12 +603,12 @@ router.post('/:id/operations/:operationNumber/record',
       status: updatedWorkOrder.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
       assignedOperatorId: userId,
       assignedOperatorName: req.user?.username,
-      orderedQuantity: updatedWorkOrder.quantityOrdered,
+      orderedQuantity: (updatedWorkOrder as any).quantity,
       completedQuantity: updatedWorkOrder.quantityCompleted || 0,
       scrappedQuantity: type === 'scrap' ? quantity : 0,
       reworkQuantity: type === 'rework' ? quantity : 0,
       startTime: updatedWorkOrder.actualStartDate,
-      workCenterId: updatedWorkOrder.workCenterId || undefined,
+      workCenterId: undefined,
     };
 
     logger.info('Production recorded', { workOrderId: id, operationNumber, type, quantity, userId });
@@ -645,7 +642,6 @@ router.post('/:id/operations/:operationNumber/complete',
       },
       include: {
         part: true,
-        workCenter: true,
       },
     });
 
@@ -659,13 +655,13 @@ router.post('/:id/operations/:operationNumber/complete',
       status: 'COMPLETED',
       assignedOperatorId: userId,
       assignedOperatorName: req.user?.username,
-      orderedQuantity: workOrder.quantityOrdered,
+      orderedQuantity: workOrder.quantity,
       completedQuantity: workOrder.quantityCompleted || 0,
       scrappedQuantity: 0,
       reworkQuantity: 0,
       startTime: workOrder.actualStartDate,
       endTime: endTime.toISOString(),
-      workCenterId: workOrder.workCenterId || undefined,
+      workCenterId: undefined,
     };
 
     logger.info('Operation completed', { workOrderId: id, operationNumber, userId });

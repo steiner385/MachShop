@@ -613,6 +613,7 @@ PROCESSING PROCESSING
 PROCESSED PROCESSED
 SENT SENT
 CONFIRMED CONFIRMED
+ACCEPTED ACCEPTED
 FAILED FAILED
 REJECTED REJECTED
 TIMEOUT TIMEOUT
@@ -1320,6 +1321,7 @@ CANCELLED CANCELLED
     Int priority 
     String approvedBy "❓"
     DateTime approvedAt "❓"
+    Json visualData "❓"
     DateTime createdAt 
     DateTime updatedAt 
     String createdBy "❓"
@@ -1372,6 +1374,23 @@ CANCELLED CANCELLED
     String parameterValue 
     String unitOfMeasure "❓"
     String notes "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "routing_templates" {
+    String id "🗝️"
+    String name 
+    String number 
+    String category "❓"
+    String description "❓"
+    String tags 
+    Boolean isPublic 
+    Boolean isFavorite 
+    Int usageCount 
+    Float rating "❓"
+    Json visualData "❓"
     DateTime createdAt 
     DateTime updatedAt 
     }
@@ -2494,6 +2513,7 @@ CANCELLED CANCELLED
     "sites" o{--}o "ncrs" : ""
     "sites" o{--}o "areas" : ""
     "sites" o{--}o "production_schedules" : ""
+    "sites" o{--}o "routing_templates" : ""
     "areas" o|--|| "sites" : "site"
     "areas" o{--}o "work_centers" : ""
     "areas" o{--}o "equipment" : ""
@@ -2519,6 +2539,7 @@ CANCELLED CANCELLED
     "users" o{--}o "personnel_availability" : ""
     "users" o{--}o "dispatch_logs" : ""
     "users" o{--}o "work_performance" : ""
+    "users" o{--}o "routing_templates" : ""
     "personnel_classes" o|--|o "personnel_classes" : "parentClass"
     "personnel_classes" o{--}o "personnel_qualifications" : ""
     "personnel_qualifications" o|--|| "QualificationType" : "enum:qualificationType"
@@ -2660,6 +2681,7 @@ CANCELLED CANCELLED
     "routings" o{--}o "routing_steps" : ""
     "routings" o{--}o "routing_operations" : ""
     "routings" o{--}o "schedule_entries" : ""
+    "routings" o{--}o "routing_templates" : ""
     "routings" o|--|o "routings" : "alternateFor"
     "routing_operations" o|--|| "routings" : "routing"
     "routing_operations" o|--|o "work_centers" : "workCenter"
@@ -2677,6 +2699,9 @@ CANCELLED CANCELLED
     "routing_step_dependencies" o|--|| "routing_steps" : "dependentStep"
     "routing_step_dependencies" o|--|| "routing_steps" : "prerequisiteStep"
     "routing_step_parameters" o|--|| "routing_steps" : "routingStep"
+    "routing_templates" o|--|o "routings" : "sourceRouting"
+    "routing_templates" o|--|| "users" : "createdBy"
+    "routing_templates" o|--|| "sites" : "site"
     "work_centers" o|--|o "areas" : "area"
     "work_centers" o{--}o "work_units" : ""
     "work_centers" o{--}o "equipment" : ""

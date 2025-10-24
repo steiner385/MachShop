@@ -217,13 +217,12 @@ export class PersonnelInfoSyncService {
           user = await this.prisma.user.create({
             data: {
               username: message.personnel.externalId,
-              name: `${message.personnel.firstName || ''} ${message.personnel.lastName || ''}`.trim() || message.personnel.externalId,
+              firstName: message.personnel.firstName || message.personnel.externalId,
+              lastName: message.personnel.lastName || '',
               email: message.personnel.email || `${message.personnel.externalId}@company.com`,
-              password: 'PLACEHOLDER', // TODO: Implement proper password handling
-              employeeId: message.personnel.employeeNumber,
-              role: 'OPERATOR', // Default role
+              roles: ['OPERATOR'], // Default role
               isActive: true,
-            },
+            } as any,
           });
 
           personnelId = user.id;
@@ -346,7 +345,6 @@ export class PersonnelInfoSyncService {
         config: {
           select: {
             name: true,
-            systemType: true,
           },
         },
       },
@@ -389,7 +387,7 @@ export class PersonnelInfoSyncService {
       jobTitle: exchange.jobTitle,
       processedAt: exchange.processedAt,
       errorMessage: exchange.errorMessage,
-      integrationSystem: exchange.config.name,
+      integrationSystem: exchange.config?.name || 'UNKNOWN',
       userInfo,
       createdAt: exchange.createdAt,
     };
@@ -442,7 +440,6 @@ export class PersonnelInfoSyncService {
         config: {
           select: {
             name: true,
-            systemType: true,
           },
         },
       },
@@ -462,7 +459,6 @@ export class PersonnelInfoSyncService {
         config: {
           select: {
             name: true,
-            systemType: true,
           },
         },
       },
@@ -478,7 +474,7 @@ export class PersonnelInfoSyncService {
       email: e.email,
       employeeNumber: e.employeeNumber,
       processedAt: e.processedAt,
-      integrationSystem: e.config.name,
+      integrationSystem: e.config?.name || 'UNKNOWN',
       createdAt: e.createdAt,
     }));
   }

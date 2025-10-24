@@ -9,7 +9,7 @@
  * OUTBOUND (B2M): MES → ERP - Send schedule confirmations/responses
  */
 
-import { PrismaClient, B2MMessageStatus, ScheduleType, SchedulePriority } from '@prisma/client';
+import { PrismaClient, Prisma, B2MMessageStatus, ScheduleType, SchedulePriority } from '@prisma/client';
 import {
   ProductionScheduleRequestInput,
   ProductionScheduleResponseInput,
@@ -123,7 +123,7 @@ export class ProductionScheduleSyncService {
           personnelRequirements: message.resources?.personnel || undefined,
           materialRequirements: message.resources?.materials || undefined,
           status: 'PENDING',
-          requestPayload: message,
+          requestPayload: message as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -246,7 +246,6 @@ export class ProductionScheduleSyncService {
     // Check part availability
     const part = await this.prisma.part.findUnique({
       where: { id: params.partId },
-      select: { quantityOnHand: true },
     });
 
     if (part && params.materialRequirements) {
@@ -281,7 +280,7 @@ export class ProductionScheduleSyncService {
       for (const equipment of requiredEquipment) {
         // Simple check - in real implementation would check equipment availability/calendar
         const equipmentCount = await this.prisma.equipment.count({
-          where: { equipmentClass: equipment.equipmentClass },
+          where: { equipmentClass: equipment.equipmentClass as any },
         });
 
         if (equipmentCount < equipment.quantity) {
@@ -302,7 +301,11 @@ export class ProductionScheduleSyncService {
         const personnelCount = await this.prisma.user.count({
           where: {
             skills: {
-              has: skill.skillCode,
+              some: {
+                skill: {
+                  skillCode: skill.skillCode,
+                },
+              },
             },
           },
         });
@@ -349,15 +352,13 @@ export class ProductionScheduleSyncService {
     // Create work order from schedule request
     const workOrder = await this.prisma.workOrder.create({
       data: {
-        orderNumber: `WO-ERP-${params.externalWorkOrderId}`,
+        workOrderNumber: `WO-ERP-${params.externalWorkOrderId}`,
         partId: params.partId,
         quantity: params.quantity,
-        unitOfMeasure: params.unitOfMeasure,
         priority: params.priority as any,
         status: 'CREATED',
         dueDate: params.dueDate,
         customerOrder: params.externalWorkOrderId,
-        notes: `Created from ERP schedule request ${params.externalWorkOrderId}`,
         createdById: 'SYSTEM',
       },
     });
@@ -496,9 +497,7 @@ export class ProductionScheduleSyncService {
           proposedStartDate,
           proposedEndDate,
           proposedQuantity,
-          status: 'PENDING',
           respondedBy,
-          responseDate: new Date(),
           responsePayload: {
             ...messagePayload,
             response: {
@@ -518,7 +517,7 @@ export class ProductionScheduleSyncService {
       await this.prisma.productionScheduleResponse.update({
         where: { id: response.id },
         data: {
-          status: 'SENT',
+          sentToERP: true,
           sentAt: new Date(),
         },
       });
@@ -542,7 +541,7 @@ export class ProductionScheduleSyncService {
       include: {
         workOrder: {
           select: {
-            orderNumber: true,
+            workOrderNumber: true,
             status: true,
             quantity: true,
           },
@@ -563,7 +562,7 @@ export class ProductionScheduleSyncService {
       dueDate: request.dueDate,
       status: request.status,
       accepted: request.status === 'ACCEPTED',
-      workOrderNumber: request.workOrder?.orderNumber,
+      workOrderNumber: request.workOrder?.workOrderNumber,
       workOrderStatus: request.workOrder?.status,
       response: (request as any).response ? {
         messageId: (request as any).response.messageId,
@@ -608,7 +607,7 @@ export class ProductionScheduleSyncService {
       include: {
         workOrder: {
           select: {
-            orderNumber: true,
+            workOrderNumber: true,
             status: true,
           },
         },
@@ -622,7 +621,7 @@ export class ProductionScheduleSyncService {
       quantity: req.quantity,
       dueDate: req.dueDate,
       status: req.status,
-      workOrderNumber: req.workOrder?.orderNumber,
+      workOrderNumber: req.workOrder?.workOrderNumber,
       workOrderStatus: req.workOrder?.status,
       requestedDate: req.requestedDate,
     }));

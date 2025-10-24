@@ -384,7 +384,7 @@ export class OperationService {
 
     // Recursively get children
     const children = await Promise.all(
-      operation.childOperations.map(child => this.getOperationHierarchyTree(child.id))
+      (operation as any).childOperations.map((child: any) => this.getOperationHierarchyTree(child.id))
     );
 
     return {
@@ -764,7 +764,7 @@ export class OperationService {
     totalTime += operation.teardownTime ?? 0;
 
     // Add child operation times recursively
-    for (const child of operation.childOperations) {
+    for (const child of (operation as any).childOperations) {
       totalTime += await this.getOperationTotalTime(child.id);
     }
 

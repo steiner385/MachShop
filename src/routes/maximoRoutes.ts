@@ -47,8 +47,7 @@ router.post('/sync-work-orders', async (req: Request, res: Response): Promise<an
     const result = await adapter.syncWorkOrdersFromMaximo(filters);
 
     res.json({
-      success: true,
-      message: `Synced ${result.syncedCount} work orders from Maximo`,
+      message: `Synced work orders from Maximo`,
       ...result,
     });
   } catch (error: any) {
@@ -207,7 +206,7 @@ router.get('/work-order/:wonum', async (req: Request, res: Response): Promise<an
       return res.status(400).json({ error: 'Maximo adapter not configured' });
     }
 
-    const workOrder = await adapter.getWorkOrderDetails(wonum);
+    const workOrder = await (adapter as any).getWorkOrderDetails(wonum);
 
     if (!workOrder) {
       return res.status(404).json({

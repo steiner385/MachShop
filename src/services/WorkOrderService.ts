@@ -163,8 +163,6 @@ export class WorkOrderService {
         priority: updates.priority as any,
         customerOrder: updates.customerOrder,
         dueDate: updates.dueDate,
-        scheduledStartDate: updates.scheduledStartDate,
-        scheduledEndDate: updates.scheduledEndDate,
         updatedAt: new Date()
       },
       include: {

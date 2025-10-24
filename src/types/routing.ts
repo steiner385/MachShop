@@ -701,6 +701,7 @@ export interface CreateRoutingTemplateDTO {
   visualData: VisualRoutingData;
   isFavorite?: boolean;
   createdBy?: string;
+  siteId?: string;
 }
 
 /**

@@ -232,8 +232,8 @@ test.describe('Material Definition Management', () => {
         propertyName: 'Test Property',
         propertyType: 'CHEMICAL',
         propertyValue: '99.5%',
-        unitOfMeasure: 'percent',
-        specification: 'ASTM-TEST',
+        propertyUnit: 'percent',
+        testMethod: 'ASTM-TEST',
         minValue: 99.0,
         maxValue: 100.0
       }

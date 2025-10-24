@@ -59,6 +59,7 @@ model Site {
   ncrs                NCR[]
   areas               Area[] // ISA-95 hierarchy: Site → Areas
   productionSchedules ProductionSchedule[] // Production schedules for this site
+  routingTemplates    RoutingTemplate[] // Routing templates defined for this site
 
   @@index([enterpriseId])
   @@map("sites")
@@ -144,6 +145,9 @@ model User {
   // Task 1.7: Production Dispatching & Execution relations
   dispatchedWorkOrders   DispatchLog[]     @relation("DispatchAssignedTo")
   workPerformanceRecords WorkPerformance[] @relation("WorkPerformancePersonnel")
+
+  // Routing Template ownership
+  routingTemplates RoutingTemplate[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -1641,6 +1645,9 @@ model Routing {
   approvedBy String?
   approvedAt DateTime?
 
+  // Visual routing data (ReactFlow nodes/edges for visual editor)
+  visualData Json? // Stores ReactFlow graph structure for visual editor
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1654,6 +1661,7 @@ model Routing {
   operations      RoutingOperation[] // DEPRECATED: Keep for backward compatibility during migration
   workOrders      WorkOrder[]
   scheduleEntries ScheduleEntry[] // Schedule entries using this routing
+  templateSources RoutingTemplate[] @relation("TemplateSource") // Templates created from this routing
 
   // NEW: Alternate routing relations
   alternateFor    Routing?  @relation("AlternateRoutes", fields: [alternateForId], references: [id])
@@ -1786,6 +1794,45 @@ model RoutingStepParameter {
   @@unique([routingStepId, parameterName]) // One override per parameter per step
   @@index([routingStepId])
   @@map("routing_step_parameters")
+}
+
+// Routing Templates - Reusable routing configurations
+model RoutingTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Template display name
+  number      String   @unique @default(cuid()) // Unique template number (auto-generated)
+  category    String? // e.g., "Machining", "Assembly", "Inspection"
+  description String?  @db.Text
+  tags        String[] // Searchable tags for categorization
+
+  // Template metadata
+  isPublic   Boolean @default(false) // Can other users see/use this template
+  isFavorite Boolean @default(false) // User-marked favorite
+  usageCount Int     @default(0) // How many times this template has been used
+  rating     Float? // User rating (1-5 stars)
+
+  // Visual routing data (ReactFlow nodes/edges for visual editor)
+  visualData Json? // Stores ReactFlow graph structure
+
+  // Source routing (optional - if created from existing routing)
+  sourceRoutingId String?
+  sourceRouting   Routing? @relation("TemplateSource", fields: [sourceRoutingId], references: [id])
+
+  // Ownership and multi-tenancy
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  siteId      String
+  site        Site   @relation(fields: [siteId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([siteId])
+  @@index([createdById])
+  @@index([category])
+  @@index([isFavorite])
+  @@map("routing_templates")
 }
 
 // Work Centers (ISA-95 Level 3)
@@ -3787,6 +3834,7 @@ enum B2MMessageStatus {
   PROCESSED // Successfully processed
   SENT // Sent to external system
   CONFIRMED // Confirmed by external system
+  ACCEPTED // Accepted and ready for execution
   FAILED // Processing failed
   REJECTED // Rejected by business rules
   TIMEOUT // Processing timeout

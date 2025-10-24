@@ -467,8 +467,8 @@ export class GlobalSearchService {
         AND: [
           {
             OR: [
-              { segmentCode: { contains: searchTerm, mode: 'insensitive' } },
-              { segmentName: { contains: searchTerm, mode: 'insensitive' } },
+              { operationCode: { contains: searchTerm, mode: 'insensitive' } },
+              { operationName: { contains: searchTerm, mode: 'insensitive' } },
               { description: { contains: searchTerm, mode: 'insensitive' } },
             ],
           },
@@ -482,21 +482,21 @@ export class GlobalSearchService {
     return segments.map((seg) => ({
       entityType: SearchEntityType.PROCESS_SEGMENT,
       id: seg.id,
-      primaryText: seg.segmentCode,
-      secondaryText: seg.segmentName,
+      primaryText: seg.operationCode,
+      secondaryText: seg.operationName,
       metadata: {
-        segmentNumber: seg.segmentCode,
-        name: seg.segmentName,
-        segmentType: seg.segmentType,
+        segmentNumber: seg.operationCode,
+        name: seg.operationName,
+        segmentType: seg.operationType,
         duration: seg.duration || undefined,
         isActive: seg.isActive,
       },
       relevanceScore: this.calculateRelevanceScore(
         searchTerm,
-        [seg.segmentCode, seg.segmentName, seg.description || '']
+        [seg.operationCode, seg.operationName, seg.description || '']
       ),
       status: seg.isActive ? 'Active' : 'Inactive',
-      url: `/process-segments/${seg.id}`,
+      url: `/operations/${seg.id}`,
     }));
   }
 

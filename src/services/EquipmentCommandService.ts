@@ -257,7 +257,7 @@ export class EquipmentCommandService {
       data: {
         commandStatus: 'PENDING',
         retryCount: command.retryCount + 1,
-        responsePayload: null,
+        responsePayload: null as any,
         responseCode: null,
         responseMessage: null,
         sentAt: null,

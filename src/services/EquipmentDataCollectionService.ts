@@ -267,7 +267,6 @@ export class EquipmentDataCollectionService {
       by: ['dataCollectionType'],
       where,
       _count: {
-        dataCollectionType: true,
       },
     });
 
@@ -281,7 +280,7 @@ export class EquipmentDataCollectionService {
     };
 
     for (const group of dataPointsByType) {
-      typeMap[group.dataCollectionType] = group._count.dataCollectionType;
+      (typeMap as any)[(group as any).dataCollectionType] = (group._count as any).dataCollectionType;
     }
 
     // Get latest and oldest data points
@@ -299,7 +298,6 @@ export class EquipmentDataCollectionService {
       equipmentId: equipment.id,
       equipmentNumber: equipment.equipmentNumber,
       equipmentName: equipment.name,
-      dataCollectionType,
       totalDataPoints,
       dataPointsByType: typeMap,
       latestDataPoint: latestDataPoint as EquipmentDataCollectionRecord | undefined,
@@ -443,7 +441,6 @@ export class EquipmentDataCollectionService {
   ): Promise<EquipmentDataCollectionRecord[]> {
     const where: any = {
       equipmentId,
-      dataCollectionType: 'ALARM',
     };
 
     if (startDate || endDate) {
@@ -476,7 +473,6 @@ export class EquipmentDataCollectionService {
   ): Promise<EquipmentDataCollectionRecord[]> {
     const where: any = {
       equipmentId,
-      dataCollectionType: 'STATUS',
     };
 
     if (startDate || endDate) {

@@ -346,7 +346,7 @@ export class RoutingService {
             currentVersion: existing.version,
             attemptedVersion: data.currentVersion,
             lastModified: existing.updatedAt,
-            lastModifiedBy: existing.createdBy // Note: In a real system, track lastModifiedBy separately
+            lastModifiedBy: existing.createdBy ?? undefined // Note: In a real system, track lastModifiedBy separately
           }
         );
       }
@@ -1295,7 +1295,7 @@ export class RoutingService {
     const existing = await prisma.routingTemplate.findFirst({
       where: {
         name: data.name,
-        createdBy: data.createdBy
+        createdById: data.createdBy
       }
     });
 
@@ -1310,10 +1310,11 @@ export class RoutingService {
         description: data.description,
         category: data.category,
         tags: data.tags,
-        visualData: data.visualData as Prisma.InputJsonValue,
+        visualData: (data.visualData as unknown) as Prisma.InputJsonValue,
         isFavorite: data.isFavorite ?? false,
         usageCount: 0,
-        createdBy: data.createdBy
+        createdById: data.createdBy || '',
+        siteId: data.siteId || ''
       }
     });
 
@@ -1335,7 +1336,7 @@ export class RoutingService {
     }
 
     if (params?.createdBy) {
-      where.createdBy = params.createdBy;
+      where.createdById = params.createdBy;
     }
 
     if (params?.tags && params.tags.length > 0) {
@@ -1393,7 +1394,7 @@ export class RoutingService {
         description: data.description,
         category: data.category,
         tags: data.tags,
-        visualData: data.visualData ? (data.visualData as Prisma.InputJsonValue) : undefined,
+        visualData: data.visualData ? ((data.visualData as unknown) as Prisma.InputJsonValue) : undefined,
         isFavorite: data.isFavorite
       }
     });
@@ -1463,7 +1464,7 @@ export class RoutingService {
     });
 
     return result.map(r => ({
-      category: r.category,
+      category: r.category ?? 'Uncategorized',
       count: r._count.id
     }));
   }
