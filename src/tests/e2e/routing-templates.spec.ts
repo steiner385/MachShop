@@ -467,15 +467,20 @@ test.describe('Routing Templates E2E Tests', () => {
 
   test.describe('Template Management', () => {
     test('should edit existing template', async () => {
-      // Create a template via API
+      // Get the manufacturing engineer user to ensure site ID matches
+      const mfgEngineer = await prisma.user.findUnique({
+        where: { username: 'mfg.engineer' }
+      });
+
+      // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
           name: `Edit Test Template ${Date.now()}`,
           description: 'Original description',
           category: 'ASSEMBLY',
           visualData: { nodes: [], edges: [] },
-          siteId: testSite.id,
-          createdById: testUser.id,
+          siteId: mfgEngineer!.siteId,
+          createdById: mfgEngineer!.id,
         },
       });
 
@@ -484,42 +489,46 @@ test.describe('Routing Templates E2E Tests', () => {
       }
 
       // Navigate to templates
-      await page.goto('/routings');
+      await page.goto('/routings/templates');
       await page.waitForTimeout(1000);
 
-      const templateButton = page.locator('button:has-text("Template")').or(page.locator('text=Template Library'));
+      // Look for edit button using test ID
+      const editButton = page.locator(`[data-testid="edit-template-${template.id}"]`);
 
-      if (await templateButton.count() > 0) {
-        await templateButton.first().click();
+      if (await editButton.count() > 0) {
+        await editButton.first().click();
         await page.waitForTimeout(1000);
 
-        // Look for edit button
-        const editButton = page.locator('button:has-text("Edit")').or(page.locator('[aria-label*="edit" i]'));
+        // Wait for modal to be visible
+        await page.locator('.ant-modal').waitFor({ state: 'visible', timeout: 5000 });
 
-        if (await editButton.count() > 0) {
-          await editButton.first().click();
+        // Update description
+        const descriptionInput = page.locator('textarea[id="description"]');
+
+        if (await descriptionInput.count() > 0) {
+          await descriptionInput.clear();
+          await descriptionInput.fill('Updated description');
+
+          // Wait for the API call to complete
+          const responsePromise = page.waitForResponse(
+            response => response.url().includes('/routing-templates/') && response.request().method() === 'PUT',
+            { timeout: 10000 }
+          );
+
+          // Save changes
+          const saveButton = page.locator('button:has-text("Save")').last();
+          await saveButton.click();
+
+          // Wait for the response
+          await responsePromise;
           await page.waitForTimeout(500);
 
-          // Update description
-          const descriptionInput = page.locator('textarea[name="description"]').or(page.locator('input[name="description"]'));
+          // Verify update in DB
+          const updatedTemplate = await prisma.routingTemplate.findUnique({
+            where: { id: template.id },
+          });
 
-          if (await descriptionInput.count() > 0) {
-            await descriptionInput.first().fill('Updated description');
-
-            // Save changes
-            const saveButton = page.locator('button:has-text("Save")').or(page.locator('button:has-text("Update")'));
-            await saveButton.first().click();
-            await page.waitForTimeout(1000);
-
-            // Verify update in DB
-            const updatedTemplate = await prisma.routingTemplate.findUnique({
-              where: { id: template.id },
-            });
-
-            expect(updatedTemplate?.description).toBe('Updated description');
-          } else {
-            test.skip();
-          }
+          expect(updatedTemplate?.description).toBe('Updated description');
         } else {
           test.skip();
         }
@@ -529,53 +538,60 @@ test.describe('Routing Templates E2E Tests', () => {
     });
 
     test('should delete template', async () => {
-      // Create a template via API
+      // Get the manufacturing engineer user to ensure site ID matches
+      const mfgEngineer = await prisma.user.findUnique({
+        where: { username: 'mfg.engineer' }
+      });
+
+      // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
           name: `Delete Test Template ${Date.now()}`,
           description: 'Template to be deleted',
           category: 'OTHER',
           visualData: { nodes: [], edges: [] },
-          siteId: testSite.id,
-          createdById: testUser.id,
+          siteId: mfgEngineer!.siteId,
+          createdById: mfgEngineer!.id,
         },
       });
 
       // Navigate to templates
-      await page.goto('/routings');
+      await page.goto('/routings/templates');
       await page.waitForTimeout(1000);
 
-      const templateButton = page.locator('button:has-text("Template")').or(page.locator('text=Template Library'));
+      // Look for delete button using test ID
+      const deleteButton = page.locator(`[data-testid="delete-template-${template.id}"]`);
 
-      if (await templateButton.count() > 0) {
-        await templateButton.first().click();
+      if (await deleteButton.count() > 0) {
+        await deleteButton.first().click();
         await page.waitForTimeout(1000);
 
-        // Look for delete button
-        const deleteButton = page.locator('button:has-text("Delete")').or(page.locator('[aria-label*="delete" i]'));
+        // Wait for modal to be visible
+        await page.locator('.ant-modal').waitFor({ state: 'visible', timeout: 5000 });
 
-        if (await deleteButton.count() > 0) {
-          await deleteButton.first().click();
-          await page.waitForTimeout(500);
+        // Wait for the DELETE API call to complete
+        const responsePromise = page.waitForResponse(
+          response => response.url().includes(`/routing-templates/${template.id}`) && response.request().method() === 'DELETE',
+          { timeout: 10000 }
+        );
 
-          // Confirm deletion if there's a confirmation dialog
-          const confirmButton = page.locator('button:has-text("Confirm")').or(page.locator('button:has-text("Yes")'));
+        // Confirm deletion - our modal uses "Delete" as the button text
+        const confirmButton = page.locator('.ant-modal button:has-text("Delete")');
 
-          if (await confirmButton.count() > 0) {
-            await confirmButton.first().click();
-          }
-
-          await page.waitForTimeout(1000);
-
-          // Verify deletion in DB
-          const deletedTemplate = await prisma.routingTemplate.findUnique({
-            where: { id: template.id },
-          });
-
-          expect(deletedTemplate).toBeNull();
-        } else {
-          test.skip();
+        if (await confirmButton.count() > 0) {
+          await confirmButton.click();
         }
+
+        // Wait for the response
+        await responsePromise;
+        await page.waitForTimeout(500);
+
+        // Verify deletion in DB
+        const deletedTemplate = await prisma.routingTemplate.findUnique({
+          where: { id: template.id },
+        });
+
+        expect(deletedTemplate).toBeNull();
       } else {
         test.skip();
       }

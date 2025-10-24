@@ -22,6 +22,8 @@ import {
   Space,
   Tooltip,
   Typography,
+  Modal,
+  Form,
 } from 'antd';
 import {
   StarOutlined,
@@ -29,6 +31,8 @@ import {
   PlusOutlined,
   SearchOutlined,
   AppstoreOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSite } from '@/contexts/SiteContext';
@@ -47,6 +51,10 @@ const RoutingTemplatesPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
   const [showFavorites, setShowFavorites] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<RoutingTemplate | null>(null);
+  const [editForm] = Form.useForm();
 
   // Fetch templates
   const fetchTemplates = async () => {
@@ -93,6 +101,70 @@ const RoutingTemplatesPage: React.FC = () => {
   // Use template - navigate to create routing with template
   const handleUseTemplate = (template: RoutingTemplate) => {
     navigate(`/routings/create?templateId=${template.id}`);
+  };
+
+  // Open edit modal
+  const handleEditTemplate = (template: RoutingTemplate) => {
+    setSelectedTemplate(template);
+    editForm.setFieldsValue({
+      name: template.name,
+      description: template.description,
+      category: template.category,
+    });
+    setEditModalVisible(true);
+  };
+
+  // Save edited template
+  const handleSaveEdit = async () => {
+    if (!selectedTemplate) return;
+
+    try {
+      const values = await editForm.validateFields();
+      await routingTemplateApi.updateTemplate(selectedTemplate.id, values);
+      message.success('Template updated successfully');
+      setEditModalVisible(false);
+      editForm.resetFields();
+      setSelectedTemplate(null);
+      fetchTemplates();
+    } catch (error) {
+      console.error('Failed to update template:', error);
+      message.error('Failed to update template');
+    }
+  };
+
+  // Cancel edit
+  const handleCancelEdit = () => {
+    setEditModalVisible(false);
+    editForm.resetFields();
+    setSelectedTemplate(null);
+  };
+
+  // Open delete confirmation
+  const handleDeleteTemplate = (template: RoutingTemplate) => {
+    setSelectedTemplate(template);
+    setDeleteModalVisible(true);
+  };
+
+  // Confirm delete
+  const handleConfirmDelete = async () => {
+    if (!selectedTemplate) return;
+
+    try {
+      await routingTemplateApi.deleteTemplate(selectedTemplate.id);
+      message.success('Template deleted successfully');
+      setDeleteModalVisible(false);
+      setSelectedTemplate(null);
+      fetchTemplates();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      message.error('Failed to delete template');
+    }
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+    setSelectedTemplate(null);
   };
 
   return (
@@ -177,6 +249,23 @@ const RoutingTemplatesPage: React.FC = () => {
                         onClick={() => handleToggleFavorite(template.id)}
                       />
                     </Tooltip>,
+                    <Tooltip title="Edit template">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditTemplate(template)}
+                        data-testid={`edit-template-${template.id}`}
+                      />
+                    </Tooltip>,
+                    <Tooltip title="Delete template">
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeleteTemplate(template)}
+                        data-testid={`delete-template-${template.id}`}
+                      />
+                    </Tooltip>,
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
@@ -225,6 +314,65 @@ const RoutingTemplatesPage: React.FC = () => {
           </Row>
         )}
       </Spin>
+
+      {/* Edit Template Modal */}
+      <Modal
+        title="Edit Template"
+        open={editModalVisible}
+        onOk={handleSaveEdit}
+        onCancel={handleCancelEdit}
+        okText="Save"
+        cancelText="Cancel"
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            label="Template Name"
+            name="name"
+            rules={[{ required: true, message: 'Please enter a template name' }]}
+          >
+            <Input placeholder="Enter template name" />
+          </Form.Item>
+
+          <Form.Item
+            label="Description"
+            name="description"
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Enter template description"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Category"
+            name="category"
+          >
+            <Select placeholder="Select category" allowClear>
+              <Option value="MACHINING">Machining</Option>
+              <Option value="ASSEMBLY">Assembly</Option>
+              <Option value="INSPECTION">Inspection</Option>
+              <Option value="FINISHING">Finishing</Option>
+              <Option value="PACKAGING">Packaging</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title="Delete Template"
+        open={deleteModalVisible}
+        onOk={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        okText="Delete"
+        cancelText="Cancel"
+        okButtonProps={{ danger: true }}
+      >
+        <p>
+          Are you sure you want to delete the template "{selectedTemplate?.name}"?
+        </p>
+        <p>This action cannot be undone.</p>
+      </Modal>
     </div>
   );
 };
