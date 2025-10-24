@@ -11,6 +11,31 @@ import OperationService from '../services/OperationService';
 const router = express.Router();
 
 // ======================
+// HELPER FUNCTIONS
+// ======================
+
+/**
+ * Map operation object to ISA-95 segment terminology
+ */
+function mapToSegmentTerminology(operation: any): any {
+  if (!operation) return operation;
+
+  return {
+    ...operation,
+    segmentCode: operation.operationCode,
+    segmentName: operation.operationName,
+    segmentType: operation.operationType,
+  };
+}
+
+/**
+ * Map array of operation objects to segment terminology
+ */
+function mapArrayToSegmentTerminology(operations: any[]): any[] {
+  return operations.map(mapToSegmentTerminology);
+}
+
+// ======================
 // PROCESS SEGMENT CRUD
 // ======================
 
@@ -20,8 +45,21 @@ const router = express.Router();
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const segment = await OperationService.createOperation(req.body);
-    res.status(201).json(segment);
+    // Map ISA-95 segment terminology to operation fields
+    const operationData = {
+      ...req.body,
+      operationCode: req.body.segmentCode || req.body.operationCode,
+      operationName: req.body.segmentName || req.body.operationName,
+      operationType: req.body.segmentType || req.body.operationType,
+    };
+
+    // Remove segment-specific fields to avoid conflicts
+    delete operationData.segmentCode;
+    delete operationData.segmentName;
+    delete operationData.segmentType;
+
+    const operation = await OperationService.createOperation(operationData);
+    res.status(201).json(mapToSegmentTerminology(operation));
   } catch (error: any) {
     console.error('Error creating process segment:', error);
     res.status(400).json({ error: error.message });
@@ -204,8 +242,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const includeRelations = req.query.includeRelations !== 'false';
 
-    const segment = await OperationService.getOperationById(id, includeRelations);
-    res.json(segment);
+    const operation = await OperationService.getOperationById(id, includeRelations);
+    res.json(mapToSegmentTerminology(operation));
   } catch (error: any) {
     console.error('Error fetching process segment:', error);
     res.status(404).json({ error: error.message });
@@ -219,8 +257,22 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const segment = await OperationService.updateOperation(id, req.body);
-    res.json(segment);
+
+    // Map ISA-95 segment terminology to operation fields
+    const operationData = {
+      ...req.body,
+      operationCode: req.body.segmentCode || req.body.operationCode,
+      operationName: req.body.segmentName || req.body.operationName,
+      operationType: req.body.segmentType || req.body.operationType,
+    };
+
+    // Remove segment-specific fields to avoid conflicts
+    delete operationData.segmentCode;
+    delete operationData.segmentName;
+    delete operationData.segmentType;
+
+    const operation = await OperationService.updateOperation(id, operationData);
+    res.json(mapToSegmentTerminology(operation));
   } catch (error: any) {
     console.error('Error updating process segment:', error);
     res.status(400).json({ error: error.message });
