@@ -177,8 +177,8 @@ test.describe('Routing Templates E2E Tests', () => {
       await page.goto(`/routings/${testRouting.id}`);
       await page.waitForTimeout(1000);
 
-      // Look for save as template action
-      const saveAsTemplateButton = page.locator('button:has-text("Save as Template")').or(page.locator('text=Create Template'));
+      // Look for save as template action using test ID
+      const saveAsTemplateButton = page.locator('[data-testid="save-as-template-button"]').or(page.locator('button:has-text("Save as Template")'));
 
       if (await saveAsTemplateButton.count() > 0) {
         await saveAsTemplateButton.first().click();
@@ -266,8 +266,8 @@ test.describe('Routing Templates E2E Tests', () => {
         await templateButton.first().click();
         await page.waitForTimeout(1000);
 
-        // Search for the template
-        const searchBox = page.locator('input[placeholder*="search" i]').or(page.locator('input[type="search"]'));
+        // Search for the template using test ID
+        const searchBox = page.locator('[data-testid="template-search-input"] input').or(page.locator('input[placeholder*="search" i]'));
 
         if (await searchBox.count() > 0) {
           await searchBox.first().fill('Search Test');
@@ -294,17 +294,16 @@ test.describe('Routing Templates E2E Tests', () => {
         await templateButton.first().click();
         await page.waitForTimeout(1000);
 
-        // Look for category filter dropdown
-        const categoryFilter = page.locator('select[name*="category" i]').or(page.locator('text=Category'));
+        // Look for category filter dropdown using test ID (Ant Design Select)
+        const categoryFilter = page.locator('[data-testid="category-filter-select"]').or(page.locator('.ant-select:has-text("Category")'));
 
         if (await categoryFilter.count() > 0) {
-          // Try to select a category
-          if (categoryFilter.first().evaluate(el => el.tagName) === 'SELECT') {
-            await categoryFilter.first().selectOption('ASSEMBLY');
-          } else {
-            await categoryFilter.first().click();
-            await page.locator('text=Assembly').or(page.locator('text=ASSEMBLY')).first().click();
-          }
+          // Click on Ant Design Select to open dropdown
+          await categoryFilter.first().click();
+          await page.waitForTimeout(500);
+
+          // Select Assembly option from dropdown
+          await page.locator('.ant-select-item-option:has-text("Assembly")').first().click();
 
           await page.waitForTimeout(1000);
 

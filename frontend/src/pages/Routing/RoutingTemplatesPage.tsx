@@ -116,6 +116,7 @@ const RoutingTemplatesPage: React.FC = () => {
               onSearch={(value) => setSearchText(value)}
               onChange={(e) => !e.target.value && setSearchText('')}
               enterButton={<SearchOutlined />}
+              data-testid="template-search-input"
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -125,6 +126,7 @@ const RoutingTemplatesPage: React.FC = () => {
               allowClear
               onChange={(value) => setCategoryFilter(value)}
               value={categoryFilter}
+              data-testid="category-filter-select"
             >
               <Option value="MACHINING">Machining</Option>
               <Option value="ASSEMBLY">Assembly</Option>

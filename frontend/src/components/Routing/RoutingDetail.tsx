@@ -481,6 +481,7 @@ export const RoutingDetail: React.FC = () => {
             <Button
               icon={<FileAddOutlined />}
               onClick={() => setTemplateModalVisible(true)}
+              data-testid="save-as-template-button"
             >
               Save as Template
             </Button>
