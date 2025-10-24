@@ -58,12 +58,14 @@ test.describe('Routing Templates E2E Tests', () => {
     });
 
     // Create a test routing to use for creating templates
+    const timestamp = Date.now();
+    const randomSuffix = Math.floor(Math.random() * 100000);
     testRouting = await prisma.routing.create({
       data: {
-        routingNumber: `TPL-RT-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        routingNumber: `TPL-RT-${timestamp}-${randomSuffix}`,
         partId: testPart.id,
         siteId: testSite.id,
-        version: `1.${Date.now()}`,
+        version: `1.${timestamp}.${randomSuffix}`,
         lifecycleState: RoutingLifecycleState.DRAFT,
         description: 'Test routing for template creation',
         notes: `Template test routing\n\n[VISUAL_DATA]${JSON.stringify({
@@ -280,12 +282,20 @@ test.describe('Routing Templates E2E Tests', () => {
           // Search for a unique part of the template name that we know exists
           await searchBox.first().fill('Search Test Template');
           await searchBox.first().press('Enter'); // Trigger the search
-          await page.waitForTimeout(2000); // Wait for API response
 
-          // Check if our template appears in results
-          const templateNameInResults = await page.locator(`text=${template.name}`).count() > 0;
-          console.log(`Template name in results: ${templateNameInResults}`);
-          expect(templateNameInResults).toBeTruthy();
+          // Wait for the loading spinner to disappear
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(1000);
+
+          // Check if our template appears in results (look for template cards or the template name)
+          const templateCard = page.locator(`[data-testid="template-card-${template.id}"]`);
+          const templateNameMatch = page.getByText(template.name, { exact: false });
+          const isTemplateVisible = (await templateCard.count() > 0) || (await templateNameMatch.count() > 0);
+
+          console.log(`Template ID: ${template.id}`);
+          console.log(`Template name: ${template.name}`);
+          console.log(`Template found in results: ${isTemplateVisible}`);
+          expect(isTemplateVisible).toBeTruthy();
         } else {
           test.skip();
         }
