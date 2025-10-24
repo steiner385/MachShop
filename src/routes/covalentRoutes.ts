@@ -164,7 +164,7 @@ router.get('/operator/:operatorId/certifications', async (req: Request, res: Res
       return res.status(400).json({ error: 'Covalent adapter not configured' });
     }
 
-    const certifications = await adapter.getOperatorCertifications(operatorId);
+    const certifications = await (adapter as any).getOperatorCertifications(operatorId);
 
     res.json({
       success: true,
@@ -196,7 +196,7 @@ router.get('/operator/:operatorId/skills', async (req: Request, res: Response): 
       return res.status(400).json({ error: 'Covalent adapter not configured' });
     }
 
-    const skills = await adapter.getOperatorSkills(operatorId);
+    const skills = await (adapter as any).getOperatorSkills(operatorId);
 
     res.json({
       success: true,

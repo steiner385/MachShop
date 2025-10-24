@@ -232,8 +232,8 @@ test.describe('Material Definition Management', () => {
         propertyName: 'Test Property',
         propertyType: 'CHEMICAL',
         propertyValue: '99.5%',
-        unitOfMeasure: 'percent',
-        specification: 'ASTM-TEST',
+        propertyUnit: 'percent',
+        testMethod: 'ASTM-TEST',
         minValue: 99.0,
         maxValue: 100.0
       }
@@ -253,7 +253,7 @@ test.describe('Material Lot Management', () => {
   test.beforeAll(async () => {
     // Get test material
     const material = await prisma.materialDefinition.findFirst({
-      where: { materialNumber: 'MAT-AL7075' }
+      where: { materialNumber: 'AL-6061-T6-BAR' }
     });
     testMaterialId = material!.id;
 

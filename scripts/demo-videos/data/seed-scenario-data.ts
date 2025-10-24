@@ -16,7 +16,7 @@ import {
   WorkOrderPriority,
   ProductType,
   ProductLifecycleState,
-  ProcessSegmentType,
+  OperationType,
   RoutingLifecycleState,
   PerformancePeriodType,
   ScheduleState,
@@ -527,16 +527,16 @@ async function main() {
   }
 
   // ============================================================
-  // 8. CREATE PROCESS SEGMENTS (Standard Operations)
+  // 8. CREATE OPERATIONS (Standard Operations)
   // ============================================================
-  console.log('\n⚙️  Creating process segments...');
+  console.log('\n⚙️  Creating operations...');
 
-  const processSegments = [
+  const operations = [
     {
-      segmentCode: 'OP-010-CNC-MILL',
-      segmentName: 'CNC Milling',
+      operationCode: 'OP-010-CNC-MILL',
+      operationName: 'CNC Milling',
       description: 'CNC milling operation for precision machining',
-      segmentType: ProcessSegmentType.PRODUCTION,
+      operationType: OperationType.PRODUCTION,
       category: 'MACHINING',
       duration: 600, // 10 minutes
       setupTime: 300, // 5 minutes
@@ -546,10 +546,10 @@ async function main() {
       version: '1.0'
     },
     {
-      segmentCode: 'OP-020-DEBURR',
-      segmentName: 'Deburring',
+      operationCode: 'OP-020-DEBURR',
+      operationName: 'Deburring',
       description: 'Manual deburring and surface finishing',
-      segmentType: ProcessSegmentType.PRODUCTION,
+      operationType: OperationType.PRODUCTION,
       category: 'FINISHING',
       duration: 300, // 5 minutes
       setupTime: 60,
@@ -559,10 +559,10 @@ async function main() {
       version: '1.0'
     },
     {
-      segmentCode: 'OP-030-INSPECT',
-      segmentName: 'Quality Inspection',
+      operationCode: 'OP-030-INSPECT',
+      operationName: 'Quality Inspection',
       description: 'In-process quality inspection',
-      segmentType: ProcessSegmentType.QUALITY,
+      operationType: OperationType.QUALITY,
       category: 'INSPECTION',
       duration: 180, // 3 minutes
       setupTime: 30,
@@ -572,10 +572,10 @@ async function main() {
       version: '1.0'
     },
     {
-      segmentCode: 'OP-040-ASSEMBLY',
-      segmentName: 'Manual Assembly',
+      operationCode: 'OP-040-ASSEMBLY',
+      operationName: 'Manual Assembly',
       description: 'Manual assembly operation',
-      segmentType: ProcessSegmentType.PRODUCTION,
+      operationType: OperationType.PRODUCTION,
       category: 'ASSEMBLY',
       duration: 480, // 8 minutes
       setupTime: 120,
@@ -585,10 +585,10 @@ async function main() {
       version: '1.0'
     },
     {
-      segmentCode: 'OP-050-GRIND',
-      segmentName: 'Grinding',
+      operationCode: 'OP-050-GRIND',
+      operationName: 'Grinding',
       description: 'Precision grinding operation',
-      segmentType: ProcessSegmentType.PRODUCTION,
+      operationType: OperationType.PRODUCTION,
       category: 'MACHINING',
       duration: 420, // 7 minutes
       setupTime: 180,
@@ -599,15 +599,15 @@ async function main() {
     }
   ];
 
-  const createdSegments = [];
-  for (const segment of processSegments) {
-    const created = await prisma.processSegment.upsert({
-      where: { segmentCode: segment.segmentCode },
-      update: segment,
-      create: segment
+  const createdOperations = [];
+  for (const operation of operations) {
+    const created = await prisma.operation.upsert({
+      where: { operationCode: operation.operationCode },
+      update: operation,
+      create: operation
     });
-    createdSegments.push(created);
-    console.log(`  ✓ ${segment.segmentCode}: ${segment.segmentName}`);
+    createdOperations.push(created);
+    console.log(`  ✓ ${operation.operationCode}: ${operation.operationName}`);
   }
 
   // ============================================================
@@ -649,21 +649,21 @@ async function main() {
 
     // Create routing steps
     const routingStepsData = [
-      { stepNumber: 10, processSegmentCode: 'OP-010-CNC-MILL', workCenterName: 'CNC Machining Cell 1' },
-      { stepNumber: 20, processSegmentCode: 'OP-020-DEBURR', workCenterName: 'CNC Machining Cell 1' },
-      { stepNumber: 30, processSegmentCode: 'OP-030-INSPECT', workCenterName: 'CNC Machining Cell 1' },
-      { stepNumber: 40, processSegmentCode: 'OP-050-GRIND', workCenterName: 'CNC Machining Cell 1' },
-      { stepNumber: 50, processSegmentCode: 'OP-020-DEBURR', workCenterName: 'CNC Machining Cell 1' },
-      { stepNumber: 60, processSegmentCode: 'OP-040-ASSEMBLY', workCenterName: 'Assembly Station A' },
-      { stepNumber: 70, processSegmentCode: 'OP-030-INSPECT', workCenterName: 'Assembly Station A' },
-      { stepNumber: 80, processSegmentCode: 'OP-030-INSPECT', workCenterName: 'Assembly Station A' }
+      { stepNumber: 10, operationCode: 'OP-010-CNC-MILL', workCenterName: 'CNC Machining Cell 1' },
+      { stepNumber: 20, operationCode: 'OP-020-DEBURR', workCenterName: 'CNC Machining Cell 1' },
+      { stepNumber: 30, operationCode: 'OP-030-INSPECT', workCenterName: 'CNC Machining Cell 1' },
+      { stepNumber: 40, operationCode: 'OP-050-GRIND', workCenterName: 'CNC Machining Cell 1' },
+      { stepNumber: 50, operationCode: 'OP-020-DEBURR', workCenterName: 'CNC Machining Cell 1' },
+      { stepNumber: 60, operationCode: 'OP-040-ASSEMBLY', workCenterName: 'Assembly Station A' },
+      { stepNumber: 70, operationCode: 'OP-030-INSPECT', workCenterName: 'Assembly Station A' },
+      { stepNumber: 80, operationCode: 'OP-030-INSPECT', workCenterName: 'Assembly Station A' }
     ];
 
     for (const stepData of routingStepsData) {
-      const segment = createdSegments.find(s => s.segmentCode === stepData.processSegmentCode);
+      const operation = createdOperations.find(s => s.operationCode === stepData.operationCode);
       const workCenter = stepData.workCenterName === 'CNC Machining Cell 1' ? cncWorkCenter : assemblyWorkCenter;
 
-      if (segment) {
+      if (operation) {
         await prisma.routingStep.upsert({
           where: {
             routingId_stepNumber: {
@@ -672,16 +672,16 @@ async function main() {
             }
           },
           update: {
-            processSegmentId: segment.id,
+            operationId: operation.id,
             workCenterId: workCenter.id,
-            isQualityInspection: stepData.processSegmentCode === 'OP-030-INSPECT'
+            isQualityInspection: stepData.operationCode === 'OP-030-INSPECT'
           },
           create: {
             routingId: routing.id,
             stepNumber: stepData.stepNumber,
-            processSegmentId: segment.id,
+            operationId: operation.id,
             workCenterId: workCenter.id,
-            isQualityInspection: stepData.processSegmentCode === 'OP-030-INSPECT'
+            isQualityInspection: stepData.operationCode === 'OP-030-INSPECT'
           }
         });
       }
@@ -914,7 +914,7 @@ async function main() {
   console.log(`   - ${equipment.length} equipment items`);
   console.log(`   - ${products.length} material definitions`);
   console.log(`   - ${parts.length} part definitions`);
-  console.log(`   - ${processSegments.length} process segments`);
+  console.log(`   - ${operations.length} operations`);
   console.log(`   - 1 routing with 8 steps`);
   console.log(`   - ${workOrdersData.length} work orders`);
   console.log(`   - ${logCount} OEE performance logs`);

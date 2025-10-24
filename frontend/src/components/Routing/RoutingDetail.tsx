@@ -41,6 +41,7 @@ import {
   TableOutlined,
   BarChartOutlined,
   ApartmentOutlined,
+  FileAddOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoutingStore } from '@/store/routingStore';
@@ -58,6 +59,7 @@ import { DependencyGraph } from './DependencyGraph';
 import { GanttChartView } from './GanttChartView';
 import { ActiveUsersIndicator } from './ActiveUsersIndicator';
 import { RoutingChangedAlert } from './RoutingChangedAlert';
+import { SaveAsTemplateModal } from './SaveAsTemplateModal';
 import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
 
 const { Title, Text } = Typography;
@@ -75,6 +77,7 @@ export const RoutingDetail: React.FC = () => {
   const [stepsView, setStepsView] = useState<'table' | 'graph' | 'gantt'>('table');
   const [stepModalVisible, setStepModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<RoutingStep | undefined>(undefined);
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
 
   const {
     currentRouting,
@@ -270,16 +273,16 @@ export const RoutingDetail: React.FC = () => {
       sorter: (a, b) => a.stepNumber - b.stepNumber,
     },
     {
-      title: 'Process Segment',
-      key: 'processSegment',
+      title: 'Operation', // ISA-95: Process Segment
+      key: 'operation',
       width: '25%',
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>
-            {record.processSegment?.segmentName || 'N/A'}
+            {record.operation?.operationName || 'N/A'}
           </div>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.processSegment?.operationType || ''}
+            {record.operation?.operationType || ''}
           </div>
         </div>
       ),
@@ -296,7 +299,7 @@ export const RoutingDetail: React.FC = () => {
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.setupTimeOverride ?? record.processSegment?.setupTime ?? 0;
+        const time = record.setupTimeOverride ?? record.operation?.setupTime ?? 0;
         return formatTime(time);
       },
     },
@@ -306,7 +309,7 @@ export const RoutingDetail: React.FC = () => {
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.cycleTimeOverride ?? record.processSegment?.duration ?? 0;
+        const time = record.cycleTimeOverride ?? record.operation?.duration ?? 0;
         return formatTime(time);
       },
     },
@@ -316,7 +319,7 @@ export const RoutingDetail: React.FC = () => {
       width: 100,
       align: 'right',
       render: (_, record) => {
-        const time = record.teardownTimeOverride ?? record.processSegment?.teardownTime ?? 0;
+        const time = record.teardownTimeOverride ?? record.operation?.teardownTime ?? 0;
         return formatTime(time);
       },
     },
@@ -474,6 +477,13 @@ export const RoutingDetail: React.FC = () => {
             )}
             <Button icon={<CopyOutlined />} onClick={handleClone}>
               Clone
+            </Button>
+            <Button
+              icon={<FileAddOutlined />}
+              onClick={() => setTemplateModalVisible(true)}
+              data-testid="save-as-template-button"
+            >
+              Save as Template
             </Button>
 
             {/* Lifecycle transition buttons */}
@@ -787,6 +797,20 @@ export const RoutingDetail: React.FC = () => {
           existingSteps={currentSteps}
           onSave={handleSaveStep}
           onCancel={handleCloseStepModal}
+        />
+      )}
+
+      {/* Save as Template Modal */}
+      {currentRouting && (
+        <SaveAsTemplateModal
+          visible={templateModalVisible}
+          routingId={currentRouting.id}
+          routingNumber={currentRouting.routingNumber}
+          onClose={() => setTemplateModalVisible(false)}
+          onSuccess={() => {
+            message.success('Routing saved as template!');
+            setTemplateModalVisible(false);
+          }}
         />
       )}
     </div>

@@ -60,12 +60,12 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [processSegments, setProcessSegments] = useState<any[]>([]);
+  const [operations, setOperations] = useState<any[]>([]);
   const [workCenters, setWorkCenters] = useState<any[]>([]);
-  const [selectedSegment, setSelectedSegment] = useState<any>(null);
+  const [selectedOperation, setSelectedOperation] = useState<any>(null);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Load process segments and work centers
+  // Load operations and work centers
   useEffect(() => {
     if (visible) {
       loadOptions();
@@ -77,7 +77,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
     if (mode === 'edit' && step) {
       form.setFieldsValue({
         stepNumber: step.stepNumber,
-        processSegmentId: step.processSegmentId,
+        operationId: step.operationId,
         workCenterId: step.workCenterId,
         setupTimeOverride: step.setupTimeOverride,
         cycleTimeOverride: step.cycleTimeOverride,
@@ -88,8 +88,8 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
         stepInstructions: step.stepInstructions,
         notes: step.notes,
       });
-      if (step.processSegment) {
-        setSelectedSegment(step.processSegment);
+      if (step.operation) {
+        setSelectedOperation(step.operation);
       }
     } else if (mode === 'create') {
       // Set default step number
@@ -108,26 +108,26 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
     try {
       // TODO: Load from actual APIs
       // For now, use mock data
-      setProcessSegments([
+      setOperations([
         {
-          id: 'ps-1',
-          segmentName: 'Machining - Mill',
+          id: 'op-1',
+          operationName: 'Machining - Mill',
           operationType: 'MACHINING',
           setupTime: 300,
           duration: 600,
           teardownTime: 120,
         },
         {
-          id: 'ps-2',
-          segmentName: 'Machining - Lathe',
+          id: 'op-2',
+          operationName: 'Machining - Lathe',
           operationType: 'MACHINING',
           setupTime: 240,
           duration: 480,
           teardownTime: 90,
         },
         {
-          id: 'ps-3',
-          segmentName: 'Quality Inspection',
+          id: 'op-3',
+          operationName: 'Quality Inspection',
           operationType: 'INSPECTION',
           setupTime: 60,
           duration: 300,
@@ -148,19 +148,19 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
     }
   };
 
-  const handleProcessSegmentChange = (value: string) => {
-    const segment = processSegments.find(ps => ps.id === value);
-    setSelectedSegment(segment);
+  const handleOperationChange = (value: string) => {
+    const operation = operations.find(op => op.id === value);
+    setSelectedOperation(operation);
 
     // Auto-populate timing fields if not overridden
-    if (segment && mode === 'create') {
-      form.setFieldValue('setupTimeOverride', segment.setupTime);
-      form.setFieldValue('cycleTimeOverride', segment.duration);
-      form.setFieldValue('teardownTimeOverride', segment.teardownTime);
+    if (operation && mode === 'create') {
+      form.setFieldValue('setupTimeOverride', operation.setupTime);
+      form.setFieldValue('cycleTimeOverride', operation.duration);
+      form.setFieldValue('teardownTimeOverride', operation.teardownTime);
     }
 
     // Auto-set quality inspection flag
-    if (segment?.operationType === 'INSPECTION') {
+    if (operation?.operationType === 'INSPECTION') {
       form.setFieldValue('isQualityInspection', true);
     }
   };
@@ -173,7 +173,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
       const stepData: CreateRoutingStepRequest = {
         routingId,
         stepNumber: values.stepNumber,
-        processSegmentId: values.processSegmentId,
+        operationId: values.operationId,
         workCenterId: values.workCenterId || undefined,
         setupTimeOverride: values.setupTimeOverride || undefined,
         cycleTimeOverride: values.cycleTimeOverride || undefined,
@@ -187,7 +187,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
 
       await onSave(stepData);
       form.resetFields();
-      setSelectedSegment(null);
+      setSelectedOperation(null);
     } catch (error) {
       console.error('Validation failed:', error);
     } finally {
@@ -197,7 +197,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
-    setSelectedSegment(null);
+    setSelectedOperation(null);
     onCancel();
   };
 
@@ -237,7 +237,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
           layout="vertical"
           requiredMark="optional"
         >
-          {/* Step Number and Process Segment */}
+          {/* Step Number and Operation */}
           <Title level={5}>Basic Information</Title>
           <Divider style={{ marginTop: '8px', marginBottom: '16px' }} />
 
@@ -260,22 +260,22 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
 
             <Col span={16}>
               <Form.Item
-                name="processSegmentId"
-                label="Process Segment"
-                rules={[{ required: true, message: 'Process segment is required' }]}
+                name="operationId"
+                label="Operation"
+                rules={[{ required: true, message: 'Operation is required' }]}
                 tooltip="Select the manufacturing operation for this step"
               >
                 <Select
                   showSearch
-                  placeholder="Select process segment"
+                  placeholder="Select operation"
                   optionFilterProp="children"
-                  onChange={handleProcessSegmentChange}
+                  onChange={handleOperationChange}
                 >
-                  {processSegments.map(ps => (
-                    <Option key={ps.id} value={ps.id}>
+                  {operations.map(op => (
+                    <Option key={op.id} value={op.id}>
                       <Space>
-                        <span style={{ fontWeight: 500 }}>{ps.segmentName}</span>
-                        <span style={{ color: '#999' }}>({ps.operationType})</span>
+                        <span style={{ fontWeight: 500 }}>{op.operationName}</span>
+                        <span style={{ color: '#999' }}>({op.operationType})</span>
                       </Space>
                     </Option>
                   ))}
@@ -284,19 +284,19 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
             </Col>
           </Row>
 
-          {/* Selected Segment Info */}
-          {selectedSegment && (
+          {/* Selected Operation Info */}
+          {selectedOperation && (
             <Alert
-              message="Process Segment Defaults"
+              message="Operation Defaults"
               description={
                 <Space direction="vertical" size="small">
                   <Text>
-                    <strong>Operation Type:</strong> {selectedSegment.operationType}
+                    <strong>Operation Type:</strong> {selectedOperation.operationType}
                   </Text>
                   <Text>
-                    <strong>Standard Times:</strong> Setup {formatTime(selectedSegment.setupTime)} |
-                    Cycle {formatTime(selectedSegment.duration)} |
-                    Teardown {formatTime(selectedSegment.teardownTime)}
+                    <strong>Standard Times:</strong> Setup {formatTime(selectedOperation.setupTime)} |
+                    Cycle {formatTime(selectedOperation.duration)} |
+                    Teardown {formatTime(selectedOperation.teardownTime)}
                   </Text>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
                     You can override these times below if needed for this specific routing.
@@ -340,7 +340,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
 
           <Alert
             message="Override Standard Times"
-            description="Leave blank to use the process segment's standard times. Enter values only if this step requires different timing."
+            description="Leave blank to use the operation's standard times. Enter values only if this step requires different timing."
             type="info"
             showIcon
             style={{ marginBottom: '16px' }}
@@ -356,7 +356,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
-                  placeholder={selectedSegment?.setupTime || 'Standard'}
+                  placeholder={selectedOperation?.setupTime || 'Standard'}
                   prefix={<ClockCircleOutlined />}
                 />
               </Form.Item>
@@ -371,7 +371,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
-                  placeholder={selectedSegment?.duration || 'Standard'}
+                  placeholder={selectedOperation?.duration || 'Standard'}
                   prefix={<ClockCircleOutlined />}
                 />
               </Form.Item>
@@ -386,7 +386,7 @@ export const StepBuilderModal: React.FC<StepBuilderModalProps> = ({
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
-                  placeholder={selectedSegment?.teardownTime || 'Standard'}
+                  placeholder={selectedOperation?.teardownTime || 'Standard'}
                   prefix={<ClockCircleOutlined />}
                 />
               </Form.Item>

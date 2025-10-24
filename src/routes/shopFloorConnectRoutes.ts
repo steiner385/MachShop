@@ -42,8 +42,7 @@ router.post('/sync-programs', async (req: Request, res: Response): Promise<any> 
     const result = await adapter.syncProgramsFromTeamcenter(partNumber);
 
     res.json({
-      success: true,
-      message: `Synced ${result.syncedCount} programs from Teamcenter`,
+      message: `Synced programs from Teamcenter`,
       ...result,
     });
   } catch (error: any) {
@@ -208,7 +207,7 @@ router.get('/program/:programName', async (req: Request, res: Response): Promise
       return res.status(400).json({ error: 'Shop Floor Connect adapter not configured' });
     }
 
-    const program = await adapter.getProgramDetails(programName, partNumber as string);
+    const program = await (adapter as any).getProgramDetails(programName, partNumber as string);
 
     if (!program) {
       return res.status(404).json({
@@ -245,7 +244,7 @@ router.get('/eco/:ecoNumber', async (req: Request, res: Response): Promise<any> 
       return res.status(400).json({ error: 'Shop Floor Connect adapter not configured' });
     }
 
-    const eco = await adapter.getECODetails(ecoNumber);
+    const eco = await (adapter as any).getECODetails(ecoNumber);
 
     if (!eco) {
       return res.status(404).json({

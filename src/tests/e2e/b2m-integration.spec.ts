@@ -385,13 +385,18 @@ test.describe('Production Performance Export', () => {
     const incompleteWO = await prisma.workOrder.create({
       data: {
         workOrderNumber: 'WO-B2M-INCOMPLETE',
-        partId: testPartId,
+        part: {
+          connect: { id: testPartId }
+        },
+        createdBy: {
+          connect: { id: testUserId }
+        },
         partNumber: 'B2M-TEST-PART-001',
         quantity: 5,
         status: 'IN_PROGRESS',
-        priority: 'MEDIUM',
-        scheduledStartDate: new Date(),
-        scheduledEndDate: new Date(),
+        priority: 'NORMAL',
+        dueDate: new Date(),
+        // No actualStartDate or actualEndDate - this should trigger validation error
       },
     });
 

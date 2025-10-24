@@ -9,13 +9,17 @@
 import {
   RoutingLifecycleState,
   DependencyType,
-  DependencyTimingType
+  DependencyTimingType,
+  RoutingType,
+  OperationClassification
 } from '@prisma/client';
 
 export {
   RoutingLifecycleState,
   DependencyType,
-  DependencyTimingType
+  DependencyTimingType,
+  RoutingType,
+  OperationClassification
 };
 
 // ============================================
@@ -35,10 +39,15 @@ export interface Routing {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute: boolean;
+  isPrimaryRoute: boolean; // DEPRECATED: Use routingType instead
   isActive: boolean;
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType: RoutingType; // PRIMARY, ALTERNATE, REWORK, PROTOTYPE, ENGINEERING
+  alternateForId?: string;  // If ALTERNATE, links to PRIMARY routing
+  priority: number;         // Selection priority (1=highest)
 
   // Approval tracking
   approvedBy?: string;
@@ -58,10 +67,10 @@ export interface RoutingStep {
   id: string;
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string; // ISA-95: processSegmentId
   workCenterId?: string;
 
-  // Timing overrides (optional, defaults come from ProcessSegment)
+  // Timing overrides (optional, defaults come from Operation)
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
   teardownTimeOverride?: number;
@@ -71,11 +80,34 @@ export interface RoutingStep {
   isQualityInspection: boolean;
   isCriticalPath: boolean;
 
+  // Work instruction linkage (NEW) - overrides Operation standard WI
+  workInstructionId?: string;
+
   // Instructions
   stepInstructions?: string;
   notes?: string;
 
   // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * RoutingStepParameter - Parameter override for a routing step
+ * Overrides Operation base parameter values for site-specific tuning
+ * ISA-95: Overrides ProcessSegment base parameter values
+ */
+export interface RoutingStepParameter {
+  id: string;
+  routingStepId: string;
+
+  // Parameter definition
+  parameterName: string;   // e.g., "spindle_speed", "feed_rate", "temperature"
+  parameterValue: string;  // Override value
+  unitOfMeasure?: string;  // e.g., "RPM", "IPM", "°F", "PSI"
+
+  // Metadata
+  notes?: string;          // Why this override is needed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -151,10 +183,10 @@ export interface RoutingWithRelations extends Routing {
  */
 export interface RoutingStepWithRelations extends RoutingStep {
   routing?: Routing;
-  processSegment?: {
+  operation?: {
     id: string;
-    segmentName: string;
-    segmentType: string;
+    operationName: string;
+    operationType: string;
     setupTime?: number;
     duration?: number;
     teardownTime?: number;
@@ -202,10 +234,15 @@ export interface CreateRoutingDTO {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute?: boolean; // Defaults to false
+  isPrimaryRoute?: boolean; // DEPRECATED: Use routingType instead
   isActive?: boolean; // Defaults to true
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType?: RoutingType; // Defaults to PRIMARY
+  alternateForId?: string;   // If ALTERNATE, links to PRIMARY routing
+  priority?: number;         // Selection priority (1=highest, defaults to 1)
 
   // Metadata
   createdBy?: string;
@@ -221,7 +258,7 @@ export interface CreateRoutingDTO {
 export interface CreateRoutingStepDTO {
   routingId: string;
   stepNumber: number;
-  processSegmentId: string;
+  operationId: string;
   workCenterId?: string;
 
   // Timing overrides
@@ -233,6 +270,9 @@ export interface CreateRoutingStepDTO {
   isOptional?: boolean; // Defaults to false
   isQualityInspection?: boolean; // Defaults to false
   isCriticalPath?: boolean; // Defaults to false
+
+  // Work instruction linkage (NEW)
+  workInstructionId?: string; // Override ProcessSegment standard work instruction
 
   // Instructions
   stepInstructions?: string;
@@ -296,10 +336,15 @@ export interface UpdateRoutingDTO {
   description?: string;
 
   // Route attributes
-  isPrimaryRoute?: boolean;
+  isPrimaryRoute?: boolean; // DEPRECATED: Use routingType instead
   isActive?: boolean;
   effectiveDate?: Date;
   expirationDate?: Date;
+
+  // Oracle ERP / Teamcenter PLM terminology (NEW)
+  routingType?: RoutingType;
+  alternateForId?: string;
+  priority?: number;
 
   // Approval tracking
   approvedBy?: string;
@@ -318,7 +363,7 @@ export interface UpdateRoutingDTO {
  */
 export interface UpdateRoutingStepDTO {
   stepNumber?: number;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
 
   // Timing overrides
@@ -330,6 +375,9 @@ export interface UpdateRoutingStepDTO {
   isOptional?: boolean;
   isQualityInspection?: boolean;
   isCriticalPath?: boolean;
+
+  // Work instruction linkage (NEW)
+  workInstructionId?: string;
 
   // Instructions
   stepInstructions?: string;
@@ -375,7 +423,7 @@ export interface RoutingQueryParams {
  */
 export interface RoutingStepQueryParams {
   routingId?: string;
-  processSegmentId?: string;
+  operationId?: string;
   workCenterId?: string;
   isOptional?: boolean;
   isQualityInspection?: boolean;
@@ -529,6 +577,216 @@ export interface RoutingStepResequenceRequest {
     stepId: string;
     newStepNumber: number;
   }>;
+}
+
+// ============================================
+// VISUAL ROUTING EDITOR TYPES (Phase 2)
+// ============================================
+
+/**
+ * StepType - Types of routing steps for visual editor
+ */
+export enum StepType {
+  PROCESS = 'PROCESS',                 // Standard manufacturing operation
+  INSPECTION = 'INSPECTION',           // Quality inspection/verification
+  DECISION = 'DECISION',               // Branch/decision point (mutually exclusive)
+  PARALLEL_SPLIT = 'PARALLEL_SPLIT',   // Split into parallel operations
+  PARALLEL_JOIN = 'PARALLEL_JOIN',     // Join parallel operations back together
+  OSP = 'OSP',                         // Outside processing/farmout
+  LOT_SPLIT = 'LOT_SPLIT',             // Split lot into multiple sublots
+  LOT_MERGE = 'LOT_MERGE',             // Merge multiple lots/sublots
+  TELESCOPING = 'TELESCOPING',         // Optional/telescoping operation
+  START = 'START',                     // Start node
+  END = 'END',                         // End node
+}
+
+/**
+ * ControlType - Material control types
+ */
+export enum ControlType {
+  LOT_CONTROLLED = 'LOT_CONTROLLED',
+  SERIAL_CONTROLLED = 'SERIAL_CONTROLLED',
+  MIXED = 'MIXED',
+}
+
+/**
+ * ConnectionDependencyType - Advanced dependency types for visual editor
+ */
+export enum ConnectionDependencyType {
+  FINISH_TO_START = 'FINISH_TO_START',     // Most common: Successor starts after predecessor finishes
+  START_TO_START = 'START_TO_START',       // Successor starts when predecessor starts
+  FINISH_TO_FINISH = 'FINISH_TO_FINISH',   // Successor finishes when predecessor finishes
+  START_TO_FINISH = 'START_TO_FINISH',     // Successor finishes when predecessor starts (rare)
+}
+
+/**
+ * RoutingStepNodeData - Data structure for ReactFlow nodes
+ */
+export interface RoutingStepNodeData {
+  label: string;
+  stepNumber: string;
+  stepType: StepType;
+  operationCode?: string;
+  workCenterId?: string;
+  description?: string;
+  standardTime?: number;
+  setupTime?: number;
+  controlType?: ControlType;
+  isOptional?: boolean;
+  isCriticalPath?: boolean;
+}
+
+/**
+ * RoutingConnectionData - Data structure for ReactFlow edges/connections
+ */
+export interface RoutingConnectionData {
+  dependencyType: ConnectionDependencyType;
+  lagTime?: number;        // Positive = delay, Negative = lead/overlap
+  description?: string;
+  isOptional?: boolean;
+  isCriticalPath?: boolean;
+}
+
+/**
+ * VisualRoutingData - Complete visual routing structure
+ * Stored as JSON in database for visual editor
+ */
+export interface VisualRoutingData {
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: RoutingStepNodeData;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    type?: string;
+    data?: RoutingConnectionData;
+  }>;
+}
+
+/**
+ * RoutingTemplate - Reusable routing pattern
+ */
+export interface RoutingTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+
+  // Visual routing structure
+  visualData: VisualRoutingData;
+
+  // Usage tracking
+  isFavorite?: boolean;
+  usageCount?: number;
+
+  // Metadata
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * CreateRoutingTemplateDTO - Data for creating a routing template
+ */
+export interface CreateRoutingTemplateDTO {
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  visualData: VisualRoutingData;
+  isFavorite?: boolean;
+  createdBy?: string;
+  siteId?: string;
+}
+
+/**
+ * UpdateRoutingTemplateDTO - Data for updating a routing template
+ */
+export interface UpdateRoutingTemplateDTO {
+  name?: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  visualData?: VisualRoutingData;
+  isFavorite?: boolean;
+}
+
+/**
+ * RoutingTemplateQueryParams - Query parameters for templates
+ */
+export interface RoutingTemplateQueryParams {
+  category?: string;
+  tags?: string[];
+  isFavorite?: boolean;
+  searchText?: string;
+  createdBy?: string;
+}
+
+// ============================================
+// EXTENDED ROUTING WITH VISUAL DATA
+// ============================================
+
+/**
+ * RoutingWithVisualData - Routing with visual editor data
+ */
+export interface RoutingWithVisualData extends Routing {
+  visualData?: VisualRoutingData;
+}
+
+/**
+ * CreateRoutingWithVisualDTO - Create routing with visual data
+ */
+export interface CreateRoutingWithVisualDTO extends CreateRoutingDTO {
+  visualData?: VisualRoutingData;
+}
+
+/**
+ * UpdateRoutingWithVisualDTO - Update routing with visual data
+ */
+export interface UpdateRoutingWithVisualDTO extends UpdateRoutingDTO {
+  visualData?: VisualRoutingData;
+}
+
+// ============================================
+// PARAMETER OVERRIDE TYPES (NEW)
+// ============================================
+
+/**
+ * CreateRoutingStepParameterDTO - Data for creating a parameter override
+ */
+export interface CreateRoutingStepParameterDTO {
+  routingStepId: string;
+  parameterName: string;
+  parameterValue: string;
+  unitOfMeasure?: string;
+  notes?: string;
+}
+
+/**
+ * UpdateRoutingStepParameterDTO - Data for updating a parameter override
+ */
+export interface UpdateRoutingStepParameterDTO {
+  parameterValue?: string;
+  unitOfMeasure?: string;
+  notes?: string;
+}
+
+/**
+ * EffectiveParameterResult - Result of parameter inheritance calculation
+ * Combines ProcessSegment base parameters with RoutingStep overrides
+ */
+export interface EffectiveParameterResult {
+  parameterName: string;
+  parameterValue: string;
+  unitOfMeasure: string | null;
+  source: 'process_segment' | 'routing_step_override'; // Where this value came from
+  isOverridden: boolean; // True if this is an override, false if from base
+  notes?: string; // Override notes if applicable
 }
 
 // All types and interfaces are exported inline above

@@ -2967,15 +2967,15 @@ async function main() {
   // ==========================================
 
   // Create Process Segments (hierarchical production operations)
-  const millingSegment = await prisma.processSegment.upsert({
-    where: { segmentCode: 'OP-010-MILL' },
+  const millingSegment = await prisma.operation.upsert({
+    where: { operationCode: 'OP-010-MILL' },
     update: {},
     create: {
-      segmentCode: 'OP-010-MILL',
-      segmentName: 'CNC Milling Operation',
+      operationCode: 'OP-010-MILL',
+      operationName: 'CNC Milling Operation',
       description: 'Precision CNC milling of aerospace turbine blades',
       level: 1,
-      segmentType: 'PRODUCTION',
+      operationType: 'PRODUCTION',
       category: 'MACHINING',
       duration: 3600, // 1 hour
       setupTime: 1800, // 30 minutes
@@ -2990,16 +2990,16 @@ async function main() {
     }
   });
 
-  const roughMillingStep = await prisma.processSegment.upsert({
-    where: { segmentCode: 'OP-010-MILL-010' },
+  const roughMillingStep = await prisma.operation.upsert({
+    where: { operationCode: 'OP-010-MILL-010' },
     update: {},
     create: {
-      segmentCode: 'OP-010-MILL-010',
-      segmentName: 'Rough Milling',
+      operationCode: 'OP-010-MILL-010',
+      operationName: 'Rough Milling',
       description: 'Rough milling to remove bulk material',
       level: 2,
-      parentSegmentId: millingSegment.id,
-      segmentType: 'PRODUCTION',
+      parentOperationId: millingSegment.id,
+      operationType: 'PRODUCTION',
       category: 'MACHINING',
       duration: 1200, // 20 minutes
       setupTime: 0,
@@ -3011,16 +3011,16 @@ async function main() {
     }
   });
 
-  const finishMillingStep = await prisma.processSegment.upsert({
-    where: { segmentCode: 'OP-010-MILL-020' },
+  const finishMillingStep = await prisma.operation.upsert({
+    where: { operationCode: 'OP-010-MILL-020' },
     update: {},
     create: {
-      segmentCode: 'OP-010-MILL-020',
-      segmentName: 'Finish Milling',
+      operationCode: 'OP-010-MILL-020',
+      operationName: 'Finish Milling',
       description: 'Finish milling to final dimensions',
       level: 2,
-      parentSegmentId: millingSegment.id,
-      segmentType: 'PRODUCTION',
+      parentOperationId: millingSegment.id,
+      operationType: 'PRODUCTION',
       category: 'MACHINING',
       duration: 2400, // 40 minutes
       setupTime: 0,
@@ -3032,15 +3032,15 @@ async function main() {
     }
   });
 
-  const inspectionSegment = await prisma.processSegment.upsert({
-    where: { segmentCode: 'OP-020-INSPECT' },
+  const inspectionSegment = await prisma.operation.upsert({
+    where: { operationCode: 'OP-020-INSPECT' },
     update: {},
     create: {
-      segmentCode: 'OP-020-INSPECT',
-      segmentName: 'CMM Inspection',
+      operationCode: 'OP-020-INSPECT',
+      operationName: 'CMM Inspection',
       description: 'Coordinate measuring machine dimensional inspection',
       level: 1,
-      segmentType: 'QUALITY',
+      operationType: 'QUALITY',
       category: 'INSPECTION',
       duration: 1800, // 30 minutes
       setupTime: 600, // 10 minutes
@@ -3054,16 +3054,16 @@ async function main() {
   console.log('✅ Process segments created (4 segments)');
 
   // Create Process Segment Parameters
-  const millingSpeedParam = await prisma.processSegmentParameter.upsert({
+  const millingSpeedParam = await prisma.operationParameter.upsert({
     where: {
-      segmentId_parameterName: {
-        segmentId: millingSegment.id,
+      operationId_parameterName: {
+        operationId: millingSegment.id,
         parameterName: 'Spindle Speed'
       }
     },
     update: {},
     create: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       parameterName: 'Spindle Speed',
       parameterType: 'SET_POINT',
       dataType: 'NUMBER',
@@ -3077,16 +3077,16 @@ async function main() {
     }
   });
 
-  const millingFeedRateParam = await prisma.processSegmentParameter.upsert({
+  const millingFeedRateParam = await prisma.operationParameter.upsert({
     where: {
-      segmentId_parameterName: {
-        segmentId: millingSegment.id,
+      operationId_parameterName: {
+        operationId: millingSegment.id,
         parameterName: 'Feed Rate'
       }
     },
     update: {},
     create: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       parameterName: 'Feed Rate',
       parameterType: 'SET_POINT',
       dataType: 'NUMBER',
@@ -3099,16 +3099,16 @@ async function main() {
     }
   });
 
-  const inspectionTempParam = await prisma.processSegmentParameter.upsert({
+  const inspectionTempParam = await prisma.operationParameter.upsert({
     where: {
-      segmentId_parameterName: {
-        segmentId: inspectionSegment.id,
+      operationId_parameterName: {
+        operationId: inspectionSegment.id,
         parameterName: 'Temperature'
       }
     },
     update: {},
     create: {
-      segmentId: inspectionSegment.id,
+      operationId: inspectionSegment.id,
       parameterName: 'Temperature',
       parameterType: 'MEASURED',
       dataType: 'NUMBER',
@@ -3125,17 +3125,17 @@ async function main() {
   console.log('✅ Process segment parameters created (3 parameters)');
 
   // Create Process Segment Dependencies
-  const millingToInspectionDep = await prisma.processSegmentDependency.upsert({
+  const millingToInspectionDep = await prisma.operationDependency.upsert({
     where: {
-      dependentSegmentId_prerequisiteSegmentId: {
-        dependentSegmentId: inspectionSegment.id,
-        prerequisiteSegmentId: millingSegment.id
+      dependentOperationId_prerequisiteOperationId: {
+        dependentOperationId: inspectionSegment.id,
+        prerequisiteOperationId: millingSegment.id
       }
     },
     update: {},
     create: {
-      dependentSegmentId: inspectionSegment.id,
-      prerequisiteSegmentId: millingSegment.id,
+      dependentOperationId: inspectionSegment.id,
+      prerequisiteOperationId: millingSegment.id,
       dependencyType: 'MUST_COMPLETE',
       timingType: 'FINISH_TO_START',
       lagTime: 300, // 5 minute minimum cooldown
@@ -3144,17 +3144,17 @@ async function main() {
     }
   });
 
-  const roughToFinishDep = await prisma.processSegmentDependency.upsert({
+  const roughToFinishDep = await prisma.operationDependency.upsert({
     where: {
-      dependentSegmentId_prerequisiteSegmentId: {
-        dependentSegmentId: finishMillingStep.id,
-        prerequisiteSegmentId: roughMillingStep.id
+      dependentOperationId_prerequisiteOperationId: {
+        dependentOperationId: finishMillingStep.id,
+        prerequisiteOperationId: roughMillingStep.id
       }
     },
     update: {},
     create: {
-      dependentSegmentId: finishMillingStep.id,
-      prerequisiteSegmentId: roughMillingStep.id,
+      dependentOperationId: finishMillingStep.id,
+      prerequisiteOperationId: roughMillingStep.id,
       dependencyType: 'MUST_COMPLETE',
       timingType: 'FINISH_TO_START',
       lagTime: 0,
@@ -3165,9 +3165,9 @@ async function main() {
   console.log('✅ Process segment dependencies created (2 dependencies)');
 
   // Create Personnel Segment Specifications
-  const millingOperatorSpec = await prisma.personnelSegmentSpecification.create({
+  const millingOperatorSpec = await prisma.personnelOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       personnelClassId: technicianClass.id,
       minimumCompetency: 'COMPETENT',
       requiredCertifications: ['CNC-001', 'SAFETY-001'],
@@ -3178,9 +3178,9 @@ async function main() {
     }
   });
 
-  const inspectionOperatorSpec = await prisma.personnelSegmentSpecification.create({
+  const inspectionOperatorSpec = await prisma.personnelOperationSpecification.create({
     data: {
-      segmentId: inspectionSegment.id,
+      operationId: inspectionSegment.id,
       personnelClassId: technicianClass.id,
       minimumCompetency: 'PROFICIENT',
       requiredCertifications: ['CMM-001', 'QA-001'],
@@ -3194,9 +3194,9 @@ async function main() {
   console.log('✅ Personnel segment specifications created (2 specs)');
 
   // Create Equipment Segment Specifications
-  const millingEquipmentSpec = await prisma.equipmentSegmentSpecification.create({
+  const millingEquipmentSpec = await prisma.equipmentOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       equipmentClass: 'PRODUCTION',
       equipmentType: 'CNC_MILL',
       requiredCapabilities: ['5-axis', 'high-speed-spindle'],
@@ -3206,9 +3206,9 @@ async function main() {
     }
   });
 
-  const inspectionEquipmentSpec = await prisma.equipmentSegmentSpecification.create({
+  const inspectionEquipmentSpec = await prisma.equipmentOperationSpecification.create({
     data: {
-      segmentId: inspectionSegment.id,
+      operationId: inspectionSegment.id,
       equipmentClass: 'QUALITY',
       equipmentType: 'CMM',
       requiredCapabilities: ['optical-probe', 'touch-probe'],
@@ -3221,9 +3221,9 @@ async function main() {
   console.log('✅ Equipment segment specifications created (2 specs)');
 
   // Create Material Segment Specifications
-  const titaniumMaterialSpec = await prisma.materialSegmentSpecification.create({
+  const titaniumMaterialSpec = await prisma.materialOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       materialDefinitionId: titaniumAlloy.id,
       quantity: 1.5,
       unitOfMeasure: 'LB',
@@ -3235,9 +3235,9 @@ async function main() {
     }
   });
 
-  const cuttingFluidSpec = await prisma.materialSegmentSpecification.create({
+  const cuttingFluidSpec = await prisma.materialOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       materialType: 'CONSUMABLE',
       quantity: 0.5,
       unitOfMeasure: 'GAL',
@@ -3250,9 +3250,9 @@ async function main() {
   console.log('✅ Material segment specifications created (2 specs)');
 
   // Create Physical Asset Segment Specifications
-  const endMillTooling = await prisma.physicalAssetSegmentSpecification.create({
+  const endMillTooling = await prisma.physicalAssetOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       assetType: 'TOOLING',
       assetCode: 'EM-0.500-TiN',
       assetName: '0.5" TiN Coated End Mill',
@@ -3268,9 +3268,9 @@ async function main() {
     }
   });
 
-  const workHoldingFixture = await prisma.physicalAssetSegmentSpecification.create({
+  const workHoldingFixture = await prisma.physicalAssetOperationSpecification.create({
     data: {
-      segmentId: millingSegment.id,
+      operationId: millingSegment.id,
       assetType: 'FIXTURE',
       assetCode: 'FIX-TB-001',
       assetName: 'Turbine Blade Workholding Fixture',
@@ -3283,9 +3283,9 @@ async function main() {
     }
   });
 
-  const cmmProbe = await prisma.physicalAssetSegmentSpecification.create({
+  const cmmProbe = await prisma.physicalAssetOperationSpecification.create({
     data: {
-      segmentId: inspectionSegment.id,
+      operationId: inspectionSegment.id,
       assetType: 'GAUGE',
       assetCode: 'PROBE-OPT-001',
       assetName: 'CMM Optical Probe',
@@ -4659,13 +4659,13 @@ async function main() {
   console.log(`   🔗 Lot Genealogy Records: ${await prisma.materialLotGenealogy.count()}`);
   console.log(`   📊 State History Records: ${await prisma.materialStateHistory.count()}`);
   console.log(`\n⚙️  ISA-95 Process Segment Hierarchy:`);
-  console.log(`   📋 Process Segments: ${await prisma.processSegment.count()}`);
-  console.log(`   🔧 Segment Parameters: ${await prisma.processSegmentParameter.count()}`);
-  console.log(`   🔗 Segment Dependencies: ${await prisma.processSegmentDependency.count()}`);
-  console.log(`   👥 Personnel Specifications: ${await prisma.personnelSegmentSpecification.count()}`);
-  console.log(`   🏭 Equipment Specifications: ${await prisma.equipmentSegmentSpecification.count()}`);
-  console.log(`   📦 Material Specifications: ${await prisma.materialSegmentSpecification.count()}`);
-  console.log(`   🔨 Physical Asset Specifications: ${await prisma.physicalAssetSegmentSpecification.count()}`);
+  console.log(`   📋 Process Segments: ${await prisma.operation.count()}`);
+  console.log(`   🔧 Segment Parameters: ${await prisma.operationParameter.count()}`);
+  console.log(`   🔗 Segment Dependencies: ${await prisma.operationDependency.count()}`);
+  console.log(`   👥 Personnel Specifications: ${await prisma.personnelOperationSpecification.count()}`);
+  console.log(`   🏭 Equipment Specifications: ${await prisma.equipmentOperationSpecification.count()}`);
+  console.log(`   📦 Material Specifications: ${await prisma.materialOperationSpecification.count()}`);
+  console.log(`   🔨 Physical Asset Specifications: ${await prisma.physicalAssetOperationSpecification.count()}`);
   console.log(`\n📅 ISA-95 Production Scheduling:`);
   console.log(`   📋 Production Schedules: ${await prisma.productionSchedule.count()}`);
   console.log(`   📝 Schedule Entries: ${await prisma.scheduleEntry.count()}`);

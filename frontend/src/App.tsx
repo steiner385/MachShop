@@ -58,14 +58,15 @@ import MaterialsPage from '@/pages/Materials/MaterialsPage';
 import PersonnelPage from '@/pages/Personnel/PersonnelPage';
 import AdminPage from '@/pages/Admin/AdminPage';
 
-// Process Segments (Manufacturing Routes) - Sprint 6
-import ProcessSegmentListPage from '@/pages/ProcessSegments/ProcessSegmentListPage';
-import ProcessSegmentCreatePage from '@/pages/ProcessSegments/ProcessSegmentCreatePage';
+// Operations (Manufacturing Operations) - Sprint 6
+import OperationListPage from '@/pages/Operations/OperationListPage';
+import OperationCreatePage from '@/pages/Operations/OperationCreatePage';
 
 // Routing Management (Sprint 4 - Multi-Site Routing)
 import RoutingListPage from '@/pages/Routing/RoutingListPage';
 import RoutingCreatePage from '@/pages/Routing/RoutingCreatePage';
 import RoutingDetailPage from '@/pages/Routing/RoutingDetailPage';
+import RoutingTemplatesPage from '@/pages/Routing/RoutingTemplatesPage';
 
 const { Content } = Layout;
 
@@ -357,20 +358,20 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Process Segments - Manufacturing Routes (Sprint 6) */}
+        {/* Operations - Manufacturing Operations (Sprint 6) */}
         <Route
-          path="/process-segments"
+          path="/operations"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
-              <ProcessSegmentListPage />
+              <OperationListPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/process-segments/create"
+          path="/operations/create"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
-              <ProcessSegmentCreatePage />
+              <OperationCreatePage />
             </ProtectedRoute>
           }
         />
@@ -379,7 +380,7 @@ const App: React.FC = () => {
         <Route
           path="/routings"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingListPage />
             </ProtectedRoute>
           }
@@ -387,15 +388,31 @@ const App: React.FC = () => {
         <Route
           path="/routings/create"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/routings/new"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
+              <RoutingCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/routings/templates"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
+              <RoutingTemplatesPage />
             </ProtectedRoute>
           }
         />
         <Route
           path="/routings/:id"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingDetailPage />
             </ProtectedRoute>
           }

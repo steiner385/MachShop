@@ -1088,7 +1088,7 @@ export class ProductionScheduleService {
   if (siteId) {
     where.schedule = {
       ...where.schedule,
-      siteId,
+      siteId: siteId as any,
     };
   }
 
