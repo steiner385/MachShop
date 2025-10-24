@@ -253,7 +253,7 @@ test.describe('Material Lot Management', () => {
   test.beforeAll(async () => {
     // Get test material
     const material = await prisma.materialDefinition.findFirst({
-      where: { materialNumber: 'MAT-AL7075' }
+      where: { materialNumber: 'AL-6061-T6-BAR' }
     });
     testMaterialId = material!.id;
 
