@@ -1620,6 +1620,28 @@ enum RoutingType {
   ENGINEERING // Engineering test routing
 }
 
+// NEW: Step type classification for advanced routing patterns
+enum StepType {
+  PROCESS // Standard processing step
+  INSPECTION // Quality inspection checkpoint
+  DECISION // Decision point (conditional branching)
+  PARALLEL_SPLIT // Split into parallel paths
+  PARALLEL_JOIN // Join parallel paths
+  OSP // Outside service provider
+  LOT_SPLIT // Split lot into multiple lots
+  LOT_MERGE // Merge multiple lots into one
+  TELESCOPING // Optional telescoping operation
+  START // Start node (visual editor)
+  END // End node (visual editor)
+}
+
+// NEW: Material control type classification
+enum ControlType {
+  LOT_CONTROLLED // Track by lot/batch
+  SERIAL_CONTROLLED // Track by serial number
+  MIXED // Both lot and serial tracking
+}
+
 // Routing and Operations
 model Routing {
   id             String                @id @default(cuid())
@@ -1707,6 +1729,10 @@ model RoutingStep {
   stepNumber   Int // Sequence: 10, 20, 30, 40... (allows inserts between steps)
   operationId  String // KEY: Links to standard operation
   workCenterId String? // Optional: specific work center assignment
+
+  // NEW: Advanced routing pattern support (Phase 5.2)
+  stepType     StepType     @default(PROCESS) // Type of step: PROCESS, INSPECTION, DECISION, etc.
+  controlType  ControlType? // Material tracking: LOT_CONTROLLED, SERIAL_CONTROLLED, MIXED
 
   // Timing overrides (optional, defaults come from ProcessSegment)
   setupTimeOverride    Int? // Seconds - overrides Operation (ISA-95: ProcessSegment).setupTime

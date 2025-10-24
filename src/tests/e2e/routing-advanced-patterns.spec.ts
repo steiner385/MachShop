@@ -12,8 +12,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { PrismaClient, RoutingLifecycleState } from '@prisma/client';
-import { StepType } from '../../types/routing';
+import { PrismaClient, RoutingLifecycleState, StepType, ControlType } from '@prisma/client';
 import { setupTestAuth } from '../helpers/testAuthHelper';
 
 const prisma = new PrismaClient();
@@ -63,7 +62,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 1: Mutually Exclusive Operations (DECISION)', () => {
-    test.skip('should create routing with DECISION node for mutually exclusive paths', async () => {
+    test('should create routing with DECISION node for mutually exclusive paths', async () => {
       // Create routing with DECISION pattern via API
       const routingNumber = `DECISION-RT-${Date.now()}`;
 
@@ -138,7 +137,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 2: Parallel Operations (PARALLEL_SPLIT/JOIN)', () => {
-    test.skip('should create routing with PARALLEL_SPLIT and PARALLEL_JOIN', async () => {
+    test('should create routing with PARALLEL_SPLIT and PARALLEL_JOIN', async () => {
       const routingNumber = `PARALLEL-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
@@ -240,7 +239,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 3: Telescoping (Optional Operations)', () => {
-    test.skip('should create routing with optional TELESCOPING steps', async () => {
+    test('should create routing with optional TELESCOPING steps', async () => {
       const routingNumber = `TELESCOPE-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
@@ -309,7 +308,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 4: OSP/Farmout Operations', () => {
-    test.skip('should create routing with OSP (Outside Processing) steps', async () => {
+    test('should create routing with OSP (Outside Processing) steps', async () => {
       const routingNumber = `OSP-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
@@ -387,7 +386,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 5: Lot Control Transitions', () => {
-    test.skip('should create routing with LOT_CONTROLLED to SERIAL_CONTROLLED transition', async () => {
+    test('should create routing with LOT_CONTROLLED to SERIAL_CONTROLLED transition', async () => {
       const routingNumber = `LOTSERIAL-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
@@ -465,7 +464,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 6: Lot Separation and Merging', () => {
-    test.skip('should create routing with LOT_SPLIT and LOT_MERGE operations', async () => {
+    test('should create routing with LOT_SPLIT and LOT_MERGE operations', async () => {
       const routingNumber = `LOTSPLIT-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
@@ -565,7 +564,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
   });
 
   test.describe('Pattern 7: Complex Combined Pattern', () => {
-    test.skip('should create routing combining multiple advanced patterns', async () => {
+    test('should create routing combining multiple advanced patterns', async () => {
       const routingNumber = `COMPLEX-RT-${Date.now()}`;
 
       const routing = await prisma.routing.create({
