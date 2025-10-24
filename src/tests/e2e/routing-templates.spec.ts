@@ -467,11 +467,6 @@ test.describe('Routing Templates E2E Tests', () => {
 
   test.describe('Template Management', () => {
     test('should edit existing template', async () => {
-      // Get the manufacturing engineer user to ensure site ID matches
-      const mfgEngineer = await prisma.user.findUnique({
-        where: { username: 'mfg.engineer' }
-      });
-
       // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
@@ -479,8 +474,8 @@ test.describe('Routing Templates E2E Tests', () => {
           description: 'Original description',
           category: 'ASSEMBLY',
           visualData: { nodes: [], edges: [] },
-          siteId: mfgEngineer!.siteId,
-          createdById: mfgEngineer!.id,
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
@@ -538,11 +533,6 @@ test.describe('Routing Templates E2E Tests', () => {
     });
 
     test('should delete template', async () => {
-      // Get the manufacturing engineer user to ensure site ID matches
-      const mfgEngineer = await prisma.user.findUnique({
-        where: { username: 'mfg.engineer' }
-      });
-
       // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
@@ -550,8 +540,8 @@ test.describe('Routing Templates E2E Tests', () => {
           description: 'Template to be deleted',
           category: 'OTHER',
           visualData: { nodes: [], edges: [] },
-          siteId: mfgEngineer!.siteId,
-          createdById: mfgEngineer!.id,
+          siteId: testSite.id,
+          createdById: testUser.id,
         },
       });
 
