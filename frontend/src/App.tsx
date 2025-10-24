@@ -379,7 +379,7 @@ const App: React.FC = () => {
         <Route
           path="/routings"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingListPage />
             </ProtectedRoute>
           }
@@ -387,7 +387,7 @@ const App: React.FC = () => {
         <Route
           path="/routings/create"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingCreatePage />
             </ProtectedRoute>
           }
@@ -395,7 +395,7 @@ const App: React.FC = () => {
         <Route
           path="/routings/:id"
           element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager']}>
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingDetailPage />
             </ProtectedRoute>
           }
