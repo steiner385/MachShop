@@ -620,8 +620,8 @@ export class ProcessDataCollectionService {
 
       // Calculate control limits based on chart type
       // Import SPC service (lazy import to avoid circular dependencies)
-      const { SPCService } = await import('./SPCService');
-      const { WesternElectricRulesEngine } = await import(
+      const { spcService } = await import('./SPCService');
+      const { westernElectricRulesEngine } = await import(
         './WesternElectricRulesEngine'
       );
 
@@ -629,34 +629,19 @@ export class ProcessDataCollectionService {
 
       if (spcConfig.chartType === 'I_MR') {
         // Individual and Moving Range chart
-        limits = await SPCService.calculateIMRLimits(historicalValues, {
-          USL: spcConfig.USL ?? undefined,
-          LSL: spcConfig.LSL ?? undefined,
-          target: spcConfig.targetValue ?? undefined,
-        });
+        limits = await spcService.calculateIMRLimits(historicalValues);
       } else {
         // For other chart types, would need subgroup data
         // Simplified: Use I-MR as fallback
-        limits = await SPCService.calculateIMRLimits(historicalValues, {
-          USL: spcConfig.USL ?? undefined,
-          LSL: spcConfig.LSL ?? undefined,
-          target: spcConfig.targetValue ?? undefined,
-        });
+        limits = await spcService.calculateIMRLimits(historicalValues);
       }
-
-      // Prepare data points for rule evaluation
-      const dataPoints = historicalValues.map((val, index) => ({
-        index,
-        value: val,
-        timestamp: new Date().toISOString(),
-      }));
 
       // Evaluate Western Electric Rules
       const enabledRules = (spcConfig.enabledRules as any) || [1, 2, 3, 4, 5, 6, 7, 8];
       const sensitivity = (spcConfig.ruleSensitivity as any) || 'NORMAL';
 
-      const violations = WesternElectricRulesEngine.evaluateRules(
-        dataPoints,
+      const violations = westernElectricRulesEngine.evaluateRules(
+        historicalValues,
         limits,
         enabledRules,
         sensitivity
@@ -666,7 +651,7 @@ export class ProcessDataCollectionService {
       const createdViolations = [];
       for (const violation of violations) {
         // Check if this is a new violation for the current data point
-        if (violation.dataPointIndices.includes(dataPoints.length - 1)) {
+        if (violation.dataPointIndices.includes(historicalValues.length - 1)) {
           const createdViolation = await prisma.sPCRuleViolation.create({
             data: {
               configurationId: spcConfig.id,

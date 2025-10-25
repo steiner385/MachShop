@@ -299,7 +299,6 @@ export class EquipmentDataCollectionService {
       equipmentId: equipment.id,
       equipmentNumber: equipment.equipmentNumber,
       equipmentName: equipment.name,
-      dataCollectionType: dataCollectionType || undefined,
       totalDataPoints,
       dataPointsByType: typeMap,
       latestDataPoint: latestDataPoint as EquipmentDataCollectionRecord | undefined,

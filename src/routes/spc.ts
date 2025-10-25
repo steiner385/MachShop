@@ -104,7 +104,7 @@ router.post('/configurations', authMiddleware, async (req: Request, res: Respons
       createdBy: req.user!.username,
     });
 
-    res.status(201).json(config);
+    return res.status(201).json(config);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -123,7 +123,7 @@ router.post('/configurations', authMiddleware, async (req: Request, res: Respons
       return res.status(409).json({ error: error.message });
     }
     logger.error('Error creating SPC configuration', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -142,10 +142,10 @@ router.get('/configurations/:parameterId', authMiddleware, async (req: Request, 
       return res.status(404).json({ error: 'SPC configuration not found' });
     }
 
-    res.json(config);
+    return res.json(config);
   } catch (error: any) {
     logger.error('Error fetching SPC configuration', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -168,10 +168,10 @@ router.get('/configurations', authMiddleware, async (req: Request, res: Response
 
     const configurations = await spcService.listSPCConfigurations(filters);
 
-    res.json(configurations);
+    return res.json(configurations);
   } catch (error: any) {
     logger.error('Error listing SPC configurations', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -196,7 +196,7 @@ router.put('/configurations/:parameterId', authMiddleware, async (req: Request, 
       updatedBy: req.user!.username,
     });
 
-    res.json(config);
+    return res.json(config);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -213,7 +213,7 @@ router.put('/configurations/:parameterId', authMiddleware, async (req: Request, 
       return res.status(404).json({ error: 'SPC configuration not found' });
     }
     logger.error('Error updating SPC configuration', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -233,14 +233,14 @@ router.delete('/configurations/:parameterId', authMiddleware, async (req: Reques
       deletedBy: req.user!.username,
     });
 
-    res.status(200).json({ message: 'SPC configuration deleted successfully' });
+    return res.status(200).json({ message: 'SPC configuration deleted successfully' });
   } catch (error: any) {
     // Handle not found gracefully
     if (error.message.includes('Record to delete does not exist') || error.code === 'P2025') {
       return res.status(404).json({ error: 'SPC configuration not found' });
     }
     logger.error('Error deleting SPC configuration', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -259,7 +259,7 @@ router.post('/control-limits/xbar-r', authMiddleware, async (req: Request, res: 
 
     const limits = await spcService.calculateXBarRLimits(subgroups, { USL, LSL, target });
 
-    res.json(limits);
+    return res.json(limits);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -271,7 +271,7 @@ router.post('/control-limits/xbar-r', authMiddleware, async (req: Request, res: 
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating X-bar R limits', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -290,7 +290,7 @@ router.post('/control-limits/xbar-s', authMiddleware, async (req: Request, res: 
 
     const limits = await spcService.calculateXBarSLimits(subgroups, { USL, LSL, target });
 
-    res.json(limits);
+    return res.json(limits);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -302,7 +302,7 @@ router.post('/control-limits/xbar-s', authMiddleware, async (req: Request, res: 
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating X-bar S limits', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -322,7 +322,7 @@ router.post('/control-limits/imr', authMiddleware, async (req: Request, res: Res
     const limits = await spcService.calculateIMRLimits(individuals, movingRangeSpan || 2);
 
     // Add property aliases for test compatibility
-    res.json({
+    return res.json({
       ...limits,
       movingRangeUCL: limits.rangeUCL,
       movingRangeCL: limits.rangeCL,
@@ -339,7 +339,7 @@ router.post('/control-limits/imr', authMiddleware, async (req: Request, res: Res
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating I-MR limits', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -358,7 +358,7 @@ router.post('/control-limits/p-chart', authMiddleware, async (req: Request, res:
 
     const limits = await spcService.calculatePChartLimits(defectCounts, sampleSizes);
 
-    res.json(limits);
+    return res.json(limits);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -369,7 +369,7 @@ router.post('/control-limits/p-chart', authMiddleware, async (req: Request, res:
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating P-chart limits', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -388,7 +388,7 @@ router.post('/control-limits/c-chart', authMiddleware, async (req: Request, res:
 
     const limits = await spcService.calculateCChartLimits(defectCounts);
 
-    res.json(limits);
+    return res.json(limits);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -399,7 +399,7 @@ router.post('/control-limits/c-chart', authMiddleware, async (req: Request, res:
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating C-chart limits', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -422,7 +422,7 @@ router.post('/capability', authMiddleware, async (req: Request, res: Response) =
       return res.status(400).json({ error: 'Specification limits (USL/LSL) required' });
     }
 
-    res.json(indices);
+    return res.json(indices);
   } catch (error: any) {
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
@@ -433,7 +433,7 @@ router.post('/capability', authMiddleware, async (req: Request, res: Response) =
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating capability indices', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -466,7 +466,7 @@ router.post('/evaluate-rules', authMiddleware, async (req: Request, res: Respons
       sensitivity || 'NORMAL'
     );
 
-    res.json({
+    return res.json({
       violations,
       totalViolations: violations.length,
       criticalViolations: violations.filter(v => v.severity === 'CRITICAL').length,
@@ -484,7 +484,7 @@ router.post('/evaluate-rules', authMiddleware, async (req: Request, res: Respons
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error evaluating rules', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -516,10 +516,10 @@ router.get('/rule-violations/:parameterId', authMiddleware, async (req: Request,
       take: 100, // Limit to last 100 violations
     });
 
-    res.json(violations);
+    return res.json(violations);
   } catch (error: any) {
     logger.error('Error fetching rule violations', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -548,10 +548,10 @@ router.post('/rule-violations/:violationId/acknowledge', authMiddleware, async (
       acknowledgedBy: req.user!.username,
     });
 
-    res.json(violation);
+    return res.json(violation);
   } catch (error: any) {
     logger.error('Error acknowledging rule violation', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -570,10 +570,10 @@ router.get('/rules', authMiddleware, async (req: Request, res: Response) => {
       severity: westernElectricRulesEngine.getRuleSeverity(ruleNumber),
     }));
 
-    res.json(rules);
+    return res.json(rules);
   } catch (error: any) {
     logger.error('Error fetching rules information', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -637,7 +637,7 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
     // Calculate capability indices
     const capability = spcService.calculateCapabilityIndices(values, USL, LSL, target);
 
-    res.json({
+    return res.json({
       controlLimits: limits,
       ruleViolations: {
         violations: ruleResults,
@@ -661,7 +661,7 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error performing SPC analysis', { error: error.message });
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
