@@ -1,10 +1,35 @@
 import { test, expect } from '@playwright/test';
-import { loginAsRole } from '../helpers/testAuthHelper';
+import { loginAsTestUser } from '../helpers/testAuthHelper';
 
 test.describe('Parameter Formulas API', () => {
-  test.beforeEach(async ({ page }) => {
+  let authHeaders: Record<string, string>;
+
+  test.beforeAll(async ({ request }) => {
     // Login as manufacturing engineer
-    await loginAsRole(page, 'manufacturingEngineer');
+    authHeaders = await loginAsTestUser(request, 'manufacturingEngineer');
+  });
+
+  test.afterEach(async ({ request }) => {
+    // Clean up all formulas after each test to avoid unique constraint conflicts
+    try {
+      const listResponse = await request.get('/api/v1/formulas', {
+        headers: authHeaders,
+      });
+      if (listResponse.ok()) {
+        const formulas = await listResponse.json();
+        for (const formula of formulas) {
+          try {
+            await request.delete(`/api/v1/formulas/${formula.id}`, {
+              headers: authHeaders,
+            });
+          } catch {
+            // Ignore individual deletion errors (formula may already be deleted)
+          }
+        }
+      }
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   });
 
   test.describe('Formula CRUD Operations', () => {
@@ -22,6 +47,7 @@ test.describe('Parameter Formulas API', () => {
       };
 
       const response = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: formulaData,
       });
 
@@ -42,6 +68,7 @@ test.describe('Parameter Formulas API', () => {
       };
 
       const response = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: formulaData,
       });
 
@@ -62,6 +89,7 @@ test.describe('Parameter Formulas API', () => {
       };
 
       const response = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: formulaData,
       });
 
@@ -72,6 +100,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should retrieve formula by ID', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Test Formula',
           outputParameterId: 'output',
@@ -82,7 +111,9 @@ test.describe('Parameter Formulas API', () => {
 
       const created = await createResponse.json();
 
-      const getResponse = await request.get(`/api/v1/formulas/${created.id}`);
+      const getResponse = await request.get(`/api/v1/formulas/${created.id}`, {
+        headers: authHeaders,
+      });
 
       expect(getResponse.status()).toBe(200);
       const data = await getResponse.json();
@@ -92,6 +123,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should update formula', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Original Formula',
           outputParameterId: 'output',
@@ -103,6 +135,7 @@ test.describe('Parameter Formulas API', () => {
       const created = await createResponse.json();
 
       const updateResponse = await request.put(`/api/v1/formulas/${created.id}`, {
+        headers: authHeaders,
         data: {
           formulaName: 'Updated Formula',
           formulaExpression: 'a + b + c',
@@ -117,6 +150,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should delete formula', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Formula To Delete',
           outputParameterId: 'output',
@@ -127,18 +161,23 @@ test.describe('Parameter Formulas API', () => {
 
       const created = await createResponse.json();
 
-      const deleteResponse = await request.delete(`/api/v1/formulas/${created.id}`);
+      const deleteResponse = await request.delete(`/api/v1/formulas/${created.id}`, {
+        headers: authHeaders,
+      });
 
       expect(deleteResponse.status()).toBe(204);
 
       // Verify deletion
-      const getResponse = await request.get(`/api/v1/formulas/${created.id}`);
+      const getResponse = await request.get(`/api/v1/formulas/${created.id}`, {
+        headers: authHeaders,
+      });
       expect(getResponse.status()).toBe(404);
     });
 
     test('should list all formulas', async ({ request }) => {
       // Create a formula
       await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Listable Formula',
           outputParameterId: 'output',
@@ -147,7 +186,9 @@ test.describe('Parameter Formulas API', () => {
         },
       });
 
-      const response = await request.get('/api/v1/formulas');
+      const response = await request.get('/api/v1/formulas', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -156,7 +197,9 @@ test.describe('Parameter Formulas API', () => {
     });
 
     test('should filter formulas by active status', async ({ request }) => {
-      const response = await request.get('/api/v1/formulas?isActive=true');
+      const response = await request.get('/api/v1/formulas?isActive=true', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -168,6 +211,7 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Formula Evaluation', () => {
     test('should evaluate formula with given values', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Evaluation Test',
           outputParameterId: 'output',
@@ -179,6 +223,7 @@ test.describe('Parameter Formulas API', () => {
       const formula = await createResponse.json();
 
       const evalResponse = await request.post(`/api/v1/formulas/${formula.id}/evaluate`, {
+        headers: authHeaders,
         data: {
           parameterValues: { a: 5, b: 3, c: 2 },
         },
@@ -192,6 +237,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should evaluate expression directly', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/evaluate-expression', {
+        headers: authHeaders,
         data: {
           expression: 'sqrt(pow(x, 2) + pow(y, 2))',
           scope: { x: 3, y: 4 },
@@ -206,6 +252,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should require parameterValues for formula evaluation', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Test',
           outputParameterId: 'output',
@@ -217,6 +264,7 @@ test.describe('Parameter Formulas API', () => {
       const formula = await createResponse.json();
 
       const response = await request.post(`/api/v1/formulas/${formula.id}/evaluate`, {
+        headers: authHeaders,
         data: {},
       });
 
@@ -227,6 +275,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should reject invalid expression', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/evaluate-expression', {
+        headers: authHeaders,
         data: {
           expression: 'invalid +* syntax',
           scope: {},
@@ -243,6 +292,7 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Formula Validation', () => {
     test('should validate valid formula expression', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/validate', {
+        headers: authHeaders,
         data: {
           expression: 'max(a, b, c)',
         },
@@ -255,6 +305,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should reject invalid formula expression', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/validate', {
+        headers: authHeaders,
         data: {
           expression: 'a +* b',
         },
@@ -268,6 +319,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should require expression for validation', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/validate', {
+        headers: authHeaders,
         data: {},
       });
 
@@ -280,6 +332,7 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Formula Testing', () => {
     test('should run test cases', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/test', {
+        headers: authHeaders,
         data: {
           expression: 'a + b',
           testCases: [
@@ -298,6 +351,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should detect failing test cases', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/test', {
+        headers: authHeaders,
         data: {
           expression: 'a * b',
           testCases: [
@@ -314,6 +368,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should require test cases array', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/test', {
+        headers: authHeaders,
         data: {
           expression: 'a + b',
         },
@@ -328,6 +383,7 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Dependency Extraction', () => {
     test('should extract dependencies from formula', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/extract-dependencies', {
+        headers: authHeaders,
         data: {
           expression: 'sqrt(x^2 + y^2)',
         },
@@ -341,6 +397,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should filter out math functions from dependencies', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/extract-dependencies', {
+        headers: authHeaders,
         data: {
           expression: 'max(a, b) + min(c, d)',
         },
@@ -358,6 +415,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should require expression for dependency extraction', async ({ request }) => {
       const response = await request.post('/api/v1/formulas/extract-dependencies', {
+        headers: authHeaders,
         data: {},
       });
 
@@ -370,23 +428,31 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Formula Activation', () => {
     test('should activate formula', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Activation Test',
-          outputParameterId: 'output',
+          outputParameterId: 'test-param-output',
           formulaExpression: 'a + b',
           createdBy: 'test-user',
         },
       });
 
+      expect(createResponse.status()).toBe(201);
       const formula = await createResponse.json();
+      expect(formula.id).toBeDefined();
 
       // Deactivate
-      await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+      const deactivateResponse = await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+        headers: authHeaders,
         data: { isActive: false },
       });
+      expect(deactivateResponse.status()).toBe(200);
+      const deactivated = await deactivateResponse.json();
+      expect(deactivated.isActive).toBe(false);
 
       // Reactivate
       const response = await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+        headers: authHeaders,
         data: { isActive: true },
       });
 
@@ -397,6 +463,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should deactivate formula', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Deactivation Test',
           outputParameterId: 'output',
@@ -408,6 +475,7 @@ test.describe('Parameter Formulas API', () => {
       const formula = await createResponse.json();
 
       const response = await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+        headers: authHeaders,
         data: { isActive: false },
       });
 
@@ -418,6 +486,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should require isActive boolean', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Test',
           outputParameterId: 'output',
@@ -429,6 +498,7 @@ test.describe('Parameter Formulas API', () => {
       const formula = await createResponse.json();
 
       const response = await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+        headers: authHeaders,
         data: {},
       });
 
@@ -439,6 +509,7 @@ test.describe('Parameter Formulas API', () => {
 
     test('should reject inactive formula evaluation', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Inactive Formula',
           outputParameterId: 'output',
@@ -451,11 +522,13 @@ test.describe('Parameter Formulas API', () => {
 
       // Deactivate
       await request.patch(`/api/v1/formulas/${formula.id}/active`, {
+        headers: authHeaders,
         data: { isActive: false },
       });
 
       // Try to evaluate
       const evalResponse = await request.post(`/api/v1/formulas/${formula.id}/evaluate`, {
+        headers: authHeaders,
         data: {
           parameterValues: { a: 1, b: 2 },
         },
@@ -471,6 +544,7 @@ test.describe('Parameter Formulas API', () => {
   test.describe('Parameter Relationships', () => {
     test('should get formulas for parameter', async ({ request }) => {
       const createResponse = await request.post('/api/v1/formulas', {
+        headers: authHeaders,
         data: {
           formulaName: 'Parameter Formula',
           outputParameterId: 'test-param-output',
@@ -481,7 +555,9 @@ test.describe('Parameter Formulas API', () => {
 
       await createResponse.json();
 
-      const response = await request.get('/api/v1/formulas/parameter/test-param-output');
+      const response = await request.get('/api/v1/formulas/parameter/test-param-output', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -490,7 +566,9 @@ test.describe('Parameter Formulas API', () => {
     });
 
     test('should get triggered formulas', async ({ request }) => {
-      const response = await request.get('/api/v1/formulas/triggered/test-input-param');
+      const response = await request.get('/api/v1/formulas/triggered/test-input-param', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();

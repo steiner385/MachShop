@@ -860,6 +860,7 @@ model Operation {
   materialSpecs   MaterialOperationSpecification[]
   assetSpecs      PhysicalAssetOperationSpecification[]
   bomItems        BOMItem[] // BOM items linked to this process segment
+  samplingPlans   SamplingPlan[] // Sampling plans at operation level (Phase 2)
 
   @@index([parentOperationId])
   @@index([operationType])
@@ -933,6 +934,8 @@ model OperationParameter {
   parameterGroupId String?
   parameterGroup   ParameterGroup?   @relation("ParameterGrouping", fields: [parameterGroupId], references: [id], onDelete: SetNull)
   formula          ParameterFormula? @relation("FormulaOutput") // If this is a calculated parameter
+  spcConfiguration SPCConfiguration? // SPC configuration for statistical monitoring (Phase 2)
+  samplingPlans    SamplingPlan[] // Sampling plans for acceptance sampling (Phase 2)
 
   @@unique([operationId, parameterName])
   @@index([operationId])
@@ -4463,4 +4466,208 @@ model QIFMeasurement {
   @@index([characteristicId])
   @@index([status])
   @@map("qif_measurements")
+}
+// =============================================================================
+// STATISTICAL PROCESS CONTROL (SPC) - Phase 2
+// =============================================================================
+
+// SPC Configuration - Control charts and statistical monitoring
+model SPCConfiguration {
+  id          String   @id @default(cuid())
+  parameterId String   @unique
+  parameter   OperationParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+
+  // Chart Configuration
+  chartType    SPCChartType  // X_BAR_R, X_BAR_S, I_MR, P_CHART, C_CHART, etc.
+  subgroupSize Int?          // Sample size for subgroup charts (X-bar, R)
+
+  // Control Limits
+  UCL         Float?   // Upper Control Limit
+  centerLine  Float?   // Process mean or median
+  LCL         Float?   // Lower Control Limit
+
+  // Range/StdDev Limits (for X-bar/R, X-bar/S charts)
+  rangeUCL    Float?
+  rangeCL     Float?
+  rangeLCL    Float?
+
+  // Specification Limits (from ParameterLimits, cached for performance)
+  USL         Float?   // Upper Specification Limit
+  LSL         Float?   // Lower Specification Limit
+  targetValue Float?   // Nominal/target value
+
+  // Calculation Method
+  limitsBasedOn      LimitCalculationMethod  // HISTORICAL_DATA, SPEC_LIMITS, MANUAL
+  historicalDataDays Int?                    // Days of data for limit calculation
+  lastCalculatedAt   DateTime?
+
+  // Western Electric Rules (bitmask or JSON)
+  enabledRules       Json   // Array of enabled rule numbers [1,2,3,4,5,6,7,8]
+  ruleSensitivity    String @default("NORMAL")  // LOW, NORMAL, HIGH
+
+  // Capability Settings
+  enableCapability   Boolean @default(true)
+  confidenceLevel    Float   @default(0.95)  // 95% confidence for capability
+
+  // Status
+  isActive           Boolean @default(true)
+
+  // Metadata
+  createdBy          String
+  lastModifiedBy     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  violations SPCRuleViolation[]
+
+  @@map("spc_configurations")
+}
+
+enum SPCChartType {
+  X_BAR_R        // X-bar and Range (variable data, small subgroups)
+  X_BAR_S        // X-bar and Std Dev (variable data, large subgroups)
+  I_MR           // Individual and Moving Range (variable data, n=1)
+  P_CHART        // Proportion defective (attribute data)
+  NP_CHART       // Number defective (attribute data)
+  C_CHART        // Count of defects (attribute data)
+  U_CHART        // Defects per unit (attribute data)
+  EWMA           // Exponentially Weighted Moving Average
+  CUSUM          // Cumulative Sum
+}
+
+enum LimitCalculationMethod {
+  HISTORICAL_DATA   // Calculate from historical process data
+  SPEC_LIMITS       // Derive from specification limits (LSL/USL)
+  MANUAL            // Manually entered by user
+}
+
+// SPC Rule Violation - Detected out-of-control conditions
+model SPCRuleViolation {
+  id              String   @id @default(cuid())
+  configurationId String
+  configuration   SPCConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  // Violation Details
+  ruleNumber      Int      // Western Electric Rule number (1-8)
+  ruleName        String   // "Rule 1: One point beyond 3σ"
+  severity        String   // CRITICAL, WARNING, INFO
+
+  // Data Point
+  dataPointId     String?  // Reference to ProcessDataPoint if available
+  value           Float
+  timestamp       DateTime
+  subgroupNumber  Int?
+
+  // Context
+  UCL             Float?
+  LCL             Float?
+  centerLine      Float?
+  deviationSigma  Float?   // How many σ from centerline
+
+  // Status
+  acknowledged    Boolean  @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  resolution      String?  @db.Text
+
+  createdAt       DateTime @default(now())
+
+  @@index([configurationId, timestamp])
+  @@index([acknowledged])
+  @@map("spc_rule_violations")
+}
+
+// Sampling Plan - Acceptance sampling per ANSI/ASQ Z1.4
+model SamplingPlan {
+  id                String   @id @default(cuid())
+  planName          String
+  planType          SamplingPlanType  // SINGLE, DOUBLE, MULTIPLE, SEQUENTIAL
+
+  // Scope
+  parameterId       String?
+  parameter         OperationParameter? @relation(fields: [parameterId], references: [id])
+  operationId       String?
+  operation         Operation? @relation(fields: [operationId], references: [id])
+
+  // ANSI/ASQ Z1.4 Configuration
+  inspectionLevel   String   // I, II, III, S1, S2, S3, S4
+  AQL               Float    // Acceptable Quality Level (%)
+  lotSizeMin        Int?
+  lotSizeMax        Int?
+
+  // Sampling Parameters (Normal Inspection)
+  sampleSizeNormal  Int
+  acceptanceNumber  Int
+  rejectionNumber   Int
+
+  // Sampling Parameters (Tightened Inspection)
+  sampleSizeTightened Int?
+  acceptanceNumberTightened Int?
+
+  // Sampling Parameters (Reduced Inspection)
+  sampleSizeReduced Int?
+  acceptanceNumberReduced Int?
+
+  // Double/Multiple Sampling
+  sampleSize2       Int?
+  acceptanceNumber2 Int?
+  rejectionNumber2  Int?
+
+  // Switching Rules
+  currentInspectionLevel String @default("NORMAL")  // NORMAL, TIGHTENED, REDUCED
+  consecutiveAccepted   Int    @default(0)
+  consecutiveRejected   Int    @default(0)
+
+  // Status
+  isActive          Boolean  @default(true)
+
+  // Metadata
+  createdBy         String
+  lastModifiedBy    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  inspectionResults SamplingInspectionResult[]
+
+  @@map("sampling_plans")
+}
+
+enum SamplingPlanType {
+  SINGLE     // Single sampling plan
+  DOUBLE     // Double sampling plan
+  MULTIPLE   // Multiple sampling plan
+  SEQUENTIAL // Sequential sampling
+}
+
+// Sampling Inspection Result - Individual inspection outcomes
+model SamplingInspectionResult {
+  id              String   @id @default(cuid())
+  planId          String
+  plan            SamplingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  // Lot Information
+  lotNumber       String
+  lotSize         Int
+  inspectionDate  DateTime
+
+  // Sample Details
+  sampleSize      Int
+  defectsFound    Int
+
+  // Decision
+  decision        String   // ACCEPT, REJECT, RESAMPLE
+  inspectionLevel String   // NORMAL, TIGHTENED, REDUCED
+
+  // Inspector
+  inspectorId     String
+
+  // Notes
+  notes           String?  @db.Text
+
+  createdAt       DateTime @default(now())
+
+  @@index([planId, inspectionDate])
+  @@map("sampling_inspection_results")
 }

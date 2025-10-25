@@ -54,6 +54,7 @@ import presenceRoutes from './routes/presence';
 import parameterLimitsRoutes from './routes/parameterLimits';
 import parameterGroupsRoutes from './routes/parameterGroups';
 import parameterFormulasRoutes from './routes/parameterFormulas';
+import spcRoutes from './routes/spc';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
@@ -177,6 +178,9 @@ apiRouter.use('/cmm', authMiddleware, cmmRoutes);
 apiRouter.use('/parameters', authMiddleware, parameterLimitsRoutes);
 apiRouter.use('/parameter-groups', authMiddleware, parameterGroupsRoutes);
 apiRouter.use('/formulas', authMiddleware, parameterFormulasRoutes);
+
+// SPC routes (Variable System - Phase 2)
+apiRouter.use('/spc', authMiddleware, spcRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));

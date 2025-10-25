@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { loginAsRole } from '../helpers/testAuthHelper';
+import { loginAsTestUser } from '../helpers/testAuthHelper';
 
 test.describe('Parameter Groups API', () => {
-  test.beforeEach(async ({ page }) => {
+  let authHeaders: Record<string, string>;
+
+  test.beforeAll(async ({ request }) => {
     // Login as manufacturing engineer
-    await loginAsRole(page, 'manufacturingEngineer');
+    authHeaders = await loginAsTestUser(request, 'manufacturingEngineer');
   });
 
   test.describe('Group CRUD Operations', () => {
@@ -20,6 +22,7 @@ test.describe('Parameter Groups API', () => {
       };
 
       const response = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: groupData,
       });
 
@@ -34,6 +37,7 @@ test.describe('Parameter Groups API', () => {
     test('should create a child group with valid parent', async ({ request }) => {
       // Create parent
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Parent Group',
           groupType: 'PROCESS',
@@ -44,6 +48,7 @@ test.describe('Parameter Groups API', () => {
 
       // Create child
       const childResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child Group',
           parentGroupId: parent.id,
@@ -58,6 +63,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should reject child group with non-existent parent', async ({ request }) => {
       const response = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Orphan Group',
           parentGroupId: 'nonexistent-parent-id',
@@ -72,6 +78,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should retrieve group by ID', async ({ request }) => {
       const createResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Test Group',
           groupType: 'QUALITY',
@@ -81,7 +88,9 @@ test.describe('Parameter Groups API', () => {
 
       const created = await createResponse.json();
 
-      const getResponse = await request.get(`/api/v1/parameter-groups/${created.id}`);
+      const getResponse = await request.get(`/api/v1/parameter-groups/${created.id}`, {
+      headers: authHeaders,
+    });
 
       expect(getResponse.status()).toBe(200);
       const data = await getResponse.json();
@@ -93,6 +102,7 @@ test.describe('Parameter Groups API', () => {
     test('should retrieve group with children', async ({ request }) => {
       // Create parent
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Parent With Children',
           groupType: 'PROCESS',
@@ -103,6 +113,7 @@ test.describe('Parameter Groups API', () => {
 
       // Create children
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child 1',
           parentGroupId: parent.id,
@@ -111,6 +122,7 @@ test.describe('Parameter Groups API', () => {
       });
 
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child 2',
           parentGroupId: parent.id,
@@ -120,7 +132,9 @@ test.describe('Parameter Groups API', () => {
 
       // Retrieve with children
       const response = await request.get(
-        `/api/v1/parameter-groups/${parent.id}?includeChildren=true`
+        `/api/v1/parameter-groups/${parent.id}?includeChildren=true`, {
+      headers: authHeaders,
+    }
       );
 
       expect(response.status()).toBe(200);
@@ -131,6 +145,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should update group properties', async ({ request }) => {
       const createResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Original Name',
           groupType: 'PROCESS',
@@ -140,6 +155,7 @@ test.describe('Parameter Groups API', () => {
       const created = await createResponse.json();
 
       const updateResponse = await request.put(`/api/v1/parameter-groups/${created.id}`, {
+        headers: authHeaders,
         data: {
           groupName: 'Updated Name',
           description: 'New description',
@@ -156,6 +172,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should delete empty group', async ({ request }) => {
       const createResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Group To Delete',
           groupType: 'PROCESS',
@@ -164,18 +181,23 @@ test.describe('Parameter Groups API', () => {
 
       const created = await createResponse.json();
 
-      const deleteResponse = await request.delete(`/api/v1/parameter-groups/${created.id}`);
+      const deleteResponse = await request.delete(`/api/v1/parameter-groups/${created.id}`, {
+      headers: authHeaders,
+    });
 
       expect(deleteResponse.status()).toBe(204);
 
       // Verify deletion
-      const getResponse = await request.get(`/api/v1/parameter-groups/${created.id}`);
+      const getResponse = await request.get(`/api/v1/parameter-groups/${created.id}`, {
+      headers: authHeaders,
+    });
       expect(getResponse.status()).toBe(404);
     });
 
     test('should reject deleting group with children without force', async ({ request }) => {
       // Create parent
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Parent To Delete',
           groupType: 'PROCESS',
@@ -186,6 +208,7 @@ test.describe('Parameter Groups API', () => {
 
       // Create child
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child',
           parentGroupId: parent.id,
@@ -194,7 +217,9 @@ test.describe('Parameter Groups API', () => {
       });
 
       // Try to delete without force
-      const deleteResponse = await request.delete(`/api/v1/parameter-groups/${parent.id}`);
+      const deleteResponse = await request.delete(`/api/v1/parameter-groups/${parent.id}`, {
+      headers: authHeaders,
+    });
 
       expect(deleteResponse.status()).toBe(400);
       const data = await deleteResponse.json();
@@ -204,6 +229,7 @@ test.describe('Parameter Groups API', () => {
     test('should force delete group with children', async ({ request }) => {
       // Create parent
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Parent For Force Delete',
           groupType: 'PROCESS',
@@ -214,6 +240,7 @@ test.describe('Parameter Groups API', () => {
 
       // Create child
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child',
           parentGroupId: parent.id,
@@ -223,7 +250,9 @@ test.describe('Parameter Groups API', () => {
 
       // Force delete
       const deleteResponse = await request.delete(
-        `/api/v1/parameter-groups/${parent.id}?force=true`
+        `/api/v1/parameter-groups/${parent.id}?force=true`, {
+      headers: authHeaders,
+    }
       );
 
       expect(deleteResponse.status()).toBe(204);
@@ -234,14 +263,18 @@ test.describe('Parameter Groups API', () => {
     test('should retrieve root groups', async ({ request }) => {
       // Create some root groups
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Root 1', groupType: 'PROCESS' },
       });
 
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Root 2', groupType: 'QUALITY' },
       });
 
-      const response = await request.get('/api/v1/parameter-groups');
+      const response = await request.get('/api/v1/parameter-groups', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -251,7 +284,9 @@ test.describe('Parameter Groups API', () => {
     });
 
     test('should retrieve complete group tree', async ({ request }) => {
-      const response = await request.get('/api/v1/parameter-groups?tree=true');
+      const response = await request.get('/api/v1/parameter-groups?tree=true', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -263,16 +298,19 @@ test.describe('Parameter Groups API', () => {
     test('should move group to new parent', async ({ request }) => {
       // Create groups
       const parent1Response = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Parent 1', groupType: 'PROCESS' },
       });
       const parent1 = await parent1Response.json();
 
       const parent2Response = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Parent 2', groupType: 'PROCESS' },
       });
       const parent2 = await parent2Response.json();
 
       const childResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Movable Child',
           parentGroupId: parent1.id,
@@ -283,6 +321,7 @@ test.describe('Parameter Groups API', () => {
 
       // Move child from parent1 to parent2
       const moveResponse = await request.post(`/api/v1/parameter-groups/${child.id}/move`, {
+        headers: authHeaders,
         data: { newParentId: parent2.id },
       });
 
@@ -294,11 +333,13 @@ test.describe('Parameter Groups API', () => {
     test('should move group to root level', async ({ request }) => {
       // Create parent and child
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Parent', groupType: 'PROCESS' },
       });
       const parent = await parentResponse.json();
 
       const childResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child To Root',
           parentGroupId: parent.id,
@@ -309,6 +350,7 @@ test.describe('Parameter Groups API', () => {
 
       // Move to root
       const moveResponse = await request.post(`/api/v1/parameter-groups/${child.id}/move`, {
+        headers: authHeaders,
         data: { newParentId: null },
       });
 
@@ -320,11 +362,13 @@ test.describe('Parameter Groups API', () => {
     test('should prevent circular reference when moving', async ({ request }) => {
       // Create parent and child
       const parentResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Parent', groupType: 'PROCESS' },
       });
       const parent = await parentResponse.json();
 
       const childResponse = await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Child',
           parentGroupId: parent.id,
@@ -335,6 +379,7 @@ test.describe('Parameter Groups API', () => {
 
       // Try to move parent under child (circular)
       const moveResponse = await request.post(`/api/v1/parameter-groups/${parent.id}/move`, {
+        headers: authHeaders,
         data: { newParentId: child.id },
       });
 
@@ -348,14 +393,18 @@ test.describe('Parameter Groups API', () => {
     test('should filter groups by type', async ({ request }) => {
       // Create groups of different types
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Process Group', groupType: 'PROCESS' },
       });
 
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: { groupName: 'Quality Group', groupType: 'QUALITY' },
       });
 
-      const response = await request.get('/api/v1/parameter-groups?groupType=PROCESS');
+      const response = await request.get('/api/v1/parameter-groups?groupType=PROCESS', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -367,6 +416,7 @@ test.describe('Parameter Groups API', () => {
   test.describe('Search Operations', () => {
     test('should search groups by name', async ({ request }) => {
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Searchable Temperature Group',
           groupType: 'PROCESS',
@@ -375,7 +425,9 @@ test.describe('Parameter Groups API', () => {
 
       const response = await request.get(
         '/api/v1/parameter-groups/search/query?q=Temperature'
-      );
+      , {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -385,6 +437,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should search groups by description', async ({ request }) => {
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Special Group',
           groupType: 'PROCESS',
@@ -392,7 +445,9 @@ test.describe('Parameter Groups API', () => {
         },
       });
 
-      const response = await request.get('/api/v1/parameter-groups/search/query?q=unique');
+      const response = await request.get('/api/v1/parameter-groups/search/query?q=unique', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -401,6 +456,7 @@ test.describe('Parameter Groups API', () => {
 
     test('should search groups by tags', async ({ request }) => {
       await request.post('/api/v1/parameter-groups', {
+        headers: authHeaders,
         data: {
           groupName: 'Tagged Group',
           groupType: 'PROCESS',
@@ -408,7 +464,9 @@ test.describe('Parameter Groups API', () => {
         },
       });
 
-      const response = await request.get('/api/v1/parameter-groups/search/query?q=critical');
+      const response = await request.get('/api/v1/parameter-groups/search/query?q=critical', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -416,7 +474,9 @@ test.describe('Parameter Groups API', () => {
     });
 
     test('should require search query', async ({ request }) => {
-      const response = await request.get('/api/v1/parameter-groups/search/query');
+      const response = await request.get('/api/v1/parameter-groups/search/query', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(400);
       const data = await response.json();

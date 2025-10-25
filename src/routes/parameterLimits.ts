@@ -126,7 +126,7 @@ router.post('/:parameterId/limits/evaluate', async (req: Request, res: Response)
  * GET /api/v1/parameters/limits
  * Get all parameters with limits
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/limits', async (req: Request, res: Response) => {
   try {
     const parameters = await parameterLimitsService.getAllParametersWithLimits();
     return res.json(parameters);

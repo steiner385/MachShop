@@ -732,6 +732,37 @@ TIMEOUT TIMEOUT
 CANCELLED CANCELLED
         }
     
+
+
+        SPCChartType {
+            X_BAR_R X_BAR_R
+X_BAR_S X_BAR_S
+I_MR I_MR
+P_CHART P_CHART
+NP_CHART NP_CHART
+C_CHART C_CHART
+U_CHART U_CHART
+EWMA EWMA
+CUSUM CUSUM
+        }
+    
+
+
+        LimitCalculationMethod {
+            HISTORICAL_DATA HISTORICAL_DATA
+SPEC_LIMITS SPEC_LIMITS
+MANUAL MANUAL
+        }
+    
+
+
+        SamplingPlanType {
+            SINGLE SINGLE
+DOUBLE DOUBLE
+MULTIPLE MULTIPLE
+SEQUENTIAL SEQUENTIAL
+        }
+    
   "enterprises" {
     String id "🗝️"
     String enterpriseCode 
@@ -2605,6 +2636,99 @@ CANCELLED CANCELLED
     DateTime createdAt 
     }
   
+
+  "spc_configurations" {
+    String id "🗝️"
+    SPCChartType chartType 
+    Int subgroupSize "❓"
+    Float UCL "❓"
+    Float centerLine "❓"
+    Float LCL "❓"
+    Float rangeUCL "❓"
+    Float rangeCL "❓"
+    Float rangeLCL "❓"
+    Float USL "❓"
+    Float LSL "❓"
+    Float targetValue "❓"
+    LimitCalculationMethod limitsBasedOn 
+    Int historicalDataDays "❓"
+    DateTime lastCalculatedAt "❓"
+    Json enabledRules 
+    String ruleSensitivity 
+    Boolean enableCapability 
+    Float confidenceLevel 
+    Boolean isActive 
+    String createdBy 
+    String lastModifiedBy "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "spc_rule_violations" {
+    String id "🗝️"
+    Int ruleNumber 
+    String ruleName 
+    String severity 
+    String dataPointId "❓"
+    Float value 
+    DateTime timestamp 
+    Int subgroupNumber "❓"
+    Float UCL "❓"
+    Float LCL "❓"
+    Float centerLine "❓"
+    Float deviationSigma "❓"
+    Boolean acknowledged 
+    String acknowledgedBy "❓"
+    DateTime acknowledgedAt "❓"
+    String resolution "❓"
+    DateTime createdAt 
+    }
+  
+
+  "sampling_plans" {
+    String id "🗝️"
+    String planName 
+    SamplingPlanType planType 
+    String inspectionLevel 
+    Float AQL 
+    Int lotSizeMin "❓"
+    Int lotSizeMax "❓"
+    Int sampleSizeNormal 
+    Int acceptanceNumber 
+    Int rejectionNumber 
+    Int sampleSizeTightened "❓"
+    Int acceptanceNumberTightened "❓"
+    Int sampleSizeReduced "❓"
+    Int acceptanceNumberReduced "❓"
+    Int sampleSize2 "❓"
+    Int acceptanceNumber2 "❓"
+    Int rejectionNumber2 "❓"
+    String currentInspectionLevel 
+    Int consecutiveAccepted 
+    Int consecutiveRejected 
+    Boolean isActive 
+    String createdBy 
+    String lastModifiedBy "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "sampling_inspection_results" {
+    String id "🗝️"
+    String lotNumber 
+    Int lotSize 
+    DateTime inspectionDate 
+    Int sampleSize 
+    Int defectsFound 
+    String decision 
+    String inspectionLevel 
+    String inspectorId 
+    String notes "❓"
+    DateTime createdAt 
+    }
+  
     "enterprises" o{--}o "sites" : ""
     "sites" o|--|o "enterprises" : "enterprise"
     "sites" o{--}o "routings" : ""
@@ -2703,12 +2827,15 @@ CANCELLED CANCELLED
     "operations" o{--}o "material_operation_specifications" : ""
     "operations" o{--}o "physical_asset_operation_specifications" : ""
     "operations" o{--}o "bom_items" : ""
+    "operations" o{--}o "sampling_plans" : ""
     "operation_parameters" o|--|| "ParameterType" : "enum:parameterType"
     "operation_parameters" o|--|| "ParameterDataType" : "enum:dataType"
     "operation_parameters" o|--|| "operations" : "operation"
     "operation_parameters" o{--}o "parameter_limits" : ""
     "operation_parameters" o|--|o "parameter_groups" : "parameterGroup"
     "operation_parameters" o{--}o "parameter_formulas" : ""
+    "operation_parameters" o{--}o "spc_configurations" : ""
+    "operation_parameters" o{--}o "sampling_plans" : ""
     "parameter_limits" o|--|| "operation_parameters" : "parameter"
     "parameter_groups" o|--|o "parameter_groups" : "parentGroup"
     "parameter_groups" o|--|| "ParameterGroupType" : "enum:groupType"
@@ -3008,4 +3135,14 @@ CANCELLED CANCELLED
     "qif_measurement_results" o{--}o "qif_measurements" : ""
     "qif_measurements" o|--|| "qif_measurement_results" : "qifMeasurementResult"
     "qif_measurements" o|--|o "qif_characteristics" : "qifCharacteristic"
+    "spc_configurations" o|--|| "operation_parameters" : "parameter"
+    "spc_configurations" o|--|| "SPCChartType" : "enum:chartType"
+    "spc_configurations" o|--|| "LimitCalculationMethod" : "enum:limitsBasedOn"
+    "spc_configurations" o{--}o "spc_rule_violations" : ""
+    "spc_rule_violations" o|--|| "spc_configurations" : "configuration"
+    "sampling_plans" o|--|| "SamplingPlanType" : "enum:planType"
+    "sampling_plans" o|--|o "operation_parameters" : "parameter"
+    "sampling_plans" o|--|o "operations" : "operation"
+    "sampling_plans" o{--}o "sampling_inspection_results" : ""
+    "sampling_inspection_results" o|--|| "sampling_plans" : "plan"
 ```

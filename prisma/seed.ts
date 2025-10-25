@@ -3124,6 +3124,133 @@ async function main() {
 
   console.log('✅ Process segment parameters created (3 parameters)');
 
+  // ==========================================
+  // SPC Test Data (for E2E tests)
+  // ==========================================
+
+  // Create a dedicated SPC test operation
+  const spcTestOperation = await prisma.operation.upsert({
+    where: { operationCode: 'SPC-TEST-OP' },
+    update: {},
+    create: {
+      operationCode: 'SPC-TEST-OP',
+      operationName: 'SPC Test Operation',
+      description: 'Dedicated operation for SPC E2E testing',
+      level: 1,
+      operationType: 'QUALITY',
+      category: 'TESTING',
+      duration: 0,
+      version: '1.0',
+      isActive: true
+    }
+  });
+
+  // Create SPC Test Parameters
+  const spcTestParameters = await Promise.all([
+    prisma.operationParameter.upsert({
+      where: {
+        operationId_parameterName: {
+          operationId: spcTestOperation.id,
+          parameterName: 'Temperature'
+        }
+      },
+      update: {},
+      create: {
+        id: 'spc-test-param-temperature',
+        operationId: spcTestOperation.id,
+        parameterName: 'Temperature',
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: '°C',
+        isRequired: false,
+        isCritical: true,
+        notes: 'Temperature measurement for SPC testing'
+      }
+    }),
+    prisma.operationParameter.upsert({
+      where: {
+        operationId_parameterName: {
+          operationId: spcTestOperation.id,
+          parameterName: 'Pressure'
+        }
+      },
+      update: {},
+      create: {
+        id: 'spc-test-param-pressure',
+        operationId: spcTestOperation.id,
+        parameterName: 'Pressure',
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: 'PSI',
+        isRequired: false,
+        isCritical: true,
+        notes: 'Pressure measurement for SPC testing'
+      }
+    }),
+    prisma.operationParameter.upsert({
+      where: {
+        operationId_parameterName: {
+          operationId: spcTestOperation.id,
+          parameterName: 'Dimension'
+        }
+      },
+      update: {},
+      create: {
+        id: 'spc-test-param-dimension',
+        operationId: spcTestOperation.id,
+        parameterName: 'Dimension',
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: 'mm',
+        isRequired: false,
+        isCritical: true,
+        notes: 'Dimension measurement for SPC testing'
+      }
+    }),
+    prisma.operationParameter.upsert({
+      where: {
+        operationId_parameterName: {
+          operationId: spcTestOperation.id,
+          parameterName: 'Defect Count'
+        }
+      },
+      update: {},
+      create: {
+        id: 'spc-test-param-defects',
+        operationId: spcTestOperation.id,
+        parameterName: 'Defect Count',
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: 'count',
+        isRequired: false,
+        isCritical: true,
+        notes: 'Defect count for P-chart SPC testing'
+      }
+    }),
+    prisma.operationParameter.upsert({
+      where: {
+        operationId_parameterName: {
+          operationId: spcTestOperation.id,
+          parameterName: 'Flow Rate'
+        }
+      },
+      update: {},
+      create: {
+        id: 'spc-test-param-flow-rate',
+        operationId: spcTestOperation.id,
+        parameterName: 'Flow Rate',
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: 'L/min',
+        isRequired: false,
+        isCritical: true,
+        notes: 'Flow rate for SPC testing'
+      }
+    })
+  ]);
+
+  console.log('✅ SPC test operation and parameters created (5 parameters)');
+
   // Create Process Segment Dependencies
   const millingToInspectionDep = await prisma.operationDependency.upsert({
     where: {
@@ -4358,6 +4485,57 @@ async function main() {
   console.log('   - 5 production variances (quantity, time, material, efficiency, yield)');
 
   console.log('🎉 Database seed completed successfully!');
+
+  // ========================================
+  // TASK 1.8: Test Data for Parameter Management E2E Tests
+  // ========================================
+  console.log('\n📋 Seeding Task 1.8: Parameter Management Test Data...');
+
+  // Create a test operation to attach parameters to
+  const testOperation = await prisma.operation.upsert({
+    where: { id: 'test-operation-params' },
+    update: {},
+    create: {
+      id: 'test-operation-params',
+      operationCode: 'TEST-OP-PARAMS',
+      operationName: 'Test Operation for Parameters',
+      operationType: 'PRODUCTION',
+      description: 'Test operation for parameter management E2E tests',
+      duration: 60,
+    },
+  });
+
+  // Create test parameters with hardcoded IDs for E2E tests
+  const testParamIds = [
+    // Parameter limits tests
+    'test-param-1', 'test-param-2', 'test-param-3', 'test-param-4', 'test-param-5',
+    'test-param-eval-1', 'test-param-eval-2', 'test-param-eval-3', 'test-param-eval-4', 'test-param-eval-5',
+    'bulk-1', 'bulk-2', 'bulk-3',
+    // Formula tests - input parameters (used in formulas)
+    'a', 'b', 'c', 'area', 'velocity', 'x', 'input',
+    // Formula tests - output parameters
+    'flow-output', 'output', 'test-param-output'
+  ];
+
+  for (const paramId of testParamIds) {
+    await prisma.operationParameter.upsert({
+      where: { id: paramId },
+      update: {},
+      create: {
+        id: paramId,
+        operationId: testOperation.id,
+        parameterName: `Test Parameter ${paramId}`,
+        parameterType: 'MEASURED',
+        dataType: 'NUMBER',
+        unitOfMeasure: '°C',
+        minValue: 0,
+        maxValue: 100,
+        defaultValue: '50',
+      },
+    });
+  }
+
+  console.log(`✅ Parameter management test data created: ${testParamIds.length} test parameters`);
 
   // Create GE Proficy Historian Integration Configuration
   const proficyHistorianConfig = await prisma.integrationConfig.upsert({

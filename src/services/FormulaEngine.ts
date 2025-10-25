@@ -191,6 +191,11 @@ export class FormulaEngineService {
       // Evaluate with the provided scope
       const result = compiled.evaluate(scope);
 
+      // Convert BigNumber to regular number for JSON serialization
+      if (result && typeof result === 'object' && 'toNumber' in result) {
+        return result.toNumber();
+      }
+
       return result;
     } catch (error: any) {
       throw new Error(`Evaluation error: ${error.message}`);

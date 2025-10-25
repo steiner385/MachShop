@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { loginAsRole } from '../helpers/testAuthHelper';
+import { loginAsTestUser } from '../helpers/testAuthHelper';
 
 test.describe('Parameter Limits API', () => {
-  test.beforeEach(async ({ page }) => {
+  let authHeaders: Record<string, string>;
+
+  test.beforeAll(async ({ request }) => {
     // Login as manufacturing engineer (has permission to manage parameters)
-    await loginAsRole(page, 'manufacturingEngineer');
+    authHeaders = await loginAsTestUser(request, 'manufacturingEngineer');
   });
 
   test.describe('Limit CRUD Operations', () => {
@@ -24,6 +26,7 @@ test.describe('Parameter Limits API', () => {
       };
 
       const response = await request.post('/api/v1/parameters/test-param-1/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
@@ -50,6 +53,7 @@ test.describe('Parameter Limits API', () => {
       };
 
       const response = await request.post('/api/v1/parameters/test-param-2/limits', {
+        headers: authHeaders,
         data: invalidLimits,
       });
 
@@ -75,11 +79,14 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-3/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       // Then retrieve
-      const response = await request.get('/api/v1/parameters/test-param-3/limits');
+      const response = await request.get('/api/v1/parameters/test-param-3/limits', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
@@ -104,6 +111,7 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-4/limits', {
+        headers: authHeaders,
         data: initialLimits,
       });
 
@@ -115,6 +123,7 @@ test.describe('Parameter Limits API', () => {
       };
 
       const response = await request.post('/api/v1/parameters/test-param-4/limits', {
+        headers: authHeaders,
         data: updatedLimits,
       });
 
@@ -141,15 +150,20 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-5/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       // Delete
-      const deleteResponse = await request.delete('/api/v1/parameters/test-param-5/limits');
+      const deleteResponse = await request.delete('/api/v1/parameters/test-param-5/limits', {
+      headers: authHeaders,
+    });
       expect(deleteResponse.status()).toBe(204);
 
       // Verify deletion
-      const getResponse = await request.get('/api/v1/parameters/test-param-5/limits');
+      const getResponse = await request.get('/api/v1/parameters/test-param-5/limits', {
+      headers: authHeaders,
+    });
       expect(getResponse.status()).toBe(404);
     });
   });
@@ -170,7 +184,8 @@ test.describe('Parameter Limits API', () => {
         engineeringMax: 100,
       };
 
-      const response = await request.post('/api/v1/parameters/limits/validate', {
+      const response = await request.post('/api/v1/parameters/validate', {
+        headers: authHeaders,
         data: validLimits,
       });
 
@@ -195,7 +210,8 @@ test.describe('Parameter Limits API', () => {
         engineeringMax: null,
       };
 
-      const response = await request.post('/api/v1/parameters/limits/validate', {
+      const response = await request.post('/api/v1/parameters/validate', {
+        headers: authHeaders,
         data: invalidLimits,
       });
 
@@ -224,11 +240,13 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-eval-1/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       // Evaluate value within limits
       const response = await request.post('/api/v1/parameters/test-param-eval-1/limits/evaluate', {
+        headers: authHeaders,
         data: { value: 50 },
       });
 
@@ -254,10 +272,12 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-eval-2/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       const response = await request.post('/api/v1/parameters/test-param-eval-2/limits/evaluate', {
+        headers: authHeaders,
         data: { value: 110 },
       });
 
@@ -284,10 +304,12 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-eval-3/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       const response = await request.post('/api/v1/parameters/test-param-eval-3/limits/evaluate', {
+        headers: authHeaders,
         data: { value: 65 },
       });
 
@@ -313,10 +335,12 @@ test.describe('Parameter Limits API', () => {
       };
 
       await request.post('/api/v1/parameters/test-param-eval-4/limits', {
+        headers: authHeaders,
         data: limitsData,
       });
 
       const response = await request.post('/api/v1/parameters/test-param-eval-4/limits/evaluate', {
+        headers: authHeaders,
         data: { value: 75 },
       });
 
@@ -328,6 +352,7 @@ test.describe('Parameter Limits API', () => {
 
     test('should require numeric value for evaluation', async ({ request }) => {
       const response = await request.post('/api/v1/parameters/test-param-eval-5/limits/evaluate', {
+        headers: authHeaders,
         data: { value: 'not-a-number' },
       });
 
@@ -344,6 +369,7 @@ test.describe('Parameter Limits API', () => {
 
       for (const param of params) {
         await request.post(`/api/v1/parameters/${param}/limits`, {
+          headers: authHeaders,
           data: {
             engineeringMin: 0,
             lowLowAlarm: null,
@@ -360,7 +386,9 @@ test.describe('Parameter Limits API', () => {
         });
       }
 
-      const response = await request.get('/api/v1/parameters/limits');
+      const response = await request.get('/api/v1/parameters/limits', {
+      headers: authHeaders,
+    });
 
       expect(response.status()).toBe(200);
       const data = await response.json();

@@ -549,4 +549,283 @@ export class ProcessDataCollectionService {
 
     return processData as ProcessDataCollectionRecord | null;
   }
+
+  /**
+   * Evaluate SPC for collected parameter data
+   * Automatically called when parameter measurements are recorded
+   *
+   * @param parameterId - Operation parameter ID
+   * @param value - Measured value
+   * @param timestamp - Measurement timestamp
+   * @param processDataCollectionId - Optional process data collection record ID
+   * @returns Array of rule violations detected (if any)
+   */
+  static async evaluateSPCForParameter(
+    parameterId: string,
+    value: number,
+    timestamp: Date,
+    processDataCollectionId?: string
+  ): Promise<any[]> {
+    try {
+      // Check if parameter has active SPC configuration
+      const spcConfig = await prisma.sPCConfiguration.findUnique({
+        where: { parameterId },
+      });
+
+      if (!spcConfig || !spcConfig.isActive) {
+        // No active SPC configuration for this parameter
+        return [];
+      }
+
+      // Get historical data for this parameter (for control limit calculation and rule evaluation)
+      const historicalDataDays = 30; // Default lookback period
+      const since = new Date();
+      since.setDate(since.getDate() - historicalDataDays);
+
+      // Query historical measurements from process data collections
+      // Note: This is a simplified approach. In production, you'd want a dedicated
+      // measurement tracking table for better performance
+      const historicalRecords = await prisma.processDataCollection.findMany({
+        where: {
+          startTimestamp: {
+            gte: since,
+          },
+        },
+        orderBy: {
+          startTimestamp: 'asc',
+        },
+        take: 100, // Limit to most recent 100 records
+      });
+
+      // Extract parameter values from historical records
+      // This assumes parameters are stored in JSON format
+      const historicalValues: number[] = [];
+      for (const record of historicalRecords) {
+        const params = record.parameters as any;
+        if (params && typeof params[parameterId] === 'number') {
+          historicalValues.push(params[parameterId]);
+        }
+      }
+
+      // Add current value
+      historicalValues.push(value);
+
+      if (historicalValues.length < 5) {
+        // Not enough data for SPC evaluation
+        console.log(
+          `Insufficient data for SPC evaluation on parameter ${parameterId}: ${historicalValues.length} points`
+        );
+        return [];
+      }
+
+      // Calculate control limits based on chart type
+      // Import SPC service (lazy import to avoid circular dependencies)
+      const { SPCService } = await import('./SPCService');
+      const { WesternElectricRulesEngine } = await import(
+        './WesternElectricRulesEngine'
+      );
+
+      let limits: any;
+
+      if (spcConfig.chartType === 'I_MR') {
+        // Individual and Moving Range chart
+        limits = await SPCService.calculateIMRLimits(historicalValues, {
+          USL: spcConfig.USL ?? undefined,
+          LSL: spcConfig.LSL ?? undefined,
+          target: spcConfig.targetValue ?? undefined,
+        });
+      } else {
+        // For other chart types, would need subgroup data
+        // Simplified: Use I-MR as fallback
+        limits = await SPCService.calculateIMRLimits(historicalValues, {
+          USL: spcConfig.USL ?? undefined,
+          LSL: spcConfig.LSL ?? undefined,
+          target: spcConfig.targetValue ?? undefined,
+        });
+      }
+
+      // Prepare data points for rule evaluation
+      const dataPoints = historicalValues.map((val, index) => ({
+        index,
+        value: val,
+        timestamp: new Date().toISOString(),
+      }));
+
+      // Evaluate Western Electric Rules
+      const enabledRules = (spcConfig.enabledRules as any) || [1, 2, 3, 4, 5, 6, 7, 8];
+      const sensitivity = (spcConfig.ruleSensitivity as any) || 'NORMAL';
+
+      const violations = WesternElectricRulesEngine.evaluateRules(
+        dataPoints,
+        limits,
+        enabledRules,
+        sensitivity
+      );
+
+      // Persist violations to database
+      const createdViolations = [];
+      for (const violation of violations) {
+        // Check if this is a new violation for the current data point
+        if (violation.dataPointIndices.includes(dataPoints.length - 1)) {
+          const createdViolation = await prisma.sPCRuleViolation.create({
+            data: {
+              configurationId: spcConfig.id,
+              ruleNumber: violation.ruleNumber,
+              ruleName: violation.ruleName,
+              severity: violation.severity,
+              value,
+              timestamp,
+              UCL: limits.UCL,
+              LCL: limits.LCL,
+              centerLine: limits.centerLine,
+              acknowledged: false,
+            },
+          });
+
+          createdViolations.push(createdViolation);
+
+          // Log violation
+          console.log(
+            `SPC Violation Detected - Parameter: ${parameterId}, Rule ${violation.ruleNumber}: ${violation.description}, Severity: ${violation.severity}`
+          );
+        }
+      }
+
+      return createdViolations;
+    } catch (error) {
+      console.error(`Error evaluating SPC for parameter ${parameterId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Evaluate SPC for all parameters in a process data collection
+   *
+   * @param processDataCollectionId - Process data collection record ID
+   * @returns Summary of SPC evaluation results
+   */
+  static async evaluateSPCForProcessData(
+    processDataCollectionId: string
+  ): Promise<{
+    evaluatedParameters: number;
+    totalViolations: number;
+    criticalViolations: number;
+    violations: any[];
+  }> {
+    const processData = await prisma.processDataCollection.findUnique({
+      where: { id: processDataCollectionId },
+    });
+
+    if (!processData) {
+      throw new Error(
+        `Process data collection with ID ${processDataCollectionId} not found`
+      );
+    }
+
+    const parameters = processData.parameters as any;
+    if (!parameters || typeof parameters !== 'object') {
+      return {
+        evaluatedParameters: 0,
+        totalViolations: 0,
+        criticalViolations: 0,
+        violations: [],
+      };
+    }
+
+    const allViolations: any[] = [];
+    let evaluatedCount = 0;
+
+    // Evaluate each parameter
+    for (const [paramId, value] of Object.entries(parameters)) {
+      if (typeof value === 'number') {
+        const violations = await this.evaluateSPCForParameter(
+          paramId,
+          value,
+          processData.startTimestamp,
+          processDataCollectionId
+        );
+
+        allViolations.push(...violations);
+        if (violations.length > 0) {
+          evaluatedCount++;
+        }
+      }
+    }
+
+    const criticalCount = allViolations.filter((v) => v.severity === 'CRITICAL').length;
+
+    return {
+      evaluatedParameters: evaluatedCount,
+      totalViolations: allViolations.length,
+      criticalViolations: criticalCount,
+      violations: allViolations,
+    };
+  }
+
+  /**
+   * Get SPC violations for a parameter
+   *
+   * @param parameterId - Operation parameter ID
+   * @param acknowledged - Filter by acknowledgement status
+   * @param limit - Maximum number of violations to return
+   * @returns Array of SPC rule violations
+   */
+  static async getSPCViolationsForParameter(
+    parameterId: string,
+    acknowledged?: boolean,
+    limit: number = 50
+  ): Promise<any[]> {
+    // Get SPC configuration for parameter
+    const spcConfig = await prisma.sPCConfiguration.findUnique({
+      where: { parameterId },
+    });
+
+    if (!spcConfig) {
+      return [];
+    }
+
+    const where: any = {
+      configurationId: spcConfig.id,
+    };
+
+    if (acknowledged !== undefined) {
+      where.acknowledged = acknowledged;
+    }
+
+    const violations = await prisma.sPCRuleViolation.findMany({
+      where,
+      orderBy: {
+        timestamp: 'desc',
+      },
+      take: limit,
+    });
+
+    return violations;
+  }
+
+  /**
+   * Acknowledge an SPC rule violation
+   *
+   * @param violationId - Violation ID
+   * @param acknowledgedBy - User who acknowledged the violation
+   * @param resolution - Resolution description
+   * @returns Updated violation record
+   */
+  static async acknowledgeSPCViolation(
+    violationId: string,
+    acknowledgedBy: string,
+    resolution: string
+  ): Promise<any> {
+    const violation = await prisma.sPCRuleViolation.update({
+      where: { id: violationId },
+      data: {
+        acknowledged: true,
+        acknowledgedBy,
+        acknowledgedAt: new Date(),
+        resolution,
+      },
+    });
+
+    return violation;
+  }
 }
