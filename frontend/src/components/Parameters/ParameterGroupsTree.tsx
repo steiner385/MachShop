@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
   ParameterGroup,
   getParameterGroupTree,
   createParameterGroup,
@@ -57,6 +69,17 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
   const [parentForNewGroup, setParentForNewGroup] = useState<string | null>(null);
   const [editingGroup, setEditingGroup] = useState<ParameterGroup | null>(null);
   const [parameterCounts, setParameterCounts] = useState<Record<string, number>>({});
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draggedGroup, setDraggedGroup] = useState<ParameterGroup | null>(null);
+
+  // Configure drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    })
+  );
 
   useEffect(() => {
     loadTree();
@@ -147,37 +170,131 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
     }
   };
 
-  const renderTreeNode = (group: ParameterGroup, level: number = 0) => {
-    const isExpanded = expandedGroups.has(group.id);
-    const isSelected = selectedGroupId === group.id;
-    const hasChildren = group.childGroups && group.childGroups.length > 0;
-    const paramCount = parameterCounts[group.id] || 0;
+  const findGroupById = (groups: ParameterGroup[], id: string): ParameterGroup | null => {
+    for (const group of groups) {
+      if (group.id === id) return group;
+      if (group.childGroups) {
+        const found = findGroupById(group.childGroups, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    const group = findGroupById(tree, active.id as string);
+    setDraggedGroup(group);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    setActiveId(null);
+    setDraggedGroup(null);
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const draggedGroupId = active.id as string;
+    const targetGroupId = over.id as string;
+
+    // Prevent dropping a group onto itself or its descendants
+    const draggedGroup = findGroupById(tree, draggedGroupId);
+    const targetGroup = findGroupById(tree, targetGroupId);
+
+    if (!draggedGroup || !targetGroup) return;
+
+    // Check if target is a descendant of dragged group
+    const isDescendant = (parent: ParameterGroup, childId: string): boolean => {
+      if (parent.id === childId) return true;
+      if (!parent.childGroups) return false;
+      return parent.childGroups.some(child => isDescendant(child, childId));
+    };
+
+    if (isDescendant(draggedGroup, targetGroupId)) {
+      setError('Cannot move a group into its own descendant');
+      return;
+    }
+
+    // Move the group to be a child of the target group
+    await handleMoveGroup(draggedGroupId, targetGroupId);
+  };
+
+  // Sortable tree node component
+  const SortableTreeNode: React.FC<{
+    group: ParameterGroup;
+    level: number;
+    isExpanded: boolean;
+    isSelected: boolean;
+    hasChildren: boolean;
+    paramCount: number;
+  }> = ({ group, level, isExpanded, isSelected, hasChildren, paramCount }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+      isOver,
+    } = useSortable({ id: group.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      marginLeft: `${level * 20}px`,
+    };
 
     return (
-      <div key={group.id} style={{ marginLeft: `${level * 20}px` }}>
+      <div ref={setNodeRef} style={style} {...attributes}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             padding: '8px 12px',
             marginBottom: '4px',
-            backgroundColor: isSelected ? '#E3F2FD' : 'transparent',
+            backgroundColor: isOver
+              ? '#FFF9C4'
+              : isSelected
+              ? '#E3F2FD'
+              : 'transparent',
             borderRadius: '4px',
-            border: isSelected ? '2px solid #2196F3' : '1px solid #E0E0E0',
-            cursor: 'pointer',
+            border: isOver
+              ? '2px dashed #FBC02D'
+              : isSelected
+              ? '2px solid #2196F3'
+              : '1px solid #E0E0E0',
+            cursor: isDragging ? 'grabbing' : 'grab',
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            if (!isSelected) {
+            if (!isSelected && !isDragging) {
               e.currentTarget.style.backgroundColor = '#F5F5F5';
             }
           }}
           onMouseLeave={(e) => {
-            if (!isSelected) {
+            if (!isSelected && !isDragging && !isOver) {
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
         >
+          {/* Drag handle */}
+          <span
+            {...listeners}
+            style={{
+              marginRight: '8px',
+              fontSize: '14px',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              opacity: 0.6,
+            }}
+            title="Drag to move"
+          >
+            ⋮⋮
+          </span>
           {hasChildren && (
             <span
               onClick={(e) => {
@@ -298,6 +415,36 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
     );
   };
 
+  const getAllGroupIds = (groups: ParameterGroup[]): string[] => {
+    const ids: string[] = [];
+    for (const group of groups) {
+      ids.push(group.id);
+      if (group.childGroups) {
+        ids.push(...getAllGroupIds(group.childGroups));
+      }
+    }
+    return ids;
+  };
+
+  const renderTreeNode = (group: ParameterGroup, level: number = 0): JSX.Element => {
+    const isExpanded = expandedGroups.has(group.id);
+    const isSelected = selectedGroupId === group.id;
+    const hasChildren = group.childGroups && group.childGroups.length > 0;
+    const paramCount = parameterCounts[group.id] || 0;
+
+    return (
+      <SortableTreeNode
+        key={group.id}
+        group={group}
+        level={level}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        hasChildren={hasChildren}
+        paramCount={paramCount}
+      />
+    );
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -349,7 +496,36 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
         </div>
       )}
 
-      <div>{tree.map((group) => renderTreeNode(group))}</div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={getAllGroupIds(tree)} strategy={verticalListSortingStrategy}>
+          <div>{tree.map((group) => renderTreeNode(group))}</div>
+        </SortableContext>
+
+        <DragOverlay>
+          {draggedGroup && (
+            <div
+              style={{
+                padding: '8px 12px',
+                backgroundColor: '#E3F2FD',
+                borderRadius: '4px',
+                border: '2px solid #2196F3',
+                opacity: 0.9,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}
+            >
+              <span style={{ fontSize: '18px', marginRight: '8px' }}>
+                {GROUP_TYPE_ICONS[draggedGroup.groupType]}
+              </span>
+              <span style={{ fontWeight: 600 }}>{draggedGroup.groupName}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {showCreateModal && (
         <GroupFormModal
