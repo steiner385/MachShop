@@ -288,10 +288,10 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
           <div>
-            <Title level={2} style={{ marginBottom: '8px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
               <ControlOutlined style={{ marginRight: '8px' }} />
-              {mode === 'create' ? 'Create New Routing' : 'Edit Routing'}
-            </Title>
+              {mode === 'create' ? 'Create Routing' : 'Edit Routing'}
+            </h1>
             <Text type="secondary">
               {mode === 'create'
                 ? 'Define a new manufacturing routing for a part at a specific site'

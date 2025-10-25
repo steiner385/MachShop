@@ -299,6 +299,11 @@ test.describe('Routing Management E2E Tests', () => {
     test.beforeEach(async () => {
       // Ensure we have a routing to view
       if (!createdRoutingId) {
+        // Navigate to a page first to establish a valid context for localStorage
+        await page.goto('/routings');
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(500);
+
         // Get auth token from localStorage
         const authToken = await page.evaluate(() => {
           const authStorage = localStorage.getItem('mes-auth-storage');
@@ -316,7 +321,7 @@ test.describe('Routing Management E2E Tests', () => {
         }
 
         // Create one via API if needed
-        const response = await page.request.post('/api/v1/routings', {
+        const response = await page.request.post('http://localhost:5278/api/v1/routings', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`,
