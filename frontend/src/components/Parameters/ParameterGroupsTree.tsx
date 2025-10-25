@@ -58,7 +58,7 @@ const GROUP_TYPE_COLORS: Record<ParameterGroup['groupType'], string> = {
 
 export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
   onSelectGroup,
-  onEditGroup,
+  onEditGroup: _onEditGroup,
   selectedGroupId,
 }) => {
   const [tree, setTree] = useState<ParameterGroup[]>([]);
@@ -69,7 +69,6 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
   const [parentForNewGroup, setParentForNewGroup] = useState<string | null>(null);
   const [editingGroup, setEditingGroup] = useState<ParameterGroup | null>(null);
   const [parameterCounts, setParameterCounts] = useState<Record<string, number>>({});
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedGroup, setDraggedGroup] = useState<ParameterGroup | null>(null);
 
   // Configure drag sensors
@@ -183,7 +182,6 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    setActiveId(active.id as string);
     const group = findGroupById(tree, active.id as string);
     setDraggedGroup(group);
   };
@@ -191,7 +189,6 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    setActiveId(null);
     setDraggedGroup(null);
 
     if (!over || active.id === over.id) {
@@ -429,7 +426,7 @@ export const ParameterGroupsTree: React.FC<ParameterGroupsTreeProps> = ({
   const renderTreeNode = (group: ParameterGroup, level: number = 0): JSX.Element => {
     const isExpanded = expandedGroups.has(group.id);
     const isSelected = selectedGroupId === group.id;
-    const hasChildren = group.childGroups && group.childGroups.length > 0;
+    const hasChildren = !!(group.childGroups && group.childGroups.length > 0);
     const paramCount = parameterCounts[group.id] || 0;
 
     return (

@@ -325,10 +325,6 @@ export const DependencyVisualizer: React.FC<DependencyVisualizerProps> = ({ form
     [selectedNode]
   );
 
-  const fitView = useCallback(() => {
-    // ReactFlow will handle this automatically
-  }, []);
-
   if (loading) {
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
