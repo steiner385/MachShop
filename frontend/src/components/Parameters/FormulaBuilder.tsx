@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Editor from '@monaco-editor/react';
 import {
   ParameterFormula,
   createFormula,
@@ -257,20 +258,35 @@ export const FormulaBuilder: React.FC<FormulaBuilderProps> = ({
             >
               Expression *
             </label>
-            <textarea
-              value={expression}
-              onChange={(e) => setExpression(e.target.value)}
-              placeholder="e.g., velocity * area"
-              rows={4}
+            <div
               style={{
-                width: '100%',
-                padding: '8px 12px',
                 border: validationError ? '2px solid #F44336' : '1px solid #CCC',
                 borderRadius: '4px',
-                fontSize: '14px',
-                fontFamily: 'monospace',
+                overflow: 'hidden',
               }}
-            />
+            >
+              <Editor
+                height="120px"
+                defaultLanguage="javascript"
+                value={expression}
+                onChange={(value) => setExpression(value || '')}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  lineNumbers: 'off',
+                  fontSize: 14,
+                  fontFamily: 'monospace',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  wrappingIndent: 'indent',
+                  automaticLayout: true,
+                  tabSize: 2,
+                  suggest: {
+                    showWords: false,
+                  },
+                }}
+              />
+            </div>
             {validationError && (
               <div style={{ color: '#F44336', fontSize: '12px', marginTop: '4px' }}>
                 {validationError}
