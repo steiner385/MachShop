@@ -21,7 +21,6 @@ import {
   CopyOutlined,
   CheckCircleOutlined,
   ApartmentOutlined,
-  EyeOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/apiClient';

@@ -29,7 +29,6 @@ import {
 } from 'antd';
 import {
   PlayCircleOutlined,
-  PauseCircleOutlined,
   CheckCircleOutlined,
   WarningOutlined,
   ToolOutlined,
@@ -56,7 +55,7 @@ const WorkOrderExecution: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showProductionEntry, setShowProductionEntry] = useState(false);
-  const [showIssueReport, setShowIssueReport] = useState(false);
+  const [_showIssueReport, _setShowIssueReport] = useState(false);
 
   useEffect(() => {
     if (id && operationNumber) {

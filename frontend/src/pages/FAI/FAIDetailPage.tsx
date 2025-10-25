@@ -61,7 +61,7 @@ const FAIDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [signaturesLoading, setSignaturesLoading] = useState(false);
   const [signatureModalVisible, setSignatureModalVisible] = useState(false);
-  const [approvingWithSignature, setApprovingWithSignature] = useState(false);
+  const [_approvingWithSignature, setApprovingWithSignature] = useState(false);
   const [cmmImportModalVisible, setCmmImportModalVisible] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
 

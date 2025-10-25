@@ -23,7 +23,6 @@ import {
 import {
   SearchOutlined,
   CloseCircleOutlined,
-  HistoryOutlined,
   FilterOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -59,7 +58,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<SearchScope>(defaultScope);
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [_results, setResults] = useState<SearchResult[]>([]);
   const [resultGroups, setResultGroups] = useState<SearchResultGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalResults, setTotalResults] = useState(0);

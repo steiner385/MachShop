@@ -6,7 +6,7 @@
  * frontend quality issues are caught during testing.
  */
 
-import { expect, vi } from 'vitest';
+import { expect, vi, beforeEach } from 'vitest';
 
 // Store original console methods
 const originalConsoleWarn = console.warn;

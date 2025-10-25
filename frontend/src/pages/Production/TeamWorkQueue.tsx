@@ -150,7 +150,7 @@ const TeamWorkQueue: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_, record) => (
+      render: (_) => (
         <Space>
           <Button size="small" data-testid="view-details-button">
             Details

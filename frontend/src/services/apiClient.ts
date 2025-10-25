@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { useAuthStore } from '@/store/AuthStore';
 
 class ApiClient {
   private client: AxiosInstance;

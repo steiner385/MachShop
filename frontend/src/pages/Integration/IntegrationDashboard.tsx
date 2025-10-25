@@ -56,18 +56,19 @@ interface IntegrationHealth {
   };
 }
 
-interface IntegrationLog {
-  id: string;
-  configId: string;
-  operation: string;
-  direction: 'INBOUND' | 'OUTBOUND';
-  status: 'SUCCESS' | 'PARTIAL' | 'FAILURE';
-  recordCount: number;
-  successCount: number;
-  errorCount: number;
-  duration: number;
-  createdAt: string;
-}
+// Unused interface - preserved for future use
+// interface _IntegrationLog {
+//   id: string;
+//   configId: string;
+//   operation: string;
+//   direction: 'INBOUND' | 'OUTBOUND';
+//   status: 'SUCCESS' | 'PARTIAL' | 'FAILURE';
+//   recordCount: number;
+//   successCount: number;
+//   errorCount: number;
+//   duration: number;
+//   createdAt: string;
+// }
 
 const IntegrationDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ const IntegrationDashboard: React.FC = () => {
   const totalIntegrations = healthData.length;
   const activeIntegrations = healthData.filter(h => h.enabled).length;
   const connectedIntegrations = healthData.filter(h => h.connected && h.enabled).length;
-  const totalSyncs = healthData.reduce((sum, h) => sum + h.statistics.totalSyncs, 0);
+  // const _totalSyncs = healthData.reduce((sum, h) => sum + h.statistics.totalSyncs, 0);
   const avgSuccessRate = healthData.length > 0
     ? healthData.reduce((sum, h) => sum + h.statistics.successRate, 0) / healthData.length
     : 0;

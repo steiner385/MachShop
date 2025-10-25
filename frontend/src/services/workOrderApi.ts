@@ -11,6 +11,8 @@ export interface WorkOrder {
   status: 'CREATED' | 'RELEASED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ON_HOLD';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
   dueDate: string;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
   customerOrder?: string;
   createdDate: string;
   startedDate?: string;

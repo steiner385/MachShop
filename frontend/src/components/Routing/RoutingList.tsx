@@ -34,7 +34,7 @@ import { Routing, LIFECYCLE_STATE_COLORS, LIFECYCLE_STATE_LABELS } from '@/types
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { isRoutingEditable } from '@/api/routing';
-import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
+import { usePermissionCheck } from '@/store/AuthStore';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -52,8 +52,7 @@ export const RoutingList: React.FC = () => {
   const [isPrimaryFilter, setIsPrimaryFilter] = useState<boolean | undefined>();
 
   const { currentSite, allSites } = useSite();
-  const { user } = useAuthStore();
-  const { hasPermission, hasAnyPermission } = usePermissionCheck();
+  const { hasAnyPermission } = usePermissionCheck();
 
   const {
     routings,

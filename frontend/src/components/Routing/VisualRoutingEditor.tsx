@@ -20,18 +20,12 @@ import ReactFlow, {
   Panel,
   ReactFlowProvider,
   NodeTypes,
-  EdgeTypes,
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button, Space, message, Tooltip } from 'antd';
 import {
   SaveOutlined,
-  UndoOutlined,
-  RedoOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined,
-  FullscreenOutlined,
   LayoutOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -118,7 +112,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
  * Visual Routing Editor Component
  */
 export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
-  routingId,
   steps = [],
   dependencies = [],
   onSave,
@@ -225,6 +218,8 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
         ...params,
         id: `e${params.source}-${params.target}`,
         type: 'default',
+        source: params.source || '',
+        target: params.target || '',
         markerEnd: {
           type: MarkerType.ArrowClosed,
         },

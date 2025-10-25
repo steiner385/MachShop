@@ -50,10 +50,10 @@ const TraceabilityDetailPage: React.FC = () => {
     <div style={{ padding: '24px' }}>
       {/* Breadcrumb */}
       <Breadcrumb style={{ marginBottom: '16px' }}>
-        <Breadcrumb.Item onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+        <Breadcrumb.Item onClick={() => navigate('/dashboard')}>
           <HomeOutlined />
         </Breadcrumb.Item>
-        <Breadcrumb.Item onClick={() => navigate('/traceability')} style={{ cursor: 'pointer' }}>
+        <Breadcrumb.Item onClick={() => navigate('/traceability')}>
           Traceability
         </Breadcrumb.Item>
         <Breadcrumb.Item>

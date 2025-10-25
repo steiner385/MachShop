@@ -64,26 +64,23 @@ export const equipmentApi = {
    * Get list of equipment with optional filters
    */
   async getEquipment(filters?: EquipmentFilters): Promise<EquipmentListResponse> {
-    const response = await apiClient.get<EquipmentListResponse>('/equipment', {
+    return await apiClient.get<EquipmentListResponse>('/equipment', {
       params: filters,
     });
-    return response.data;
   },
 
   /**
    * Get equipment by ID
    */
   async getEquipmentById(id: string): Promise<Equipment> {
-    const response = await apiClient.get<Equipment>(`/equipment/${id}`);
-    return response.data;
+    return await apiClient.get<Equipment>(`/equipment/${id}`);
   },
 
   /**
    * Get equipment statistics (counts and averages)
    */
   async getStatistics(): Promise<EquipmentStatistics> {
-    const response = await apiClient.get<EquipmentStatistics>('/equipment/statistics');
-    return response.data;
+    return await apiClient.get<EquipmentStatistics>('/equipment/statistics');
   },
 
   /**
@@ -95,16 +92,14 @@ export const equipmentApi = {
     lastMaintenanceDate: string | null;
     nextMaintenanceDate: string | null;
   }> {
-    const response = await apiClient.get(`/equipment/${id}/status`);
-    return response.data;
+    return await apiClient.get(`/equipment/${id}/status`);
   },
 
   /**
    * Get equipment status history
    */
   async getStatusHistory(id: string): Promise<EquipmentStatusHistory[]> {
-    const response = await apiClient.get<EquipmentStatusHistory[]>(`/equipment/${id}/history`);
-    return response.data;
+    return await apiClient.get<EquipmentStatusHistory[]>(`/equipment/${id}/history`);
   },
 
   /**
@@ -115,11 +110,10 @@ export const equipmentApi = {
     status: EquipmentStatus,
     notes?: string
   ): Promise<Equipment> {
-    const response = await apiClient.post<Equipment>(`/equipment/${id}/status`, {
+    return await apiClient.post<Equipment>(`/equipment/${id}/status`, {
       status,
       notes,
     });
-    return response.data;
   },
 
   /**
@@ -130,10 +124,9 @@ export const equipmentApi = {
     maintenanceDate: string,
     notes?: string
   ): Promise<Equipment> {
-    const response = await apiClient.post<Equipment>(`/equipment/${id}/maintenance`, {
+    return await apiClient.post<Equipment>(`/equipment/${id}/maintenance`, {
       maintenanceDate,
       notes,
     });
-    return response.data;
   },
 };

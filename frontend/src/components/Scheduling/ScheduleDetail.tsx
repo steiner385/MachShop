@@ -27,7 +27,6 @@ import {
   Alert,
   Tabs,
   Timeline as AntTimeline,
-  Badge,
   Progress,
   Row,
   Col,
@@ -36,33 +35,29 @@ import {
 import {
   ArrowLeftOutlined,
   EditOutlined,
-  DeleteOutlined,
   PlusOutlined,
   ThunderboltOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
-  ReloadOutlined,
   SendOutlined,
-  BarChartOutlined,
   SortAscendingOutlined,
 } from '@ant-design/icons';
 import { useSchedulingStore } from '@/store/schedulingStore';
 import { useAuthStore } from '@/store/AuthStore';
 import {
   ScheduleEntry,
+  SchedulePriority,
   SCHEDULE_STATE_COLORS,
   SCHEDULE_STATE_LABELS,
   PRIORITY_COLORS,
   PRIORITY_LABELS,
-  CONSTRAINT_TYPE_COLORS,
-  CONSTRAINT_TYPE_LABELS,
 } from '@/types/scheduling';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -319,7 +314,7 @@ export const ScheduleDetail: React.FC = () => {
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: (priority) => (
+      render: (priority: SchedulePriority) => (
         <Tag color={PRIORITY_COLORS[priority]} icon={priority === 'HOT' ? <ThunderboltOutlined /> : undefined}>
           {PRIORITY_LABELS[priority]}
         </Tag>

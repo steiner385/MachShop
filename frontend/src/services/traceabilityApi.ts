@@ -94,70 +94,63 @@ export const traceabilityApi = {
    * Includes genealogy, manufacturing history, certificates, and quality records
    */
   async getTraceabilityBySerialNumber(serialNumber: string): Promise<TraceabilityDetails> {
-    const response = await apiClient.get<TraceabilityDetails>(
+    return await apiClient.get<TraceabilityDetails>(
       `/traceability/serial/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
    * Get genealogy tree for a serial number (backward traceability)
    */
   async getGenealogy(serialNumber: string): Promise<GenealogyNode> {
-    const response = await apiClient.get<GenealogyNode>(
+    return await apiClient.get<GenealogyNode>(
       `/traceability/genealogy/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
    * Get manufacturing history timeline for a serial number
    */
   async getManufacturingHistory(serialNumber: string): Promise<ManufacturingHistoryEntry[]> {
-    const response = await apiClient.get<ManufacturingHistoryEntry[]>(
+    return await apiClient.get<ManufacturingHistoryEntry[]>(
       `/traceability/history/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
    * Get material certificates for a serial number
    */
   async getMaterialCertificates(serialNumber: string): Promise<MaterialCertificate[]> {
-    const response = await apiClient.get<MaterialCertificate[]>(
+    return await apiClient.get<MaterialCertificate[]>(
       `/traceability/certificates/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
    * Get quality records for a serial number
    */
   async getQualityRecords(serialNumber: string): Promise<QualityRecord[]> {
-    const response = await apiClient.get<QualityRecord[]>(
+    return await apiClient.get<QualityRecord[]>(
       `/traceability/quality/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
    * Get forward traceability - find where a material lot was used
    */
   async getForwardTraceability(materialLot: string): Promise<ForwardTraceabilityResult> {
-    const response = await apiClient.get<ForwardTraceabilityResult>(
+    return await apiClient.get<ForwardTraceabilityResult>(
       `/traceability/forward/${materialLot}`
     );
-    return response.data;
   },
 
   /**
    * Get backward traceability - find all materials/components used to make a product
    */
   async getBackwardTraceability(serialNumber: string): Promise<any> {
-    const response = await apiClient.get<any>(
+    return await apiClient.get<any>(
       `/traceability/backward/${serialNumber}`
     );
-    return response.data;
   },
 
   /**
@@ -166,9 +159,8 @@ export const traceabilityApi = {
   async searchTraceability(
     filters: TraceabilitySearchFilters
   ): Promise<Array<{ serialNumber: string; partNumber: string; partName: string }>> {
-    const response = await apiClient.get('/traceability/search', {
+    return await apiClient.get('/traceability/search', {
       params: filters,
     });
-    return response.data;
   },
 };

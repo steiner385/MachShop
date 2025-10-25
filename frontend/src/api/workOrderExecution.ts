@@ -4,11 +4,12 @@
  */
 
 import apiClient, { ApiResponse } from './client';
-import { ProductionEntryValues } from '@/components/WorkOrders/ProductionEntryForm';
+import { ProductionEntryValues as _ProductionEntryValues } from '@/components/WorkOrders/ProductionEntryForm';
 
 export interface WorkOrderOperation {
   id: string;
   workOrderId: string;
+  workOrderNumber?: string;
   operationNumber: number;
   operationName: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';

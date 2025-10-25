@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, Form, DatePicker, message, Alert, Select, Input, Space } from 'antd';
+import { Modal, Form, DatePicker, message, Alert, Select, Input } from 'antd';
 import { CalendarOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;

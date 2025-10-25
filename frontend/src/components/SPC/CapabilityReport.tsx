@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, Row, Col, Statistic, Typography, Space, Tag, Alert, Descriptions, Button } from 'antd';
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,

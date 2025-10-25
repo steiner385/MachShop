@@ -22,7 +22,6 @@ import {
   Tag,
   Divider,
   Alert,
-  Spin,
   Tooltip,
 } from 'antd';
 import {
@@ -33,12 +32,11 @@ import {
   CloseCircleOutlined,
   WarningOutlined,
   ApiOutlined,
-  SyncOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
+const { TextArea: _TextArea } = Input;
 
 interface Integration {
   id: string;
@@ -56,14 +54,14 @@ interface Integration {
   updatedAt: string;
 }
 
-interface IntegrationFormData {
-  name: string;
-  displayName: string;
-  type: 'ERP' | 'PLM' | 'CMMS';
-  integrationType: 'oracle_fusion' | 'oracle_ebs' | 'teamcenter';
-  enabled: boolean;
-  config: any;
-}
+// interface _IntegrationFormData {
+//   name: string;
+//   displayName: string;
+//   type: 'ERP' | 'PLM' | 'CMMS';
+//   integrationType: 'oracle_fusion' | 'oracle_ebs' | 'teamcenter';
+//   enabled: boolean;
+//   config: any;
+// }
 
 const IntegrationConfig: React.FC = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([]);

@@ -283,10 +283,10 @@ const Quality: React.FC = () => {
               prefix={<ExperimentOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
-            <Progress 
+            <Progress
               percent={Math.round((qualityMetrics.passedInspections / qualityMetrics.inspectionsToday) * 100)}
               size="small"
-              format={(percent) => `${qualityMetrics.passedInspections}/${qualityMetrics.inspectionsToday} passed`}
+              format={() => `${qualityMetrics.passedInspections}/${qualityMetrics.inspectionsToday} passed`}
               style={{ marginTop: 8 }}
             />
           </Card>
@@ -353,10 +353,10 @@ const Quality: React.FC = () => {
                       {ncr.description}
                     </div>
                     <Space size="small">
-                      <Tag color={getSeverityColor(ncr.severity)} size="small">
+                      <Tag color={getSeverityColor(ncr.severity)}>
                         {ncr.severity}
                       </Tag>
-                      <Tag color={getStatusColor(ncr.status)} size="small">
+                      <Tag color={getStatusColor(ncr.status)}>
                         {ncr.status}
                       </Tag>
                     </Space>

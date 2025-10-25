@@ -60,6 +60,7 @@ export interface Part {
   id: string;
   partNumber: string;
   name: string;
+  partName?: string; // Alias for name field
 }
 
 export interface Site {
@@ -120,6 +121,8 @@ export interface RoutingStep {
   setupTimeOverride?: number;
   cycleTimeOverride?: number;
   teardownTimeOverride?: number;
+  standardTime?: number; // Calculated standard time
+  setupTime?: number; // Alias for setupTimeOverride or from operation
   isOptional: boolean;
   isQualityInspection: boolean;
   isCriticalPath: boolean;

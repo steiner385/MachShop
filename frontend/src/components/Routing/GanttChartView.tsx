@@ -9,7 +9,6 @@ import React, { useMemo } from 'react';
 import { Card, Empty, Spin, Space, Typography, Tag, Tooltip } from 'antd';
 import {
   ClockCircleOutlined,
-  NodeIndexOutlined,
   InfoCircleOutlined,
   WarningOutlined,
 } from '@ant-design/icons';

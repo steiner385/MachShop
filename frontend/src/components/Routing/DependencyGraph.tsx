@@ -72,7 +72,7 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
             color: step.isCriticalPath || step.isQualityInspection ? '#fff' : '#000',
             multi: 'html',
           },
-          margin: 10,
+          margin: { top: 10, right: 10, bottom: 10, left: 10 },
         }))
       );
 
@@ -89,6 +89,7 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
             highlight: '#1890ff',
           },
           smooth: {
+            enabled: true,
             type: 'cubicBezier',
             roundness: 0.4,
           },
@@ -134,7 +135,7 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
           dragView: true,
           tooltipDelay: 200,
         },
-      };
+      } as any;
 
       // Create network
       const network = new Network(containerRef.current, { nodes, edges }, options);

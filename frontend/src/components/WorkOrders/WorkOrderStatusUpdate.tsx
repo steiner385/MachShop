@@ -40,7 +40,7 @@ const HOLD_REASONS = [
  * Requires reason for status changes (especially holds).
  */
 export const WorkOrderStatusUpdate: React.FC<WorkOrderStatusUpdateProps> = ({
-  workOrderId,
+  workOrderId: _workOrderId,
   workOrderNumber,
   currentStatus,
   visible,

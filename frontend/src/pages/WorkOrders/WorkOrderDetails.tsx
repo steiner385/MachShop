@@ -11,7 +11,6 @@ import {
   Typography,
   Row,
   Col,
-  Timeline,
   Breadcrumb,
   Spin,
   Alert,
@@ -21,8 +20,6 @@ import {
   ArrowLeftOutlined,
   EditOutlined,
   PlayCircleOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 

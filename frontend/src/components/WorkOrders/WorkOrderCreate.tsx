@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, DatePicker, message, Alert } from 'antd';
+import { Modal, Form, Input, InputNumber, DatePicker, Select, Alert, message } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import dayjs, { Dayjs } from 'dayjs';
+// import { workOrderAPI } from '@/services/workOrderApi';
 import { useSite } from '@/contexts/SiteContext';
 
 const { Option } = Select;
-const { TextArea } = Input;
+// const { TextArea } = Input;
 
 interface WorkOrderCreateProps {
   visible: boolean;
@@ -158,7 +158,7 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
             loading={loadingParts}
             showSearch
             filterOption={(input, option) =>
-              (option?.children as string).toLowerCase().includes(input.toLowerCase())
+              (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
             }
             data-testid="part-number-select"
           >

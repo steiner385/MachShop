@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent as _fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { WorkInstructionList } from '@/components/WorkInstructions/WorkInstructionList';
 import { WorkInstructionForm } from '@/components/WorkInstructions/WorkInstructionForm';

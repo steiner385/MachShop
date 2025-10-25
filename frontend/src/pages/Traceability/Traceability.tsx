@@ -38,7 +38,7 @@ const { Search } = Input;
 
 const Traceability: React.FC = () => {
   const navigate = useNavigate();
-  const [searchValue, setSearchValue] = useState('');
+  const [_searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [traceabilityData, setTraceabilityData] = useState<any>(null);

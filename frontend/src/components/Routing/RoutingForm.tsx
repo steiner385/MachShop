@@ -95,14 +95,15 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
 
   // Routing change detection for collaboration
   const {
-    hasChanged,
+    hasChanges: _hasChanges,
     changeInfo,
     dismissChange,
-    checkForChanges,
+    checkNow: _checkNow,
   } = useRoutingChangeDetection({
-    routingId: id || null,
+    routingId: id || '',
+    currentVersion: currentRouting?.version || '1.0',
     enabled: mode === 'edit' && !!id,
-    pollingInterval: 10000, // Check every 10 seconds
+    pollInterval: 10000, // Check every 10 seconds
   });
 
   // Load routing if in edit mode
@@ -140,17 +141,17 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
   }, [mode, currentRouting, currentSite, form]);
 
   // Handle visual routing changes
-  const handleNodesChange = (nodes: Node[]) => {
-    setRoutingNodes(nodes);
-    setHasUnsavedChanges(true);
-  };
+  // const handleNodesChange = (nodes: Node[]) => {
+  //   setRoutingNodes(nodes);
+  //   setHasUnsavedChanges(true);
+  // };
 
-  const handleEdgesChange = (edges: Edge[]) => {
-    setRoutingEdges(edges);
-    setHasUnsavedChanges(true);
-  };
+  // const handleEdgesChange = (edges: Edge[]) => {
+  //   setRoutingEdges(edges);
+  //   setHasUnsavedChanges(true);
+  // };
 
-  const handleVisualSave = (nodes: Node[], edges: Edge[]) => {
+  const handleVisualSave = async (nodes: Node[], edges: Edge[]): Promise<void> => {
     setRoutingNodes(nodes);
     setRoutingEdges(edges);
     setHasUnsavedChanges(false);
@@ -209,7 +210,6 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
     if (id) {
       fetchRoutingById(id);
       setHasUnsavedChanges(false);
-      checkForChanges();
     }
   };
 
@@ -315,7 +315,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                     </Tooltip>
                   ),
                   value: 'form',
-                },
+                } as any,
                 {
                   label: (
                     <Tooltip title="Visual drag-and-drop editor">
@@ -326,7 +326,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                     </Tooltip>
                   ),
                   value: 'visual',
-                },
+                } as any,
               ]}
               size="large"
             />
@@ -340,7 +340,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
       </div>
 
       {/* Routing Changed Alert (when another user modifies) */}
-      {hasChanged && changeInfo && (
+      {_hasChanges && changeInfo && (
         <div style={{ marginBottom: '24px' }}>
           <RoutingChangedAlert
             changeInfo={changeInfo}
@@ -365,14 +365,9 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
       {editorMode === 'visual' ? (
         <div style={{ height: 'calc(100vh - 200px)' }}>
           <VisualRoutingEditor
-            initialNodes={routingNodes}
-            initialEdges={routingEdges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={handleEdgesChange}
+            routingId={id}
             onSave={handleVisualSave}
             readOnly={false}
-            routingId={id}
-            routingName={form.getFieldValue('routingNumber') || 'New Routing'}
           />
         </div>
       ) : (
@@ -429,7 +424,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                   placeholder="Select a part"
                   optionFilterProp="children"
                   filterOption={(input, option) =>
-                    (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                    ((option?.children as unknown) as string)?.toLowerCase().includes(input.toLowerCase())
                   }
                 >
                   {/* TODO: Load parts from API */}

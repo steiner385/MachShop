@@ -14,17 +14,14 @@ import {
   Tag,
   Button,
   Select,
-  DatePicker,
   Drawer,
   Descriptions,
   Alert,
-  Input,
   message,
   Tooltip,
   Badge,
 } from 'antd';
 import {
-  SearchOutlined,
   ReloadOutlined,
   DownloadOutlined,
   InfoCircleOutlined,
@@ -35,13 +32,12 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
 
 interface IntegrationLog {
   id: string;
@@ -69,12 +65,11 @@ interface LogFilters {
   configId?: string;
   operation?: string;
   status?: string;
-  dateRange?: [Dayjs, Dayjs];
+  dateRange?: [dayjs.Dayjs, dayjs.Dayjs];
 }
 
 const IntegrationLogs: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [logs, setLogs] = useState<IntegrationLog[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);

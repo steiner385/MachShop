@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Space, Select, Tooltip } from 'antd';
+import type { SizeType } from 'antd/es/config-provider/SizeContext';
 import {
   LeftOutlined,
   RightOutlined,
@@ -15,7 +16,7 @@ interface StepNavigationProps {
   onNext: () => void;
   onJumpToStep: (stepIndex: number) => void;
   completedSteps?: Set<number>;
-  size?: 'small' | 'default' | 'large';
+  size?: SizeType;
   showJumpMenu?: boolean;
 }
 

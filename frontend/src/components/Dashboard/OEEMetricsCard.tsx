@@ -27,6 +27,8 @@ import {
 import { getOEEDashboard } from '@/api/equipment';
 import {
   OEEDashboardData,
+  EquipmentClass,
+  EquipmentStatus,
   EQUIPMENT_CLASS_LABELS,
   EQUIPMENT_CLASS_COLORS,
   EQUIPMENT_STATUS_COLORS,
@@ -96,7 +98,7 @@ export const OEEMetricsCard: React.FC = () => {
       dataIndex: 'equipmentClass',
       key: 'equipmentClass',
       width: 120,
-      render: (equipmentClass) => (
+      render: (equipmentClass: EquipmentClass) => (
         <Tag color={EQUIPMENT_CLASS_COLORS[equipmentClass]}>
           {EQUIPMENT_CLASS_LABELS[equipmentClass]}
         </Tag>
@@ -143,7 +145,7 @@ export const OEEMetricsCard: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status) => (
+      render: (status: EquipmentStatus) => (
         <Tag color={EQUIPMENT_STATUS_COLORS[status]}>{status}</Tag>
       ),
     },

@@ -27,7 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { workOrderApi, WorkOrder, WorkOrderFilters } from '@/services/workOrderApi';
 import { message } from 'antd';
-import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
+import { usePermissionCheck } from '@/store/AuthStore';
 import { PERMISSIONS } from '@/types/auth';
 import { WorkOrderCreate } from '@/components/WorkOrders/WorkOrderCreate';
 import { WorkOrderPriorityChange } from '@/components/WorkOrders/WorkOrderPriorityChange';
@@ -51,7 +51,6 @@ const WorkOrders: React.FC = () => {
     total: 0,
   });
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const { hasPermission } = usePermissionCheck();
 
   // Set page title
@@ -101,7 +100,7 @@ const WorkOrders: React.FC = () => {
   };
 
   // Transform work orders to match table format
-  const tableData = workOrders.map((wo, index) => ({
+  const tableData = workOrders.map((wo, _index) => ({
     key: wo.id,
     id: wo.workOrderNumber,
     partNumber: wo.partNumber,

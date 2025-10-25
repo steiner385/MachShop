@@ -31,8 +31,6 @@ import {
   Personnel,
   COMPETENCY_LEVEL_COLORS,
   COMPETENCY_LEVEL_LABELS,
-  CERTIFICATION_STATUS_COLORS,
-  CERTIFICATION_STATUS_LABELS,
 } from '@/types/personnel';
 import { personnelAPI } from '@/api/personnel';
 import type { ColumnsType } from 'antd/es/table';

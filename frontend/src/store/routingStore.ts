@@ -17,7 +17,6 @@ import {
 import {
   Routing,
   RoutingStep,
-  RoutingStepDependency,
   PartSiteAvailability,
   RoutingQueryParams,
   CreateRoutingRequest,
@@ -28,7 +27,6 @@ import {
   CopyRoutingRequest,
   ApproveRoutingRequest,
   ResequenceStepsRequest,
-  RoutingLifecycleState,
   RoutingFilters,
 } from '@/types/routing';
 

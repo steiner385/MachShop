@@ -4,13 +4,10 @@ import {
   ParameterFormula,
   createFormula,
   updateFormula,
-  deleteFormula,
-  listFormulas,
   evaluateExpression,
   validateFormula,
   testFormula,
   extractDependencies,
-  toggleFormulaActive,
 } from '../../api/parameters';
 
 interface FormulaBuilderProps {
@@ -47,7 +44,7 @@ export const FormulaBuilder: React.FC<FormulaBuilderProps> = ({
   const [evaluationTrigger, setEvaluationTrigger] = useState<'ON_CHANGE' | 'ON_DEMAND' | 'SCHEDULED'>(
     formula?.evaluationTrigger || 'ON_CHANGE'
   );
-  const [createdBy, setCreatedBy] = useState(formula?.createdBy || 'system');
+  const [_createdBy, _setCreatedBy] = useState(formula?.createdBy || 'system');
 
   const [dependencies, setDependencies] = useState<string[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([
@@ -160,7 +157,7 @@ export const FormulaBuilder: React.FC<FormulaBuilderProps> = ({
           outputParameterId,
           evaluationTrigger,
           isActive: true,
-          createdBy,
+          createdBy: _createdBy,
           testCases: testCases.length > 0 ? testCases : undefined,
         });
       }

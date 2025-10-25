@@ -17,7 +17,7 @@ import {
 import { ApartmentOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { createOperation, getAllOperations } from '@/api/operation';
-import type { CreateOperationData, OperationType, Operation } from '@/types/operation';
+import type { CreateOperationData, Operation } from '@/types/operation';
 
 const { Title, Text } = Typography;
 const { Option } = Select;

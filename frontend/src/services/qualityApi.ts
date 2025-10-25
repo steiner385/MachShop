@@ -122,26 +122,23 @@ export const qualityApi = {
    * Get list of quality inspections with optional filters
    */
   async getInspections(filters?: InspectionFilters): Promise<InspectionListResponse> {
-    const response = await apiClient.get<InspectionListResponse>('/quality/inspections', {
+    return await apiClient.get<InspectionListResponse>('/quality/inspections', {
       params: filters,
     });
-    return response.data;
   },
 
   /**
    * Get inspection by ID
    */
   async getInspectionById(id: string): Promise<QualityInspection> {
-    const response = await apiClient.get<QualityInspection>(`/quality/inspections/${id}`);
-    return response.data;
+    return await apiClient.get<QualityInspection>(`/quality/inspections/${id}`);
   },
 
   /**
    * Create a new quality inspection
    */
   async createInspection(data: CreateInspectionRequest): Promise<QualityInspection> {
-    const response = await apiClient.post<QualityInspection>('/quality/inspections', data);
-    return response.data;
+    return await apiClient.post<QualityInspection>('/quality/inspections', data);
   },
 
   /**
@@ -153,13 +150,12 @@ export const qualityApi = {
     passedCharacteristics: number,
     notes?: string
   ): Promise<QualityInspection> {
-    const response = await apiClient.patch<QualityInspection>(`/quality/inspections/${id}`, {
+    return await apiClient.patch<QualityInspection>(`/quality/inspections/${id}`, {
       result,
       passedCharacteristics,
       notes,
       completedAt: new Date().toISOString(),
     });
-    return response.data;
   },
 
   // ===== NCR Endpoints =====
@@ -168,37 +164,33 @@ export const qualityApi = {
    * Get list of NCRs with optional filters
    */
   async getNCRs(filters?: NCRFilters): Promise<NCRListResponse> {
-    const response = await apiClient.get<NCRListResponse>('/quality/ncrs', {
+    return await apiClient.get<NCRListResponse>('/quality/ncrs', {
       params: filters,
     });
-    return response.data;
   },
 
   /**
    * Get NCR by ID
    */
   async getNCRById(id: string): Promise<NCR> {
-    const response = await apiClient.get<NCR>(`/quality/ncrs/${id}`);
-    return response.data;
+    return await apiClient.get<NCR>(`/quality/ncrs/${id}`);
   },
 
   /**
    * Create a new NCR
    */
   async createNCR(data: CreateNCRRequest): Promise<NCR> {
-    const response = await apiClient.post<NCR>('/quality/ncrs', data);
-    return response.data;
+    return await apiClient.post<NCR>('/quality/ncrs', data);
   },
 
   /**
    * Update NCR status
    */
   async updateNCRStatus(id: string, status: NCRStatus, notes?: string): Promise<NCR> {
-    const response = await apiClient.patch<NCR>(`/quality/ncrs/${id}/status`, {
+    return await apiClient.patch<NCR>(`/quality/ncrs/${id}/status`, {
       status,
       notes,
     });
-    return response.data;
   },
 
   /**
@@ -209,21 +201,19 @@ export const qualityApi = {
     correctiveAction: string,
     rootCause?: string
   ): Promise<NCR> {
-    const response = await apiClient.patch<NCR>(`/quality/ncrs/${id}/corrective-action`, {
+    return await apiClient.patch<NCR>(`/quality/ncrs/${id}/corrective-action`, {
       correctiveAction,
       rootCause,
     });
-    return response.data;
   },
 
   /**
    * Close an NCR
    */
   async closeNCR(id: string, resolution: string): Promise<NCR> {
-    const response = await apiClient.patch<NCR>(`/quality/ncrs/${id}/close`, {
+    return await apiClient.patch<NCR>(`/quality/ncrs/${id}/close`, {
       resolution,
       closedAt: new Date().toISOString(),
     });
-    return response.data;
   },
 };

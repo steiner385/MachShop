@@ -180,7 +180,7 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
  * Manages steps with drag-and-drop reordering, CRUD operations, and file uploads
  */
 export const WorkInstructionStepEditor: React.FC<WorkInstructionStepEditorProps> = ({
-  workInstructionId,
+  workInstructionId: _workInstructionId,
   steps,
   onAddStep,
   onUpdateStep,

@@ -56,8 +56,8 @@ const REWORK_REASON_CODES = [
 ];
 
 export const ProductionEntryForm: React.FC<ProductionEntryFormProps> = ({
-  workOrderId,
-  operationNumber,
+  workOrderId: _workOrderId,
+  operationNumber: _operationNumber,
   orderedQuantity,
   completedQuantity,
   onSubmit,
