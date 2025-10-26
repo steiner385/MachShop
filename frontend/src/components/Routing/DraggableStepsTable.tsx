@@ -218,7 +218,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
                   cancelText="No"
                   okButtonProps={{ danger: true }}
                 >
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="delete step" />
                 </Popconfirm>
               </Tooltip>
             </>

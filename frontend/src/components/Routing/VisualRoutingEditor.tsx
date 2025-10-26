@@ -390,6 +390,42 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
                   Join
                 </Button>
               </Tooltip>
+
+              <Tooltip title="Add Outside Processing">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('OSP')}
+                >
+                  OSP
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Lot Split">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('LOT_SPLIT')}
+                >
+                  Lot Split
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Lot Merge">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('LOT_MERGE')}
+                >
+                  Lot Merge
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Telescoping Operation">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('TELESCOPING')}
+                >
+                  Telescoping
+                </Button>
+              </Tooltip>
             </Space>
           </Panel>
         )}

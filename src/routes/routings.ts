@@ -32,8 +32,8 @@ const router = express.Router();
 
 const createRoutingSchema = z.object({
   routingNumber: z.string().min(1),
-  partId: z.string().uuid(),
-  siteId: z.string().uuid(),
+  partId: z.string(), // Cuid2 format
+  siteId: z.string(), // Cuid2 format
   version: z.string().optional().default('1.0'),
   lifecycleState: z.nativeEnum(RoutingLifecycleState).optional().default(RoutingLifecycleState.DRAFT),
   description: z.string().optional(),
@@ -45,8 +45,8 @@ const createRoutingSchema = z.object({
   notes: z.string().optional(),
   steps: z.array(z.object({
     stepNumber: z.number().int().positive(),
-    operationId: z.string().uuid(), // ISA-95: processSegmentId
-    workCenterId: z.string().uuid().optional(),
+    operationId: z.string(), // ISA-95: processSegmentId (Cuid2 format)
+    workCenterId: z.string().optional(), // Cuid2 format
     setupTimeOverride: z.number().int().nonnegative().optional(),
     cycleTimeOverride: z.number().int().nonnegative().optional(),
     teardownTimeOverride: z.number().int().nonnegative().optional(),
@@ -60,8 +60,8 @@ const createRoutingSchema = z.object({
 
 const updateRoutingSchema = z.object({
   routingNumber: z.string().min(1).optional(),
-  partId: z.string().uuid().optional(),
-  siteId: z.string().uuid().optional(),
+  partId: z.string().optional(), // Cuid2 format
+  siteId: z.string().optional(), // Cuid2 format
   version: z.string().optional(),
   lifecycleState: z.nativeEnum(RoutingLifecycleState).optional(),
   description: z.string().optional(),
@@ -176,6 +176,14 @@ const resequenceStepsSchema = z.object({
 router.post('/',
   requireRoutingWrite,
   asyncHandler(async (req, res) => {
+    console.log('[DEBUG] Routing creation - Request body:', JSON.stringify(req.body, null, 2));
+    try {
+      const validatedData = createRoutingSchema.parse(req.body);
+      console.log('[DEBUG] Routing creation - Validation passed:', JSON.stringify(validatedData, null, 2));
+    } catch (zodError: any) {
+      console.error('[DEBUG] Routing creation - Zod validation error:', JSON.stringify(zodError, null, 2));
+      throw zodError;
+    }
     const validatedData = createRoutingSchema.parse(req.body);
 
     // Convert datetime strings to Date objects

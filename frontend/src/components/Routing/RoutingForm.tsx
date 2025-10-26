@@ -47,6 +47,7 @@ import { ActiveUsersIndicator } from './ActiveUsersIndicator';
 import { RoutingChangedAlert } from './RoutingChangedAlert';
 import { VersionConflictModal } from './VersionConflictModal';
 import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
+import partsAPI, { Part } from '@/api/parts';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -82,6 +83,10 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
   const [showVersionConflict, setShowVersionConflict] = useState(false);
   const [versionConflictError, setVersionConflictError] = useState<any>(null);
 
+  // Parts state
+  const [parts, setParts] = useState<Part[]>([]);
+  const [loadingParts, setLoadingParts] = useState(false);
+
   const { currentSite, allSites } = useSite();
 
   const {
@@ -106,6 +111,24 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
     pollInterval: 10000, // Check every 10 seconds
   });
 
+  // Load parts on mount
+  useEffect(() => {
+    const loadParts = async () => {
+      try {
+        setLoadingParts(true);
+        const fetchedParts = await partsAPI.getAllParts({ isActive: true });
+        setParts(fetchedParts);
+      } catch (error) {
+        console.error('Error loading parts:', error);
+        message.error('Failed to load parts');
+      } finally {
+        setLoadingParts(false);
+      }
+    };
+
+    loadParts();
+  }, []);
+
   // Load routing if in edit mode
   useEffect(() => {
     if (mode === 'edit' && id) {
@@ -129,14 +152,13 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         notes: currentRouting.notes,
       });
     } else if (mode === 'create') {
-      // Set default site to current site
-      if (currentSite) {
-        form.setFieldValue('siteId', currentSite.id);
-      }
-      // Set default version
-      form.setFieldValue('version', '1.0');
-      form.setFieldValue('isPrimaryRoute', true);
-      form.setFieldValue('isActive', true);
+      // Set default values for create mode (use setFieldsValue to ensure all values are registered)
+      form.setFieldsValue({
+        siteId: currentSite?.id,
+        version: '1.0',
+        isPrimaryRoute: true,
+        isActive: true,
+      });
     }
   }, [mode, currentRouting, currentSite, form]);
 
@@ -161,10 +183,30 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
   // Handle form submission
   const handleSubmit = async (values: any, lifecycleState: RoutingLifecycleState) => {
     try {
+      console.log('[RoutingForm] handleSubmit called with values:', values);
+      console.log('[RoutingForm] lifecycleState:', lifecycleState);
       setSubmitting(true);
 
+      // Clean up empty date values - remove empty strings
+      const cleanedValues = { ...values };
+      if (!cleanedValues.effectiveDate) {
+        delete cleanedValues.effectiveDate;
+      }
+      if (!cleanedValues.expirationDate) {
+        delete cleanedValues.expirationDate;
+      }
+
+      // Convert string boolean values from Select components to actual booleans
+      // Ant Design Select serializes boolean values as strings ("true"/"false")
+      if (typeof cleanedValues.isPrimaryRoute === 'string') {
+        cleanedValues.isPrimaryRoute = cleanedValues.isPrimaryRoute === 'true';
+      }
+      if (typeof cleanedValues.isActive === 'string') {
+        cleanedValues.isActive = cleanedValues.isActive === 'true';
+      }
+
       const formData: CreateRoutingRequest | UpdateRoutingRequest = {
-        ...values,
+        ...cleanedValues,
         lifecycleState,
         // Include visual routing data if available
         visualData: routingNodes.length > 0 ? {
@@ -173,9 +215,13 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         } : undefined,
       };
 
+      console.log('[RoutingForm] Form data to submit:', formData);
+
       if (mode === 'create') {
         // Create new routing
+        console.log('[RoutingForm] Calling createRouting API...');
         const result = await createRouting(formData as CreateRoutingRequest);
+        console.log('[RoutingForm] createRouting result:', result);
         message.success('Routing created successfully');
 
         // Navigate to detail page if we have the created routing
@@ -186,6 +232,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         }
       } else if (mode === 'edit' && id) {
         // Update existing routing
+        console.log('[RoutingForm] Calling updateRouting API...');
         await updateRouting(id, formData as UpdateRoutingRequest);
         message.success('Routing updated successfully');
         navigate(`/routings/${id}`);
@@ -193,12 +240,16 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
 
       setHasUnsavedChanges(false);
     } catch (error: any) {
+      console.error('[RoutingForm] Submit error:', error);
+      console.error('[RoutingForm] Error details:', JSON.stringify(error, null, 2));
       // Check if this is a version conflict error
       if (error.code === 'VERSION_CONFLICT' || error.message?.includes('version conflict')) {
         setVersionConflictError(error);
         setShowVersionConflict(true);
       } else {
-        message.error(error.message || 'Failed to save routing');
+        const errorMessage = error.message || error.error || 'Failed to save routing';
+        console.error('[RoutingForm] Error message:', errorMessage);
+        message.error(errorMessage);
       }
     } finally {
       setSubmitting(false);
@@ -215,16 +266,29 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
 
   // Handle save as draft
   const handleSaveDraft = () => {
-    form.validateFields().then((values) => {
-      handleSubmit(values, RoutingLifecycleState.DRAFT);
-    });
+    console.log('[RoutingForm] handleSaveDraft called');
+    console.log('[RoutingForm] Form values before validation:', form.getFieldsValue());
+    form.validateFields()
+      .then((values) => {
+        console.log('[RoutingForm] Validation successful, values:', values);
+        handleSubmit(values, RoutingLifecycleState.DRAFT);
+      })
+      .catch((errorInfo) => {
+        console.error('[RoutingForm] Validation failed:', errorInfo);
+        message.error('Please fill in all required fields');
+      });
   };
 
   // Handle create and release
   const handleCreateAndRelease = () => {
-    form.validateFields().then((values) => {
-      handleSubmit(values, RoutingLifecycleState.RELEASED);
-    });
+    form.validateFields()
+      .then((values) => {
+        handleSubmit(values, RoutingLifecycleState.RELEASED);
+      })
+      .catch((errorInfo) => {
+        console.error('Validation failed:', errorInfo);
+        message.error('Please fill in all required fields');
+      });
   };
 
   // Handle back button
@@ -290,7 +354,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
               <ControlOutlined style={{ marginRight: '8px' }} />
-              {mode === 'create' ? 'Create Routing' : 'Edit Routing'}
+              {mode === 'create' ? 'Create New Routing' : 'Edit Routing'}
             </h1>
             <Text type="secondary">
               {mode === 'create'
@@ -377,7 +441,6 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         <Form
           form={form}
           layout="vertical"
-          onFinish={() => handleSaveDraft()}
           requiredMark="optional"
         >
           {/* Basic Information Section */}
@@ -395,7 +458,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 ]}
                 tooltip="Unique identifier for this routing (e.g., RT-001)"
               >
-                <Input placeholder="RT-001" />
+                <Input id="routingNumber" name="routingNumber" placeholder="RT-001" />
               </Form.Item>
             </Col>
 
@@ -406,7 +469,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 rules={[{ required: true, message: 'Version is required' }]}
                 tooltip="Version number for this routing (e.g., 1.0, 1.1)"
               >
-                <Input placeholder="1.0" />
+                <Input id="version" name="version" placeholder="1.0" />
               </Form.Item>
             </Col>
           </Row>
@@ -420,17 +483,20 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 tooltip="Select the part this routing is for"
               >
                 <Select
+                  id="partId"
                   showSearch
                   placeholder="Select a part"
+                  loading={loadingParts}
                   optionFilterProp="children"
                   filterOption={(input, option) =>
                     ((option?.children as unknown) as string)?.toLowerCase().includes(input.toLowerCase())
                   }
                 >
-                  {/* TODO: Load parts from API */}
-                  <Option value="part-1">Part 001 - Sample Part A</Option>
-                  <Option value="part-2">Part 002 - Sample Part B</Option>
-                  <Option value="part-3">Part 003 - Sample Part C</Option>
+                  {parts.map((part) => (
+                    <Option key={part.id} value={part.id}>
+                      {part.partNumber} - {part.partName}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -442,7 +508,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 rules={[{ required: true, message: 'Site is required' }]}
                 tooltip="Select the manufacturing site for this routing"
               >
-                <Select placeholder="Select a site">
+                <Select id="siteId" placeholder="Select a site">
                   {allSites.map((site) => (
                     <Option key={site.id} value={site.id}>
                       {site.siteName} ({site.siteCode})
@@ -459,6 +525,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
             tooltip="Brief description of this routing"
           >
             <TextArea
+              id="description"
               rows={3}
               placeholder="Enter a description for this routing"
               maxLength={500}
@@ -475,7 +542,6 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
               <Form.Item
                 name="isPrimaryRoute"
                 label="Primary Route"
-                valuePropName="checked"
                 tooltip="Is this the primary/preferred routing for this part?"
               >
                 <Select>
@@ -489,7 +555,6 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
               <Form.Item
                 name="isActive"
                 label="Active Status"
-                valuePropName="checked"
                 tooltip="Is this routing currently active and usable?"
               >
                 <Select>
