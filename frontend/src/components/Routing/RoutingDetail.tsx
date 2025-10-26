@@ -15,7 +15,6 @@ import {
   Spin,
   Typography,
   Tabs,
-  Table,
   Alert,
   message,
   Statistic,
@@ -23,7 +22,6 @@ import {
   Col,
   Popconfirm,
   Badge,
-  Tooltip,
   Segmented,
 } from 'antd';
 import {
@@ -36,7 +34,6 @@ import {
   NodeIndexOutlined,
   ClockCircleOutlined,
   PlusOutlined,
-  DeleteOutlined,
   ControlOutlined,
   TableOutlined,
   BarChartOutlined,
@@ -52,7 +49,6 @@ import {
   CreateRoutingStepRequest,
 } from '@/types/routing';
 import { formatTime, isRoutingEditable } from '@/api/routing';
-import type { ColumnsType } from 'antd/es/table';
 import { StepBuilderModal } from './StepBuilderModal';
 import { DraggableStepsTable } from './DraggableStepsTable';
 import { DependencyGraph } from './DependencyGraph';
@@ -262,114 +258,114 @@ export const RoutingDetail: React.FC = () => {
     calculateRoutingTiming(id);
   };
 
-  // Table columns for steps
-  const stepColumns: ColumnsType<RoutingStep> = [
-    {
-      title: 'Step #',
-      dataIndex: 'stepNumber',
-      key: 'stepNumber',
-      width: 80,
-      align: 'center',
-      sorter: (a, b) => a.stepNumber - b.stepNumber,
-    },
-    {
-      title: 'Operation', // ISA-95: Process Segment
-      key: 'operation',
-      width: '25%',
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {record.operation?.operationName || 'N/A'}
-          </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.operation?.operationType || ''}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Work Center',
-      key: 'workCenter',
-      width: '15%',
-      render: (_, record) => record.workCenter?.name || 'Not Assigned',
-    },
-    {
-      title: 'Setup',
-      key: 'setupTime',
-      width: 100,
-      align: 'right',
-      render: (_, record) => {
-        const time = record.setupTimeOverride ?? record.operation?.setupTime ?? 0;
-        return formatTime(time);
-      },
-    },
-    {
-      title: 'Cycle',
-      key: 'cycleTime',
-      width: 100,
-      align: 'right',
-      render: (_, record) => {
-        const time = record.cycleTimeOverride ?? record.operation?.duration ?? 0;
-        return formatTime(time);
-      },
-    },
-    {
-      title: 'Teardown',
-      key: 'teardownTime',
-      width: 100,
-      align: 'right',
-      render: (_, record) => {
-        const time = record.teardownTimeOverride ?? record.operation?.teardownTime ?? 0;
-        return formatTime(time);
-      },
-    },
-    {
-      title: 'Flags',
-      key: 'flags',
-      width: 150,
-      render: (_, record) => (
-        <Space size="small">
-          {record.isOptional && <Tag color="blue">Optional</Tag>}
-          {record.isQualityInspection && <Tag color="green">QC</Tag>}
-          {record.isCriticalPath && <Tag color="red">Critical</Tag>}
-        </Space>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 100,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          {currentRouting && isRoutingEditable(currentRouting) && (
-            <>
-              <Tooltip title="Edit">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEditStep(record)}
-                />
-              </Tooltip>
-              <Tooltip title="Delete">
-                <Popconfirm
-                  title="Delete this step?"
-                  description="This action cannot be undone."
-                  onConfirm={() => handleDeleteStep(record.id)}
-                  okText="Yes"
-                  cancelText="No"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-                </Popconfirm>
-              </Tooltip>
-            </>
-          )}
-        </Space>
-      ),
-    },
-  ];
+  // Table columns for steps - currently unused (used by DraggableStepsTable instead)
+  // const _stepColumns: ColumnsType<RoutingStep> = [
+  //   {
+  //     title: 'Step #',
+  //     dataIndex: 'stepNumber',
+  //     key: 'stepNumber',
+  //     width: 80,
+  //     align: 'center',
+  //     sorter: (a, b) => a.stepNumber - b.stepNumber,
+  //   },
+  //   {
+  //     title: 'Operation', // ISA-95: Process Segment
+  //     key: 'operation',
+  //     width: '25%',
+  //     render: (_, record) => (
+  //       <div>
+  //         <div style={{ fontWeight: 500 }}>
+  //           {record.operation?.operationName || 'N/A'}
+  //         </div>
+  //         <div style={{ fontSize: '12px', color: '#666' }}>
+  //           {record.operation?.operationType || ''}
+  //         </div>
+  //       </div>
+  //     ),
+  //   },
+  //   {
+  //     title: 'Work Center',
+  //     key: 'workCenter',
+  //     width: '15%',
+  //     render: (_, record) => record.workCenter?.name || 'Not Assigned',
+  //   },
+  //   {
+  //     title: 'Setup',
+  //     key: 'setupTime',
+  //     width: 100,
+  //     align: 'right',
+  //     render: (_, record) => {
+  //       const time = record.setupTimeOverride ?? record.operation?.setupTime ?? 0;
+  //       return formatTime(time);
+  //     },
+  //   },
+  //   {
+  //     title: 'Cycle',
+  //     key: 'cycleTime',
+  //     width: 100,
+  //     align: 'right',
+  //     render: (_, record) => {
+  //       const time = record.cycleTimeOverride ?? record.operation?.duration ?? 0;
+  //       return formatTime(time);
+  //     },
+  //   },
+  //   {
+  //     title: 'Teardown',
+  //     key: 'teardownTime',
+  //     width: 100,
+  //     align: 'right',
+  //     render: (_, record) => {
+  //       const time = record.teardownTimeOverride ?? record.operation?.teardownTime ?? 0;
+  //       return formatTime(time);
+  //     },
+  //   },
+  //   {
+  //     title: 'Flags',
+  //     key: 'flags',
+  //     width: 150,
+  //     render: (_, record) => (
+  //       <Space size="small">
+  //         {record.isOptional && <Tag color="blue">Optional</Tag>}
+  //         {record.isQualityInspection && <Tag color="green">QC</Tag>}
+  //         {record.isCriticalPath && <Tag color="red">Critical</Tag>}
+  //       </Space>
+  //     ),
+  //   },
+  //   {
+  //     title: 'Actions',
+  //     key: 'actions',
+  //     width: 100,
+  //     fixed: 'right',
+  //     render: (_, record) => (
+  //       <Space size="small">
+  //         {currentRouting && isRoutingEditable(currentRouting) && (
+  //           <>
+  //             <Tooltip title="Edit">
+  //               <Button
+  //                 type="text"
+  //                 size="small"
+  //                 icon={<EditOutlined />}
+  //                 onClick={() => handleEditStep(record)}
+  //               />
+  //             </Tooltip>
+  //             <Tooltip title="Delete">
+  //               <Popconfirm
+  //                 title="Delete this step?"
+  //                 description="This action cannot be undone."
+  //                 onConfirm={() => handleDeleteStep(record.id)}
+  //                 okText="Yes"
+  //                 cancelText="No"
+  //                 okButtonProps={{ danger: true }}
+  //               >
+  //                 <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+  //               </Popconfirm>
+  //             </Tooltip>
+  //           </>
+  //         )}
+  //       </Space>
+  //     ),
+  //   },
+  // ];
 
   // Loading state
   if (isLoadingDetail) {

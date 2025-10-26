@@ -214,6 +214,38 @@ export default defineConfig({
       },
     },
 
+    /* Parameter management tests - API tests with own request context */
+    {
+      name: 'parameter-management-tests',
+      testMatch: [
+        '**/parameter-limits.spec.ts',
+        '**/parameter-groups.spec.ts',
+        '**/parameter-formulas.spec.ts',
+      ],
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
+    /* SPC (Statistical Process Control) tests - API tests with own request context */
+    {
+      name: 'spc-tests',
+      testMatch: [
+        '**/spc-configuration.spec.ts',
+        '**/spc-control-charts.spec.ts',
+        '**/spc-rule-violations.spec.ts',
+        '**/spc-capability.spec.ts',
+        '**/spc-workflow.spec.ts',
+      ],
+      timeout: 90000, // 90 seconds per test
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - API tests create their own request context
+      },
+    },
+
     /* Routing edge case tests - manage auth during test */
     {
       name: 'routing-edge-cases',

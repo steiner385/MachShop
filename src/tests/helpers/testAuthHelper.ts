@@ -608,6 +608,22 @@ export function resetAuthCircuitBreaker(): void {
 }
 
 /**
+ * Login as a user by their role name (for backward compatibility with parameter tests)
+ * This is a convenience wrapper around setupTestAuth
+ *
+ * @param page - Playwright page object
+ * @param role - Role name (must match a key in TEST_USERS)
+ *
+ * Example: await loginAsRole(page, 'manufacturingEngineer')
+ */
+export async function loginAsRole(
+  page: Page,
+  role: keyof typeof TEST_USERS
+): Promise<void> {
+  await setupTestAuth(page, role);
+}
+
+/**
  * Login as test user and return auth headers for API requests
  * Used for API-level E2E tests with Playwright request context
  *

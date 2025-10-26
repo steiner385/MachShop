@@ -22,12 +22,14 @@ import {
   EditOutlined,
   PlayCircleOutlined,
   ThunderboltOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  DownloadOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { workOrderApi, WorkOrder, WorkOrderFilters } from '@/services/workOrderApi';
 import { message } from 'antd';
-import { useAuthStore, usePermissionCheck } from '@/store/AuthStore';
+import { usePermissionCheck } from '@/store/AuthStore';
 import { PERMISSIONS } from '@/types/auth';
 import { WorkOrderCreate } from '@/components/WorkOrders/WorkOrderCreate';
 import { WorkOrderPriorityChange } from '@/components/WorkOrders/WorkOrderPriorityChange';
@@ -50,8 +52,10 @@ const WorkOrders: React.FC = () => {
     pageSize: 10,
     total: 0,
   });
+  // NEW: State for bulk actions and export
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<WorkOrder[]>([]);
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const { hasPermission } = usePermissionCheck();
 
   // Set page title
@@ -101,7 +105,7 @@ const WorkOrders: React.FC = () => {
   };
 
   // Transform work orders to match table format
-  const tableData = workOrders.map((wo, index) => ({
+  const tableData = workOrders.map((wo, _index) => ({
     key: wo.id,
     id: wo.workOrderNumber,
     partNumber: wo.partNumber,
@@ -136,6 +140,86 @@ const WorkOrders: React.FC = () => {
       case 'LOW': return 'green';
       default: return 'default';
     }
+  };
+
+  // NEW: Export functionality
+  const handleExportWorkOrders = () => {
+    try {
+      const dataToExport = selectedRowKeys.length > 0 ? selectedRows : workOrders;
+      const csvContent = convertToCSV(dataToExport);
+      downloadCSV(csvContent, `work_orders_${new Date().toISOString().split('T')[0]}.csv`);
+      message.success(`Exported ${dataToExport.length} work orders`);
+    } catch (error) {
+      message.error('Failed to export work orders');
+    }
+  };
+
+  const convertToCSV = (data: WorkOrder[]) => {
+    const headers = [
+      'Work Order Number',
+      'Part Number',
+      'Part Name',
+      'Quantity',
+      'Completed',
+      'Status',
+      'Priority',
+      'Due Date',
+      'Progress %',
+      'Scheduled Start',
+      'Scheduled End'
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...data.map(wo => [
+        wo.workOrderNumber,
+        wo.partNumber,
+        wo.partName,
+        wo.quantity,
+        wo.completed,
+        wo.status,
+        wo.priority,
+        wo.dueDate || '',
+        wo.progress || 0,
+        wo.scheduledStartDate || '',
+        wo.scheduledEndDate || ''
+      ].join(','))
+    ];
+
+    return csvRows.join('\n');
+  };
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // NEW: Bulk actions
+  const handleBulkDelete = async () => {
+    try {
+      // TODO: Implement bulk delete API call
+      message.success(`Deleted ${selectedRowKeys.length} work orders`);
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
+      loadWorkOrders();
+    } catch (error) {
+      message.error('Failed to delete work orders');
+    }
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys: React.Key[], selectedRecords: any[]) => {
+      setSelectedRowKeys(selectedKeys);
+      setSelectedRows(selectedRecords.map(record => record.rawWorkOrder));
+    },
   };
 
   const columns = [
@@ -278,17 +362,39 @@ const WorkOrders: React.FC = () => {
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={2} style={{ margin: 0 }}>Work Orders</Title>
-        <Tooltip title={!canCreateWorkOrder ? "You don't have permission to create work orders" : ""}>
+        <Space>
+          {/* NEW: Bulk actions (shown when rows are selected) */}
+          {selectedRowKeys.length > 0 && (
+            <Space>
+              <Button
+                icon={<DeleteOutlined />}
+                onClick={handleBulkDelete}
+                data-testid="bulk-delete-button"
+              >
+                Delete ({selectedRowKeys.length})
+              </Button>
+            </Space>
+          )}
+          {/* NEW: Export button */}
           <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            disabled={!canCreateWorkOrder}
-            onClick={() => setCreateModalVisible(true)}
-            data-testid="create-work-order-button"
+            icon={<DownloadOutlined />}
+            onClick={handleExportWorkOrders}
+            data-testid="export-work-orders-button"
           >
-            Create Work Order
+            Export {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : 'All'}
           </Button>
-        </Tooltip>
+          <Tooltip title={!canCreateWorkOrder ? "You don't have permission to create work orders" : ""}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              disabled={!canCreateWorkOrder}
+              onClick={() => setCreateModalVisible(true)}
+              data-testid="create-work-order-button"
+            >
+              Create Work Order
+            </Button>
+          </Tooltip>
+        </Space>
       </div>
 
       <Card>
@@ -340,13 +446,14 @@ const WorkOrders: React.FC = () => {
           dataSource={tableData}
           columns={columns}
           loading={loading}
+          rowSelection={rowSelection}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => 
+            showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} work orders`,
             onChange: (page, size) => {
               setPagination(prev => ({

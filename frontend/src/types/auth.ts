@@ -62,16 +62,21 @@ export const ROLES = {
   PLANT_MANAGER: 'Plant Manager',
   PRODUCTION_SUPERVISOR: 'Production Supervisor',
   PRODUCTION_PLANNER: 'Production Planner',
+  PRODUCTION_SCHEDULER: 'Production Scheduler',
+  MANUFACTURING_ENGINEER: 'Manufacturing Engineer',
+  PROCESS_ENGINEER: 'Process Engineer',
   OPERATOR: 'Operator',
   QUALITY_ENGINEER: 'Quality Engineer',
   QUALITY_INSPECTOR: 'Quality Inspector',
   MAINTENANCE_TECHNICIAN: 'Maintenance Technician',
+  WAREHOUSE_MANAGER: 'Warehouse Manager',
 } as const;
 
 // Permission constants
 export const PERMISSIONS = {
   // Work Order permissions
   WORKORDERS_READ: 'workorders.read',
+  WORKORDERS_WRITE: 'workorders.write',
   WORKORDERS_CREATE: 'workorders.create',
   WORKORDERS_UPDATE: 'workorders.update',
   WORKORDERS_DELETE: 'workorders.delete',

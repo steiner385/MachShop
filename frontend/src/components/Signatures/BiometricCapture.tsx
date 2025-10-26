@@ -35,7 +35,7 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({
   onCancel,
   minQualityScore = 0.8,
 }) => {
-  const [capturing, setCapturing] = useState(false);
+  const [_capturing, setCapturing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<'idle' | 'capturing' | 'success' | 'failed'>('idle');
   const [qualityScore, setQualityScore] = useState<number | null>(null);

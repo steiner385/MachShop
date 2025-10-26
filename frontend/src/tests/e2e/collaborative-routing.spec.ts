@@ -89,7 +89,7 @@ test.describe('Collaborative Routing: Presence Tracking', () => {
 
     // Check for presence indicator component
     // The indicator should exist even if no other users are present
-    const presenceIndicator = page.locator('.active-users-indicator, [class*="ActiveUsers"]');
+    // const _presenceIndicator = page.locator('.active-users-indicator, [class*="ActiveUsers"]');
 
     // Give it time to load
     await page.waitForTimeout(2000);
@@ -139,9 +139,9 @@ test.describe('Collaborative Routing: View Toggle', () => {
     await page.waitForTimeout(2000);
 
     // Check for view toggle buttons/options
-    const tableView = page.locator('button:has-text("Table"), [title*="Table"], label:has-text("Table")');
-    const graphView = page.locator('button:has-text("Graph"), [title*="Graph"], label:has-text("Graph")');
-    const ganttView = page.locator('button:has-text("Gantt"), button:has-text("Chart"), [title*="Gantt"]');
+    // const tableView = page.locator('button:has-text("Table"), [title*="Table"], label:has-text("Table")');
+    // const graphView = page.locator('button:has-text("Graph"), [title*="Graph"], label:has-text("Graph")');
+    // const ganttView = page.locator('button:has-text("Gantt"), button:has-text("Chart"), [title*="Gantt"]');
 
     // At least verify the page is loaded properly
     const stepsContent = await page.locator('body').textContent();
@@ -309,7 +309,7 @@ test.describe('Collaborative Routing: Optimistic Locking', () => {
 
     // For this test, we just verify the modal infrastructure exists
     // by checking that modals can be rendered
-    const modalRoot = page.locator('.ant-modal-root, [class*="modal"]');
+    // const _modalRoot = page.locator('.ant-modal-root, [class*="modal"]');
 
     // Verify the app can render modals (even if none are currently open)
     const appContainer = await page.locator('#root, .App, body').count();
@@ -337,9 +337,9 @@ test.describe('Collaborative Routing: Integration', () => {
     console.log('✓ Presence tracking initialized');
 
     // 2. View toggle should be available
-    const viewToggle = page.locator('button:has-text("Table"), button:has-text("Graph"), button:has-text("Gantt")');
-    const hasViewToggle = await viewToggle.count() > 0;
-    console.log('✓ View toggle available:', hasViewToggle);
+    // const viewToggle = page.locator('button:has-text("Table"), button:has-text("Graph"), button:has-text("Gantt")');
+    // const hasViewToggle = await viewToggle.count() > 0;
+    // console.log('✓ View toggle available:', hasViewToggle);
 
     // 3. Switch views
     const ganttView = page.locator('button:has-text("Gantt")').first();

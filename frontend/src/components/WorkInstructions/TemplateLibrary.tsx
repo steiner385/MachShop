@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Modal, List, Card, Input, Space, Tag, Button, Empty, Row, Col } from 'antd';
+import { Modal, List, Card, Input, Space, Tag, Button, Empty } from 'antd';
 import {
   SearchOutlined,
   FileTextOutlined,

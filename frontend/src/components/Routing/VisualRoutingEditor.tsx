@@ -20,18 +20,12 @@ import ReactFlow, {
   Panel,
   ReactFlowProvider,
   NodeTypes,
-  EdgeTypes,
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button, Space, message, Tooltip } from 'antd';
 import {
   SaveOutlined,
-  UndoOutlined,
-  RedoOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined,
-  FullscreenOutlined,
   LayoutOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -118,7 +112,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
  * Visual Routing Editor Component
  */
 export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
-  routingId,
   steps = [],
   dependencies = [],
   onSave,
@@ -225,6 +218,8 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
         ...params,
         id: `e${params.source}-${params.target}`,
         type: 'default',
+        source: params.source || '',
+        target: params.target || '',
         markerEnd: {
           type: MarkerType.ArrowClosed,
         },
@@ -393,6 +388,42 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
                   onClick={() => handleAddStep('PARALLEL_JOIN')}
                 >
                   Join
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Outside Processing">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('OSP')}
+                >
+                  OSP
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Lot Split">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('LOT_SPLIT')}
+                >
+                  Lot Split
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Lot Merge">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('LOT_MERGE')}
+                >
+                  Lot Merge
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Add Telescoping Operation">
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddStep('TELESCOPING')}
+                >
+                  Telescoping
                 </Button>
               </Tooltip>
             </Space>

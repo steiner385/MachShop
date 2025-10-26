@@ -8,7 +8,7 @@
 
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Badge, Tooltip, Tag } from 'antd';
+import { Badge, Tag } from 'antd';
 import {
   ToolOutlined,
   CheckCircleOutlined,

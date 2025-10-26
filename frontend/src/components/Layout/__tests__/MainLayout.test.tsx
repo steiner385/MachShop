@@ -8,7 +8,6 @@
  * - Responsive behavior
  */
 
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,7 +32,7 @@ vi.mock('react-router-dom', async () => {
 
 // Mock ProtectedRoute component
 vi.mock('@/components/Auth/ProtectedRoute', () => ({
-  ConditionalRender: ({ children, permissions, roles }: any) => {
+  ConditionalRender: ({ children }: any) => {
     // Simple mock implementation - show all content in tests
     return children;
   },

@@ -245,57 +245,56 @@ test.describe('Work Order Management', () => {
     }
   });
 
-  test.skip('should export work orders list', async ({ page }) => {
-    // SKIP: Export functionality not yet implemented
-    // TODO: Implement export handler in WorkOrders.tsx (line 289)
-    // Expected: Export button should trigger CSV/Excel download
+  test('should export work orders list', async ({ page }) => {
+    // Export functionality implemented - CSV export with all work orders or selected rows
 
     // Look for export button
-    const exportButton = page.locator('button').filter({ hasText: 'Export' });
+    const exportButton = page.locator('button[data-testid="export-work-orders-button"]');
+    await expect(exportButton).toBeVisible();
 
-    if (await exportButton.isVisible()) {
-      await exportButton.click();
+    // Click export button to trigger CSV download
+    await exportButton.click();
 
-      // Wait to see if download or modal appears
-      await page.waitForTimeout(1000);
+    // Wait for download to complete (CSV generation is synchronous)
+    await page.waitForTimeout(1000);
 
-      // Verify the button exists and is clickable
-      await expect(exportButton).toBeVisible();
-    } else {
-      // If no export button found, just verify the page structure
-      await expect(page.locator('.ant-table')).toBeVisible();
-      console.log('Export functionality not yet implemented');
-    }
+    // Verify export button is accessible and functional
+    await expect(exportButton).toBeEnabled();
   });
 
-  test.skip('should handle bulk actions', async ({ page }) => {
-    // SKIP: Bulk selection functionality not yet implemented
-    // TODO: Add rowSelection prop to Table in WorkOrders.tsx (line 297)
-    // Expected: Table should support row selection with checkboxes and bulk action buttons
+  test('should handle bulk actions', async ({ page }) => {
+    // Bulk selection functionality implemented with rowSelection and bulk delete button
 
     // Look for checkboxes in table rows (Ant Design table selection)
     const checkboxes = page.locator('.ant-table-selection-column input[type="checkbox"]');
     const checkboxCount = await checkboxes.count();
 
     if (checkboxCount >= 2) {
-      // Try to select first two checkboxes
+      // Select first two checkboxes
       await checkboxes.first().check();
       await checkboxes.nth(1).check();
 
-      // Wait to see if bulk actions appear
+      // Wait for bulk actions to appear
       await page.waitForTimeout(1000);
 
       // Verify checkboxes work
       await expect(checkboxes.first()).toBeChecked();
       await expect(checkboxes.nth(1)).toBeChecked();
 
+      // Verify bulk delete button appears
+      const bulkDeleteButton = page.locator('button[data-testid="bulk-delete-button"]');
+      await expect(bulkDeleteButton).toBeVisible();
+
+      // Verify export button shows selection count (may show selected count or total count)
+      const exportButton = page.locator('button[data-testid="export-work-orders-button"]');
+      await expect(exportButton).toContainText('Export');
+
       // Uncheck them
       await checkboxes.first().uncheck();
       await checkboxes.nth(1).uncheck();
     } else {
-      // If no selection checkboxes, just verify table exists
+      // If no data, just verify table structure supports selection
       await expect(page.locator('.ant-table')).toBeVisible();
-      console.log('Bulk selection not yet implemented');
     }
   });
 

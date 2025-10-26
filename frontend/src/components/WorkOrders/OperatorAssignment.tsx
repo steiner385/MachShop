@@ -30,7 +30,7 @@ interface OperatorAssignmentProps {
  * Shows operator availability and current workload.
  */
 export const OperatorAssignment: React.FC<OperatorAssignmentProps> = ({
-  workOrderId,
+  workOrderId: _workOrderId,
   workOrderNumber,
   currentOperatorId,
   currentOperatorName,
@@ -81,11 +81,11 @@ export const OperatorAssignment: React.FC<OperatorAssignmentProps> = ({
     }
   };
 
-  const handleAssign = async (values: { operatorId: string }) => {
+  const handleAssign = async (_values: { operatorId: string }) => {
     setSubmitting(true);
     try {
       // Call API to assign operator
-      // await assignOperator(workOrderId, values.operatorId);
+      // await assignOperator(workOrderId.operatorId);
 
       message.success('Operator assigned successfully');
       form.resetFields();

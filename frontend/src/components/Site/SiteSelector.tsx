@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Select, Spin, Alert, Tooltip } from 'antd';
+import { Select, Tooltip } from 'antd';
 import { EnvironmentOutlined, GlobalOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useSite, Site } from '@/contexts/SiteContext';
 import './SiteSelector.css';

@@ -63,7 +63,7 @@ const Breadcrumbs: React.FC = () => {
     .filter((segment) => segment !== '');
 
   // Build breadcrumb items
-  const breadcrumbItems = [
+  const breadcrumbItems: Array<{ title: React.ReactNode }> = [
     {
       title: (
         <Link to="/dashboard">

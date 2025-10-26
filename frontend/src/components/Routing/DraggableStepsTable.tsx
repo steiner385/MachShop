@@ -218,7 +218,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
                   cancelText="No"
                   okButtonProps={{ danger: true }}
                 >
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="delete step" />
                 </Popconfirm>
               </Tooltip>
             </>
@@ -263,7 +263,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <Droppable droppableId="steps-table" direction="vertical">
-        {(provided) => (
+        {(provided: any) => (
           <div ref={provided.innerRef} {...provided.droppableProps}>
             <Table
               columns={columns}
@@ -281,7 +281,7 @@ export const DraggableStepsTable: React.FC<DraggableStepsTableProps> = ({
               onRow={(record, index) => ({
                 index,
                 record,
-              })}
+              } as any)}
               locale={{
                 emptyText: 'No steps defined. Click "Add Step" to create the first step.',
               }}

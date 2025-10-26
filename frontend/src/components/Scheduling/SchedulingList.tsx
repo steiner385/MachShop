@@ -16,7 +16,6 @@ import {
   message,
   Tooltip,
   Popconfirm,
-  Badge,
   Progress,
   Card,
   Statistic,
@@ -46,7 +45,7 @@ import {
   ScheduleState,
   SchedulePriority,
 } from '@/types/scheduling';
-import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/AuthStore';
 

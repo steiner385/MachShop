@@ -237,7 +237,8 @@ export const requireProductionAccess = requireAnyRole([
   'Production Supervisor',
   'Production Planner',
   'Production Operator',
-  'Operator'
+  'Operator',
+  'Manufacturing Engineer'
 ]);
 
 // Maintenance authorization for equipment operations

@@ -197,7 +197,7 @@ router.get(
         site: {
           select: {
             id: true,
-            name: true
+            siteName: true
           }
         },
         sourceRouting: {
@@ -295,7 +295,7 @@ router.post(
         site: {
           select: {
             id: true,
-            name: true
+            siteName: true
           }
         }
       }
@@ -345,7 +345,7 @@ router.put(
         site: {
           select: {
             id: true,
-            name: true
+            siteName: true
           }
         }
       }
@@ -430,7 +430,7 @@ router.post(
         site: {
           select: {
             id: true,
-            name: true
+            siteName: true
           }
         }
       }

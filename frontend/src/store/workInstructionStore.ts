@@ -3,7 +3,6 @@ import { devtools } from 'zustand/middleware';
 import {
   workInstructionsAPI,
   WorkInstruction,
-  WorkInstructionStep,
   ListWorkInstructionsParams,
   CreateWorkInstructionInput,
   UpdateWorkInstructionInput,

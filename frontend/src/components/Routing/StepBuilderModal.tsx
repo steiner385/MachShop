@@ -25,7 +25,6 @@ import {
   NodeIndexOutlined,
   ClockCircleOutlined,
   ToolOutlined,
-  CheckCircleOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { RoutingStep, CreateRoutingStepRequest } from '@/types/routing';

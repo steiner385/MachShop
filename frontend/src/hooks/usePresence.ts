@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { presenceAPI, PresenceInfo, ResourceType, PresenceAction } from '../api/presence';
-import { useAuthStore } from '../store/AuthStore';
+import { useUser } from '../store/AuthStore';
 
 export interface UsePresenceOptions {
   resourceType: ResourceType;
@@ -51,7 +51,7 @@ export const usePresence = (options: UsePresenceOptions): UsePresenceReturn => {
     refreshInterval = 15000, // 15 seconds
   } = options;
 
-  const user = useAuthStore((state) => state.user);
+  const user = useUser();
   const [presenceInfo, setPresenceInfo] = useState<PresenceInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export const usePresence = (options: UsePresenceOptions): UsePresenceReturn => {
         resourceType,
         resourceId,
         action,
-        userName: user.username || user.name,
+        userName: user.username || `${user.firstName} ${user.lastName}`.trim() || user.email,
       });
     } catch (err: any) {
       console.error('Failed to update presence:', err);

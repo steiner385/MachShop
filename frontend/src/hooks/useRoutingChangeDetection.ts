@@ -95,7 +95,11 @@ export const useRoutingChangeDetection = (
       const response = await routingAPI.getRoutingById(routingId);
       const latestRouting = response.data;
 
-      // Check if version has changed
+      // Check if routing exists and version has changed
+      if (!latestRouting) {
+        throw new Error('Routing not found');
+      }
+
       if (latestRouting.version !== lastVersionRef.current) {
         const changeInfo: RoutingChangeInfo = {
           currentVersion: lastVersionRef.current,
