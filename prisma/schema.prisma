@@ -5471,3 +5471,437 @@ model WorkflowParallelCoordination {
   @@index([groupStatus])
   @@map("workflow_parallel_coordination")
 }
+
+// ============================================================================
+// ECO (Engineering Change Order) System - GitHub Issue #22
+// ============================================================================
+
+/// Engineering Change Order - Core ECO entity for formal change management
+model EngineeringChangeOrder {
+  id                 String   @id @default(cuid())
+  ecoNumber          String   @unique
+
+  // Basic information
+  title              String
+  description        String   @db.Text
+
+  ecoType            ECOType
+  priority           ECOPriority
+  status             ECOStatus @default(REQUESTED)
+
+  // Change details
+  currentState       String   @db.Text
+  proposedChange     String   @db.Text
+  reasonForChange    String   @db.Text
+  benefitsExpected   String?  @db.Text
+  risksIfNotImplemented String? @db.Text
+
+  // Requestor
+  requestorId        String
+  requestorName      String
+  requestorDept      String?
+  requestDate        DateTime @default(now())
+
+  // Sponsor (usually manager/director)
+  sponsorId          String?
+  sponsorName        String?
+
+  // Impact
+  impactAnalysis     Json?    // Structured impact data
+  affectedParts      String[] // Part IDs
+  affectedOperations String[] // Operation IDs
+
+  // Cost
+  estimatedCost      Float?
+  actualCost         Float?
+  estimatedSavings   Float?
+  actualSavings      Float?
+  costCurrency       String   @default("USD")
+
+  // Schedule
+  requestedEffectiveDate DateTime?
+  plannedEffectiveDate   DateTime?
+  actualEffectiveDate    DateTime?
+
+  // Effectivity
+  effectivityType    EffectivityType?
+  effectivityValue   String?  // Serial number, WO number, lot number, etc.
+  isInterchangeable  Boolean  @default(false)
+
+  // CRB
+  crbReviewDate      DateTime?
+  crbDecision        CRBDecision?
+  crbNotes           String?  @db.Text
+
+  // Closure
+  completedDate      DateTime?
+  verifiedDate       DateTime?
+  closedDate         DateTime?
+  closedById         String?
+
+  // Metadata
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  affectedDocuments  ECOAffectedDocument[]
+  tasks              ECOTask[]
+  attachments        ECOAttachment[]
+  history            ECOHistory[]
+  crbReviews         ECOCRBReview[]
+  relatedECOs        ECORelation[] @relation("ParentECO")
+  parentRelations    ECORelation[] @relation("RelatedECO")
+
+  @@index([ecoNumber])
+  @@index([status])
+  @@index([priority])
+  @@index([requestDate])
+  @@index([requestorId])
+  @@map("engineering_change_orders")
+}
+
+/// ECO Type classification
+enum ECOType {
+  CORRECTIVE
+  IMPROVEMENT
+  COST_REDUCTION
+  COMPLIANCE
+  CUSTOMER_REQUEST
+  ENGINEERING
+  EMERGENCY
+}
+
+/// ECO Priority levels
+enum ECOPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  EMERGENCY
+}
+
+/// ECO Status lifecycle
+enum ECOStatus {
+  REQUESTED
+  UNDER_REVIEW
+  PENDING_CRB
+  CRB_APPROVED
+  IMPLEMENTATION
+  VERIFICATION
+  COMPLETED
+  REJECTED
+  CANCELLED
+  ON_HOLD
+}
+
+/// Effectivity type definitions
+enum EffectivityType {
+  BY_DATE
+  BY_SERIAL_NUMBER
+  BY_WORK_ORDER
+  BY_LOT_BATCH
+  IMMEDIATE
+}
+
+/// Change Review Board decision options
+enum CRBDecision {
+  APPROVED
+  REJECTED
+  DEFERRED
+  REQUEST_MORE_INFO
+}
+
+/// ECO Affected Document - Links ECOs to documents that need updates
+model ECOAffectedDocument {
+  id                 String   @id @default(cuid())
+  ecoId              String
+  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  // Document reference
+  documentType       String   // WorkInstruction, SetupSheet, InspectionPlan, SOP, etc.
+  documentId         String
+  documentTitle      String
+
+  // Version info
+  currentVersion     String?
+  targetVersion      String?
+
+  // Status
+  status             DocUpdateStatus @default(PENDING)
+
+  // Assignment
+  assignedToId       String?
+  assignedToName     String?
+
+  // Tracking
+  updateStartedAt    DateTime?
+  updateCompletedAt  DateTime?
+  approvedAt         DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([ecoId, documentType, documentId])
+  @@index([ecoId])
+  @@index([status])
+  @@index([assignedToId])
+  @@map("eco_affected_documents")
+}
+
+/// Document update status
+enum DocUpdateStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  APPROVED
+  COMPLETED
+}
+
+/// ECO Task - Implementation tasks for ECO completion
+model ECOTask {
+  id                 String   @id @default(cuid())
+  ecoId              String
+  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  taskName           String
+  description        String?  @db.Text
+  taskType           ECOTaskType
+
+  // Assignment
+  assignedToId       String?
+  assignedToName     String?
+  assignedToDept     String?
+
+  // Status
+  status             ECOTaskStatus @default(PENDING)
+
+  // Timing
+  dueDate            DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  // Dependencies
+  prerequisiteTasks  String[] // Task IDs that must complete first
+
+  // Completion
+  completionNotes    String?  @db.Text
+  verifiedById       String?
+  verifiedAt         DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([ecoId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("eco_tasks")
+}
+
+/// ECO Task type classification
+enum ECOTaskType {
+  DOCUMENT_UPDATE
+  ROUTING_UPDATE
+  BOM_UPDATE
+  PART_MASTER_UPDATE
+  TOOLING_CREATION
+  EQUIPMENT_SETUP
+  TRAINING
+  VERIFICATION
+  FIRST_ARTICLE
+  PROCESS_VALIDATION
+}
+
+/// ECO Task status options
+enum ECOTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+/// ECO Attachment - Supporting documents for ECOs
+model ECOAttachment {
+  id                 String   @id @default(cuid())
+  ecoId              String
+  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  fileName           String
+  fileUrl            String
+  fileSize           Int
+  mimeType           String
+
+  attachmentType     AttachmentType
+  description        String?
+
+  uploadedById       String
+  uploadedByName     String
+  uploadedAt         DateTime @default(now())
+
+  @@index([ecoId])
+  @@index([attachmentType])
+  @@map("eco_attachments")
+}
+
+/// Attachment type classification
+enum AttachmentType {
+  SUPPORTING_DOC
+  DRAWING_CURRENT
+  DRAWING_PROPOSED
+  CALCULATION
+  TEST_RESULT
+  SUPPLIER_DOC
+  CUSTOMER_CORRESPONDENCE
+  ANALYSIS_REPORT
+  PHOTO
+  OTHER
+}
+
+/// ECO History - Complete audit trail for ECO changes
+model ECOHistory {
+  id                 String   @id @default(cuid())
+  ecoId              String
+  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  eventType          ECOEventType
+  eventDescription   String
+
+  fromStatus         ECOStatus?
+  toStatus           ECOStatus?
+
+  details            Json?
+
+  performedById      String
+  performedByName    String
+  performedByRole    String?
+
+  occurredAt         DateTime @default(now())
+
+  @@index([ecoId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@map("eco_history")
+}
+
+/// ECO Event types for audit trail
+enum ECOEventType {
+  ECO_CREATED
+  STATUS_CHANGED
+  CRB_REVIEW_SCHEDULED
+  CRB_REVIEW_COMPLETED
+  TASK_CREATED
+  TASK_COMPLETED
+  DOCUMENT_UPDATED
+  EFFECTIVITY_SET
+  ECO_COMPLETED
+  ECO_CANCELLED
+  COMMENT_ADDED
+  ATTACHMENT_ADDED
+}
+
+/// ECO CRB Review - Change Review Board meeting records
+model ECOCRBReview {
+  id                 String   @id @default(cuid())
+  ecoId              String
+  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  meetingDate        DateTime
+  meetingAgenda      String?  @db.Text
+
+  // Board members present
+  members            Json     // Array of member objects
+
+  // Discussion
+  discussionNotes    String?  @db.Text
+  questionsConcerns  String?  @db.Text
+
+  // Decision
+  decision           CRBDecision
+  decisionRationale  String?  @db.Text
+
+  // Voting
+  votesFor           Int?
+  votesAgainst       Int?
+  votesAbstain       Int?
+
+  // Conditions
+  conditions         String?  @db.Text
+
+  // Follow-up
+  actionItems        Json?    // Array of action items
+  nextReviewDate     DateTime?
+
+  createdById        String
+  createdAt          DateTime @default(now())
+
+  @@index([ecoId])
+  @@index([meetingDate])
+  @@map("eco_crb_reviews")
+}
+
+/// ECO Relation - Relationships between ECOs
+model ECORelation {
+  id                 String   @id @default(cuid())
+  parentEcoId        String
+  parentEco          EngineeringChangeOrder @relation("ParentECO", fields: [parentEcoId], references: [id], onDelete: Cascade)
+
+  relatedEcoId       String
+  relatedEco         EngineeringChangeOrder @relation("RelatedECO", fields: [relatedEcoId], references: [id], onDelete: Cascade)
+
+  relationType       ECORelationType
+  description        String?
+
+  createdAt          DateTime @default(now())
+
+  @@unique([parentEcoId, relatedEcoId])
+  @@index([parentEcoId])
+  @@index([relatedEcoId])
+  @@map("eco_relations")
+}
+
+/// ECO Relation types
+enum ECORelationType {
+  DEPENDS_ON
+  BLOCKS
+  RELATED_TO
+  SUPERSEDES
+  DUPLICATE_OF
+  CHILD_OF
+}
+
+/// CRB Configuration - Change Review Board setup
+model CRBConfiguration {
+  id                 String   @id @default(cuid())
+
+  // Board composition
+  boardMembers       Json     // Array of member roles and users
+
+  // Meeting schedule
+  meetingFrequency   String?  // e.g., "weekly", "biweekly", "monthly"
+  meetingDay         String?  // e.g., "Monday"
+  meetingTime        String?  // e.g., "14:00"
+
+  // Decision rules
+  votingRule         VotingRule @default(MAJORITY)
+  quorumRequired     Int?     // Minimum members for valid meeting
+
+  // Process
+  preReviewDays      Int      @default(3) // Days before meeting to distribute materials
+
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("crb_configurations")
+}
+
+/// Voting rule options
+enum VotingRule {
+  UNANIMOUS          // All must agree
+  MAJORITY           // > 50% must agree
+  SUPERMAJORITY      // >= 2/3 must agree
+  CONSENSUS          // Discuss until consensus
+}
