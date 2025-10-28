@@ -65,6 +65,14 @@ import sopRoutes from './routes/sops';
 import toolDrawingRoutes from './routes/toolDrawings';
 import unifiedDocumentRoutes from './routes/unifiedDocuments';
 
+// GitHub Issue #24: Document Collaboration & Review Features Routes
+import commentRoutes from './routes/comments';
+import annotationRoutes from './routes/annotations';
+import reviewRoutes from './routes/reviews';
+import notificationRoutes from './routes/notifications';
+import activityRoutes from './routes/activities';
+import collaborationRoutes from './routes/collaboration';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -197,6 +205,14 @@ apiRouter.use('/inspection-plans', authMiddleware, inspectionPlanRoutes);
 apiRouter.use('/sops', authMiddleware, sopRoutes);
 apiRouter.use('/tool-drawings', authMiddleware, toolDrawingRoutes);
 apiRouter.use('/documents', authMiddleware, unifiedDocumentRoutes);
+
+// GitHub Issue #24: Document Collaboration & Review Features API Routes
+apiRouter.use('/comments', authMiddleware, commentRoutes);
+apiRouter.use('/annotations', authMiddleware, annotationRoutes);
+apiRouter.use('/reviews', authMiddleware, reviewRoutes);
+apiRouter.use('/notifications', authMiddleware, notificationRoutes);
+apiRouter.use('/activities', authMiddleware, activityRoutes);
+apiRouter.use('/collaboration', authMiddleware, collaborationRoutes);
 apiRouter.use('/upload', authMiddleware, uploadRoutes);
 apiRouter.use('/signatures', authMiddleware, signatureRoutes);
 apiRouter.use('/fai', authMiddleware, faiRoutes);
