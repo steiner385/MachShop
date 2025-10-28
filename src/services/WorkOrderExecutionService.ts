@@ -132,11 +132,24 @@ export class WorkOrderExecutionService {
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${workOrderId} not found`);
+      // ✅ GITHUB ISSUE #11 FIX: Enhanced work order not found error for dispatch
+      throw new Error(
+        `Work order ${workOrderId} not found for dispatch operation. ` +
+        `Verify the work order ID is correct and the work order exists in the system. ` +
+        `Only existing work orders can be dispatched to the shop floor. ` +
+        `Check work order management to confirm this work order exists.`
+      );
     }
 
     if (workOrder.status !== 'CREATED') {
-      throw new Error(`Work order ${workOrderId} cannot be dispatched. Current status: ${workOrder.status}. Only CREATED work orders can be dispatched.`);
+      // ✅ GITHUB ISSUE #11 FIX: Enhanced dispatch validation error with context
+      throw new Error(
+        `Work order ${workOrderId} cannot be dispatched. Current status: ${workOrder.status}. ` +
+        `Only CREATED work orders can be dispatched. ` +
+        `Work order details: ${workOrder.workOrderNumber} (${workOrder.part?.partNumber || 'No part'}) - ` +
+        `Priority: ${workOrder.priority}. ` +
+        `To dispatch this work order, it must first be reset to CREATED status.`
+      );
     }
 
     // Validate assignedToId if provided
@@ -257,11 +270,18 @@ export class WorkOrderExecutionService {
 
     // Get current work order
     const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: cleanWorkOrderId }
+      where: { id: cleanWorkOrderId },
+      include: { part: true }
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${cleanWorkOrderId} not found`);
+      // ✅ GITHUB ISSUE #11 FIX: Enhanced work order not found error for status transitions
+      throw new Error(
+        `Work order ${cleanWorkOrderId} not found. ` +
+        `Verify the work order ID is correct and the work order exists in the system. ` +
+        `Common causes: work order may have been deleted, ID may be incorrect, or database connectivity issues. ` +
+        `Check work order management to confirm this work order exists.`
+      );
     }
 
     const currentStatus = workOrder.status;
@@ -273,12 +293,15 @@ export class WorkOrderExecutionService {
       throw new Error(`Invalid work order status: ${newStatus}. Valid statuses are: ${validStatuses.join(', ')}`);
     }
 
-    // Validate transition
+    // ✅ GITHUB ISSUE #11 FIX: Enhanced status transition validation with detailed context
     const validNextStatuses = VALID_TRANSITIONS[currentStatus];
     if (!validNextStatuses.includes(newStatus)) {
       throw new Error(
         `Invalid status transition: ${currentStatus} → ${newStatus}. ` +
-        `Valid transitions from ${currentStatus}: ${validNextStatuses.join(', ')}`
+        `Valid transitions from ${currentStatus}: ${validNextStatuses.join(', ')}. ` +
+        `Work order: ${workOrder.workOrderNumber} (${workOrder.part?.partNumber || 'No part'}). ` +
+        `Status transition rules follow ISA-95 standard workflow. ` +
+        `Use valid intermediate states if needed (e.g., ${currentStatus} → ON_HOLD → other states).`
       );
     }
 
@@ -376,11 +399,18 @@ export class WorkOrderExecutionService {
 
     // Verify work order exists and is in progress or completed
     const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: cleanWorkOrderId }
+      where: { id: cleanWorkOrderId },
+      include: { part: true }
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${cleanWorkOrderId} not found`);
+      // ✅ GITHUB ISSUE #11 FIX: Enhanced work order not found error for performance recording
+      throw new Error(
+        `Work order ${cleanWorkOrderId} not found for performance recording. ` +
+        `Verify the work order ID is correct and the work order exists in the system. ` +
+        `Performance can only be recorded for existing work orders. ` +
+        `Check work order management to confirm this work order exists.`
+      );
     }
 
     if (!['IN_PROGRESS', 'COMPLETED'].includes(workOrder.status)) {
@@ -579,12 +609,19 @@ export class WorkOrderExecutionService {
       where: { id: cleanWorkOrderId },
       include: {
         workPerformance: true,
-        variances: true
+        variances: true,
+        part: true
       }
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${cleanWorkOrderId} not found`);
+      // ✅ GITHUB ISSUE #11 FIX: Enhanced work order not found error for variance calculation
+      throw new Error(
+        `Work order ${cleanWorkOrderId} not found for variance calculation. ` +
+        `Verify the work order ID is correct and the work order exists in the system. ` +
+        `Variance calculations can only be performed for existing work orders with performance data. ` +
+        `Check work order management to confirm this work order exists.`
+      );
     }
 
     // Aggregate variances by type
