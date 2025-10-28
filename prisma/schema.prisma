@@ -4844,3 +4844,80 @@ model DataCollectionFieldTemplate {
   @@index([tags])
   @@map("data_collection_field_templates")
 }
+
+// GitHub Issue #19: Configurable Side-by-Side Execution Interface
+
+/// User Workstation Preference - Manages user layout preferences for work instruction execution
+model UserWorkstationPreference {
+  id            String @id @default(cuid())
+  userId        String
+  workstationId String? // Null = default preference
+
+  // Layout preferences
+  layoutMode    LayoutMode     @default(SPLIT_VERTICAL)
+  splitRatio    Float?         @default(0.6) // Percentage for first panel
+  panelPosition PanelPosition? @default(LEFT)
+
+  // Display preferences
+  autoAdvanceSteps Boolean @default(false)
+  showStepTimer    Boolean @default(true)
+  compactMode      Boolean @default(false)
+
+  // Monitor preferences
+  useSecondMonitor        Boolean @default(false)
+  secondMonitorPosition   Json? // Window position for second monitor
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, workstationId])
+  @@index([userId])
+  @@index([workstationId])
+  @@map("user_workstation_preferences")
+}
+
+/// Layout Mode - Different layout modes for execution interface
+enum LayoutMode {
+  SPLIT_VERTICAL
+  SPLIT_HORIZONTAL
+  TABBED
+  OVERLAY
+  PICTURE_IN_PICTURE
+}
+
+/// Panel Position - Position of panels in the layout
+enum PanelPosition {
+  LEFT
+  RIGHT
+  TOP
+  BOTTOM
+  CENTER
+}
+
+/// Workstation Display Config - Physical display configuration for workstations
+model WorkstationDisplayConfig {
+  id            String @id @default(cuid())
+  workstationId String @unique
+
+  // Screen configuration
+  screenWidth   Int?     // Physical screen width in pixels
+  screenHeight  Int?     // Physical screen height in pixels
+  isMultiMonitor Boolean @default(false)
+  monitorCount  Int      @default(1)
+
+  // Forced layout for kiosk mode
+  forcedLayout     LayoutMode? // Force specific layout mode
+  allowUserOverride Boolean    @default(true)
+
+  // Touch screen settings
+  isTouchScreen   Boolean @default(false)
+  touchTargetSize Int?    @default(48) // Touch target size in pixels
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String   // User ID reference
+
+  @@index([workstationId])
+  @@map("workstation_display_configs")
+}
