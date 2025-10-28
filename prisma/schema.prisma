@@ -7126,3 +7126,518 @@ enum ResolutionType {
   MANUAL_MERGE
   AUTO_MERGED
 }
+
+// =============================================================================
+// CLOUD STORAGE & ENHANCED FILE MANAGEMENT MODELS (Issue #26)
+// =============================================================================
+
+/// Cloud storage file registry
+/// Tracks all files stored in S3/MinIO with versioning, deduplication, and metadata
+model StoredFile {
+  id                 String   @id @default(uuid())
+
+  // Storage location
+  storagePath        String   @unique
+  storageProvider    String   // 's3' or 'minio'
+  bucket             String
+
+  // File info
+  fileName           String
+  originalFileName   String
+  fileSize           Int
+  mimeType           String
+  fileHash           String   // SHA-256 for deduplication
+
+  // Versioning
+  versionId          String?  // S3/MinIO version ID
+  isLatestVersion    Boolean  @default(true)
+  versionNumber      Int      @default(1)
+
+  // Storage class and lifecycle
+  storageClass       StorageClass @default(HOT)
+  transitionedAt     DateTime?
+
+  // Metadata and tags
+  metadata           Json?
+  tags               String[] // For categorization and search
+
+  // CDN and caching
+  cdnUrl             String?
+  cacheStatus        CacheStatus?
+  lastCacheUpdate    DateTime?
+
+  // Usage tracking
+  accessCount        Int      @default(0)
+  lastAccessedAt     DateTime?
+  downloadCount      Int      @default(0)
+
+  // Document relationships (polymorphic)
+  documentType       String?
+  documentId         String?
+  attachmentType     FileAttachmentType?
+
+  // Deduplication
+  deduplicationRefs  Int      @default(1) // Reference count
+  originalFileId     String?  // Reference to original if deduplicated
+  duplicateFiles     StoredFile[] @relation("FileDuplicates")
+  originalFile       StoredFile?  @relation("FileDuplicates", fields: [originalFileId], references: [id])
+
+  // Lifecycle and retention
+  retentionPolicy    String?
+  expiresAt          DateTime?
+  autoDeleteAt       DateTime?
+
+  // Encryption
+  isEncrypted        Boolean  @default(false)
+  encryptionKeyId    String?
+  encryptionAlgorithm String?
+
+  // Upload tracking
+  uploadedById       String
+  uploadedByName     String
+  uploadedAt         DateTime @default(now())
+  uploadMethod       UploadMethod @default(DIRECT)
+  uploadSessionId    String?  // For multipart uploads
+
+  // Processing status
+  processingStatus   ProcessingStatus @default(COMPLETED)
+  processingError    String?
+  thumbnailGenerated Boolean  @default(false)
+  thumbnailPath      String?
+
+  // Relationships
+  versions           FileVersion[]
+  backupEntries      BackupEntry[]
+  accessLogs         FileAccessLog[]
+
+  // Indexes for performance
+  @@index([storagePath])
+  @@index([fileHash])
+  @@index([documentType, documentId])
+  @@index([storageClass])
+  @@index([uploadedAt])
+  @@index([isLatestVersion])
+  @@index([originalFileId])
+  @@map("stored_files")
+}
+
+/// File version history for comprehensive version tracking
+model FileVersion {
+  id                 String   @id @default(uuid())
+
+  // Parent file reference
+  fileId             String
+  file               StoredFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  // Version info
+  versionNumber      Int
+  versionId          String   // S3/MinIO version ID
+  storagePath        String
+
+  // File details
+  fileSize           Int
+  fileHash           String
+  mimeType           String
+
+  // Change tracking
+  changeDescription  String?
+  changeType         VersionChangeType @default(UPDATE)
+
+  // Storage info
+  storageClass       StorageClass @default(HOT)
+
+  // Metadata
+  metadata           Json?
+
+  // Creation tracking
+  createdAt          DateTime @default(now())
+  createdById        String
+  createdByName      String
+
+  // Retention
+  retentionPolicy    String?
+  expiresAt          DateTime?
+
+  @@unique([fileId, versionNumber])
+  @@index([fileId])
+  @@index([createdAt])
+  @@map("file_versions")
+}
+
+/// Backup schedules for automated backup management
+model BackupSchedule {
+  id                 String   @id @default(uuid())
+
+  // Schedule info
+  name               String
+  description        String?
+
+  // Backup configuration
+  bucketName         String
+  backupBucket       String?  // Destination bucket for cross-region
+  includePattern     String?  // Glob pattern for files to include
+  excludePattern     String?  // Glob pattern for files to exclude
+
+  // Schedule configuration
+  frequency          BackupFrequency
+  cronExpression     String?  // For custom schedules
+  timezone           String   @default("UTC")
+
+  // Retention policy
+  retentionDays      Int      @default(30)
+  maxBackups         Int?     // Maximum number of backups to keep
+
+  // Options
+  enableCompression  Boolean  @default(true)
+  enableEncryption   Boolean  @default(true)
+  crossRegionReplication Boolean @default(false)
+
+  // Status
+  isActive           Boolean  @default(true)
+
+  // Execution tracking
+  lastBackupAt       DateTime?
+  nextBackupAt       DateTime?
+  lastSuccessAt      DateTime?
+  lastFailureAt      DateTime?
+
+  // Relationships
+  backupHistory      BackupHistory[]
+
+  // Audit fields
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdById        String
+  updatedById        String?
+
+  @@index([isActive])
+  @@index([nextBackupAt])
+  @@map("backup_schedules")
+}
+
+/// Backup execution history and status tracking
+model BackupHistory {
+  id                 String   @id @default(uuid())
+
+  // Schedule reference (optional for manual backups)
+  scheduleId         String?
+  schedule           BackupSchedule? @relation(fields: [scheduleId], references: [id])
+
+  // Backup details
+  backupType         BackupType
+  status             BackupStatus
+
+  // Source and destination
+  sourceBucket       String
+  destBucket         String
+  backupLocation     String   // Full path to backup
+
+  // Statistics
+  fileCount          Int?
+  totalSize          Int?     // Bytes
+  compressedSize     Int?     // Bytes after compression
+  compressionRatio   Float?
+
+  // Timing
+  startedAt          DateTime
+  completedAt        DateTime?
+  duration           Int?     // Seconds
+
+  // Error handling
+  errorMessage       String?
+  errorCode          String?
+
+  // Verification
+  checksumVerified   Boolean  @default(false)
+  verificationDate   DateTime?
+
+  // Metadata
+  metadata           Json?
+
+  // Relation to backup entries
+  backupEntries      BackupEntry[]
+
+  @@index([scheduleId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([backupType])
+  @@map("backup_history")
+}
+
+/// Backup entries linking files to backup instances
+model BackupEntry {
+  id                 String   @id @default(uuid())
+
+  // References
+  backupId           String
+  backup             BackupHistory @relation(fields: [backupId], references: [id], onDelete: Cascade)
+
+  fileId             String
+  file               StoredFile @relation(fields: [fileId], references: [id])
+
+  // Backup details
+  backupPath         String   // Path in backup location
+  originalPath       String   // Original file path
+
+  // Verification
+  checksum           String
+  checksumVerified   Boolean  @default(false)
+
+  // Metadata
+  metadata           Json?
+
+  @@unique([backupId, fileId])
+  @@index([backupId])
+  @@index([fileId])
+  @@map("backup_entries")
+}
+
+/// File access logging for security and analytics
+model FileAccessLog {
+  id                 String   @id @default(uuid())
+
+  // File reference
+  fileId             String
+  file               StoredFile @relation(fields: [fileId], references: [id])
+
+  // Access details
+  accessType         AccessType
+  accessMethod       String   // 'download', 'stream', 'preview', etc.
+
+  // User info
+  userId             String?
+  userName           String?
+  userAgent          String?
+  ipAddress          String?
+
+  // Request info
+  referrer           String?
+  requestHeaders     Json?
+  responseCode       Int?
+  responseSize       Int?     // Bytes transferred
+
+  // Timing
+  accessedAt         DateTime @default(now())
+  duration           Int?     // Milliseconds
+
+  // Geolocation (optional)
+  country            String?
+  region             String?
+  city               String?
+
+  // CDN info
+  cdnHit             Boolean?
+  edgeLocation       String?
+
+  @@index([fileId])
+  @@index([accessedAt])
+  @@index([userId])
+  @@index([accessType])
+  @@map("file_access_logs")
+}
+
+/// Storage analytics and metrics for monitoring
+model StorageMetrics {
+  id                 String   @id @default(uuid())
+
+  // Time period
+  date               DateTime @unique
+  hour               Int?     // For hourly metrics (0-23)
+
+  // Storage metrics
+  totalFiles         Int      @default(0)
+  totalSize          Int      @default(0) // Bytes
+
+  // By storage class
+  hotStorageFiles    Int      @default(0)
+  hotStorageSize     Int      @default(0)
+  warmStorageFiles   Int      @default(0)
+  warmStorageSize    Int      @default(0)
+  coldStorageFiles   Int      @default(0)
+  coldStorageSize    Int      @default(0)
+  archiveFiles       Int      @default(0)
+  archiveSize        Int      @default(0)
+
+  // By file type
+  imageFiles         Int      @default(0)
+  imageSize          Int      @default(0)
+  videoFiles         Int      @default(0)
+  videoSize          Int      @default(0)
+  documentFiles      Int      @default(0)
+  documentSize       Int      @default(0)
+  cadFiles           Int      @default(0)
+  cadSize            Int      @default(0)
+
+  // Activity metrics
+  uploads            Int      @default(0)
+  downloads          Int      @default(0)
+  deletes            Int      @default(0)
+
+  // Traffic metrics
+  totalRequests      Int      @default(0)
+  totalBandwidth     Int      @default(0) // Bytes
+  cdnHits            Int      @default(0)
+  cdnMisses          Int      @default(0)
+
+  // Deduplication savings
+  duplicateFiles     Int      @default(0)
+  spaceSaved         Int      @default(0) // Bytes
+
+  // Cost metrics (optional)
+  estimatedCost      Decimal? @db.Decimal(10, 2)
+
+  @@index([date])
+  @@index([hour])
+  @@map("storage_metrics")
+}
+
+/// Multipart upload session tracking
+model MultipartUpload {
+  id                 String   @id @default(uuid())
+
+  // Upload details
+  uploadId           String   @unique // S3/MinIO upload ID
+  fileName           String
+  storagePath        String
+
+  // File info
+  totalSize          Int
+  chunkSize          Int
+  totalChunks        Int
+  uploadedChunks     Int      @default(0)
+
+  // Status
+  status             UploadStatus @default(IN_PROGRESS)
+
+  // Parts tracking
+  parts              Json[]   // Array of part ETags
+
+  // User info
+  uploadedById       String
+  uploadedByName     String
+
+  // Timing
+  startedAt          DateTime @default(now())
+  lastActivityAt     DateTime @default(now())
+  completedAt        DateTime?
+  expiresAt          DateTime // Auto-cleanup incomplete uploads
+
+  // Error handling
+  errorMessage       String?
+  retryCount         Int      @default(0)
+
+  // Metadata
+  metadata           Json?
+
+  @@index([uploadId])
+  @@index([status])
+  @@index([uploadedById])
+  @@index([expiresAt])
+  @@map("multipart_uploads")
+}
+
+// =============================================================================
+// ENUMS FOR CLOUD STORAGE
+// =============================================================================
+
+/// Storage class for lifecycle management
+enum StorageClass {
+  HOT          // Frequently accessed (STANDARD)
+  WARM         // Infrequently accessed (STANDARD_IA)
+  COLD         // Rarely accessed (GLACIER)
+  ARCHIVE      // Long-term archival (DEEP_ARCHIVE)
+}
+
+/// CDN cache status
+enum CacheStatus {
+  CACHED
+  NOT_CACHED
+  INVALIDATED
+  EXPIRED
+}
+
+/// File upload method
+enum UploadMethod {
+  DIRECT       // Direct to server
+  MULTIPART    // Multipart upload
+  PRESIGNED    // Direct browser-to-S3
+  RESUMABLE    // Resumable upload (TUS)
+}
+
+/// File processing status
+enum ProcessingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// File attachment types for cloud storage
+enum FileAttachmentType {
+  PRIMARY      // Main document file
+  ATTACHMENT   // Supporting file
+  THUMBNAIL    // Generated thumbnail
+  PREVIEW      // Preview image/PDF
+  EXPORT       // Generated export (PDF, DOCX, etc.)
+  BACKUP       // Backup copy
+  TEMP         // Temporary file
+}
+
+/// Version change types
+enum VersionChangeType {
+  CREATE       // Initial version
+  UPDATE       // Content update
+  RENAME       // Filename change
+  METADATA     // Metadata only change
+  RESTORE      // Restored from previous version
+  MIGRATE      // Migrated from old system
+}
+
+/// Backup frequency options
+enum BackupFrequency {
+  REAL_TIME    // Continuous replication
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM       // Custom cron expression
+}
+
+/// Backup types
+enum BackupType {
+  FULL         // Complete backup
+  INCREMENTAL  // Only new/changed files
+  DIFFERENTIAL // Changed since last full backup
+  SNAPSHOT     // Point-in-time snapshot
+}
+
+/// Backup status
+enum BackupStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  PARTIAL      // Completed with some failures
+}
+
+/// File access types for logging
+enum AccessType {
+  READ         // File read/download
+  WRITE        // File upload/update
+  DELETE       // File deletion
+  METADATA     // Metadata access
+  LIST         // Directory listing
+  PREVIEW      // Thumbnail/preview access
+}
+
+/// Upload status for multipart uploads
+enum UploadStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
