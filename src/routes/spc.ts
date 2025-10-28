@@ -377,20 +377,79 @@ router.post('/control-limits/p-chart', authMiddleware, async (req: Request, res:
   try {
     const { defectCounts, sampleSizes } = req.body;
 
+    // ✅ GITHUB ISSUE #13 FIX: Enhanced P-chart validation with detailed array checks
     if (!defectCounts || !sampleSizes) {
-      return res.status(400).json({ error: 'Defect counts and sample sizes required' });
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Both defectCounts and sampleSizes arrays are required for P-chart calculation'
+      });
+    }
+
+    // Validate arrays are actually arrays
+    if (!Array.isArray(defectCounts) || !Array.isArray(sampleSizes)) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Both defectCounts and sampleSizes must be arrays'
+      });
+    }
+
+    // Validate arrays are not empty
+    if (defectCounts.length === 0 || sampleSizes.length === 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Both defectCounts and sampleSizes arrays must contain at least one value'
+      });
+    }
+
+    // ✅ GITHUB ISSUE #13 KEY FIX: Validate array lengths match before service call
+    if (defectCounts.length !== sampleSizes.length) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: `Array length mismatch: defectCounts has ${defectCounts.length} values but sampleSizes has ${sampleSizes.length} values. Both arrays must have the same length for paired P-chart calculations.`,
+        details: {
+          defectCountsLength: defectCounts.length,
+          sampleSizesLength: sampleSizes.length,
+          suggestion: 'Ensure each defect count has a corresponding sample size value'
+        }
+      });
+    }
+
+    // Validate all values are numbers
+    const invalidDefectCounts = defectCounts.filter((val, idx) => typeof val !== 'number' || isNaN(val));
+    if (invalidDefectCounts.length > 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'All defect count values must be valid numbers'
+      });
+    }
+
+    const invalidSampleSizes = sampleSizes.filter((val, idx) => typeof val !== 'number' || isNaN(val));
+    if (invalidSampleSizes.length > 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'All sample size values must be valid numbers'
+      });
     }
 
     const limits = await spcService.calculatePChartLimits(defectCounts, sampleSizes);
 
     return res.json(limits);
   } catch (error: any) {
+    // ✅ GITHUB ISSUE #13 FIX: Enhanced error handling with specific P-chart error messages
+    if (error.message.includes('same length')) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: error.message,
+        suggestion: 'Verify that your defect counts and sample sizes data have matching array lengths'
+      });
+    }
     // Check if this is a validation error
     if (error.message.includes('Minimum') ||
         error.message.includes('required') ||
         error.message.includes('must be') ||
         error.message.includes('cannot') ||
-        error.message.includes('invalid')) {
+        error.message.includes('invalid') ||
+        error.message.includes('negative')) {
       return res.status(400).json({ error: error.message });
     }
     logger.error('Error calculating P-chart limits', { error: error.message });

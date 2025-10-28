@@ -257,6 +257,75 @@ test.describe('SPC Control Chart Calculations', () => {
     });
 
     expect(response.status()).toBe(400);
+
+    // ✅ GITHUB ISSUE #13 TEST: Verify enhanced error message format
+    const errorData = await response.json();
+    expect(errorData.error).toBe('VALIDATION_ERROR');
+    expect(errorData.message).toContain('Array length mismatch');
+    expect(errorData.message).toContain('defectCounts has 4 values but sampleSizes has 2 values');
+    expect(errorData.details).toMatchObject({
+      defectCountsLength: 4,
+      sampleSizesLength: 2,
+      suggestion: 'Ensure each defect count has a corresponding sample size value'
+    });
+  });
+
+  // ✅ GITHUB ISSUE #13 ADDITIONAL TESTS: Comprehensive P-chart validation coverage
+  test('should reject P-chart with missing defectCounts', async ({ request }) => {
+    const response = await request.post('/api/v1/spc/control-limits/p-chart', {
+      headers: authHeaders,
+      data: { sampleSizes: [100, 100, 100] },
+    });
+
+    expect(response.status()).toBe(400);
+    const errorData = await response.json();
+    expect(errorData.error).toBe('VALIDATION_ERROR');
+    expect(errorData.message).toContain('Both defectCounts and sampleSizes arrays are required');
+  });
+
+  test('should reject P-chart with non-array input', async ({ request }) => {
+    const response = await request.post('/api/v1/spc/control-limits/p-chart', {
+      headers: authHeaders,
+      data: {
+        defectCounts: "not an array",
+        sampleSizes: [100, 100, 100]
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const errorData = await response.json();
+    expect(errorData.error).toBe('VALIDATION_ERROR');
+    expect(errorData.message).toContain('Both defectCounts and sampleSizes must be arrays');
+  });
+
+  test('should reject P-chart with empty arrays', async ({ request }) => {
+    const response = await request.post('/api/v1/spc/control-limits/p-chart', {
+      headers: authHeaders,
+      data: {
+        defectCounts: [],
+        sampleSizes: []
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const errorData = await response.json();
+    expect(errorData.error).toBe('VALIDATION_ERROR');
+    expect(errorData.message).toContain('Both defectCounts and sampleSizes arrays must contain at least one value');
+  });
+
+  test('should reject P-chart with invalid number values', async ({ request }) => {
+    const response = await request.post('/api/v1/spc/control-limits/p-chart', {
+      headers: authHeaders,
+      data: {
+        defectCounts: [3, "invalid", 2],
+        sampleSizes: [100, 100, 100]
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    const errorData = await response.json();
+    expect(errorData.error).toBe('VALIDATION_ERROR');
+    expect(errorData.message).toContain('All defect count values must be valid numbers');
   });
 
   test('should handle X-bar R calculation with specification limits', async ({ request }) => {
