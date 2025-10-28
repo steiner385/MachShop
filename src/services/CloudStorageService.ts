@@ -1,227 +1,128 @@
-import * as AWS from 'aws-sdk';
-import { Client as MinioClient } from 'minio';
-import { PrismaClient, StoredFile, FileVersion, StorageClass, UploadMethod, CacheStatus } from '@prisma/client';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  CopyObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { PrismaClient, StoredFile, StorageClass } from '@prisma/client';
 import * as crypto from 'crypto';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { PassThrough } from 'stream';
-import logger from '../utils/logger';
-import { AppError } from '../middleware/errorHandler';
-import { storageConfig, StoragePathBuilder } from '../config/storage';
-
-/**
- * TypeScript interfaces for Cloud Storage Operations
- */
-export interface CloudFile {
-  key: string;
-  size: number;
-  lastModified: Date;
-  etag: string;
-  storageClass?: StorageClass;
-  metadata?: Record<string, string>;
-}
-
-export interface UploadOptions {
-  filename: string;
-  contentType?: string;
-  metadata?: Record<string, string>;
-  storageClass?: StorageClass;
-  cacheControl?: string;
-  documentType?: string;
-  documentId?: string;
-  attachmentType?: string;
-  enableVersioning?: boolean;
-  enableDeduplication?: boolean;
-}
-
-export interface DownloadOptions {
-  expirationTime?: number; // seconds
-  responseContentType?: string;
-  responseContentDisposition?: string;
-}
-
-export interface MultipartUploadOptions {
-  partSize?: number; // bytes
-  queueSize?: number; // concurrent parts
-  leavePartsOnError?: boolean;
-}
-
-export interface ListOptions {
-  prefix?: string;
-  maxKeys?: number;
-  continuationToken?: string;
-  delimiter?: string;
-}
-
-export interface StorageStats {
-  totalFiles: number;
-  totalSize: number;
-  sizeByStorageClass: Record<StorageClass, number>;
-  filesByType: Record<string, number>;
-}
+import { storageConfig } from '../config/storage';
 
 /**
  * Cloud Storage Service - Enterprise-grade file storage with S3/MinIO support
  * Handles uploads, downloads, versioning, deduplication, and lifecycle management
  */
-class CloudStorageService {
-  private s3?: AWS.S3;
-  private minio?: MinioClient;
+export class CloudStorageService {
+  private s3Client: S3Client;
   private prisma: PrismaClient;
   private bucket: string;
 
   constructor() {
     this.prisma = new PrismaClient();
-
     this.bucket = storageConfig.provider.bucket;
     this.initializeClient();
   }
 
   /**
-   * Initialize the appropriate storage client based on configuration
+   * Initialize S3 client for both S3 and MinIO
    */
   private initializeClient(): void {
     try {
-      if (storageConfig.provider.type === 's3') {
-        this.s3 = new AWS.S3({
+      const config: any = {
+        region: storageConfig.provider.region || 'us-east-1',
+        credentials: {
           accessKeyId: storageConfig.provider.accessKey,
           secretAccessKey: storageConfig.provider.secretKey,
-          region: storageConfig.provider.region,
-          endpoint: storageConfig.provider.endpoint,
-          s3ForcePathStyle: storageConfig.provider.pathStyle,
-          signatureVersion: 'v4',
-        });
-        logger.info('S3 client initialized', { region: storageConfig.provider.region });
-      } else if (storageConfig.provider.type === 'minio') {
-        this.minio = new MinioClient({
-          endPoint: storageConfig.provider.endpoint!,
-          port: storageConfig.provider.port,
-          useSSL: storageConfig.provider.useSSL,
-          accessKey: storageConfig.provider.accessKey,
-          secretKey: storageConfig.provider.secretKey,
-        });
-        logger.info('MinIO client initialized', { endpoint: storageConfig.provider.endpoint });
+        },
+      };
+
+      // For MinIO or custom S3 endpoints
+      if (storageConfig.provider.endpoint) {
+        config.endpoint = storageConfig.provider.endpoint;
+        config.forcePathStyle = true;
       }
+
+      this.s3Client = new S3Client(config);
     } catch (error: any) {
-      logger.error('Failed to initialize storage client', { error: error.message });
-      throw new AppError('Storage client initialization failed', 500, 'STORAGE_INIT_FAILED', error);
+      throw new Error(`Failed to initialize storage client: ${error.message}`);
     }
   }
 
   /**
-   * Upload a file to cloud storage with deduplication and versioning
+   * Initialize the service (for dependency injection compatibility)
+   */
+  async initialize(): Promise<void> {
+    // Service is initialized in constructor
+    return Promise.resolve();
+  }
+
+  /**
+   * Upload a file to cloud storage
    */
   async uploadFile(
-    filePath: string | Buffer,
-    options: UploadOptions
+    buffer: Buffer,
+    fileName: string,
+    mimeType: string,
+    options?: {
+      storageClass?: StorageClass;
+      metadata?: Record<string, string>;
+      documentType?: string;
+      documentId?: string;
+    }
   ): Promise<StoredFile> {
     try {
-      logger.info('Starting file upload', { filename: options.filename });
-
-      // Read file content and calculate hash for deduplication
-      const fileContent = Buffer.isBuffer(filePath)
-        ? filePath
-        : await fs.readFile(filePath);
-      const fileHash = crypto.createHash('sha256').update(fileContent).digest('hex');
-      const fileSize = fileContent.length;
-
-      // Check for existing file with same hash (deduplication)
-      let existingFile: StoredFile | null = null;
-      if (options.enableDeduplication !== false) {
-        existingFile = await this.prisma.storedFile.findFirst({
-          where: { fileHash }
-        });
-
-        if (existingFile) {
-          logger.info('File already exists, creating reference', {
-            fileHash,
-            existingFileId: existingFile.id
-          });
-
-          // Increment reference count and create new record
-          await this.prisma.storedFile.update({
-            where: { id: existingFile.id },
-            data: { deduplicationRefs: { increment: 1 } }
-          });
-
-          // Create new record pointing to existing file
-          const newFileRecord = await this.prisma.storedFile.create({
-            data: {
-              fileName: options.filename,
-              originalFileName: options.filename,
-              fileSize,
-              mimeType: options.contentType || 'application/octet-stream',
-              fileHash,
-              storagePath: existingFile.storagePath,
-              storageProvider: storageConfig.provider.type.toUpperCase() as any,
-              bucket: this.bucket,
-              storageClass: options.storageClass || StorageClass.HOT,
-              uploadMethod: UploadMethod.DIRECT,
-              cacheStatus: CacheStatus.NOT_CACHED,
-              uploadedById: 'system', // TODO: Get from context
-              uploadedByName: 'System', // TODO: Get from context
-              documentType: options.documentType,
-              documentId: options.documentId,
-              attachmentType: options.attachmentType as any,
-              originalFileId: existingFile.id,
-              metadata: options.metadata || {},
-            }
-          });
-
-          return newFileRecord;
-        }
+      // Validate file size
+      const maxSize = 5 * 1024 * 1024 * 1024; // 5GB
+      if (buffer.length > maxSize) {
+        throw new Error('File size exceeds maximum limit');
       }
 
-      // Generate storage path
-      const storagePath = this.generateStoragePath(options);
+      // Calculate checksum
+      const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
 
-      // Upload to cloud storage
-      const uploadResult = await this.performUpload(fileContent, storagePath, options);
+      // Generate storage key
+      const timestamp = Date.now();
+      const extension = fileName.split('.').pop();
+      const storageKey = `files/${timestamp}-${fileName}`;
+
+      // Upload to S3/MinIO
+      const putCommand = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: storageKey,
+        Body: buffer,
+        ContentType: mimeType,
+        StorageClass: options?.storageClass || StorageClass.STANDARD,
+        Metadata: options?.metadata,
+        ServerSideEncryption: storageConfig.enableEncryption ? 'AES256' : undefined,
+      });
+
+      const result = await this.s3Client.send(putCommand);
 
       // Create database record
       const storedFile = await this.prisma.storedFile.create({
         data: {
-          fileName: options.filename,
-          originalFileName: options.filename,
-          fileSize,
-          mimeType: options.contentType || 'application/octet-stream',
-          fileHash,
-          storagePath,
-          storageProvider: storageConfig.provider.type.toUpperCase() as any,
+          fileName,
+          originalName: fileName,
+          mimeType,
+          size: buffer.length,
+          checksum,
+          storageKey,
+          storageClass: options?.storageClass || StorageClass.STANDARD,
+          provider: storageConfig.provider.type === 's3' ? 'S3' : 'MINIO',
           bucket: this.bucket,
-          storageClass: options.storageClass || StorageClass.HOT,
-          uploadMethod: fileSize > storageConfig.upload.chunkSize
-            ? UploadMethod.MULTIPART
-            : UploadMethod.DIRECT,
-          cacheStatus: CacheStatus.NOT_CACHED,
-          uploadedById: 'system', // TODO: Get from context
-          uploadedByName: 'System', // TODO: Get from context
-          documentType: options.documentType,
-          documentId: options.documentId,
-          attachmentType: options.attachmentType as any,
-          metadata: {
-            ...options.metadata,
-            etag: uploadResult.etag,
-            bucket: this.bucket,
-          },
-        }
-      });
-
-      // Create initial version if versioning is enabled
-      if (options.enableVersioning !== false) {
-        await this.createFileVersion(storedFile.id, 'CREATE', 'Initial upload');
-      }
-
-      logger.info('File uploaded successfully', {
-        fileId: storedFile.id,
-        storagePath,
-        size: fileSize
+          region: storageConfig.provider.region,
+          encrypted: storageConfig.enableEncryption || false,
+          metadata: options?.metadata,
+        },
       });
 
       return storedFile;
     } catch (error: any) {
-      logger.error('File upload failed', { error: error.message, filename: options.filename });
-      throw new AppError('File upload failed', 500, 'UPLOAD_FAILED', error);
+      throw new Error(`Failed to upload file to cloud storage: ${error.message}`);
     }
   }
 
@@ -230,414 +131,296 @@ class CloudStorageService {
    */
   async downloadFile(
     fileId: string,
-    options: DownloadOptions = {}
-  ): Promise<{ stream: NodeJS.ReadableStream; metadata: any }> {
+    userId?: string,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<Buffer> {
     try {
-      logger.info('Starting file download', { fileId });
-
       // Get file record
       const storedFile = await this.prisma.storedFile.findUnique({
-        where: { id: fileId }
+        where: { id: fileId },
       });
 
       if (!storedFile) {
-        throw new AppError('File not found', 404, 'FILE_NOT_FOUND');
+        throw new Error('File not found');
       }
 
-      // Log access
-      await this.logFileAccess(fileId, 'DOWNLOAD');
+      // Download from S3/MinIO
+      const getCommand = new GetObjectCommand({
+        Bucket: storedFile.bucket,
+        Key: storedFile.storageKey,
+      });
 
-      // Generate download stream
-      const stream = await this.getFileStream(storedFile.storagePath, options);
+      const result = await this.s3Client.send(getCommand);
 
-      logger.info('File download initiated', { fileId, storagePath: storedFile.storagePath });
+      if (!result.Body) {
+        throw new Error('File content not found');
+      }
 
-      return {
-        stream,
-        metadata: {
-          filename: storedFile.fileName,
-          contentType: storedFile.mimeType,
-          size: storedFile.fileSize,
-          ...(storedFile.metadata as Record<string, any>)
-        }
-      };
+      const buffer = Buffer.from(await result.Body.transformToByteArray());
+
+      // Log access if userId provided
+      if (userId) {
+        await this.prisma.fileAccessLog.create({
+          data: {
+            fileId,
+            userId,
+            action: 'DOWNLOAD',
+            ipAddress,
+            userAgent,
+          },
+        });
+      }
+
+      return buffer;
     } catch (error: any) {
-      logger.error('File download failed', { error: error.message, fileId });
-      throw new AppError('File download failed', 500, 'DOWNLOAD_FAILED', error);
+      throw new Error(`Failed to download file: ${error.message}`);
     }
   }
 
   /**
-   * Generate a signed URL for direct access
+   * Generate a signed URL for file access
    */
   async generateSignedUrl(
-    fileId: string,
-    operation: 'get' | 'put' = 'get',
-    expirationTime?: number
+    fileIdOrKey: string,
+    action: 'upload' | 'download',
+    expirationTime: number = 3600
   ): Promise<string> {
     try {
-      const storedFile = await this.prisma.storedFile.findUnique({
-        where: { id: fileId }
-      });
+      let key: string;
 
-      if (!storedFile) {
-        throw new AppError('File not found', 404, 'FILE_NOT_FOUND');
-      }
+      // If it looks like a file ID, get the storage key
+      if (fileIdOrKey.length < 50) {
+        const storedFile = await this.prisma.storedFile.findUnique({
+          where: { id: fileIdOrKey },
+        });
 
-      const expiration = expirationTime || storageConfig.security.signedUrlExpirationMinutes * 60;
+        if (!storedFile) {
+          throw new Error('File not found');
+        }
 
-      let signedUrl: string;
-
-      if (this.s3) {
-        const params = {
-          Bucket: this.bucket,
-          Key: storedFile.storagePath,
-          Expires: expiration,
-        };
-        signedUrl = this.s3.getSignedUrl(operation === 'get' ? 'getObject' : 'putObject', params);
-      } else if (this.minio) {
-        signedUrl = await this.minio.presignedUrl(
-          operation === 'get' ? 'GET' : 'PUT',
-          this.bucket,
-          storedFile.storagePath,
-          expiration
-        );
+        key = storedFile.storageKey;
       } else {
-        throw new AppError('No storage client available', 500, 'NO_CLIENT');
+        key = fileIdOrKey;
       }
 
-      // Log access for signed URLs
-      if (operation === 'get') {
-        await this.logFileAccess(fileId, 'SIGNED_URL');
-      }
+      const command = action === 'upload'
+        ? new PutObjectCommand({ Bucket: this.bucket, Key: key })
+        : new GetObjectCommand({ Bucket: this.bucket, Key: key });
 
-      logger.info('Signed URL generated', { fileId, operation, expiration });
-      return signedUrl;
+      return await getSignedUrl(this.s3Client, command, { expiresIn: expirationTime });
     } catch (error: any) {
-      logger.error('Signed URL generation failed', { error: error.message, fileId });
-      throw new AppError('Signed URL generation failed', 500, 'SIGNED_URL_FAILED', error);
+      throw new Error(`Failed to generate signed URL: ${error.message}`);
     }
   }
 
   /**
-   * Delete a file from cloud storage and database
+   * Delete a file from cloud storage
    */
-  async deleteFile(fileId: string): Promise<void> {
+  async deleteFile(fileId: string, permanent: boolean = false): Promise<void> {
     try {
-      logger.info('Starting file deletion', { fileId });
-
       const storedFile = await this.prisma.storedFile.findUnique({
         where: { id: fileId },
-        include: { duplicateFiles: true }
       });
 
       if (!storedFile) {
-        throw new AppError('File not found', 404, 'FILE_NOT_FOUND');
+        throw new Error('File not found');
       }
 
-      // Handle deduplication - only delete from storage if no other references
-      if (storedFile.originalFileId) {
-        // This is a duplicate, just delete the record and decrement reference count
-        await this.prisma.storedFile.delete({ where: { id: fileId } });
-
-        await this.prisma.storedFile.update({
-          where: { id: storedFile.originalFileId },
-          data: { deduplicationRefs: { decrement: 1 } }
-        });
-      } else if (storedFile.duplicateFiles.length > 0) {
-        // This is an original with duplicates, transfer ownership to first duplicate
-        const newOwner = storedFile.duplicateFiles[0];
-
-        // Update all duplicates to point to new owner
-        await this.prisma.storedFile.updateMany({
-          where: { originalFileId: fileId },
-          data: { originalFileId: newOwner.id }
+      if (permanent) {
+        // Delete from S3/MinIO
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: storedFile.bucket,
+          Key: storedFile.storageKey,
         });
 
-        // Update new owner to have no original file reference
-        await this.prisma.storedFile.update({
-          where: { id: newOwner.id },
-          data: { originalFileId: null }
-        });
+        await this.s3Client.send(deleteCommand);
 
-        // Delete the current record
-        await this.prisma.storedFile.delete({ where: { id: fileId } });
+        // Delete database record
+        await this.prisma.storedFile.delete({
+          where: { id: fileId },
+        });
       } else {
-        // No duplicates, safe to delete from storage
-        await this.deleteFromStorage(storedFile.storagePath);
-        await this.prisma.storedFile.delete({ where: { id: fileId } });
+        // Soft delete
+        await this.prisma.storedFile.update({
+          where: { id: fileId },
+          data: { deletedAt: new Date() },
+        });
       }
-
-      logger.info('File deleted successfully', { fileId });
     } catch (error: any) {
-      logger.error('File deletion failed', { error: error.message, fileId });
-      throw new AppError('File deletion failed', 500, 'DELETE_FAILED', error);
+      throw new Error(`Failed to delete file: ${error.message}`);
     }
   }
 
   /**
-   * List files with filtering and pagination
+   * Copy a file within storage
    */
-  async listFiles(options: {
-    documentType?: string;
-    documentId?: string;
-    storageClass?: StorageClass;
-    limit?: number;
-    offset?: number;
-    orderBy?: 'createdAt' | 'filename' | 'fileSize';
-    orderDirection?: 'asc' | 'desc';
-  } = {}): Promise<{ files: StoredFile[]; total: number }> {
+  async copyFile(sourceFileId: string, destinationKey: string): Promise<StoredFile> {
     try {
-      const whereClause: any = {};
+      const sourceFile = await this.prisma.storedFile.findUnique({
+        where: { id: sourceFileId },
+      });
 
-      if (options.documentType) {
-        whereClause.documentType = options.documentType;
-      }
-      if (options.documentId) {
-        whereClause.documentId = options.documentId;
-      }
-      if (options.storageClass) {
-        whereClause.storageClass = options.storageClass;
+      if (!sourceFile) {
+        throw new Error('Source file not found');
       }
 
-      const [files, total] = await Promise.all([
-        this.prisma.storedFile.findMany({
-          where: whereClause,
-          take: options.limit,
-          skip: options.offset,
-          orderBy: {
-            [options.orderBy || 'createdAt']: options.orderDirection || 'desc'
-          }
-        }),
-        this.prisma.storedFile.count({ where: whereClause })
-      ]);
+      // Copy in S3/MinIO
+      const copyCommand = new CopyObjectCommand({
+        Bucket: this.bucket,
+        Key: destinationKey,
+        CopySource: `${sourceFile.bucket}/${sourceFile.storageKey}`,
+      });
 
-      return { files, total };
+      await this.s3Client.send(copyCommand);
+
+      // Create new database record
+      const newFile = await this.prisma.storedFile.create({
+        data: {
+          fileName: sourceFile.fileName,
+          originalName: sourceFile.originalName,
+          mimeType: sourceFile.mimeType,
+          size: sourceFile.size,
+          checksum: sourceFile.checksum,
+          storageKey: destinationKey,
+          storageClass: sourceFile.storageClass,
+          provider: sourceFile.provider,
+          bucket: this.bucket,
+          region: sourceFile.region,
+          encrypted: sourceFile.encrypted,
+          metadata: sourceFile.metadata,
+        },
+      });
+
+      return newFile;
     } catch (error: any) {
-      logger.error('File listing failed', { error: error.message });
-      throw new AppError('File listing failed', 500, 'LIST_FAILED', error);
+      throw new Error(`Failed to copy file: ${error.message}`);
     }
+  }
+
+  /**
+   * Move a file to a new location
+   */
+  async moveFile(fileId: string, newKey: string): Promise<StoredFile> {
+    try {
+      // Copy to new location
+      const copiedFile = await this.copyFile(fileId, newKey);
+
+      // Delete original
+      await this.deleteFile(fileId, true);
+
+      // Update the copied file's ID to match original
+      const updatedFile = await this.prisma.storedFile.update({
+        where: { id: copiedFile.id },
+        data: { storageKey: newKey },
+      });
+
+      return updatedFile;
+    } catch (error: any) {
+      throw new Error(`Failed to move file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Find duplicate files by checksum
+   */
+  async checkDuplicates(checksum: string): Promise<Array<{
+    id: string;
+    fileName: string;
+    checksum: string;
+    size: number;
+    createdAt: Date;
+  }>> {
+    return await this.prisma.storedFile.findMany({
+      where: {
+        checksum,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        fileName: true,
+        checksum: true,
+        size: true,
+        createdAt: true,
+      },
+    });
   }
 
   /**
    * Get storage statistics
    */
-  async getStorageStats(): Promise<StorageStats> {
+  async getStorageStatistics(): Promise<{
+    totalFiles: number;
+    totalSize: number;
+    totalSizeFormatted: string;
+    filesByProvider: Record<string, number>;
+    filesByStorageClass: Record<string, number>;
+    averageFileSize: number;
+    averageFileSizeFormatted: string;
+  }> {
     try {
-      const [files, totalSize, storageClassStats] = await Promise.all([
-        this.prisma.storedFile.count(),
-        this.prisma.storedFile.aggregate({
-          _sum: { fileSize: true }
-        }),
-        this.prisma.storedFile.groupBy({
-          by: ['storageClass'],
-          _sum: { fileSize: true },
-          _count: true
-        })
-      ]);
+      // Get total counts and size
+      const totalFiles = await this.prisma.storedFile.count({
+        where: { deletedAt: null },
+      });
 
-      const sizeByStorageClass: Record<StorageClass, number> = {
-        [StorageClass.HOT]: 0,
-        [StorageClass.WARM]: 0,
-        [StorageClass.COLD]: 0,
-        [StorageClass.ARCHIVE]: 0,
-      };
+      const aggregation = await this.prisma.storedFile.aggregate({
+        where: { deletedAt: null },
+        _sum: { size: true },
+      });
 
-      const filesByType: Record<string, number> = {};
+      const totalSize = aggregation._sum.size || 0;
 
+      // Get files by provider
+      const providerStats = await this.prisma.storedFile.groupBy({
+        by: ['provider'],
+        where: { deletedAt: null },
+        _count: { id: true },
+      });
+
+      const filesByProvider: Record<string, number> = {};
+      providerStats.forEach(stat => {
+        filesByProvider[stat.provider] = stat._count.id;
+      });
+
+      // Get files by storage class
+      const storageClassStats = await this.prisma.storedFile.groupBy({
+        by: ['storageClass'],
+        where: { deletedAt: null },
+        _count: { id: true },
+      });
+
+      const filesByStorageClass: Record<string, number> = {};
       storageClassStats.forEach(stat => {
-        sizeByStorageClass[stat.storageClass] = stat._sum.fileSize || 0;
+        filesByStorageClass[stat.storageClass] = stat._count.id;
       });
 
-      // Get file type distribution
-      const typeStats = await this.prisma.storedFile.groupBy({
-        by: ['contentType'],
-        _count: true
-      });
-
-      typeStats.forEach(stat => {
-        filesByType[stat.contentType] = stat._count;
-      });
+      const averageFileSize = totalFiles > 0 ? totalSize / totalFiles : 0;
 
       return {
-        totalFiles: files,
-        totalSize: totalSize._sum.fileSize || 0,
-        sizeByStorageClass,
-        filesByType
+        totalFiles,
+        totalSize,
+        totalSizeFormatted: this.formatBytes(totalSize),
+        filesByProvider,
+        filesByStorageClass,
+        averageFileSize,
+        averageFileSizeFormatted: this.formatBytes(averageFileSize),
       };
     } catch (error: any) {
-      logger.error('Storage stats failed', { error: error.message });
-      throw new AppError('Storage stats failed', 500, 'STATS_FAILED', error);
+      throw new Error(`Failed to get storage statistics: ${error.message}`);
     }
   }
 
   /**
-   * Private helper methods
+   * Format bytes to human readable string
    */
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
 
-  private generateStoragePath(options: UploadOptions): string {
-    const timestamp = new Date().toISOString().split('T')[0];
-    const randomId = crypto.randomBytes(8).toString('hex');
-    const ext = path.extname(options.filename);
-    const baseName = path.basename(options.filename, ext);
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    if (options.documentType && options.documentId) {
-      return StoragePathBuilder.buildDocumentPath(
-        options.documentType,
-        options.documentId,
-        `${baseName}-${randomId}${ext}`
-      );
-    }
-
-    return `files/${timestamp}/${randomId}/${options.filename}`;
-  }
-
-  private async performUpload(
-    content: Buffer,
-    storagePath: string,
-    options: UploadOptions
-  ): Promise<{ etag: string }> {
-    const metadata = {
-      'Content-Type': options.contentType || 'application/octet-stream',
-      'Cache-Control': options.cacheControl || 'public, max-age=86400',
-      ...options.metadata
-    };
-
-    if (this.s3) {
-      const result = await this.s3.upload({
-        Bucket: this.bucket,
-        Key: storagePath,
-        Body: content,
-        ContentType: options.contentType,
-        Metadata: options.metadata,
-        StorageClass: this.mapStorageClass(options.storageClass),
-        CacheControl: options.cacheControl,
-      }).promise();
-
-      return { etag: result.ETag || '' };
-    } else if (this.minio) {
-      const result = await this.minio.putObject(
-        this.bucket,
-        storagePath,
-        content,
-        content.length,
-        metadata
-      );
-
-      return { etag: result.etag || '' };
-    }
-
-    throw new AppError('No storage client available', 500, 'NO_CLIENT');
-  }
-
-  private async getFileStream(
-    storagePath: string,
-    options: DownloadOptions
-  ): Promise<NodeJS.ReadableStream> {
-    if (this.s3) {
-      const params: AWS.S3.GetObjectRequest = {
-        Bucket: this.bucket,
-        Key: storagePath,
-      };
-
-      if (options.responseContentType) {
-        params.ResponseContentType = options.responseContentType;
-      }
-      if (options.responseContentDisposition) {
-        params.ResponseContentDisposition = options.responseContentDisposition;
-      }
-
-      return this.s3.getObject(params).createReadStream();
-    } else if (this.minio) {
-      return await this.minio.getObject(this.bucket, storagePath);
-    }
-
-    throw new AppError('No storage client available', 500, 'NO_CLIENT');
-  }
-
-  private async deleteFromStorage(storagePath: string): Promise<void> {
-    if (this.s3) {
-      await this.s3.deleteObject({
-        Bucket: this.bucket,
-        Key: storagePath,
-      }).promise();
-    } else if (this.minio) {
-      await this.minio.removeObject(this.bucket, storagePath);
-    } else {
-      throw new AppError('No storage client available', 500, 'NO_CLIENT');
-    }
-  }
-
-  private mapStorageClass(storageClass?: StorageClass): string {
-    if (!storageClass) return 'STANDARD';
-
-    const mapping = {
-      [StorageClass.HOT]: 'STANDARD',
-      [StorageClass.WARM]: 'STANDARD_IA',
-      [StorageClass.COLD]: 'GLACIER',
-      [StorageClass.ARCHIVE]: 'DEEP_ARCHIVE',
-    };
-
-    return mapping[storageClass] || 'STANDARD';
-  }
-
-  private async createFileVersion(
-    fileId: string,
-    changeType: string,
-    changeDescription?: string
-  ): Promise<FileVersion> {
-    const versions = await this.prisma.fileVersion.count({
-      where: { fileId }
-    });
-
-    return this.prisma.fileVersion.create({
-      data: {
-        fileId,
-        versionNumber: versions + 1,
-        versionId: `v${versions + 1}`, // Generate version ID
-        storagePath: 'temp-path', // TODO: Generate proper versioned path
-        fileSize: 0, // TODO: Get from stored file
-        fileHash: 'temp-hash', // TODO: Get from stored file
-        mimeType: 'application/octet-stream', // TODO: Get from stored file
-        changeType: changeType as any,
-        changeDescription,
-        createdById: 'system', // TODO: Get from context
-        createdByName: 'System', // TODO: Get from context
-      }
-    });
-  }
-
-  private async logFileAccess(
-    fileId: string,
-    operation: string,
-    userId?: string,
-    userAgent?: string,
-    ipAddress?: string
-  ): Promise<void> {
-    try {
-      await this.prisma.fileAccessLog.create({
-        data: {
-          fileId,
-          accessType: 'DOWNLOAD' as any, // TODO: Map operation to proper AccessType enum
-          accessMethod: operation,
-          userId: userId || 'anonymous',
-          userAgent,
-          ipAddress,
-        }
-      });
-    } catch (error: any) {
-      // Don't fail the main operation if logging fails
-      logger.warn('Failed to log file access', { error: error.message, fileId, operation });
-    }
-  }
-
-  /**
-   * Close database connection
-   */
-  async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   }
 }
-
-export const cloudStorageService = new CloudStorageService();
-export default cloudStorageService;

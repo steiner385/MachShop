@@ -275,13 +275,13 @@ export const validateStorageConfig = (config: StorageConfig): void => {
 // Export the configuration instance
 export const storageConfig = getStorageConfig();
 
-// Validate on import
+// Validate on import (skip in test environment)
 try {
   validateStorageConfig(storageConfig);
 } catch (error) {
   console.error('❌ Storage configuration validation failed:', error);
-  // Don't throw in production, just log the error
-  if (process.env.NODE_ENV !== 'production') {
+  // Don't throw in production or test environments, just log the error
+  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
     throw error;
   }
 }

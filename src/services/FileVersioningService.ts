@@ -830,5 +830,7 @@ class FileVersioningService {
   }
 }
 
+// Export both the class and a default instance for different use cases
+export { FileVersioningService };
 export const fileVersioningService = new FileVersioningService();
-export default fileVersioningService;
+export default FileVersioningService;

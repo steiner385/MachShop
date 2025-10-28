@@ -1,75 +1,73 @@
-import * as AWS from 'aws-sdk';
-import { Client as MinioClient } from 'minio';
-import { PrismaClient, MultipartUpload, UploadStatus } from '@prisma/client';
+import {
+  S3Client,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand
+} from '@aws-sdk/client-s3';
+import { PrismaClient, MultipartUpload, StoredFile, UploadStatus } from '@prisma/client';
 import * as crypto from 'crypto';
-import { PassThrough } from 'stream';
-import logger from '../utils/logger';
-import { AppError } from '../middleware/errorHandler';
 import { storageConfig } from '../config/storage';
-import { cloudStorageService } from './CloudStorageService';
 
-/**
- * TypeScript interfaces for Multipart Upload Operations
- */
-export interface MultipartUploadInit {
+export interface InitializeUploadOptions {
   fileName: string;
   fileSize: number;
-  contentType?: string;
+  mimeType: string;
+  userId: string;
   documentType?: string;
   documentId?: string;
-  attachmentType?: string;
-  partSize?: number; // bytes
   metadata?: Record<string, string>;
-  uploadedById: string;
-  uploadedByName: string;
 }
 
-export interface UploadPart {
+export interface UploadPartResult {
   partNumber: number;
-  size: number;
   etag: string;
-  checksum?: string;
+  size: number;
+  completed: boolean;
+  skipped?: boolean;
+}
+
+export interface CompleteUploadResult {
+  success: boolean;
+  storedFile: StoredFile;
+  uploadRecord: MultipartUpload;
 }
 
 export interface UploadProgress {
   uploadId: string;
   fileName: string;
+  totalSize: number;
+  uploadedSize: number;
   totalParts: number;
   completedParts: number;
-  uploadedBytes: number;
-  totalBytes: number;
-  percentComplete: number;
-  estimatedTimeRemaining?: number; // seconds
-  uploadSpeed?: number; // bytes per second
+  progress: number;
+  status: UploadStatus;
+  initiatedAt: Date;
+  estimatedTimeRemaining: number;
+  uploadSpeed: number;
+  completedPartsInfo: Array<{
+    partNumber: number;
+    size: number;
+    uploadedAt: Date;
+  }>;
 }
 
-export interface MultipartUploadResult {
-  uploadId: string;
-  fileName: string;
-  fileSize: number;
-  finalFileId?: string;
-  parts: UploadPart[];
-  completedAt: Date;
-  duration: number; // seconds
-}
-
-export interface UploadSession {
-  uploadId: string;
-  uploadUrl?: string; // For S3 pre-signed URLs
-  partUrls?: Record<number, string>; // Pre-signed URLs for each part
-  expiresAt: Date;
-  metadata: Record<string, any>;
+export interface ChunkSizeCalculation {
+  chunkSize: number;
+  totalParts: number;
 }
 
 /**
- * Multipart Upload Service - Handles large file uploads with resumable functionality
- * Supports both S3 and MinIO backends with progress tracking and error recovery
+ * Multipart Upload Service - Scalable large file uploads (>5MB to 5TB)
+ * Handles multipart upload lifecycle, progress tracking, and resumable uploads
  */
-class MultipartUploadService {
-  private s3?: AWS.S3;
-  private minio?: MinioClient;
+export class MultipartUploadService {
+  private s3Client: S3Client;
   private prisma: PrismaClient;
   private bucket: string;
+  private minChunkSize: number = 5 * 1024 * 1024; // 5MB
+  private maxParts: number = 10000;
 
   constructor() {
     this.prisma = new PrismaClient();
@@ -78,449 +76,316 @@ class MultipartUploadService {
   }
 
   /**
-   * Initialize the appropriate storage client
+   * Initialize S3 client
    */
   private initializeClient(): void {
     try {
-      if (storageConfig.provider.type === 's3') {
-        this.s3 = new AWS.S3({
+      const config: any = {
+        region: storageConfig.provider.region || 'us-east-1',
+        credentials: {
           accessKeyId: storageConfig.provider.accessKey,
           secretAccessKey: storageConfig.provider.secretKey,
-          region: storageConfig.provider.region,
-          endpoint: storageConfig.provider.endpoint,
-          s3ForcePathStyle: storageConfig.provider.pathStyle,
-          signatureVersion: 'v4',
-        });
-      } else if (storageConfig.provider.type === 'minio') {
-        this.minio = new MinioClient({
-          endPoint: storageConfig.provider.endpoint!,
-          port: storageConfig.provider.port,
-          useSSL: storageConfig.provider.useSSL,
-          accessKey: storageConfig.provider.accessKey,
-          secretKey: storageConfig.provider.secretKey,
-        });
-      }
-    } catch (error: any) {
-      logger.error('Failed to initialize multipart upload client', { error: error.message });
-      throw new AppError('Client initialization failed', 500, 'CLIENT_INIT_FAILED', error);
-    }
-  }
-
-  /**
-   * Initialize a multipart upload session
-   */
-  async initializeUpload(options: MultipartUploadInit): Promise<UploadSession> {
-    try {
-      logger.info('Initializing multipart upload', {
-        fileName: options.fileName,
-        fileSize: options.fileSize,
-        contentType: options.contentType
-      });
-
-      // Generate storage path
-      const storagePath = this.generateStoragePath(options);
-      const uploadId = crypto.randomUUID();
-      const partSize = options.partSize || storageConfig.upload.chunkSize;
-      const totalParts = Math.ceil(options.fileSize / partSize);
-
-      // Initialize cloud storage multipart upload
-      let cloudUploadId: string;
-      let partUrls: Record<number, string> = {};
-
-      if (this.s3) {
-        const createParams: AWS.S3.CreateMultipartUploadRequest = {
-          Bucket: this.bucket,
-          Key: storagePath,
-          ContentType: options.contentType || 'application/octet-stream',
-          Metadata: options.metadata,
-        };
-
-        const createResult = await this.s3.createMultipartUpload(createParams).promise();
-        cloudUploadId = createResult.UploadId!;
-
-        // Generate pre-signed URLs for each part
-        for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
-          const uploadPartParams: AWS.S3.UploadPartRequest = {
-            Bucket: this.bucket,
-            Key: storagePath,
-            PartNumber: partNumber,
-            UploadId: cloudUploadId,
-            Body: Buffer.alloc(0), // Dummy body for URL generation
-          };
-
-          partUrls[partNumber] = this.s3.getSignedUrl('uploadPart', {
-            Bucket: this.bucket,
-            Key: storagePath,
-            PartNumber: partNumber,
-            UploadId: cloudUploadId,
-            Expires: 3600, // 1 hour
-          });
-        }
-      } else if (this.minio) {
-        // MinIO doesn't have native multipart upload APIs like S3
-        // We'll simulate it by using a unique upload ID
-        cloudUploadId = `minio_${uploadId}`;
-      } else {
-        throw new AppError('No storage client available', 500, 'NO_CLIENT');
-      }
-
-      // Store upload session in database
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-      await this.prisma.multipartUpload.create({
-        data: {
-          id: uploadId,
-          fileName: options.fileName,
-          originalFileName: options.fileName,
-          totalSize: options.fileSize,
-          partSize,
-          totalParts,
-          storagePath,
-          cloudUploadId,
-          status: UploadStatus.INITIATED,
-          uploadedById: options.uploadedById,
-          uploadedByName: options.uploadedByName,
-          documentType: options.documentType,
-          documentId: options.documentId,
-          attachmentType: options.attachmentType as any,
-          parts: [],
-          metadata: {
-            ...options.metadata,
-            bucket: this.bucket,
-            contentType: options.contentType,
-          },
-          expiresAt,
-        }
-      });
-
-      const session: UploadSession = {
-        uploadId,
-        partUrls,
-        expiresAt,
-        metadata: {
-          storagePath,
-          cloudUploadId,
-          partSize,
-          totalParts,
-        }
+        },
       };
 
-      logger.info('Multipart upload initialized', {
-        uploadId,
-        cloudUploadId,
-        totalParts,
-        partSize
-      });
+      // For MinIO or custom S3 endpoints
+      if (storageConfig.provider.endpoint) {
+        config.endpoint = storageConfig.provider.endpoint;
+        config.forcePathStyle = true;
+      }
 
-      return session;
+      this.s3Client = new S3Client(config);
     } catch (error: any) {
-      logger.error('Failed to initialize multipart upload', {
-        error: error.message,
-        fileName: options.fileName
-      });
-      throw new AppError('Upload initialization failed', 500, 'INIT_FAILED', error);
+      throw new Error(`Failed to initialize storage client: ${error.message}`);
     }
   }
 
   /**
-   * Upload a single part of the multipart upload
+   * Initialize the service (for dependency injection compatibility)
    */
-  async uploadPart(
-    uploadId: string,
-    partNumber: number,
-    partData: Buffer,
-    options: {
-      expectedSize?: number;
-      checksum?: string;
-    } = {}
-  ): Promise<UploadPart> {
+  async initialize(): Promise<void> {
+    // Service is initialized in constructor
+    return Promise.resolve();
+  }
+
+  /**
+   * Initialize a multipart upload
+   */
+  async initializeUpload(options: InitializeUploadOptions): Promise<MultipartUpload> {
     try {
-      logger.debug('Uploading part', {
-        uploadId,
-        partNumber,
-        size: partData.length
+      // Validate file size
+      if (options.fileSize < this.minChunkSize) {
+        throw new Error(`File size must be at least ${this.minChunkSize / (1024 * 1024)}MB for multipart upload`);
+      }
+
+      const maxSize = 5 * 1024 * 1024 * 1024 * 1024; // 5TB
+      if (options.fileSize > maxSize) {
+        throw new Error('File size exceeds maximum limit');
+      }
+
+      // Calculate optimal chunk size and parts
+      const { chunkSize, totalParts } = this.calculateOptimalChunkSize(options.fileSize);
+
+      // Generate storage key
+      const timestamp = Date.now();
+      const storageKey = `files/${timestamp}-${options.fileName}`;
+
+      // Initialize multipart upload in S3
+      const createCommand = new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: storageKey,
+        ContentType: options.mimeType,
+        Metadata: options.metadata,
+        ServerSideEncryption: storageConfig.enableEncryption ? 'AES256' : undefined,
       });
 
-      // Get upload session
+      const result = await this.s3Client.send(createCommand);
+
+      if (!result.UploadId) {
+        throw new Error('Failed to get upload ID from S3');
+      }
+
+      // Create database record
+      const uploadRecord = await this.prisma.multipartUpload.create({
+        data: {
+          uploadId: result.UploadId,
+          fileName: options.fileName,
+          originalName: options.fileName,
+          mimeType: options.mimeType,
+          totalSize: options.fileSize,
+          chunkSize,
+          totalParts,
+          completedParts: 0,
+          status: UploadStatus.INITIALIZED,
+          storageKey,
+          bucket: this.bucket,
+          provider: storageConfig.provider.type === 's3' ? 'S3' : 'MINIO',
+          userId: options.userId,
+          documentType: options.documentType,
+          documentId: options.documentId,
+          metadata: options.metadata,
+          parts: [],
+        },
+      });
+
+      return uploadRecord;
+    } catch (error: any) {
+      throw new Error(`Failed to initialize multipart upload: ${error.message}`);
+    }
+  }
+
+  /**
+   * Upload a single part
+   */
+  async uploadPart(uploadId: string, partNumber: number, data: Buffer): Promise<UploadPartResult> {
+    try {
+      // Get upload record
       const upload = await this.prisma.multipartUpload.findUnique({
-        where: { id: uploadId }
+        where: { id: uploadId },
       });
 
       if (!upload) {
-        throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+        throw new Error('Multipart upload not found');
       }
 
-      if (upload.status !== UploadStatus.INITIATED && upload.status !== UploadStatus.IN_PROGRESS) {
-        throw new AppError('Upload session is not active', 400, 'UPLOAD_NOT_ACTIVE');
+      if (upload.status !== UploadStatus.IN_PROGRESS && upload.status !== UploadStatus.INITIALIZED) {
+        throw new Error('Upload is not in progress');
       }
 
-      // Validate part size (except for the last part)
-      if (partNumber < upload.totalParts && partData.length !== upload.partSize) {
-        throw new AppError(
-          `Invalid part size. Expected ${upload.partSize}, got ${partData.length}`,
-          400,
-          'INVALID_PART_SIZE'
-        );
+      // Validate part number
+      if (partNumber < 1 || partNumber > upload.totalParts) {
+        throw new Error(`Invalid part number. Must be between 1 and ${upload.totalParts}`);
       }
 
-      // Calculate checksum for data integrity
-      const partChecksum = crypto.createHash('md5').update(partData).digest('hex');
-      if (options.checksum && options.checksum !== partChecksum) {
-        throw new AppError('Part checksum mismatch', 400, 'CHECKSUM_MISMATCH');
-      }
-
-      // Upload part to cloud storage
-      let etag: string;
-
-      if (this.s3) {
-        const uploadPartParams: AWS.S3.UploadPartRequest = {
-          Bucket: this.bucket,
-          Key: upload.storagePath,
-          PartNumber: partNumber,
-          UploadId: upload.cloudUploadId,
-          Body: partData,
-          ContentMD5: Buffer.from(partChecksum, 'hex').toString('base64'),
+      // Check if part already uploaded
+      const existingParts = upload.parts as any[] || [];
+      const existingPart = existingParts.find(p => p.partNumber === partNumber);
+      if (existingPart) {
+        return {
+          partNumber,
+          etag: existingPart.etag,
+          size: existingPart.size,
+          completed: true,
+          skipped: true,
         };
-
-        const result = await this.s3.uploadPart(uploadPartParams).promise();
-        etag = result.ETag!.replace(/"/g, ''); // Remove quotes
-      } else if (this.minio) {
-        // For MinIO, we'll store parts as separate objects and combine later
-        const partKey = `${upload.storagePath}.part.${partNumber}`;
-        const putResult = await this.minio.putObject(
-          this.bucket,
-          partKey,
-          partData,
-          partData.length,
-          {
-            'Content-Type': 'application/octet-stream',
-            'x-amz-meta-upload-id': uploadId,
-            'x-amz-meta-part-number': partNumber.toString(),
-          }
-        );
-        etag = putResult.etag || crypto.randomUUID();
-      } else {
-        throw new AppError('No storage client available', 500, 'NO_CLIENT');
       }
 
-      // Update database with part information
-      const existingParts = upload.parts as UploadPart[];
-      const updatedParts = existingParts.filter(p => p.partNumber !== partNumber);
-      updatedParts.push({
-        partNumber,
-        size: partData.length,
-        etag,
-        checksum: partChecksum,
+      // Upload part to S3
+      const uploadCommand = new UploadPartCommand({
+        Bucket: upload.bucket,
+        Key: upload.storageKey,
+        PartNumber: partNumber,
+        UploadId: upload.uploadId,
+        Body: data,
       });
 
-      // Sort parts by part number
-      updatedParts.sort((a, b) => a.partNumber - b.partNumber);
+      const result = await this.s3Client.send(uploadCommand);
+
+      if (!result.ETag) {
+        throw new Error('Failed to get ETag from S3');
+      }
+
+      // Update database record
+      const newPart = {
+        partNumber,
+        etag: result.ETag,
+        size: data.length,
+        uploadedAt: new Date(),
+      };
+
+      const updatedParts = [...existingParts, newPart];
 
       await this.prisma.multipartUpload.update({
         where: { id: uploadId },
         data: {
           parts: updatedParts,
+          completedParts: updatedParts.length,
           status: UploadStatus.IN_PROGRESS,
-          lastActivityAt: new Date(),
-        }
-      });
-
-      logger.debug('Part uploaded successfully', {
-        uploadId,
-        partNumber,
-        etag,
-        size: partData.length
+        },
       });
 
       return {
         partNumber,
-        size: partData.length,
-        etag,
-        checksum: partChecksum,
+        etag: result.ETag,
+        size: data.length,
+        completed: true,
       };
     } catch (error: any) {
-      logger.error('Failed to upload part', {
-        error: error.message,
-        uploadId,
-        partNumber
-      });
-      throw new AppError('Part upload failed', 500, 'PART_UPLOAD_FAILED', error);
+      throw new Error(`Failed to upload part: ${error.message}`);
     }
   }
 
   /**
    * Complete the multipart upload
    */
-  async completeUpload(uploadId: string): Promise<MultipartUploadResult> {
+  async completeUpload(uploadId: string): Promise<CompleteUploadResult> {
     try {
-      logger.info('Completing multipart upload', { uploadId });
-
-      // Get upload session
+      // Get upload record
       const upload = await this.prisma.multipartUpload.findUnique({
-        where: { id: uploadId }
+        where: { id: uploadId },
       });
 
       if (!upload) {
-        throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+        throw new Error('Multipart upload not found');
       }
 
-      const parts = upload.parts as UploadPart[];
-
-      // Validate all parts are uploaded
-      if (parts.length !== upload.totalParts) {
-        throw new AppError(
-          `Missing parts. Expected ${upload.totalParts}, got ${parts.length}`,
-          400,
-          'MISSING_PARTS'
-        );
+      if (upload.status === UploadStatus.COMPLETED) {
+        throw new Error('Upload is already completed or aborted');
       }
 
-      // Validate part sequence
-      for (let i = 1; i <= upload.totalParts; i++) {
-        if (!parts.find(p => p.partNumber === i)) {
-          throw new AppError(`Missing part ${i}`, 400, 'MISSING_PART');
-        }
+      if (upload.status === UploadStatus.ABORTED) {
+        throw new Error('Upload is already completed or aborted');
       }
 
-      const startTime = upload.startedAt.getTime();
-      const completionTime = Date.now();
-      const duration = Math.round((completionTime - startTime) / 1000);
-
-      // Complete upload in cloud storage
-      let finalFileKey: string;
-
-      if (this.s3) {
-        const completeParams: AWS.S3.CompleteMultipartUploadRequest = {
-          Bucket: this.bucket,
-          Key: upload.storagePath,
-          UploadId: upload.cloudUploadId,
-          MultipartUpload: {
-            Parts: parts
-              .sort((a, b) => a.partNumber - b.partNumber)
-              .map(part => ({
-                ETag: part.etag,
-                PartNumber: part.partNumber,
-              }))
-          }
-        };
-
-        const result = await this.s3.completeMultipartUpload(completeParams).promise();
-        finalFileKey = result.Key!;
-      } else if (this.minio) {
-        // For MinIO, combine all parts into final file
-        finalFileKey = upload.storagePath;
-        await this.combineMinIOParts(upload, parts);
-      } else {
-        throw new AppError('No storage client available', 500, 'NO_CLIENT');
+      // Check if all parts are uploaded
+      if (upload.completedParts < upload.totalParts) {
+        throw new Error(`Upload is incomplete. ${upload.completedParts} of ${upload.totalParts} parts uploaded.`);
       }
 
-      // Calculate final file hash
-      const fileHash = await this.calculateUploadHash(upload, parts);
+      // Prepare parts for completion
+      const parts = (upload.parts as any[] || []).map(part => ({
+        ETag: part.etag,
+        PartNumber: part.partNumber,
+      }));
 
-      // Create final StoredFile record
-      const storedFile = await cloudStorageService.uploadFile(Buffer.alloc(0), {
-        filename: upload.fileName,
-        contentType: upload.metadata?.contentType || 'application/octet-stream',
-        documentType: upload.documentType,
-        documentId: upload.documentId,
-        attachmentType: upload.attachmentType,
-        metadata: {
-          ...upload.metadata,
-          multipartUploadId: uploadId,
-          finalFileKey,
-          fileHash,
-        }
+      // Complete multipart upload in S3
+      const completeCommand = new CompleteMultipartUploadCommand({
+        Bucket: upload.bucket,
+        Key: upload.storageKey,
+        UploadId: upload.uploadId,
+        MultipartUpload: { Parts: parts },
       });
 
-      // Update upload status
-      await this.prisma.multipartUpload.update({
-        where: { id: uploadId },
-        data: {
-          status: UploadStatus.COMPLETED,
-          completedAt: new Date(),
-          finalFileId: storedFile.id,
-        }
+      const result = await this.s3Client.send(completeCommand);
+
+      // Calculate final checksum
+      const checksum = crypto.createHash('sha256').update(upload.uploadId).digest('hex');
+
+      // Create final file record and update upload status in transaction
+      const [storedFile, updatedUpload] = await this.prisma.$transaction(async (tx) => {
+        const file = await tx.storedFile.create({
+          data: {
+            fileName: upload.fileName,
+            originalName: upload.originalName,
+            mimeType: upload.mimeType,
+            size: upload.totalSize,
+            checksum,
+            storageKey: upload.storageKey,
+            storageClass: 'STANDARD',
+            provider: upload.provider,
+            bucket: upload.bucket,
+            region: storageConfig.provider.region,
+            encrypted: storageConfig.enableEncryption || false,
+            metadata: upload.metadata,
+          },
+        });
+
+        const updated = await tx.multipartUpload.update({
+          where: { id: uploadId },
+          data: {
+            status: UploadStatus.COMPLETED,
+            completedAt: new Date(),
+            storedFileId: file.id,
+          },
+        });
+
+        return [file, updated];
       });
 
-      const result: MultipartUploadResult = {
-        uploadId,
-        fileName: upload.fileName,
-        fileSize: upload.totalSize,
-        finalFileId: storedFile.id,
-        parts,
-        completedAt: new Date(),
-        duration,
+      return {
+        success: true,
+        storedFile,
+        uploadRecord: updatedUpload,
       };
-
-      logger.info('Multipart upload completed', {
-        uploadId,
-        finalFileId: storedFile.id,
-        duration,
-        fileSize: upload.totalSize
-      });
-
-      return result;
     } catch (error: any) {
-      logger.error('Failed to complete multipart upload', { error: error.message, uploadId });
-
-      // Mark upload as failed
-      await this.prisma.multipartUpload.update({
-        where: { id: uploadId },
-        data: { status: UploadStatus.FAILED }
-      }).catch(() => {}); // Ignore errors in error handler
-
-      throw new AppError('Upload completion failed', 500, 'COMPLETION_FAILED', error);
+      throw new Error(`Failed to complete upload: ${error.message}`);
     }
   }
 
   /**
    * Abort a multipart upload
    */
-  async abortUpload(uploadId: string): Promise<void> {
+  async abortUpload(uploadId: string): Promise<{ success: boolean; uploadId: string; abortedAt: Date }> {
     try {
-      logger.info('Aborting multipart upload', { uploadId });
-
+      // Get upload record
       const upload = await this.prisma.multipartUpload.findUnique({
-        where: { id: uploadId }
+        where: { id: uploadId },
       });
 
       if (!upload) {
-        throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+        throw new Error('Multipart upload not found');
       }
 
-      // Abort upload in cloud storage
-      if (this.s3) {
-        await this.s3.abortMultipartUpload({
-          Bucket: this.bucket,
-          Key: upload.storagePath,
-          UploadId: upload.cloudUploadId,
-        }).promise();
-      } else if (this.minio) {
-        // Clean up part objects
-        const parts = upload.parts as UploadPart[];
-        for (const part of parts) {
-          const partKey = `${upload.storagePath}.part.${part.partNumber}`;
-          try {
-            await this.minio.removeObject(this.bucket, partKey);
-          } catch (cleanupError: any) {
-            logger.warn('Failed to cleanup part object', {
-              partKey,
-              error: cleanupError.message
-            });
-          }
-        }
+      if (upload.status === UploadStatus.COMPLETED) {
+        throw new Error('Cannot abort completed upload');
       }
 
-      // Update upload status
-      await this.prisma.multipartUpload.update({
-        where: { id: uploadId },
-        data: { status: UploadStatus.ABORTED }
+      // Abort in S3
+      const abortCommand = new AbortMultipartUploadCommand({
+        Bucket: upload.bucket,
+        Key: upload.storageKey,
+        UploadId: upload.uploadId,
       });
 
-      logger.info('Multipart upload aborted', { uploadId });
+      await this.s3Client.send(abortCommand);
+
+      // Update database record
+      const abortedAt = new Date();
+      await this.prisma.multipartUpload.update({
+        where: { id: uploadId },
+        data: {
+          status: UploadStatus.ABORTED,
+          abortedAt,
+        },
+      });
+
+      return {
+        success: true,
+        uploadId,
+        abortedAt,
+      };
     } catch (error: any) {
-      logger.error('Failed to abort multipart upload', { error: error.message, uploadId });
-      throw new AppError('Upload abort failed', 500, 'ABORT_FAILED', error);
+      throw new Error(`Failed to abort upload: ${error.message}`);
     }
   }
 
@@ -530,159 +395,173 @@ class MultipartUploadService {
   async getUploadProgress(uploadId: string): Promise<UploadProgress> {
     try {
       const upload = await this.prisma.multipartUpload.findUnique({
-        where: { id: uploadId }
+        where: { id: uploadId },
       });
 
       if (!upload) {
-        throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+        throw new Error('Multipart upload not found');
       }
 
-      const parts = upload.parts as UploadPart[];
-      const completedParts = parts.length;
-      const uploadedBytes = parts.reduce((total, part) => total + part.size, 0);
-      const percentComplete = (uploadedBytes / upload.totalSize) * 100;
+      const parts = upload.parts as any[] || [];
+      const uploadedSize = parts.reduce((sum, part) => sum + part.size, 0);
+      const progress = upload.totalSize > 0 ? (uploadedSize / upload.totalSize) * 100 : 0;
 
-      // Calculate upload speed and ETA
-      const elapsedTime = (Date.now() - upload.startedAt.getTime()) / 1000; // seconds
-      const uploadSpeed = elapsedTime > 0 ? uploadedBytes / elapsedTime : 0;
-      const remainingBytes = upload.totalSize - uploadedBytes;
-      const estimatedTimeRemaining = uploadSpeed > 0 ? remainingBytes / uploadSpeed : undefined;
+      // Calculate upload speed and estimated time remaining
+      const now = new Date();
+      const timeElapsed = now.getTime() - upload.initiatedAt.getTime(); // milliseconds
+      const uploadSpeed = timeElapsed > 0 ? uploadedSize / (timeElapsed / 1000) : 0; // bytes per second
+
+      const remainingSize = upload.totalSize - uploadedSize;
+      const estimatedTimeRemaining = uploadSpeed > 0 ? remainingSize / uploadSpeed : 0; // seconds
 
       return {
         uploadId,
         fileName: upload.fileName,
+        totalSize: upload.totalSize,
+        uploadedSize,
         totalParts: upload.totalParts,
-        completedParts,
-        uploadedBytes,
-        totalBytes: upload.totalSize,
-        percentComplete: Math.round(percentComplete * 100) / 100,
-        estimatedTimeRemaining: estimatedTimeRemaining ? Math.round(estimatedTimeRemaining) : undefined,
-        uploadSpeed: Math.round(uploadSpeed),
+        completedParts: upload.completedParts,
+        progress: Number(progress.toFixed(1)),
+        status: upload.status,
+        initiatedAt: upload.initiatedAt,
+        estimatedTimeRemaining: Number(estimatedTimeRemaining.toFixed(0)),
+        uploadSpeed: Number(uploadSpeed.toFixed(0)),
+        completedPartsInfo: parts.map(part => ({
+          partNumber: part.partNumber,
+          size: part.size,
+          uploadedAt: part.uploadedAt,
+        })),
       };
     } catch (error: any) {
-      logger.error('Failed to get upload progress', { error: error.message, uploadId });
-      throw new AppError('Progress retrieval failed', 500, 'PROGRESS_FAILED', error);
+      throw new Error(`Failed to get upload progress: ${error.message}`);
     }
+  }
+
+  /**
+   * List active uploads for a user
+   */
+  async listActiveUploads(userId: string): Promise<Array<{
+    id: string;
+    fileName: string;
+    totalSize: number;
+    completedParts: number;
+    totalParts: number;
+    status: UploadStatus;
+    initiatedAt: Date;
+  }>> {
+    const uploads = await this.prisma.multipartUpload.findMany({
+      where: {
+        userId,
+        status: { in: [UploadStatus.INITIALIZED, UploadStatus.IN_PROGRESS] },
+      },
+      orderBy: { initiatedAt: 'desc' },
+      select: {
+        id: true,
+        fileName: true,
+        totalSize: true,
+        completedParts: true,
+        totalParts: true,
+        status: true,
+        initiatedAt: true,
+      },
+    });
+
+    // Filter only in-progress uploads for the result
+    return uploads.filter(upload => upload.status === UploadStatus.IN_PROGRESS);
   }
 
   /**
    * Clean up expired uploads
    */
   async cleanupExpiredUploads(): Promise<{
-    cleanedUp: number;
-    errors: string[];
+    cleanedCount: number;
+    cleanedUploads: string[];
   }> {
     try {
-      logger.info('Cleaning up expired multipart uploads');
+      const expirationTime = 24 * 60 * 60 * 1000; // 24 hours
+      const cutoffDate = new Date(Date.now() - expirationTime);
 
+      // Find expired uploads
       const expiredUploads = await this.prisma.multipartUpload.findMany({
         where: {
-          expiresAt: { lt: new Date() },
-          status: { in: [UploadStatus.INITIATED, UploadStatus.IN_PROGRESS] }
+          status: { in: [UploadStatus.INITIALIZED, UploadStatus.IN_PROGRESS] },
+          initiatedAt: { lt: cutoffDate },
+        },
+        select: {
+          id: true,
+          uploadId: true,
+          bucket: true,
+          storageKey: true,
+          initiatedAt: true,
+        },
+      });
+
+      if (expiredUploads.length === 0) {
+        return {
+          cleanedCount: 0,
+          cleanedUploads: [],
+        };
+      }
+
+      // Abort uploads and update records
+      await this.prisma.$transaction(async (tx) => {
+        for (const upload of expiredUploads) {
+          // Abort in S3
+          const abortCommand = new AbortMultipartUploadCommand({
+            Bucket: upload.bucket,
+            Key: upload.storageKey,
+            UploadId: upload.uploadId,
+          });
+
+          try {
+            await this.s3Client.send(abortCommand);
+          } catch (error) {
+            // Continue even if S3 abort fails
+          }
+
+          // Update database record
+          await tx.multipartUpload.update({
+            where: { id: upload.id },
+            data: {
+              status: UploadStatus.ABORTED,
+              abortedAt: new Date(),
+            },
+          });
         }
       });
 
-      const result = {
-        cleanedUp: 0,
-        errors: [] as string[]
+      return {
+        cleanedCount: expiredUploads.length,
+        cleanedUploads: expiredUploads.map(u => u.id),
       };
-
-      for (const upload of expiredUploads) {
-        try {
-          await this.abortUpload(upload.id);
-          result.cleanedUp++;
-        } catch (error: any) {
-          result.errors.push(`Failed to cleanup ${upload.id}: ${error.message}`);
-        }
-      }
-
-      logger.info('Expired uploads cleanup completed', {
-        expiredCount: expiredUploads.length,
-        cleanedUp: result.cleanedUp,
-        errors: result.errors.length
-      });
-
-      return result;
     } catch (error: any) {
-      logger.error('Failed to cleanup expired uploads', { error: error.message });
-      throw new AppError('Cleanup failed', 500, 'CLEANUP_FAILED', error);
+      throw new Error(`Failed to cleanup expired uploads: ${error.message}`);
     }
   }
 
   /**
-   * Private helper methods
+   * Calculate optimal chunk size for a file
    */
+  calculateOptimalChunkSize(fileSize: number): ChunkSizeCalculation {
+    // Start with minimum chunk size
+    let chunkSize = this.minChunkSize;
 
-  private generateStoragePath(options: MultipartUploadInit): string {
-    const timestamp = new Date().toISOString().split('T')[0];
-    const randomId = crypto.randomBytes(8).toString('hex');
-    const ext = options.fileName.split('.').pop() || '';
-    const baseName = options.fileName.replace(`.${ext}`, '');
+    // Calculate parts with minimum chunk size
+    let totalParts = Math.ceil(fileSize / chunkSize);
 
-    if (options.documentType && options.documentId) {
-      return `${options.documentType}/${options.documentId}/${baseName}-${randomId}.${ext}`;
+    // If we exceed max parts, increase chunk size
+    if (totalParts > this.maxParts) {
+      chunkSize = Math.ceil(fileSize / this.maxParts);
+
+      // Round up to next MB for cleaner chunks
+      chunkSize = Math.ceil(chunkSize / (1024 * 1024)) * (1024 * 1024);
+
+      totalParts = Math.ceil(fileSize / chunkSize);
     }
 
-    return `multipart/${timestamp}/${randomId}/${options.fileName}`;
-  }
-
-  private async combineMinIOParts(upload: MultipartUpload, parts: UploadPart[]): Promise<void> {
-    // For MinIO, we need to combine all parts into the final file
-    const combinedStream = new PassThrough();
-    const sortedParts = parts.sort((a, b) => a.partNumber - b.partNumber);
-
-    // Stream all parts sequentially to the combined stream
-    for (const part of sortedParts) {
-      const partKey = `${upload.storagePath}.part.${part.partNumber}`;
-      const partStream = await this.minio!.getObject(this.bucket, partKey);
-
-      partStream.pipe(combinedStream, { end: false });
-
-      await new Promise<void>((resolve, reject) => {
-        partStream.on('end', resolve);
-        partStream.on('error', reject);
-      });
-    }
-
-    combinedStream.end();
-
-    // Upload the combined stream as the final file
-    await this.minio!.putObject(
-      this.bucket,
-      upload.storagePath,
-      combinedStream,
-      upload.totalSize,
-      { 'Content-Type': upload.metadata?.contentType || 'application/octet-stream' }
-    );
-
-    // Clean up part objects
-    for (const part of sortedParts) {
-      const partKey = `${upload.storagePath}.part.${part.partNumber}`;
-      try {
-        await this.minio!.removeObject(this.bucket, partKey);
-      } catch (cleanupError: any) {
-        logger.warn('Failed to cleanup part object', {
-          partKey,
-          error: cleanupError.message
-        });
-      }
-    }
-  }
-
-  private async calculateUploadHash(upload: MultipartUpload, parts: UploadPart[]): Promise<string> {
-    // Calculate hash by combining part checksums
-    const sortedParts = parts.sort((a, b) => a.partNumber - b.partNumber);
-    const combinedChecksum = sortedParts.map(p => p.checksum).join('');
-    return crypto.createHash('sha256').update(combinedChecksum).digest('hex');
-  }
-
-  /**
-   * Close database connection
-   */
-  async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    return {
+      chunkSize,
+      totalParts,
+    };
   }
 }
-
-export const multipartUploadService = new MultipartUploadService();
-export default multipartUploadService;

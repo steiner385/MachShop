@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: mes-minio
+    ports:
+      - "9000:9000"      # MinIO API
+      - "9001:9001"      # MinIO Console
+    environment:
+      MINIO_ROOT_USER: mes_admin
+      MINIO_ROOT_PASSWORD: mes_password_2024
+      MINIO_DOMAIN: localhost
+      MINIO_SERVER_URL: http://localhost:9000
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+    volumes:
+      - minio_data:/data
+      - ./docker/minio/config:/root/.minio
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - storage_network
+
+  # MinIO Client for initial setup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: mes-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MC_HOST_minio: http://mes_admin:mes_password_2024@minio:9000
+    volumes:
+      - ./docker/minio/scripts:/scripts
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO to be ready...';
+      until mc ready minio; do sleep 1; done;
+      echo 'MinIO is ready. Setting up buckets...';
+
+      # Create required buckets
+      mc mb minio/mes-storage --ignore-existing;
+      mc mb minio/mes-backups --ignore-existing;
+      mc mb minio/mes-temp --ignore-existing;
+
+      # Set bucket policies for development
+      mc anonymous set download minio/mes-storage;
+      mc anonymous set download minio/mes-backups;
+
+      # Enable versioning
+      mc version enable minio/mes-storage;
+      mc version enable minio/mes-backups;
+
+      # Set lifecycle policies
+      cat > /tmp/lifecycle.json << 'EOF'
+      {
+        \"Rules\": [
+          {
+            \"ID\": \"TempCleanup\",
+            \"Status\": \"Enabled\",
+            \"Filter\": {
+              \"Prefix\": \"temp/\"
+            },
+            \"Expiration\": {
+              \"Days\": 1
+            }
+          },
+          {
+            \"ID\": \"OldVersionCleanup\",
+            \"Status\": \"Enabled\",
+            \"NoncurrentVersionExpiration\": {
+              \"NoncurrentDays\": 30
+            }
+          }
+        ]
+      }
+      EOF
+      mc ilm import minio/mes-storage < /tmp/lifecycle.json;
+
+      echo 'MinIO setup completed successfully!';
+      echo 'Access MinIO Console at: http://localhost:9001';
+      echo 'Username: mes_admin';
+      echo 'Password: mes_password_2024';
+      "
+    networks:
+      - storage_network
+
+  # Redis for caching (optional but recommended)
+  redis-storage:
+    image: redis:7-alpine
+    container_name: mes-redis-storage
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_storage_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - storage_network
+
+  # Nginx for CDN simulation (development only)
+  nginx-cdn:
+    image: nginx:alpine
+    container_name: mes-nginx-cdn
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/cdn.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - minio
+    networks:
+      - storage_network
+
+volumes:
+  minio_data:
+    driver: local
+  redis_storage_data:
+    driver: local
+  nginx_cache:
+    driver: local
+
+networks:
+  storage_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
