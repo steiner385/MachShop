@@ -159,11 +159,56 @@ Our project follows the 5S methodology for organization:
 - Keep components focused on a single responsibility
 - Use TypeScript for prop types
 
-### Code Quality
+#### Code Quality
 - Run linters before committing: `npm run lint`
 - Format code with Prettier: `npm run format`
 - Ensure TypeScript compilation: `npm run typecheck`
 - Write meaningful variable and function names
+
+### Dependency Management
+
+**CRITICAL RULE**: Always save dependencies to package.json
+
+#### Adding New Dependencies
+
+**Production Dependencies** (code that runs in production):
+```bash
+npm install --save <package-name>
+```
+
+**Development Dependencies** (build tools, testing, linting):
+```bash
+npm install --save-dev <package-name>
+```
+
+#### Rules
+
+1. **Always use `--save` or `--save-dev`** - Never install without saving to package.json
+2. **Choose the right category**:
+   - `dependencies`: Runtime code (Express, Prisma, JWT, etc.)
+   - `devDependencies`: Build/test tools (TypeScript, Jest, ESLint, etc.)
+3. **Pin major versions**: Use `^X.Y.Z` to allow minor/patch updates
+4. **Validate before committing**: Run `npm run validate:deps`
+
+#### Automated Checks
+
+- **Pre-commit hook**: Validates all imports have corresponding package.json entries
+- **Dependabot**: Automatically creates PRs for dependency updates weekly
+- **npm audit**: Security vulnerability scanning in CI/CD
+
+#### Troubleshooting
+
+**"Cannot find module" error:**
+1. Check if package is in package.json
+2. Run `npm install`
+3. If missing, run `npm install --save <package>`
+
+**Pre-commit hook failing:**
+1. Run `npm run validate:deps` to see missing packages
+2. Add them with `npm install --save` or `npm install --save-dev`
+3. Commit again
+
+For detailed dependency management guidelines, see `.claude/conventions/dependency-management.md`
 
 ## Testing Requirements
 
