@@ -40,12 +40,36 @@ export class ProductionPerformanceExportService {
         },
       });
 
+      // ✅ GITHUB ISSUE #14 FIX: Enhanced work order not found validation with guidance
       if (!workOrder) {
-        throw new Error(`Work order ${workOrderId} not found`);
+        throw new Error(
+          `Work order ${workOrderId} not found in the system. ` +
+          `Cannot export production performance data for non-existent work order. ` +
+          `Verify the work order ID is correct and the work order exists in the manufacturing execution system. ` +
+          `To resolve this issue: ` +
+          `1) Check the work order ID for typos or incorrect format, ` +
+          `2) Use GET /api/v1/work-orders to list available work orders, ` +
+          `3) Ensure the work order has been created in the system before attempting B2M export, ` +
+          `or 4) Contact system administrator if the work order should exist but cannot be found.`
+        );
       }
 
+      // ✅ GITHUB ISSUE #14 FIX: Enhanced work order completion validation with detailed guidance
       if (!workOrder.actualStartDate || !workOrder.actualEndDate) {
-        throw new Error(`Work order ${workOrderId} has not been completed (missing actual dates)`);
+        const missingDates = [];
+        if (!workOrder.actualStartDate) missingDates.push('actualStartDate');
+        if (!workOrder.actualEndDate) missingDates.push('actualEndDate');
+
+        throw new Error(
+          `Work order ${workOrderId} cannot be exported to ERP because it has not been completed. ` +
+          `Missing required completion data: ${missingDates.join(', ')}. ` +
+          `Work orders must have both actual start and end dates recorded to comply with ISA-95 Level 2 ` +
+          `production performance requirements. To resolve this issue: ` +
+          `1) Complete the work order execution process to record actual dates, ` +
+          `2) Use PUT /api/v1/work-orders/${workOrderId} to update completion data manually, ` +
+          `3) Verify work order status is 'COMPLETED' before attempting B2M export, ` +
+          `or 4) Use GET /api/v1/work-orders/${workOrderId} to review current work order status and missing data.`
+        );
       }
 
       // Get integration config

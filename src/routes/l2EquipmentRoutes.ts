@@ -27,6 +27,39 @@ const router = express.Router();
  */
 router.post('/equipment/data/collect', async (req: Request, res: Response): Promise<any> => {
   try {
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced input validation for equipment data collection
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Request body must contain equipment data collection parameters',
+        details: {
+          expected: 'Object with equipmentId, dataCollectionType, dataPointName, and value fields',
+          provided: typeof req.body
+        }
+      });
+    }
+
+    const { equipmentId, dataCollectionType, dataPointName, value } = req.body;
+
+    // Basic validation for required fields
+    const missingFields = [];
+    if (!equipmentId) missingFields.push('equipmentId');
+    if (!dataCollectionType) missingFields.push('dataCollectionType');
+    if (!dataPointName) missingFields.push('dataPointName');
+    if (value === undefined || value === null) missingFields.push('value');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: `Equipment data collection requires all mandatory fields for ISA-95 Level 2 compliance`,
+        details: {
+          missingFields,
+          provided: Object.keys(req.body),
+          suggestion: 'Include all required fields: equipmentId, dataCollectionType, dataPointName, and value'
+        }
+      });
+    }
+
     const result = await EquipmentDataCollectionService.collectDataPoint(req.body);
 
     res.status(200).json({
@@ -36,9 +69,47 @@ router.post('/equipment/data/collect', async (req: Request, res: Response): Prom
     });
   } catch (error: any) {
     console.error('Error collecting data point:', error);
+
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced error response with specific status codes and context
+    if (error.message?.includes('Equipment with ID') && error.message?.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'EQUIPMENT_NOT_FOUND',
+        message: error.message,
+        context: 'ISA-95 Level 2 Equipment Data Collection',
+        endpoint: '/equipment/data/collect',
+        troubleshooting: 'Verify equipment ID exists in the ISA-95 equipment hierarchy and is properly registered'
+      });
+    }
+
+    if (error.message?.includes('Invalid equipment ID')) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EQUIPMENT_ID',
+        message: error.message,
+        context: 'ISA-95 Level 2 Equipment Data Collection',
+        troubleshooting: 'Provide a valid, non-empty equipment ID that exists in the system registry'
+      });
+    }
+
+    if (error.message?.includes('Invalid data value') || error.message?.includes('validation')) {
+      return res.status(422).json({
+        success: false,
+        error: 'DATA_VALIDATION_ERROR',
+        message: error.message,
+        context: 'ISA-95 Level 2 Equipment Data Collection',
+        troubleshooting: 'Ensure the data value format matches the specified data collection type requirements'
+      });
+    }
+
+    // Generic server error for unexpected issues
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to collect data point',
+      error: 'INTERNAL_SERVER_ERROR',
+      message: error.message || 'Failed to collect equipment data point',
+      context: 'ISA-95 Level 2 Equipment Data Collection',
+      endpoint: '/equipment/data/collect',
+      troubleshooting: 'Contact system administrator if the issue persists'
     });
   }
 });
@@ -51,10 +122,54 @@ router.post('/equipment/data/collect-batch', async (req: Request, res: Response)
   try {
     const { dataPoints } = req.body;
 
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced batch validation for equipment data collection
+    if (!dataPoints) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Batch data collection requires a dataPoints array for processing multiple equipment measurements',
+        details: {
+          field: 'dataPoints',
+          expected: 'Array of data point objects',
+          provided: typeof dataPoints
+        }
+      });
+    }
+
     if (!Array.isArray(dataPoints)) {
       return res.status(400).json({
-        success: false,
-        error: 'dataPoints must be an array',
+        error: 'VALIDATION_ERROR',
+        message: 'Data points must be provided as an array for batch processing',
+        details: {
+          field: 'dataPoints',
+          expected: 'Array of data point objects',
+          provided: typeof dataPoints,
+          suggestion: 'Wrap individual data points in an array structure'
+        }
+      });
+    }
+
+    if (dataPoints.length === 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Batch data collection requires at least one data point to process',
+        details: {
+          field: 'dataPoints',
+          provided: 'Empty array',
+          suggestion: 'Include at least one data point object in the array'
+        }
+      });
+    }
+
+    if (dataPoints.length > 1000) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Batch size exceeds maximum limit for equipment data collection processing',
+        details: {
+          field: 'dataPoints',
+          provided: dataPoints.length,
+          maximum: 1000,
+          suggestion: 'Split large batches into smaller chunks of 1000 or fewer data points'
+        }
       });
     }
 
@@ -67,9 +182,24 @@ router.post('/equipment/data/collect-batch', async (req: Request, res: Response)
     });
   } catch (error: any) {
     console.error('Error collecting data points batch:', error);
+
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced error response for batch operations
+    if (error.message?.includes('Invalid') || error.message?.includes('validation')) {
+      return res.status(422).json({
+        success: false,
+        error: 'BATCH_VALIDATION_ERROR',
+        message: error.message,
+        context: 'ISA-95 Level 2 Equipment Batch Data Collection',
+        troubleshooting: 'Review batch data format and ensure all data points meet validation requirements'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to collect data points batch',
+      error: 'INTERNAL_SERVER_ERROR',
+      message: error.message || 'Failed to collect data points batch',
+      context: 'ISA-95 Level 2 Equipment Batch Data Collection',
+      troubleshooting: 'Contact system administrator if the issue persists'
     });
   }
 });
