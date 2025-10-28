@@ -60,13 +60,15 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
     const userId = (req as any).user?.id;
 
     // ✅ GITHUB ISSUE #14 FIX: Enhanced input validation with detailed feedback
-    if (!workOrderId || typeof workOrderId !== 'string' || workOrderId.trim() === '') {
+    // Handle URL-decoded spaces and empty strings
+    const decodedWorkOrderId = decodeURIComponent(workOrderId || '');
+    if (!workOrderId || typeof workOrderId !== 'string' || decodedWorkOrderId.trim() === '') {
       return res.status(400).json({
         error: 'VALIDATION_ERROR',
         message: 'Work order ID is required and must be a valid non-empty string',
         details: {
           field: 'workOrderId',
-          provided: workOrderId,
+          provided: decodedWorkOrderId,
           expected: 'Non-empty string work order identifier'
         }
       });
@@ -86,7 +88,7 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
     }
 
     const result = await productionPerformanceExportService.exportWorkOrderActuals({
-      workOrderId: workOrderId.trim(),
+      workOrderId: decodedWorkOrderId.trim(),
       configId: configId.trim(),
       createdBy: userId || 'SYSTEM',
     });

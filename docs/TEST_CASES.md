@@ -49,7 +49,59 @@
 - **Expected Result**: NCR created with unique ID, status "Open"
 - **Test Type**: Unit Test
 
-#### 1.3 Traceability Tests
+#### 1.3 Document Management Tests
+
+**TC-DM-001: Export Work Instruction to DOCX**
+- **Test Objective**: Verify DOCX export functionality with proper formatting
+- **Test Data**: Work instruction with text, images, and structured content
+- **Expected Result**: Valid DOCX file generated with all content preserved
+- **Test Type**: Unit Test
+
+**TC-DM-002: Export Work Instruction to PPTX**
+- **Test Objective**: Verify PPTX export with slide generation
+- **Test Data**: Work instruction with multiple steps and media
+- **Expected Result**: PPTX file with proper slide layout and content
+- **Test Type**: Unit Test
+
+**TC-DM-003: Apply Export Template**
+- **Test Objective**: Verify template application during export
+- **Test Data**: Export template with custom styling and work instruction content
+- **Expected Result**: Generated document reflects template styling and formatting
+- **Test Type**: Unit Test
+
+**TC-DM-004: Document Import Content Extraction**
+- **Test Objective**: Verify content extraction from uploaded documents
+- **Test Data**: PDF file with text, images, and structured content
+- **Expected Result**: Text and structure extracted accurately for import
+- **Test Type**: Unit Test
+
+**TC-DM-005: Template CRUD Operations**
+- **Test Objective**: Verify template creation, reading, updating, deletion
+- **Test Data**: Template configuration for PDF format
+- **Expected Result**: All CRUD operations succeed with data persistence
+- **Test Type**: Unit Test
+
+#### 1.4 Authentication Security Tests
+
+**TC-AUTH-001: Safe Database Operation Wrapper**
+- **Test Objective**: Verify safe database operation handling undefined errors
+- **Test Data**: Simulated database error with undefined error object
+- **Expected Result**: Graceful error handling without system crash
+- **Test Type**: Unit Test
+
+**TC-AUTH-002: Error Message Extraction Safety**
+- **Test Objective**: Verify safe error message extraction from undefined objects
+- **Test Data**: Various error object structures including undefined/null
+- **Expected Result**: Safe error messages extracted without property access errors
+- **Test Type**: Unit Test
+
+**TC-AUTH-003: Database Operation Retry Logic**
+- **Test Objective**: Verify retry mechanism for transient database failures
+- **Test Data**: Simulated temporary database connectivity issues
+- **Expected Result**: Operations retry with exponential backoff and eventual success
+- **Test Type**: Unit Test
+
+#### 1.5 Traceability Tests
 
 **TC-TR-001: Build Component Genealogy**
 - **Test Objective**: Verify complete traceability chain construction
@@ -87,7 +139,40 @@
 - **Expected Result**: Proper security responses for each scenario
 - **Test Type**: Integration Test
 
-#### 2.2 Database Integration Tests
+#### 2.2 Document Management API Integration Tests
+
+**TC-API-DM-001: Document Export API Endpoints**
+- **Test Objective**: Verify document export API functionality
+- **Test Steps**:
+  1. POST /api/workorders/{id}/export/docx - Export to DOCX
+  2. POST /api/workorders/{id}/export/pptx - Export to PPTX
+  3. Verify proper HTTP headers for file download
+  4. Validate generated file content and structure
+- **Expected Result**: All export endpoints return valid files with correct MIME types
+- **Test Type**: Integration Test
+
+**TC-API-DM-002: Template Management API**
+- **Test Objective**: Verify template CRUD operations via API
+- **Test Steps**:
+  1. POST /api/templates - Create new template
+  2. GET /api/templates - List all templates
+  3. GET /api/templates/{id} - Get specific template
+  4. PUT /api/templates/{id} - Update template
+  5. DELETE /api/templates/{id} - Delete template
+- **Expected Result**: All CRUD operations succeed with proper status codes
+- **Test Type**: Integration Test
+
+**TC-API-DM-003: Content Extraction API**
+- **Test Objective**: Verify document import and content extraction
+- **Test Steps**:
+  1. POST /api/documents/import - Upload document file
+  2. System extracts content from uploaded file
+  3. GET /api/documents/extraction/{id} - Retrieve extracted content
+  4. Verify content accuracy and structure preservation
+- **Expected Result**: Content extracted accurately with proper formatting
+- **Test Type**: Integration Test
+
+#### 2.3 Database Integration Tests
 
 **TC-DB-001: Data Persistence and Retrieval**
 - **Test Objective**: Verify data integrity in database operations
@@ -109,6 +194,17 @@
   3. Force error on final insert
   4. Verify all changes rolled back
 - **Expected Result**: Database remains in consistent state
+- **Test Type**: Integration Test
+
+**TC-DB-003: Template Relationship Management**
+- **Test Objective**: Verify template and work instruction relationships
+- **Test Steps**:
+  1. Create export template in database
+  2. Associate template with work instruction
+  3. Verify foreign key relationships
+  4. Update template and verify cascade effects
+  5. Delete template and check constraint handling
+- **Expected Result**: All relationship operations maintain referential integrity
 - **Test Type**: Integration Test
 
 #### 2.3 External System Integration Tests
@@ -167,9 +263,55 @@
 - **Expected Result**: Multi-site production properly coordinated
 - **Test Type**: End-to-End Test
 
-#### 3.2 Quality and Compliance Workflows
+#### 3.2 Document Management Workflows
 
-**TC-E2E-003: Non-Conformance Management**
+**TC-E2E-003: Complete Document Export Workflow**
+- **Test Objective**: Verify end-to-end document export process
+- **Test Steps**:
+  1. Login as Quality Engineer
+  2. Navigate to work instruction details
+  3. Select document export option
+  4. Choose DOCX format and custom template
+  5. Configure export settings (headers, styling)
+  6. Preview generated document
+  7. Download final document
+  8. Verify document content and formatting
+- **Expected Result**: Work instruction successfully exported with proper formatting
+- **Test Type**: End-to-End Test
+
+**TC-E2E-004: Document Import and Processing**
+- **Test Objective**: Verify complete document import workflow
+- **Test Steps**:
+  1. Login as Technical Writer
+  2. Navigate to document import interface
+  3. Upload external PDF document
+  4. System extracts content automatically
+  5. Review and edit extracted content
+  6. Map content to work instruction sections
+  7. Save as new work instruction
+  8. Verify imported work instruction accuracy
+- **Expected Result**: External document successfully imported and converted
+- **Test Type**: End-to-End Test
+
+**TC-E2E-005: Form Builder and Data Collection**
+- **Test Objective**: Verify complete form building and usage workflow
+- **Test Steps**:
+  1. Login as Process Engineer
+  2. Access data collection form builder
+  3. Drag and drop various field types to form
+  4. Configure field properties and validation
+  5. Associate form with work instruction step
+  6. Save and publish form
+  7. Login as Operator
+  8. Use form during work instruction execution
+  9. Submit data collection form
+  10. Verify data captured correctly
+- **Expected Result**: Form successfully built, deployed, and used for data collection
+- **Test Type**: End-to-End Test
+
+#### 3.3 Quality and Compliance Workflows
+
+**TC-E2E-006: Non-Conformance Management**
 - **Test Objective**: Verify complete NCR workflow
 - **Test Steps**:
   1. Inspector identifies defect during inspection
@@ -182,7 +324,7 @@
 - **Expected Result**: Non-conformance properly managed and resolved
 - **Test Type**: End-to-End Test
 
-**TC-E2E-004: Customer Certification Process**
+**TC-E2E-007: Customer Certification Process**
 - **Test Objective**: Verify customer certification workflow
 - **Test Steps**:
   1. Complete all manufacturing and quality operations

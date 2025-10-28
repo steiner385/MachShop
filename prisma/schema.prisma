@@ -4921,3 +4921,553 @@ model WorkstationDisplayConfig {
   @@index([workstationId])
   @@map("workstation_display_configs")
 }
+
+// ============================================================================
+// ✅ GITHUB ISSUE #21: Advanced Multi-Stage Approval Workflow Engine
+// Comprehensive workflow engine supporting sequential stages, parallel approvals,
+// conditional routing, role-based assignment, escalation, and delegation
+// ============================================================================
+
+model WorkflowDefinition {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?  @db.Text
+
+  // Workflow configuration
+  workflowType       WorkflowType
+  version            String   @default("1.0.0")
+
+  // Workflow structure (JSON representation of stages, connections, rules)
+  structure          Json     // Complete workflow graph definition
+
+  // Status
+  isActive           Boolean  @default(true)
+  isTemplate         Boolean  @default(false)
+
+  // Metadata
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdById        String
+  updatedById        String
+
+  // Relations
+  stages             WorkflowStage[]
+  instances          WorkflowInstance[]
+  rules              WorkflowRule[]
+
+  @@index([workflowType])
+  @@index([isActive])
+  @@map("workflow_definitions")
+}
+
+enum WorkflowType {
+  WORK_INSTRUCTION
+  SETUP_SHEET
+  INSPECTION_PLAN
+  SOP
+  TOOL_DRAWING
+  ECO
+  NCR
+  CAPA
+  CHANGE_REQUEST
+  DOCUMENT_APPROVAL
+}
+
+model WorkflowStage {
+  id                 String   @id @default(cuid())
+  workflowId         String
+  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  // Stage configuration
+  stageNumber        Int
+  stageName          String
+  description        String?  @db.Text
+
+  // Approval configuration
+  approvalType       ApprovalType @default(ALL_REQUIRED)
+  minimumApprovals   Int?     // For THRESHOLD type
+  approvalThreshold  Float?   // For PERCENTAGE type (0.0-1.0)
+
+  // Assignment
+  requiredRoles      String[] // Role IDs that must approve
+  optionalRoles      String[] // Role IDs that can approve (optional)
+  assignmentStrategy AssignmentStrategy @default(MANUAL)
+
+  // Timing
+  deadlineHours      Int?
+  escalationRules    Json?    // Escalation configuration
+
+  // Actions
+  allowDelegation    Boolean  @default(true)
+  allowSkip          Boolean  @default(false)
+  skipConditions     Json?    // Conditions under which stage can be skipped
+
+  // Electronic signature requirements
+  requiresSignature  Boolean  @default(false)
+  signatureType      String?  // REVIEWED, APPROVED, VERIFIED, etc.
+
+  // Relations
+  stageInstances     WorkflowStageInstance[]
+
+  @@unique([workflowId, stageNumber])
+  @@index([workflowId])
+  @@map("workflow_stages")
+}
+
+enum ApprovalType {
+  ALL_REQUIRED       // All approvers must approve
+  ANY_ONE            // Any one approver can approve
+  THRESHOLD          // Minimum number of approvers
+  PERCENTAGE         // Minimum percentage of approvers
+  WEIGHTED           // Weighted voting
+}
+
+enum AssignmentStrategy {
+  MANUAL             // Manual assignment by author/admin
+  ROLE_BASED         // Auto-assign based on roles
+  LOAD_BALANCED      // Distribute evenly among eligible users
+  ROUND_ROBIN        // Rotate assignments
+}
+
+model WorkflowRule {
+  id                 String   @id @default(cuid())
+  workflowId         String
+  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  ruleName           String
+  description        String?  @db.Text
+
+  // Condition
+  conditionField     String   // Field to evaluate (e.g., "impactLevel")
+  conditionOperator  ConditionOperator
+  conditionValue     Json     // Value(s) to compare against
+
+  // Action
+  actionType         RuleActionType
+  actionConfig       Json     // Action configuration (e.g., add stage, skip stage)
+
+  priority           Int      @default(0) // Lower = higher priority
+  isActive           Boolean  @default(true)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([priority])
+  @@map("workflow_rules")
+}
+
+enum ConditionOperator {
+  EQUALS
+  NOT_EQUALS
+  GREATER_THAN
+  LESS_THAN
+  GREATER_THAN_OR_EQUAL
+  LESS_THAN_OR_EQUAL
+  IN
+  NOT_IN
+  CONTAINS
+  REGEX_MATCH
+}
+
+enum RuleActionType {
+  ADD_STAGE
+  SKIP_STAGE
+  CHANGE_APPROVERS
+  SET_DEADLINE
+  SEND_NOTIFICATION
+  REQUIRE_SIGNATURE_TYPE
+}
+
+model WorkflowInstance {
+  id                 String   @id @default(cuid())
+  workflowId         String
+  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id])
+
+  // Document reference
+  entityType         String   // e.g., "WorkInstruction", "SetupSheet"
+  entityId           String
+
+  // Current state
+  status             WorkflowStatus @default(IN_PROGRESS)
+  currentStageNumber Int?
+
+  // Context data for rule evaluation
+  contextData        Json?    // Document attributes for conditional routing
+
+  // Timing
+  startedAt          DateTime @default(now())
+  completedAt        DateTime?
+  deadline           DateTime?
+
+  // Metadata
+  priority           Priority @default(NORMAL)
+  impactLevel        ImpactLevel?
+
+  // Creator
+  createdById        String
+
+  // Relations
+  stageInstances     WorkflowStageInstance[]
+  history            WorkflowHistory[]
+
+  @@unique([entityType, entityId])
+  @@index([workflowId])
+  @@index([status])
+  @@index([deadline])
+  @@index([createdById])
+  @@map("workflow_instances")
+}
+
+enum WorkflowStatus {
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+  ON_HOLD
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum ImpactLevel {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model WorkflowStageInstance {
+  id                 String   @id @default(cuid())
+  workflowInstanceId String
+  workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  stageId            String
+  stage              WorkflowStage @relation(fields: [stageId], references: [id])
+
+  stageNumber        Int
+  stageName          String
+
+  // State
+  status             StageStatus @default(PENDING)
+
+  // Timing
+  startedAt          DateTime?
+  completedAt        DateTime?
+  deadline           DateTime?
+
+  // Outcome
+  outcome            StageOutcome?
+  notes              String?      @db.Text
+
+  // Relations
+  assignments        WorkflowAssignment[]
+  parallelCoordination WorkflowParallelCoordination[]
+
+  @@unique([workflowInstanceId, stageNumber])
+  @@index([workflowInstanceId])
+  @@index([status])
+  @@index([deadline])
+  @@map("workflow_stage_instances")
+}
+
+enum StageStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  ESCALATED
+}
+
+enum StageOutcome {
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  DELEGATED
+  SKIPPED
+}
+
+model WorkflowAssignment {
+  id                 String   @id @default(cuid())
+  stageInstanceId    String
+  stageInstance      WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
+
+  // Assignment
+  assignedToId       String
+  assignedToRole     String?
+  assignmentType     AssignmentType @default(REQUIRED)
+
+  // Delegation
+  delegatedFromId    String?
+  delegationReason   String?  @db.Text
+  delegationExpiry   DateTime?
+
+  // Action
+  action             ApprovalAction?
+  actionTakenAt      DateTime?
+  comments           String?      @db.Text
+
+  // Electronic Signature integration
+  signatureId        String?      // Reference to ElectronicSignature
+  signatureType      String?      // REVIEWED, APPROVED, etc.
+
+  // Timing
+  assignedAt         DateTime @default(now())
+  dueDate            DateTime?
+
+  // Escalation
+  escalationLevel    Int      @default(0)
+  escalatedAt        DateTime?
+  escalatedToId      String?
+
+  @@index([stageInstanceId])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([action])
+  @@map("workflow_assignments")
+}
+
+enum AssignmentType {
+  REQUIRED
+  OPTIONAL
+  OBSERVER
+}
+
+enum ApprovalAction {
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  DELEGATED
+  SKIPPED
+}
+
+model WorkflowHistory {
+  id                 String   @id @default(cuid())
+  workflowInstanceId String
+  workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  // Event details
+  eventType          WorkflowEventType
+  eventDescription   String   @db.Text
+
+  // Context
+  stageNumber        Int?
+  fromStatus         String?
+  toStatus           String?
+
+  // Actor
+  performedById      String
+  performedByName    String
+  performedByRole    String?
+
+  // Details
+  details            Json?
+
+  // Timestamp
+  occurredAt         DateTime @default(now())
+
+  @@index([workflowInstanceId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@map("workflow_history")
+}
+
+enum WorkflowEventType {
+  WORKFLOW_STARTED
+  STAGE_STARTED
+  STAGE_COMPLETED
+  APPROVAL_GRANTED
+  APPROVAL_REJECTED
+  CHANGES_REQUESTED
+  DELEGATED
+  ESCALATED
+  DEADLINE_EXTENDED
+  WORKFLOW_COMPLETED
+  WORKFLOW_CANCELLED
+  REMINDER_SENT
+  RULE_EVALUATED
+  STAGE_ADDED
+  STAGE_SKIPPED
+}
+
+model WorkflowDelegation {
+  id                 String   @id @default(cuid())
+
+  delegatorId        String
+  delegateeId        String
+
+  // Scope
+  workflowType       WorkflowType?
+  specificWorkflowId String?
+
+  // Timing
+  startDate          DateTime
+  endDate            DateTime?
+
+  // Reason
+  reason             String   @db.Text
+  isActive           Boolean  @default(true)
+
+  createdAt          DateTime @default(now())
+
+  @@index([delegatorId])
+  @@index([delegateeId])
+  @@index([isActive])
+  @@map("workflow_delegations")
+}
+
+// Pre-defined workflow templates for common scenarios
+model WorkflowTemplate {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?  @db.Text
+  workflowType       WorkflowType
+  category           String   @default("STANDARD") // STANDARD, EXPEDITED, CRITICAL
+
+  // Template definition (JSON structure)
+  templateDefinition Json
+
+  // Usage tracking
+  usageCount         Int      @default(0)
+  lastUsedAt         DateTime?
+
+  // Status
+  isActive           Boolean  @default(true)
+  isBuiltIn          Boolean  @default(false) // System templates vs user-created
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdById        String
+
+  @@index([workflowType])
+  @@index([category])
+  @@index([isActive])
+  @@map("workflow_templates")
+}
+
+// Task queue for approvers
+model WorkflowTask {
+  id                 String   @id @default(cuid())
+
+  // Assignment reference
+  assignmentId       String   @unique
+
+  // Derived fields for quick filtering
+  assignedToId       String
+  workflowInstanceId String
+  stageNumber        Int
+  entityType         String
+  entityId           String
+
+  // Task metadata
+  taskTitle          String
+  taskDescription    String?  @db.Text
+  priority           Priority @default(NORMAL)
+
+  // Status
+  status             TaskStatus @default(PENDING)
+
+  // Timing
+  createdAt          DateTime @default(now())
+  dueDate            DateTime?
+
+  // Notifications
+  lastReminderSent   DateTime?
+  reminderCount      Int      @default(0)
+
+  @@index([assignedToId, status])
+  @@index([dueDate])
+  @@index([priority])
+  @@index([workflowInstanceId])
+  @@map("workflow_tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ESCALATED
+  DELEGATED
+}
+
+// Approval analytics and metrics
+model WorkflowMetrics {
+  id                 String   @id @default(cuid())
+
+  // Time period
+  periodStart        DateTime
+  periodEnd          DateTime
+
+  // Workflow/Stage identification
+  workflowId         String?
+  stageId            String?
+  workflowType       WorkflowType?
+
+  // User/Role metrics
+  userId             String?
+  roleId             String?
+
+  // Metrics
+  totalAssignments   Int      @default(0)
+  completedOnTime    Int      @default(0)
+  completedLate      Int      @default(0)
+  avgCompletionHours Float?
+  escalationCount    Int      @default(0)
+  rejectionCount     Int      @default(0)
+
+  // Calculated metrics
+  onTimePercentage   Float?
+  avgResponseHours   Float?
+
+  updatedAt          DateTime @updatedAt
+
+  @@index([periodStart, periodEnd])
+  @@index([workflowType])
+  @@index([userId])
+  @@map("workflow_metrics")
+}
+
+// Parallel approval coordination tracking
+model WorkflowParallelCoordination {
+  id                    String   @id @default(cuid())
+
+  // Stage instance reference
+  stageInstanceId       String
+  stageInstance         WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
+
+  // Parallel group configuration
+  groupId               String
+  groupName             String?
+  groupType             String   // ROLE_GROUP, DEPARTMENT, CUSTOM
+
+  // Group completion criteria
+  completionType        String   // UNANIMOUS, MAJORITY, THRESHOLD, MINIMUM, ANY
+  thresholdValue        Int?     // For THRESHOLD and MINIMUM types
+
+  // Group status tracking
+  totalAssignments      Int      @default(0)
+  completedAssignments  Int      @default(0)
+  approvedAssignments   Int      @default(0)
+  rejectedAssignments   Int      @default(0)
+
+  // Group outcome
+  groupStatus           String   @default("PENDING") // PENDING, APPROVED, REJECTED, IN_PROGRESS
+  groupDecision         String?  // APPROVED, REJECTED
+  completedAt           DateTime?
+
+  // Group metadata
+  metadata              Json?    // Additional group-specific data
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([stageInstanceId, groupId])
+  @@index([stageInstanceId])
+  @@index([groupStatus])
+  @@map("workflow_parallel_coordination")
+}

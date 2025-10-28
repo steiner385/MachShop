@@ -302,7 +302,165 @@
 
 ---
 
-### UC-012: Statistical Process Control
+### UC-012: Document Export for Work Instructions
+
+**Actor**: Quality Engineer, Production Supervisor
+**Preconditions**:
+- Work instruction exists in system
+- User has export permissions
+- Export templates are configured
+
+**Main Flow**:
+1. User navigates to work instruction details
+2. System displays export options (PDF, DOCX, PPTX)
+3. User selects desired export format
+4. System displays available templates for format
+5. User selects template or uses default
+6. User configures export settings (headers, footers, styling)
+7. System generates document using selected template
+8. System applies work instruction content to template
+9. User previews generated document
+10. System provides download link for final document
+
+**Postconditions**: Work instruction is exported in requested format
+
+**Alternative Flows**:
+- 7a. Export fails: System displays error message and logs failure
+- 9a. Preview not satisfactory: User returns to step 4 to adjust settings
+
+---
+
+### UC-013: Document Import and Content Extraction
+
+**Actor**: Technical Writer, Process Engineer
+**Preconditions**:
+- User has import permissions
+- Source document is accessible
+- Supported file format (PDF, DOCX, PPTX, TXT)
+
+**Main Flow**:
+1. User initiates document import process
+2. System displays file upload interface
+3. User selects source document file
+4. System validates file format and size
+5. System extracts content from document:
+   - Text content and structure
+   - Images and media references
+   - Formatting information
+6. System displays extracted content preview
+7. User reviews and edits extracted content
+8. User maps content to work instruction sections
+9. System creates new work instruction from mapped content
+10. User saves imported work instruction
+
+**Postconditions**: External document content is imported as work instruction
+
+**Alternative Flows**:
+- 4a. Unsupported format: System displays error and lists supported formats
+- 5a. Extraction fails: System attempts alternative extraction methods
+- 9a. Content incomplete: User manually adds missing information
+
+---
+
+### UC-014: Template Management for Document Generation
+
+**Actor**: Quality Manager, System Administrator
+**Preconditions**:
+- User has template management permissions
+- Template format requirements are defined
+
+**Main Flow**:
+1. User accesses template management interface
+2. System displays existing templates by format (PDF, DOCX, PPTX)
+3. User creates new template or edits existing template
+4. System provides template configuration options:
+   - Styling (fonts, colors, margins)
+   - Layout (headers, footers, page setup)
+   - Format-specific settings (watermarks, slide layouts)
+5. User configures template settings
+6. System validates template configuration
+7. User previews template with sample content
+8. User saves template with name and description
+9. System marks template as default if specified
+10. System notifies users of new/updated template availability
+
+**Postconditions**: Template is available for document generation
+
+**Alternative Flows**:
+- 6a. Invalid configuration: System highlights errors and prevents save
+- 9a. Set as default: System unsets previous default for same format
+
+---
+
+### UC-015: Data Collection Form Builder
+
+**Actor**: Process Engineer, Quality Engineer
+**Preconditions**:
+- User has form builder permissions
+- Field templates are available
+- Work instruction exists for form association
+
+**Main Flow**:
+1. User accesses data collection form builder
+2. System displays drag-and-drop interface with field palette
+3. User drags field types from palette to form canvas:
+   - Text input, number input, dropdown, checkbox
+   - Measurement fields with units
+   - Signature capture, photo upload
+   - Date/time fields
+4. User configures field properties:
+   - Field labels and descriptions
+   - Validation rules and constraints
+   - Required/optional status
+5. User arranges fields in logical sections
+6. System provides real-time form preview
+7. User tests form functionality in preview mode
+8. User associates form with work instruction step
+9. System validates form structure and saves configuration
+
+**Postconditions**: Data collection form is created and linked to work instruction
+
+**Alternative Flows**:
+- 4a. Invalid validation rules: System highlights conflicts and suggests corrections
+- 8a. Association fails: System checks work instruction permissions and availability
+
+---
+
+### UC-016: Media Library Management
+
+**Actor**: Technical Writer, Multimedia Specialist
+**Preconditions**:
+- User has media management permissions
+- Media library structure is initialized
+
+**Main Flow**:
+1. User accesses media library browser
+2. System displays folder structure and media files
+3. User navigates to desired folder or creates new folder
+4. User uploads media files (images, videos, documents):
+   - Drag and drop multiple files
+   - Progress tracking for uploads
+   - Automatic file type detection
+5. System processes uploaded files:
+   - Generates thumbnails for images/videos
+   - Extracts metadata
+   - Virus scanning and validation
+6. User organizes files using tags and categories
+7. User sets access permissions for media files
+8. System indexes files for search functionality
+9. User can preview files in full-screen modal
+10. User associates media with work instructions
+
+**Postconditions**: Media files are stored and organized in library
+
+**Alternative Flows**:
+- 4a. File too large: System displays size limit and compression options
+- 5a. File rejected: System explains rejection reason and suggests alternatives
+- 10a. Association restricted: System checks work instruction permissions
+
+---
+
+### UC-017: Statistical Process Control
 
 **Actor**: Process Engineer, Quality Engineer
 **Preconditions**:

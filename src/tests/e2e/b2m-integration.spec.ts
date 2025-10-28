@@ -453,8 +453,9 @@ test.describe('Production Performance Export', () => {
   });
 
   test('should provide enhanced error message for invalid work order ID format', async ({ request }) => {
+    // Test with URL-encoded spaces to ensure validation catches empty IDs
     const response = await request.post(
-      `${BASE_URL}/api/v1/b2m/production-performance/export/   `, // Invalid ID (just spaces)
+      `${BASE_URL}/api/v1/b2m/production-performance/export/${encodeURIComponent('   ')}`, // Invalid ID (just spaces, properly encoded)
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
