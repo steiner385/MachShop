@@ -287,30 +287,22 @@ export class AuthenticationManager extends EventEmitter {
       console.log(`[AuthManager] Attempting to find user: ${username}`);
     }
 
-    // ✅ PHASE 13D FIX: Enhanced user lookup with better error handling and debugging
+    // ✅ PHASE 13D + GITHUB ISSUE #16 FIX: Enhanced user lookup with safe database operation wrapper
     let user;
     try {
-      user = await prisma.user.findUnique({
-        where: { username }
-        // Note: roles are stored as String[] in the User model, no need to include relations
-      });
+      user = await this.safeDatabaseOperation(
+        () => prisma.user.findUnique({
+          where: { username }
+          // Note: roles are stored as String[] in the User model, no need to include relations
+        }),
+        `User lookup for '${username}'`,
+        2 // Allow 2 retries for database connectivity issues
+      );
     } catch (dbError: any) {
-      // ✅ GITHUB ISSUE #16 FIX: Enhanced undefined error handling for database operations
-      const safeErrorMessage = dbError?.message || dbError?.toString?.() || String(dbError) || 'Unknown database error';
-
-      if (process.env.NODE_ENV === 'test') {
-        console.error(`[AuthManager] GITHUB ISSUE #16: Database error during user lookup for '${username}':`, {
-          message: safeErrorMessage,
-          errorType: typeof dbError,
-          hasMessage: dbError?.message !== undefined,
-          hasCode: dbError?.code !== undefined,
-          hasName: dbError?.name !== undefined,
-          errorKeys: dbError ? Object.keys(dbError) : 'dbError is undefined',
-          originalError: dbError
-        });
-      }
-
-      throw new Error(`Database connection error during authentication: ${safeErrorMessage}`);
+      // The safeDatabaseOperation already provides comprehensive error handling
+      // Just re-throw with authentication context
+      const safeErrorMessage = this.extractSafeErrorMessage(dbError);
+      throw new Error(`Authentication failed - database error: ${safeErrorMessage}`);
     }
 
     // ✅ PHASE 8C & 13D FIX: Enhanced debugging for user lookup failures in test mode
@@ -318,29 +310,35 @@ export class AuthenticationManager extends EventEmitter {
       if (process.env.NODE_ENV === 'test') {
         console.log(`[AuthManager] PHASE 13D: User '${username}' not found. Performing detailed analysis...`);
         try {
-          const allUsers = await prisma.user.findMany({
-            select: { username: true, isActive: true, id: true },
-            orderBy: { username: 'asc' }
-          });
+          // ✅ GITHUB ISSUE #16 FIX: Use safe database operations for debug queries
+          const allUsers = await this.safeDatabaseOperation(
+            () => prisma.user.findMany({
+              select: { username: true, isActive: true, id: true },
+              orderBy: { username: 'asc' }
+            }),
+            'Debug query - list all users'
+          );
           console.log(`[AuthManager] Available users (${allUsers.length}):`,
             allUsers.map(u => `${u.username}(${u.isActive ? 'active' : 'inactive'})`).join(', '));
 
           // Check if username search is case-sensitive issue
-          const caseInsensitiveMatch = await prisma.user.findFirst({
-            where: { username: { contains: username, mode: 'insensitive' } },
-            select: { username: true, isActive: true }
-          });
+          const caseInsensitiveMatch = await this.safeDatabaseOperation(
+            () => prisma.user.findFirst({
+              where: { username: { contains: username, mode: 'insensitive' } },
+              select: { username: true, isActive: true }
+            }),
+            'Debug query - case insensitive user search'
+          );
           if (caseInsensitiveMatch) {
             console.log(`[AuthManager] PHASE 13D: Found case-insensitive match: '${caseInsensitiveMatch.username}' (active: ${caseInsensitiveMatch.isActive})`);
           }
         } catch (debugError: any) {
-          // ✅ GITHUB ISSUE #16 FIX: Enhanced debug error handling
-          const safeDebugErrorMessage = debugError?.message || debugError?.toString?.() || String(debugError) || 'Unknown debug error';
+          // ✅ GITHUB ISSUE #16 FIX: Enhanced debug error handling with safe error extraction
+          const safeDebugErrorMessage = this.extractSafeErrorMessage(debugError);
+          const errorAnalysis = this.analyzeErrorStructure(debugError);
           console.error(`[AuthManager] GITHUB ISSUE #16: Debug query failed:`, {
             message: safeDebugErrorMessage,
-            errorType: typeof debugError,
-            hasMessage: debugError?.message !== undefined,
-            errorKeys: debugError ? Object.keys(debugError) : 'debugError is undefined'
+            errorAnalysis
           });
         }
       }
@@ -352,35 +350,25 @@ export class AuthenticationManager extends EventEmitter {
       if (process.env.NODE_ENV === 'test') {
         console.log(`[AuthManager] User '${username}' is inactive, reactivating for E2E test compatibility...`);
 
-        // Add retry logic for database update in concurrent test scenarios
-        let retries = 3;
-        while (retries > 0) {
-          try {
-            user = await prisma.user.update({
+        // ✅ GITHUB ISSUE #16 FIX: Use safe database operation for user reactivation with built-in retry logic
+        try {
+          user = await this.safeDatabaseOperation(
+            () => prisma.user.update({
               where: { id: user.id },
               data: { isActive: true }
-            });
-            console.log(`[AuthManager] User '${username}' reactivated successfully`);
-            break;
-          } catch (error: any) {
-            retries--;
-            // ✅ GITHUB ISSUE #16 FIX: Enhanced error handling for user reactivation
-            const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown reactivation error';
-            console.warn(`[AuthManager] Failed to reactivate user '${username}' (${3 - retries}/3): ${safeErrorMessage}`);
-
-            if (retries === 0) {
-              console.error(`[AuthManager] GITHUB ISSUE #16: Failed to reactivate user after 3 attempts`, {
-                message: safeErrorMessage,
-                errorType: typeof error,
-                hasMessage: error?.message !== undefined,
-                errorKeys: error ? Object.keys(error) : 'error is undefined'
-              });
-              throw new Error(`Failed to reactivate user account: ${safeErrorMessage}`);
-            }
-
-            // Wait briefly before retry
-            await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
-          }
+            }),
+            `User reactivation for '${username}'`,
+            3 // 3 retries for reactivation
+          );
+          console.log(`[AuthManager] User '${username}' reactivated successfully`);
+        } catch (error: any) {
+          // The safeDatabaseOperation already handles retries and error analysis
+          const safeErrorMessage = this.extractSafeErrorMessage(error);
+          console.error(`[AuthManager] GITHUB ISSUE #16: Failed to reactivate user '${username}' after retries:`, {
+            message: safeErrorMessage,
+            errorAnalysis: this.analyzeErrorStructure(error)
+          });
+          throw new Error(`Failed to reactivate user account: ${safeErrorMessage}`);
         }
       } else {
         throw new Error('Account is deactivated');
@@ -458,6 +446,158 @@ export class AuthenticationManager extends EventEmitter {
       },
       expiresIn: config.jwt.expire
     };
+  }
+
+  /**
+   * ✅ GITHUB ISSUE #16 FIX: Safe database operation wrapper
+   * Provides comprehensive undefined error handling for all database operations
+   * Prevents "Cannot read properties of undefined (reading 'kind')" errors
+   */
+  private async safeDatabaseOperation<T>(
+    operation: () => Promise<T>,
+    context: string,
+    retries: number = 1
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+
+        // Enhanced undefined error handling
+        const safeErrorMessage = this.extractSafeErrorMessage(error);
+        const errorDetails = this.analyzeErrorStructure(error);
+
+        if (process.env.NODE_ENV === 'test') {
+          console.error(`[AuthManager] GITHUB ISSUE #16: Database operation failed (attempt ${attempt}/${retries}) in ${context}:`, {
+            message: safeErrorMessage,
+            errorAnalysis: errorDetails,
+            attempt,
+            retries
+          });
+        }
+
+        // Don't retry on certain error types
+        if (this.isNonRetryableError(error)) {
+          break;
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < retries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // If we get here, all retries failed
+    const safeErrorMessage = this.extractSafeErrorMessage(lastError);
+    throw new Error(`${context} failed after ${retries} attempts: ${safeErrorMessage}`);
+  }
+
+  /**
+   * ✅ GITHUB ISSUE #16 FIX: Extract safe error message from potentially undefined error objects
+   */
+  private extractSafeErrorMessage(error: any): string {
+    if (!error) {
+      return 'Error object is null or undefined';
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (typeof error === 'object') {
+      // Try various properties that might contain the error message
+      const possibleMessages = [
+        error.message,
+        error.msg,
+        error.description,
+        error.detail,
+        error.error,
+        error.toString?.(),
+        error.name,
+        error.code
+      ];
+
+      for (const msg of possibleMessages) {
+        if (msg && typeof msg === 'string' && msg.trim().length > 0) {
+          return msg.trim();
+        }
+      }
+
+      // If no message found, try to serialize the object safely
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return String(error);
+      }
+    }
+
+    // Fallback for any other type
+    try {
+      return String(error);
+    } catch {
+      return 'Unknown error (failed to convert to string)';
+    }
+  }
+
+  /**
+   * ✅ GITHUB ISSUE #16 FIX: Analyze error object structure for debugging
+   */
+  private analyzeErrorStructure(error: any): any {
+    if (!error) {
+      return { type: 'null_or_undefined', value: error };
+    }
+
+    const analysis: any = {
+      type: typeof error,
+      isNull: error === null,
+      isUndefined: error === undefined,
+      constructor: error.constructor?.name,
+      hasMessage: error?.message !== undefined,
+      hasCode: error?.code !== undefined,
+      hasName: error?.name !== undefined,
+      hasKind: error?.kind !== undefined, // This is the specific property causing issues
+      hasStack: error?.stack !== undefined
+    };
+
+    if (typeof error === 'object' && error !== null) {
+      try {
+        analysis.keys = Object.keys(error);
+        analysis.ownPropertyNames = Object.getOwnPropertyNames(error);
+      } catch {
+        analysis.keys = 'failed_to_enumerate';
+      }
+    }
+
+    return analysis;
+  }
+
+  /**
+   * ✅ GITHUB ISSUE #16 FIX: Determine if error should not be retried
+   */
+  private isNonRetryableError(error: any): boolean {
+    if (!error) return true;
+
+    const safeErrorMessage = this.extractSafeErrorMessage(error).toLowerCase();
+
+    // Don't retry authentication/authorization errors
+    const nonRetryablePatterns = [
+      'invalid username',
+      'invalid password',
+      'unauthorized',
+      'forbidden',
+      'authentication failed',
+      'user not found',
+      'account is deactivated'
+    ];
+
+    return nonRetryablePatterns.some(pattern =>
+      safeErrorMessage.includes(pattern)
+    );
   }
 
   /**
@@ -554,10 +694,14 @@ export class AuthenticationManager extends EventEmitter {
       // Verify current refresh token is still valid
       const decoded = jwt.verify(tokenInfo.refreshToken, jwtSecret) as any;
 
-      // Find user in database
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId }
-      });
+      // ✅ GITHUB ISSUE #16 FIX: Find user in database using safe operation wrapper
+      const user = await this.safeDatabaseOperation(
+        () => prisma.user.findUnique({
+          where: { id: decoded.userId }
+        }),
+        `User lookup during token refresh for userId: ${decoded.userId}`,
+        2 // Allow retries for token refresh operations
+      );
 
       if (!user || !user.isActive) {
         throw new Error('User not found or inactive');

@@ -12,7 +12,9 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as PDFParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 import TurndownService from 'turndown';
-import PDFDocument as PDFKit from 'pdfkit';
+import PDFKit from 'pdfkit';
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import PptxGenJS from 'pptxgenjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { logger } from '../utils/logger';
@@ -330,6 +332,468 @@ export class DocumentManagementService {
     } catch (error) {
       logger.error('[DocumentManagement] PDF export failed:', error);
       throw new Error(`PDF export failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Export work instruction to DOCX format
+   * ✅ GITHUB ISSUE #18: Multi-Format Document Management
+   */
+  async exportToDOCX(instructionId: string, options: ExportOptions = { format: 'DOCX' }): Promise<Buffer> {
+    try {
+      logger.info(`[DocumentManagement] Starting DOCX export: ${instructionId}`);
+
+      // Fetch work instruction with steps
+      const instruction = await this.prisma.workInstruction.findUnique({
+        where: { id: instructionId },
+        include: {
+          steps: { orderBy: { stepNumber: 'asc' } },
+          createdBy: true,
+          exportTemplate: true
+        }
+      });
+
+      if (!instruction) {
+        throw new Error(`Work instruction not found: ${instructionId}`);
+      }
+
+      // Create document structure
+      const children = [];
+
+      // Add title
+      children.push(
+        new Paragraph({
+          text: instruction.title,
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 400 }
+        })
+      );
+
+      // Add description
+      if (instruction.description) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: instruction.description,
+                italics: true
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+      }
+
+      // Add metadata
+      const metadataText = [
+        `Version: ${instruction.version}`,
+        `Created: ${instruction.createdAt.toLocaleDateString()}`,
+        `Created by: ${instruction.createdBy?.firstName} ${instruction.createdBy?.lastName}`
+      ];
+
+      if (instruction.partId) {
+        metadataText.push(`Part ID: ${instruction.partId}`);
+      }
+
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: metadataText.join(' | '),
+              size: 18,
+              color: '666666'
+            })
+          ],
+          spacing: { after: 400 }
+        })
+      );
+
+      // Add steps
+      for (const step of instruction.steps) {
+        // Step header
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Step ${step.stepNumber}: ${step.title}`,
+                bold: true,
+                size: 24
+              })
+            ],
+            spacing: { before: 300, after: 200 }
+          })
+        );
+
+        // Step content
+        const stepContentLines = step.content.split('\n').filter(line => line.trim());
+        stepContentLines.forEach(line => {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line.trim(),
+                  size: 20
+                })
+              ],
+              spacing: { after: 100 }
+            })
+          );
+        });
+
+        // Add metadata for step
+        const stepMetadata = [];
+        if (step.estimatedDuration) {
+          stepMetadata.push(`⏱ Estimated time: ${Math.round(step.estimatedDuration / 60)} minutes`);
+        }
+        if (step.isCritical) {
+          stepMetadata.push('⚠ Critical Step');
+        }
+        if (step.requiresSignature) {
+          stepMetadata.push('✍ Requires Signature');
+        }
+
+        if (stepMetadata.length > 0) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: stepMetadata.join(' | '),
+                  size: 16,
+                  color: '888888',
+                  italics: true
+                })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+        }
+
+        // Add data collection fields if present
+        if (step.dataEntryFields && Array.isArray(step.dataEntryFields) && step.dataEntryFields.length > 0) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Data Collection:',
+                  bold: true,
+                  size: 18
+                })
+              ],
+              spacing: { before: 100, after: 100 }
+            })
+          );
+
+          step.dataEntryFields.forEach((field: any) => {
+            children.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `• ${field.label}${field.required ? ' (Required)' : ''}`,
+                    size: 16
+                  })
+                ],
+                spacing: { after: 50 }
+              })
+            );
+          });
+        }
+      }
+
+      // Add footer
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Generated by MES Document Management System - ${new Date().toLocaleString()}`,
+              size: 16,
+              color: '999999',
+              italics: true
+            })
+          ],
+          spacing: { before: 600 },
+          alignment: 'center'
+        })
+      );
+
+      // Create DOCX document
+      const doc = new DocxDocument({
+        sections: [{
+          properties: {},
+          children: children
+        }]
+      });
+
+      // Generate buffer
+      const docxBuffer = await Packer.toBuffer(doc);
+
+      logger.info(`[DocumentManagement] ✅ DOCX export completed: ${docxBuffer.length} bytes`);
+      return docxBuffer;
+
+    } catch (error) {
+      logger.error('[DocumentManagement] DOCX export failed:', error);
+      throw new Error(`DOCX export failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Export work instruction to PPTX format
+   * ✅ GITHUB ISSUE #18: Multi-Format Document Management
+   */
+  async exportToPPTX(instructionId: string, options: ExportOptions = { format: 'PPTX' }): Promise<Buffer> {
+    try {
+      logger.info(`[DocumentManagement] Starting PPTX export: ${instructionId}`);
+
+      // Fetch work instruction with steps
+      const instruction = await this.prisma.workInstruction.findUnique({
+        where: { id: instructionId },
+        include: {
+          steps: { orderBy: { stepNumber: 'asc' } },
+          createdBy: true,
+          exportTemplate: true
+        }
+      });
+
+      if (!instruction) {
+        throw new Error(`Work instruction not found: ${instructionId}`);
+      }
+
+      // Create PowerPoint presentation
+      const pptx = new PptxGenJS();
+
+      // Set presentation properties
+      pptx.author = `${instruction.createdBy?.firstName} ${instruction.createdBy?.lastName}` || 'MES System';
+      pptx.company = 'Manufacturing Execution System';
+      pptx.title = instruction.title;
+      pptx.subject = 'Work Instruction';
+
+      // Title slide
+      const titleSlide = pptx.addSlide();
+      titleSlide.addText(instruction.title, {
+        x: 0.5,
+        y: 1.5,
+        w: 9,
+        h: 1.5,
+        fontSize: 36,
+        fontFace: 'Arial',
+        bold: true,
+        color: '2F4F4F',
+        align: 'center'
+      });
+
+      if (instruction.description) {
+        titleSlide.addText(instruction.description, {
+          x: 0.5,
+          y: 3.5,
+          w: 9,
+          h: 1,
+          fontSize: 18,
+          fontFace: 'Arial',
+          italic: true,
+          color: '666666',
+          align: 'center'
+        });
+      }
+
+      // Add metadata
+      const metadataText = [
+        `Version: ${instruction.version}`,
+        `Created: ${instruction.createdAt.toLocaleDateString()}`,
+        `Created by: ${instruction.createdBy?.firstName} ${instruction.createdBy?.lastName}`
+      ];
+
+      if (instruction.partId) {
+        metadataText.push(`Part ID: ${instruction.partId}`);
+      }
+
+      titleSlide.addText(metadataText.join('\n'), {
+        x: 0.5,
+        y: 5.5,
+        w: 9,
+        h: 1.5,
+        fontSize: 12,
+        fontFace: 'Arial',
+        color: '888888',
+        align: 'center'
+      });
+
+      // Overview slide with all steps
+      if (instruction.steps.length > 0) {
+        const overviewSlide = pptx.addSlide();
+        overviewSlide.addText('Work Instruction Overview', {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 0.8,
+          fontSize: 28,
+          fontFace: 'Arial',
+          bold: true,
+          color: '2F4F4F'
+        });
+
+        const stepsList = instruction.steps.map((step, index) =>
+          `${step.stepNumber}. ${step.title}${step.isCritical ? ' ⚠' : ''}${step.requiresSignature ? ' ✍' : ''}`
+        ).join('\n');
+
+        overviewSlide.addText(stepsList, {
+          x: 0.5,
+          y: 1.5,
+          w: 9,
+          h: 5.5,
+          fontSize: 16,
+          fontFace: 'Arial',
+          color: '333333',
+          bullet: true
+        });
+      }
+
+      // Individual step slides
+      for (const step of instruction.steps) {
+        const stepSlide = pptx.addSlide();
+
+        // Step title
+        stepSlide.addText(`Step ${step.stepNumber}: ${step.title}`, {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 0.8,
+          fontSize: 24,
+          fontFace: 'Arial',
+          bold: true,
+          color: step.isCritical ? 'CC0000' : '2F4F4F'
+        });
+
+        // Step content
+        const contentY = 1.5;
+        const contentLines = step.content.split('\n').filter(line => line.trim());
+        const contentText = contentLines.join('\n');
+
+        stepSlide.addText(contentText, {
+          x: 0.5,
+          y: contentY,
+          w: 9,
+          h: 3.5,
+          fontSize: 14,
+          fontFace: 'Arial',
+          color: '333333',
+          valign: 'top'
+        });
+
+        // Step metadata box
+        const metadata = [];
+        if (step.estimatedDuration) {
+          metadata.push(`⏱ Time: ${Math.round(step.estimatedDuration / 60)} min`);
+        }
+        if (step.isCritical) {
+          metadata.push('⚠ Critical Step');
+        }
+        if (step.requiresSignature) {
+          metadata.push('✍ Signature Required');
+        }
+
+        if (metadata.length > 0) {
+          stepSlide.addText(metadata.join(' | '), {
+            x: 0.5,
+            y: 6,
+            w: 9,
+            h: 0.5,
+            fontSize: 11,
+            fontFace: 'Arial',
+            italic: true,
+            color: '666666',
+            fill: 'F0F0F0',
+            align: 'center'
+          });
+        }
+
+        // Data collection fields
+        if (step.dataEntryFields && Array.isArray(step.dataEntryFields) && step.dataEntryFields.length > 0) {
+          stepSlide.addText('Data Collection:', {
+            x: 0.5,
+            y: 5.2,
+            w: 9,
+            h: 0.3,
+            fontSize: 12,
+            fontFace: 'Arial',
+            bold: true,
+            color: '2F4F4F'
+          });
+
+          const fieldsText = step.dataEntryFields
+            .map((field: any) => `• ${field.label}${field.required ? ' (Required)' : ''}`)
+            .join('\n');
+
+          stepSlide.addText(fieldsText, {
+            x: 0.5,
+            y: 5.6,
+            w: 9,
+            h: 1.5,
+            fontSize: 10,
+            fontFace: 'Arial',
+            color: '555555'
+          });
+        }
+      }
+
+      // Summary slide
+      const summarySlide = pptx.addSlide();
+      summarySlide.addText('Work Instruction Complete', {
+        x: 0.5,
+        y: 2,
+        w: 9,
+        h: 1,
+        fontSize: 32,
+        fontFace: 'Arial',
+        bold: true,
+        color: '2F4F4F',
+        align: 'center'
+      });
+
+      const totalSteps = instruction.steps.length;
+      const criticalSteps = instruction.steps.filter(step => step.isCritical).length;
+      const signatureSteps = instruction.steps.filter(step => step.requiresSignature).length;
+      const totalDuration = instruction.steps.reduce((sum, step) => sum + (step.estimatedDuration || 0), 0);
+
+      const summaryText = [
+        `Total Steps: ${totalSteps}`,
+        `Critical Steps: ${criticalSteps}`,
+        `Signature Required: ${signatureSteps}`,
+        `Estimated Duration: ${Math.round(totalDuration / 60)} minutes`
+      ].join('\n');
+
+      summarySlide.addText(summaryText, {
+        x: 0.5,
+        y: 3.5,
+        w: 9,
+        h: 2,
+        fontSize: 16,
+        fontFace: 'Arial',
+        color: '333333',
+        align: 'center'
+      });
+
+      // Footer
+      summarySlide.addText(`Generated by MES Document Management System - ${new Date().toLocaleString()}`, {
+        x: 0.5,
+        y: 6.5,
+        w: 9,
+        h: 0.5,
+        fontSize: 10,
+        fontFace: 'Arial',
+        italic: true,
+        color: '999999',
+        align: 'center'
+      });
+
+      // Generate PPTX buffer
+      const pptxBuffer = await pptx.write('base64');
+      const buffer = Buffer.from(pptxBuffer as string, 'base64');
+
+      logger.info(`[DocumentManagement] ✅ PPTX export completed: ${buffer.length} bytes`);
+      return buffer;
+
+    } catch (error) {
+      logger.error('[DocumentManagement] PPTX export failed:', error);
+      throw new Error(`PPTX export failed: ${error.message}`);
     }
   }
 

@@ -520,6 +520,74 @@ router.get('/:id/export/pdf', async (req: Request, res: Response, next: NextFunc
 });
 
 /**
+ * @route   GET /api/v1/work-instructions/:id/export/docx
+ * @desc    Export work instruction as DOCX
+ * @access  Private
+ * ✅ GITHUB ISSUE #18: Multi-Format Document Management
+ */
+router.get('/:id/export/docx', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const docxBuffer = await documentService.exportToDOCX(req.params.id, {
+      format: 'DOCX',
+      includeImages: true,
+      includeThumbnails: false
+    });
+
+    // Get instruction title for filename
+    const instruction = await workInstructionService.getWorkInstructionById(req.params.id);
+
+    const filename = `${instruction?.title || 'work-instruction'}.docx`;
+
+    logger.info('Work instruction exported as DOCX', {
+      userId: (req as any).user?.id,
+      instructionId: req.params.id,
+      fileSize: docxBuffer.length
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', docxBuffer.length);
+    res.send(docxBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/:id/export/pptx
+ * @desc    Export work instruction as PPTX
+ * @access  Private
+ * ✅ GITHUB ISSUE #18: Multi-Format Document Management
+ */
+router.get('/:id/export/pptx', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const pptxBuffer = await documentService.exportToPPTX(req.params.id, {
+      format: 'PPTX',
+      includeImages: true,
+      includeThumbnails: false
+    });
+
+    // Get instruction title for filename
+    const instruction = await workInstructionService.getWorkInstructionById(req.params.id);
+
+    const filename = `${instruction?.title || 'work-instruction'}.pptx`;
+
+    logger.info('Work instruction exported as PPTX', {
+      userId: (req as any).user?.id,
+      instructionId: req.params.id,
+      fileSize: pptxBuffer.length
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pptxBuffer.length);
+    res.send(pptxBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * @route   POST /api/v1/work-instructions/:id/media
  * @desc    Upload media for work instruction
  * @access  Private

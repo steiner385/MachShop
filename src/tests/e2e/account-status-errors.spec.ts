@@ -502,4 +502,167 @@ test.describe('Account Status Error Detection', () => {
 
     expect(userAfter?.isActive).toBe(true);
   });
+
+  // ✅ GITHUB ISSUE #16 FIX: Enhanced test coverage for undefined error objects
+  test('should handle undefined error objects gracefully in authentication', async ({ page }) => {
+    try {
+      const authErrors: string[] = [];
+      const jsErrors: string[] = [];
+      const unexpectedErrors: string[] = [];
+
+      // Track all console messages for undefined error handling validation
+      page.on('console', msg => {
+        const text = msg.text();
+        if (msg.type() === 'error') {
+          jsErrors.push(text);
+          // Look for specific patterns that would indicate undefined error handling issues
+          if (text.includes('Cannot read properties of undefined') ||
+              text.includes('TypeError: Cannot read') ||
+              text.includes('reading \'kind\'') ||
+              text.includes('reading \'message\'') ||
+              text.includes('reading \'code\'')) {
+            unexpectedErrors.push(text);
+          }
+        } else if (text.includes('auth') || text.includes('Authentication') || text.includes('GITHUB ISSUE #16')) {
+          authErrors.push(text);
+        }
+      });
+
+      // Create a scenario that could potentially trigger undefined error objects
+      // by attempting login with malformed authentication state
+      await page.goto('/login');
+      await page.waitForLoadState('networkidle', { timeout: 10000 });
+
+      // Inject malformed auth state that could cause undefined errors
+      await page.evaluate(() => {
+        try {
+          // Create various problematic auth states that could trigger undefined errors
+          const problematicStates = [
+            null,
+            undefined,
+            { state: null },
+            { state: { token: null } },
+            { state: { token: undefined, user: null } },
+            '', // empty string
+            'invalid-json',
+            JSON.stringify({ state: { token: 'malformed-token-that-could-cause-undefined-errors' } })
+          ];
+
+          problematicStates.forEach((state, index) => {
+            try {
+              if (state === null || state === undefined) {
+                localStorage.removeItem('mes-auth-storage');
+              } else if (typeof state === 'string') {
+                localStorage.setItem('mes-auth-storage', state);
+              } else {
+                localStorage.setItem('mes-auth-storage', JSON.stringify(state));
+              }
+
+              // Trigger a potential auth state check by dispatching a storage event
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'mes-auth-storage',
+                newValue: typeof state === 'string' ? state : JSON.stringify(state)
+              }));
+            } catch (e) {
+              // This is expected for some malformed states
+              console.log('[GITHUB ISSUE #16 TEST] Expected error while setting malformed state:', e.message);
+            }
+          });
+        } catch (error) {
+          console.log('[GITHUB ISSUE #16 TEST] Test setup error (expected):', error.message);
+        }
+      });
+
+      // Attempt to login with the test user after injecting problematic states
+      await page.locator('[data-testid="username-input"]').fill(TEST_USER.username);
+      await page.locator('[data-testid="password-input"]').fill(TEST_USER.password);
+      await page.locator('[data-testid="login-button"]').click();
+
+      // Wait for authentication response
+      await page.waitForTimeout(8000);
+
+      // Try to navigate to dashboard (this might trigger additional auth checks)
+      try {
+        await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await page.waitForTimeout(5000);
+      } catch (e) {
+        // Navigation failure is acceptable in this test - we're testing error handling
+        console.log('[GITHUB ISSUE #16 TEST] Navigation failed (acceptable for undefined error test):', e.message);
+      }
+
+      // Trigger additional potential undefined error scenarios by manipulating page state
+      await page.evaluate(() => {
+        try {
+          // Simulate scenarios that could cause undefined errors in authentication code
+          window.dispatchEvent(new CustomEvent('auth-check'));
+          window.dispatchEvent(new Event('beforeunload'));
+
+          // Clear token mid-session to trigger re-authentication
+          const authData = localStorage.getItem('mes-auth-storage');
+          if (authData) {
+            try {
+              const parsed = JSON.parse(authData);
+              delete parsed.state;
+              localStorage.setItem('mes-auth-storage', JSON.stringify(parsed));
+            } catch (e) {
+              // Expected for malformed JSON
+            }
+          }
+        } catch (error) {
+          console.log('[GITHUB ISSUE #16 TEST] State manipulation error (expected):', error.message);
+        }
+      });
+
+      await page.waitForTimeout(3000);
+
+      // ✅ GITHUB ISSUE #16 VALIDATION: Ensure no undefined property access errors occurred
+      console.log(`[GITHUB ISSUE #16 TEST] Captured ${unexpectedErrors.length} unexpected undefined errors`);
+      console.log(`[GITHUB ISSUE #16 TEST] Captured ${authErrors.length} auth-related messages`);
+      console.log(`[GITHUB ISSUE #16 TEST] Captured ${jsErrors.length} total JS errors`);
+
+      // The key validation: No undefined property access errors should occur
+      // The safe database operation wrapper should prevent these
+      expect(unexpectedErrors).toHaveLength(0);
+
+      // Log auth errors for debugging (these are expected and OK)
+      if (authErrors.length > 0) {
+        console.log('[GITHUB ISSUE #16 TEST] Auth errors (expected):', authErrors.slice(0, 5));
+      }
+
+      // Filter out expected errors and ensure no critical undefined errors
+      const criticalErrors = jsErrors.filter(error =>
+        !error.includes('401') &&
+        !error.includes('Unauthorized') &&
+        !error.includes('Network') &&
+        !error.includes('fetch') &&
+        !error.includes('Expected error while setting malformed state') &&
+        !error.includes('Test setup error') &&
+        !error.includes('State manipulation error') &&
+        !error.includes('React DevTools') &&
+        !error.includes('Warning') &&
+        !error.includes('API call failed') &&
+        error.includes('undefined') // Only flag undefined-related errors as critical
+      );
+
+      // No critical undefined errors should remain after our fixes
+      if (criticalErrors.length > 0) {
+        console.error('[GITHUB ISSUE #16 TEST] Critical undefined errors found:', criticalErrors);
+      }
+      expect(criticalErrors).toHaveLength(0);
+
+      console.log('✅ [GITHUB ISSUE #16 TEST] Undefined error handling validation completed successfully');
+
+    } finally {
+      // Clean up any malformed auth state
+      await page.evaluate(() => {
+        try {
+          localStorage.removeItem('mes-auth-storage');
+          sessionStorage.removeItem('mes-auth-storage');
+        } catch (e) {
+          // Cleanup errors are acceptable
+        }
+      });
+      await resetTestUser('undefined-error-test-cleanup');
+    }
+  });
 });

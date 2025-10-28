@@ -38,7 +38,17 @@
 - **RM-004**: Monitor equipment utilization and OEE
 - **RM-005**: Support tool and fixture management
 
-#### 1.6 Integration
+#### 1.6 Document Management
+- **DM-001**: Multi-format document export (PDF, DOCX, PPTX) for work instructions
+- **DM-002**: Document import from external sources with content extraction
+- **DM-003**: Template-based document generation with customizable formatting
+- **DM-004**: Media library management with folder organization and search
+- **DM-005**: Native work instruction editor with rich text capabilities
+- **DM-006**: Data collection form builder with drag-and-drop interface
+- **DM-007**: Document version control and approval workflows
+- **DM-008**: Automated document synchronization across manufacturing sites
+
+#### 1.7 Integration
 - **IN-001**: Bi-directional integration with ERP systems (SAP, Oracle)
 - **IN-002**: Interface with PLM systems for engineering data
 - **IN-003**: Connect to shop floor equipment via SCADA/OPC
@@ -60,6 +70,9 @@
 - **SC-003**: Encryption of data at rest and in transit
 - **SC-004**: Audit logging of all user actions
 - **SC-005**: NIST cybersecurity framework compliance
+- **SC-006**: Safe database operation wrappers to prevent undefined error handling
+- **SC-007**: Comprehensive error analysis and retry mechanisms for authentication
+- **SC-008**: Graceful degradation during database connectivity issues
 
 #### 2.3 Compliance
 - **CM-001**: AS9100 aerospace quality standard compliance
@@ -104,6 +117,10 @@
 - **API-003**: Webhook support for event notifications
 - **API-004**: Rate limiting and throttling
 - **API-005**: API versioning and backward compatibility
+- **API-006**: Document export endpoints supporting PDF, DOCX, and PPTX formats
+- **API-007**: Template management APIs for export/import configuration
+- **API-008**: Bulk document operations with progress tracking
+- **API-009**: Content extraction APIs for document import processing
 
 ### 4. REGULATORY REQUIREMENTS
 
