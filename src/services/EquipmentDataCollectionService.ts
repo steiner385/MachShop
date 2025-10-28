@@ -51,14 +51,36 @@ export class EquipmentDataCollectionService {
       where: { id: cleanEquipmentId },
     });
 
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced equipment reference validation with detailed guidance
     if (!equipment) {
-      throw new Error(`Equipment with ID ${cleanEquipmentId} not found`);
+      throw new Error(
+        `Equipment with ID ${cleanEquipmentId} not found in the system registry. ` +
+        `Cannot collect data from non-existent equipment. ` +
+        `Verify the equipment ID is correct and the equipment is registered in the ISA-95 Level 2 equipment hierarchy. ` +
+        `To resolve this issue: ` +
+        `1) Check the equipment ID for typos or incorrect format, ` +
+        `2) Use GET /api/v1/equipment to list available equipment in the system, ` +
+        `3) Ensure the equipment has been properly registered and commissioned, ` +
+        `4) Verify equipment is in the correct site and area hierarchy, ` +
+        `or 5) Contact equipment administrator to register the equipment in the system registry.`
+      );
     }
 
-    // Validate data value based on type
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced data value validation with detailed guidance
     const validation = EquipmentMessageBuilder.validateDataValue(value, dataCollectionType);
     if (!validation.valid) {
-      throw new Error(`Invalid data value: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Invalid data value for equipment ${cleanEquipmentId} data collection. ` +
+        `The provided value does not meet the requirements for data collection type '${dataCollectionType}'. ` +
+        `Validation errors: ${validation.errors.join('; ')}. ` +
+        `Data collection requires specific value formats to ensure accurate Level 2 equipment monitoring. ` +
+        `To resolve this issue: ` +
+        `1) Verify the data value matches the expected format for ${dataCollectionType}, ` +
+        `2) Check that numeric values are within valid ranges, ` +
+        `3) Ensure string values meet length and character requirements, ` +
+        `4) Validate boolean values are true/false or 1/0, ` +
+        `or 5) Review equipment data collection specifications for ${cleanEquipmentId}.`
+      );
     }
 
     // Determine which field to use based on value type

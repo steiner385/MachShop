@@ -413,13 +413,87 @@ test.describe('Production Performance Export', () => {
       }
     );
 
-    expect(response.status()).toBe(500);
+    // ✅ GITHUB ISSUE #14 TEST: Enhanced error response validation
+    expect(response.status()).toBe(422);
     const body = await response.json();
     expect(body.success).toBe(false);
-    expect(body.error).toContain('actual dates');
+    expect(body.error).toBe('BUSINESS_LOGIC_ERROR');
+    expect(body.message).toContain('has not been completed');
+    expect(body.message).toContain('Missing required completion data');
+    expect(body.context).toBe('B2M Production Performance Export');
+    expect(body.troubleshooting).toContain('Complete the work order execution process');
 
     // Cleanup
     await prisma.workOrder.delete({ where: { id: incompleteWO.id } });
+  });
+
+  // ✅ GITHUB ISSUE #14 TEST: Additional enhanced validation test cases
+  test('should provide enhanced error message for non-existent work order', async ({ request }) => {
+    const response = await request.post(
+      `${BASE_URL}/api/v1/b2m/production-performance/export/NONEXISTENT-WO-ID`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          configId: testConfigId,
+        },
+      }
+    );
+
+    expect(response.status()).toBe(404);
+    const body = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('RESOURCE_NOT_FOUND');
+    expect(body.message).toContain('Work order NONEXISTENT-WO-ID not found in the system');
+    expect(body.message).toContain('manufacturing execution system');
+    expect(body.context).toBe('B2M Production Performance Export');
+    expect(body.troubleshooting).toContain('Verify work order ID and ensure the work order exists');
+  });
+
+  test('should provide enhanced error message for invalid work order ID format', async ({ request }) => {
+    const response = await request.post(
+      `${BASE_URL}/api/v1/b2m/production-performance/export/   `, // Invalid ID (just spaces)
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          configId: testConfigId,
+        },
+      }
+    );
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(body.message).toContain('Work order ID is required and must be a valid non-empty string');
+    expect(body.details.field).toBe('workOrderId');
+    expect(body.details.expected).toBe('Non-empty string work order identifier');
+  });
+
+  test('should provide enhanced error message for missing config ID', async ({ request }) => {
+    const response = await request.post(
+      `${BASE_URL}/api/v1/b2m/production-performance/export/${testWorkOrderId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          // Missing configId
+        },
+      }
+    );
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(body.message).toContain('Integration configuration ID is required for B2M export operations');
+    expect(body.details.field).toBe('configId');
+    expect(body.details.suggestion).toContain('GET /api/v1/integration-configs');
   });
 });
 
@@ -580,9 +654,76 @@ test.describe('Material Transaction Export', () => {
       }
     );
 
+    // ✅ GITHUB ISSUE #14 TEST: Enhanced material transaction validation
     expect(response.status()).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('required');
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(body.message).toContain('Material transaction export requires all mandatory fields');
+    expect(body.message).toContain('B2M integration');
+    expect(body.details.missingFields).toContain('transactionType');
+    expect(body.details.missingFields).toContain('partId');
+    expect(body.details.missingFields).toContain('quantity');
+    expect(body.details.missingFields).toContain('unitOfMeasure');
+    expect(body.details.missingFields).toContain('movementType');
+    expect(body.details.suggestion).toContain('Ensure all required fields are included');
+  });
+
+  // ✅ GITHUB ISSUE #14 TEST: Additional material transaction validation tests
+  test('should reject export with invalid quantity format', async ({ request }) => {
+    const response = await request.post(
+      `${BASE_URL}/api/v1/b2m/material-transactions/export`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          configId: testConfigId,
+          transactionType: 'CONSUMPTION',
+          partId: testPartId,
+          quantity: 'not-a-number', // Invalid quantity
+          unitOfMeasure: 'EA',
+          movementType: 'ISSUE',
+        },
+      }
+    );
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(body.message).toContain('Quantity must be a positive number');
+    expect(body.details.field).toBe('quantity');
+    expect(body.details.provided).toBe('not-a-number');
+    expect(body.details.expected).toBe('Positive numeric value');
+  });
+
+  test('should reject export with negative unit cost', async ({ request }) => {
+    const response = await request.post(
+      `${BASE_URL}/api/v1/b2m/material-transactions/export`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          configId: testConfigId,
+          transactionType: 'CONSUMPTION',
+          partId: testPartId,
+          quantity: 5,
+          unitOfMeasure: 'EA',
+          movementType: 'ISSUE',
+          unitCost: -10.50, // Invalid negative cost
+        },
+      }
+    );
+
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(body.message).toContain('Unit cost must be a non-negative number');
+    expect(body.details.field).toBe('unitCost');
+    expect(body.details.provided).toBe(-10.5);
+    expect(body.details.expected).toBe('Non-negative numeric value or null');
   });
 });
 

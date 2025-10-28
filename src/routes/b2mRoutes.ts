@@ -59,13 +59,35 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
     const { configId } = req.body;
     const userId = (req as any).user?.id;
 
-    if (!configId) {
-      return res.status(400).json({ error: 'configId is required' });
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced input validation with detailed feedback
+    if (!workOrderId || typeof workOrderId !== 'string' || workOrderId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Work order ID is required and must be a valid non-empty string',
+        details: {
+          field: 'workOrderId',
+          provided: workOrderId,
+          expected: 'Non-empty string work order identifier'
+        }
+      });
+    }
+
+    if (!configId || typeof configId !== 'string' || configId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Integration configuration ID is required for B2M export operations',
+        details: {
+          field: 'configId',
+          provided: configId,
+          expected: 'Valid integration configuration ID',
+          suggestion: 'Use GET /api/v1/integration-configs to list available configurations'
+        }
+      });
     }
 
     const result = await productionPerformanceExportService.exportWorkOrderActuals({
-      workOrderId,
-      configId,
+      workOrderId: workOrderId.trim(),
+      configId: configId.trim(),
       createdBy: userId || 'SYSTEM',
     });
 
@@ -76,9 +98,59 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
     });
   } catch (error: any) {
     console.error('Error exporting production performance:', error);
+
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced error response with proper status codes and context
+    // Check for specific error types and provide appropriate HTTP status codes
+    if (error.message?.includes('not found in the system')) {
+      return res.status(404).json({
+        success: false,
+        error: 'RESOURCE_NOT_FOUND',
+        message: error.message,
+        context: 'B2M Production Performance Export',
+        endpoint: `/api/b2m/production-performance/export/${req.params.workOrderId}`,
+        troubleshooting: 'Verify work order ID and ensure the work order exists before attempting export'
+      });
+    }
+
+    if (error.message?.includes('cannot be exported') || error.message?.includes('has not been completed')) {
+      return res.status(422).json({
+        success: false,
+        error: 'BUSINESS_LOGIC_ERROR',
+        message: error.message,
+        context: 'B2M Production Performance Export',
+        endpoint: `/api/b2m/production-performance/export/${req.params.workOrderId}`,
+        troubleshooting: 'Complete the work order execution process before attempting B2M export'
+      });
+    }
+
+    if (error.message?.includes('Integration config') && error.message?.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'CONFIG_NOT_FOUND',
+        message: error.message,
+        context: 'B2M Integration Configuration',
+        troubleshooting: 'Verify the integration configuration ID and ensure it exists and is enabled'
+      });
+    }
+
+    if (error.message?.includes('disabled')) {
+      return res.status(403).json({
+        success: false,
+        error: 'CONFIG_DISABLED',
+        message: error.message,
+        context: 'B2M Integration Configuration',
+        troubleshooting: 'Enable the integration configuration or use a different configuration'
+      });
+    }
+
+    // Generic server error for unexpected issues
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to export production performance',
+      error: 'INTERNAL_SERVER_ERROR',
+      message: error.message || 'Failed to export production performance data to ERP system',
+      context: 'B2M Production Performance Export',
+      endpoint: `/api/b2m/production-performance/export/${req.params.workOrderId}`,
+      troubleshooting: 'Contact system administrator if the issue persists'
     });
   }
 });
@@ -181,25 +253,70 @@ router.post('/material-transactions/export', async (req: Request, res: Response)
     } = req.body;
     const userId = (req as any).user?.id;
 
-    // Validate required fields
-    if (!configId || !transactionType || !partId || !quantity || !unitOfMeasure || !movementType) {
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced input validation for material transactions
+    const missingFields = [];
+    if (!configId) missingFields.push('configId');
+    if (!transactionType) missingFields.push('transactionType');
+    if (!partId) missingFields.push('partId');
+    if (quantity === undefined || quantity === null) missingFields.push('quantity');
+    if (!unitOfMeasure) missingFields.push('unitOfMeasure');
+    if (!movementType) missingFields.push('movementType');
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
-        error: 'Missing required fields: configId, transactionType, partId, quantity, unitOfMeasure, movementType',
+        error: 'VALIDATION_ERROR',
+        message: `Material transaction export requires all mandatory fields to be provided for proper B2M integration`,
+        details: {
+          missingFields,
+          provided: Object.keys(req.body),
+          suggestion: 'Ensure all required fields are included in the request body'
+        }
       });
+    }
+
+    // Validate quantity is a valid number
+    const parsedQuantity = parseFloat(quantity);
+    if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Quantity must be a positive number for material transaction export',
+        details: {
+          field: 'quantity',
+          provided: quantity,
+          expected: 'Positive numeric value'
+        }
+      });
+    }
+
+    // Validate unit cost if provided
+    let parsedUnitCost: number | undefined;
+    if (unitCost !== undefined && unitCost !== null) {
+      parsedUnitCost = parseFloat(unitCost);
+      if (isNaN(parsedUnitCost) || parsedUnitCost < 0) {
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'Unit cost must be a non-negative number when provided',
+          details: {
+            field: 'unitCost',
+            provided: unitCost,
+            expected: 'Non-negative numeric value or null'
+          }
+        });
+      }
     }
 
     const result = await MaterialTransactionService.exportMaterialTransaction({
       configId,
       transactionType: transactionType as ERPTransactionType,
       partId,
-      quantity: parseFloat(quantity),
+      quantity: parsedQuantity,
       unitOfMeasure,
       fromLocation,
       toLocation,
       workOrderId,
       lotNumber,
       serialNumber,
-      unitCost: unitCost ? parseFloat(unitCost) : undefined,
+      unitCost: parsedUnitCost,
       movementType,
       reasonCode,
       createdBy: userId || 'SYSTEM',
@@ -212,9 +329,43 @@ router.post('/material-transactions/export', async (req: Request, res: Response)
     });
   } catch (error: any) {
     console.error('Error exporting material transaction:', error);
+
+    // ✅ GITHUB ISSUE #14 FIX: Enhanced error response for material transactions
+    if (error.message?.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'RESOURCE_NOT_FOUND',
+        message: error.message,
+        context: 'B2M Material Transaction Export',
+        troubleshooting: 'Verify all referenced resources (part, work order, locations) exist in the system'
+      });
+    }
+
+    if (error.message?.includes('Invalid') || error.message?.includes('validation')) {
+      return res.status(422).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: error.message,
+        context: 'B2M Material Transaction Export',
+        troubleshooting: 'Review transaction data and ensure all values meet system requirements'
+      });
+    }
+
+    if (error.message?.includes('Integration config') && error.message?.includes('disabled')) {
+      return res.status(403).json({
+        success: false,
+        error: 'CONFIG_DISABLED',
+        message: error.message,
+        context: 'B2M Integration Configuration'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to export material transaction',
+      error: 'INTERNAL_SERVER_ERROR',
+      message: error.message || 'Failed to export material transaction to ERP system',
+      context: 'B2M Material Transaction Export',
+      troubleshooting: 'Contact system administrator if the issue persists'
     });
   }
 });
