@@ -69,12 +69,23 @@ router.post('/dispatch', async (req: Request, res: Response): Promise<any> => {
   } catch (error: any) {
     console.error('Error dispatching work order:', error);
 
+    // ✅ GITHUB ISSUE #11 FIX: Enhanced error handling for dispatch operations
     if (error.message.includes('not found')) {
-      return res.status(404).json({ error: 'NotFound', message: error.message });
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        context: 'Work order dispatch requires an existing work order',
+        suggestion: 'Verify the work order ID and ensure it exists in the system'
+      });
     }
 
     if (error.message.includes('cannot be dispatched')) {
-      return res.status(400).json({ error: 'InvalidStatus', message: error.message });
+      return res.status(400).json({
+        error: 'InvalidStatus',
+        message: error.message,
+        context: 'Work order dispatch validation failed',
+        suggestion: 'Only work orders in CREATED status can be dispatched to the shop floor'
+      });
     }
 
     res.status(500).json({ error: 'InternalServerError', message: error.message });
@@ -195,12 +206,23 @@ router.post('/:id/status', async (req: Request, res: Response): Promise<any> => 
   } catch (error: any) {
     console.error('Error transitioning work order status:', error);
 
+    // ✅ GITHUB ISSUE #11 FIX: Enhanced error handling for status transitions
     if (error.message.includes('not found')) {
-      return res.status(404).json({ error: 'NotFound', message: error.message });
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        context: 'Status transition requires an existing work order',
+        suggestion: 'Verify the work order ID and ensure it exists in the system'
+      });
     }
 
     if (error.message.includes('Invalid status transition')) {
-      return res.status(400).json({ error: 'InvalidTransition', message: error.message });
+      return res.status(400).json({
+        error: 'InvalidTransition',
+        message: error.message,
+        context: 'Work order status transition validation failed',
+        suggestion: 'Follow ISA-95 standard workflow patterns. Use valid intermediate states if needed (e.g., current status → ON_HOLD → target status)'
+      });
     }
 
     res.status(500).json({ error: 'InternalServerError', message: error.message });
@@ -358,12 +380,23 @@ router.post('/:id/performance', async (req: Request, res: Response): Promise<any
   } catch (error: any) {
     console.error('Error recording work performance:', error);
 
+    // ✅ GITHUB ISSUE #11 FIX: Enhanced error handling for performance recording
     if (error.message.includes('not found')) {
-      return res.status(404).json({ error: 'NotFound', message: error.message });
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        context: 'Performance recording requires an existing work order',
+        suggestion: 'Verify the work order ID and ensure it exists in the system'
+      });
     }
 
     if (error.message.includes('Cannot record performance')) {
-      return res.status(400).json({ error: 'InvalidStatus', message: error.message });
+      return res.status(400).json({
+        error: 'InvalidStatus',
+        message: error.message,
+        context: 'Performance recording validation failed',
+        suggestion: 'Performance can only be recorded for work orders in IN_PROGRESS or COMPLETED status'
+      });
     }
 
     res.status(500).json({ error: 'InternalServerError', message: error.message });
@@ -473,8 +506,14 @@ router.get('/:id/variances/summary', async (req: Request, res: Response): Promis
   } catch (error: any) {
     console.error('Error calculating variance summary:', error);
 
+    // ✅ GITHUB ISSUE #11 FIX: Enhanced error handling for variance calculations
     if (error.message.includes('not found')) {
-      return res.status(404).json({ error: 'NotFound', message: error.message });
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        context: 'Variance calculation requires an existing work order',
+        suggestion: 'Verify the work order ID and ensure it exists in the system with performance data'
+      });
     }
 
     res.status(500).json({ error: 'InternalServerError', message: error.message });
