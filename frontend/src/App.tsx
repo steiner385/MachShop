@@ -57,6 +57,7 @@ import TeamWorkQueue from '@/pages/Production/TeamWorkQueue';
 import MaterialsPage from '@/pages/Materials/MaterialsPage';
 import PersonnelPage from '@/pages/Personnel/PersonnelPage';
 import AdminPage from '@/pages/Admin/AdminPage';
+import SettingsPage from '@/pages/Settings/SettingsPage';
 
 // Operations (Manufacturing Operations) - Sprint 6
 import OperationListPage from '@/pages/Operations/OperationListPage';
@@ -278,8 +279,16 @@ const App: React.FC = () => {
           }
         />
         <Route
-          path="/serialization/parts"
+          path="/serialization/overview"
           element={<Navigate to="/serialization" replace />}
+        />
+        <Route
+          path="/serialization/parts"
+          element={
+            <ProtectedRoute permissions={['traceability.read']}>
+              <SerializationListPage />
+            </ProtectedRoute>
+          }
         />
 
         {/* Integration Management (Sprint 5) */}
@@ -290,6 +299,10 @@ const App: React.FC = () => {
               <IntegrationDashboard />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/integrations/dashboard"
+          element={<Navigate to="/integrations" replace />}
         />
         <Route
           path="/integrations/config"
@@ -454,6 +467,16 @@ const App: React.FC = () => {
           }
         />
 
+        {/* Settings */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Work Instructions (Sprint 2/3) */}
         <Route
           path="/work-instructions"
@@ -462,6 +485,10 @@ const App: React.FC = () => {
               <WorkInstructionListPage />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/work-instructions/list"
+          element={<Navigate to="/work-instructions" replace />}
         />
         <Route
           path="/work-instructions/create"
