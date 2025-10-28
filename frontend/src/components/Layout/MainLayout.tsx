@@ -78,6 +78,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           roles: [ROLES.PRODUCTION_PLANNER, ROLES.PLANT_MANAGER],
         },
         {
+          key: '/operations',
+          icon: <ControlOutlined />,
+          label: 'Operations',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.PLANT_MANAGER],
+        },
+        {
           key: '/routings',
           icon: <ControlOutlined />,
           label: 'Routings',
@@ -166,6 +172,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           icon: <BarcodeOutlined />,
           label: 'Serialization',
           permissions: [PERMISSIONS.TRACEABILITY_READ],
+          children: [
+            {
+              key: '/serialization/overview',
+              label: 'Overview',
+            },
+            {
+              key: '/serialization/parts',
+              label: 'Serialized Parts',
+            },
+          ],
         },
       ],
     },
@@ -174,6 +190,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       icon: <BookOutlined />,
       label: 'Work Instructions',
       permissions: [PERMISSIONS.WORKINSTRUCTIONS_READ],
+      children: [
+        {
+          key: '/work-instructions/list',
+          label: 'View All',
+        },
+        {
+          key: '/work-instructions/create',
+          label: 'Create New',
+        },
+      ],
     },
     {
       type: 'group',
@@ -184,12 +210,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           icon: <CloudServerOutlined />,
           label: 'Integrations',
           roles: [ROLES.PLANT_MANAGER, ROLES.SYSTEM_ADMIN],
+          children: [
+            {
+              key: '/integrations/dashboard',
+              label: 'Dashboard',
+            },
+            {
+              key: '/integrations/config',
+              label: 'Configuration',
+            },
+            {
+              key: '/integrations/logs',
+              label: 'Logs',
+            },
+          ],
         },
         {
           key: '/admin',
           icon: <ControlOutlined />,
           label: 'Admin',
           roles: [ROLES.SYSTEM_ADMIN],
+        },
+        {
+          key: '/settings',
+          icon: <SettingOutlined />,
+          label: 'Settings',
         },
       ],
     },
@@ -208,11 +253,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     if (path.startsWith('/process-segments')) {
       return ['/process-segments'];
     }
+    if (path.startsWith('/operations')) {
+      return ['/operations'];
+    }
     if (path.startsWith('/work-instructions')) {
       return ['/work-instructions'];
     }
     if (path.startsWith('/integrations')) {
       return ['/integrations'];
+    }
+    if (path.startsWith('/settings')) {
+      return ['/settings'];
     }
 
     return [path];
@@ -220,11 +271,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const getOpenKeys = () => {
     const path = location.pathname;
-    
+
     if (path.startsWith('/quality')) {
       return ['/quality'];
     }
-    
+    if (path.startsWith('/integrations')) {
+      return ['/integrations'];
+    }
+    if (path.startsWith('/work-instructions')) {
+      return ['/work-instructions'];
+    }
+    if (path.startsWith('/serialization')) {
+      return ['/serialization'];
+    }
+
     return [];
   };
 
@@ -337,6 +397,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           bottom: 0,
           zIndex: 100,
         }}
+        role="navigation"
       >
         <div
           style={{
@@ -409,6 +470,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             borderBottom: '1px solid #f0f0f0',
             overflow: 'hidden', // Prevent content from bleeding outside
           }}
+          role="banner"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
             <Button
@@ -474,6 +536,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             minHeight: 'calc(100vh - 64px)',
             overflow: 'auto',
           }}
+          role="main"
         >
           <Breadcrumbs />
           {children}
