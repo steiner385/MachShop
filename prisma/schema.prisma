@@ -6694,3 +6694,435 @@ enum VotingRule {
   SUPERMAJORITY      // >= 2/3 must agree
   CONSENSUS          // Discuss until consensus
 }
+
+// =============================================================================
+// COLLABORATION & REVIEW SYSTEM (Issue #24)
+// =============================================================================
+
+/// Document Comment - Threaded comments on documents
+model DocumentComment {
+  id                 String   @id @default(cuid())
+
+  // Document reference (polymorphic)
+  documentType       String   // WorkInstruction, SetupSheet, etc.
+  documentId         String
+
+  // Context within document
+  contextType        CommentContextType?
+  contextId          String?  // stepId, paramId, etc.
+  contextPath        String?  // JSON path or line number
+
+  // Comment content
+  commentText        String   @db.Text
+  attachments        String[] // URLs to attached files
+
+  // Threading
+  parentCommentId    String?
+  parentComment      DocumentComment? @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies            DocumentComment[] @relation("CommentThread")
+
+  // Metadata
+  status             CommentStatus @default(OPEN)
+  priority           CommentPriority @default(MEDIUM)
+  tags               String[]
+
+  isPinned           Boolean  @default(false)
+  isResolved         Boolean  @default(false)
+  resolvedAt         DateTime?
+  resolvedById       String?
+
+  // Author
+  authorId           String
+  authorName         String
+
+  // Mentions
+  mentionedUserIds   String[]
+
+  // Reactions
+  reactions          CommentReaction[]
+
+  // Timestamps
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editedAt           DateTime?
+
+  @@index([documentType, documentId])
+  @@index([parentCommentId])
+  @@index([authorId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("document_comments")
+}
+
+/// Comment context types
+enum CommentContextType {
+  DOCUMENT
+  STEP
+  PARAMETER
+  CHARACTERISTIC
+  IMAGE
+  VIDEO
+  TEXT_SECTION
+}
+
+/// Comment status options
+enum CommentStatus {
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+/// Comment priority levels
+enum CommentPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Comment Reaction - Reactions to comments
+model CommentReaction {
+  id                 String   @id @default(cuid())
+  commentId          String
+  comment            DocumentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId             String
+  userName           String
+
+  reactionType       ReactionType
+
+  createdAt          DateTime @default(now())
+
+  @@unique([commentId, userId, reactionType])
+  @@index([commentId])
+  @@map("comment_reactions")
+}
+
+/// Reaction type options
+enum ReactionType {
+  LIKE
+  AGREE
+  DISAGREE
+  HELPFUL
+  QUESTION
+}
+
+/// Document Annotation - Visual annotations on media
+model DocumentAnnotation {
+  id                 String   @id @default(cuid())
+
+  // Document reference
+  documentType       String
+  documentId         String
+
+  // Media reference (for image/video/PDF annotations)
+  mediaType          String?  // image, video, pdf, text
+  mediaUrl           String?
+
+  // Annotation data
+  annotationType     AnnotationType
+  annotationData     Json     // SVG path, coordinates, etc.
+
+  // Text/label
+  text               String?
+
+  // Style
+  color              String?
+  strokeWidth        Int?
+  opacity            Float?
+  fontSize           Int?
+
+  // Video timestamp (for video annotations)
+  timestamp          Float?   // seconds
+
+  // Author
+  authorId           String
+  authorName         String
+
+  // Comments on annotation (no direct relation - use contextType and contextId)
+
+  isResolved         Boolean  @default(false)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([documentType, documentId])
+  @@index([authorId])
+  @@map("document_annotations")
+}
+
+/// Annotation type options
+enum AnnotationType {
+  ARROW
+  CALLOUT
+  HIGHLIGHT
+  TEXT_LABEL
+  FREEHAND
+  RECTANGLE
+  CIRCLE
+  LINE
+  BLUR
+  STICKY_NOTE
+  STRIKETHROUGH
+  UNDERLINE
+  STAMP
+}
+
+/// Review Assignment - Document review assignments
+model ReviewAssignment {
+  id                 String   @id @default(cuid())
+
+  // Document reference
+  documentType       String
+  documentId         String
+  documentVersion    String
+
+  // Reviewer
+  reviewerId         String
+  reviewerName       String
+
+  // Assignment details
+  assignedById       String
+  assignedByName     String
+  assignedAt         DateTime @default(now())
+
+  reviewType         ReviewType
+  instructions       String?  @db.Text
+  focusAreas         String[] // Specific areas to review
+
+  isRequired         Boolean  @default(true)
+  deadline           DateTime?
+
+  // Review checklist
+  checklistItems     Json?    // Array of checklist items
+
+  // Status
+  status             ReviewStatus @default(NOT_STARTED)
+
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  // Review outcome
+  recommendation     ReviewRecommendation?
+  summary            String?  @db.Text
+  timeSpent          Int?     // minutes
+
+  // Sign-off
+  signatureId        String?
+  signedOffAt        DateTime?
+
+  @@unique([documentType, documentId, reviewerId])
+  @@index([reviewerId])
+  @@index([status])
+  @@index([deadline])
+  @@map("review_assignments")
+}
+
+/// Review type options
+enum ReviewType {
+  TECHNICAL
+  EDITORIAL
+  QUALITY
+  SAFETY
+  COMPLIANCE
+  GENERAL
+}
+
+/// Review status options
+enum ReviewStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  FEEDBACK_PROVIDED
+  COMPLETED
+  OVERDUE
+}
+
+/// Review recommendation options
+enum ReviewRecommendation {
+  APPROVE
+  REQUEST_CHANGES
+  REJECT
+  NO_RECOMMENDATION
+}
+
+/// Document Activity - Activity log for documents
+model DocumentActivity {
+  id                 String   @id @default(cuid())
+
+  // Document reference
+  documentType       String
+  documentId         String
+
+  // Activity details
+  activityType       ActivityType
+  description        String
+
+  // Changes (for edit activities)
+  changesSummary     Json?
+
+  // Actor
+  performedById      String
+  performedByName    String
+  performedByRole    String?
+
+  // Metadata
+  metadata           Json?
+
+  occurredAt         DateTime @default(now())
+
+  @@index([documentType, documentId])
+  @@index([activityType])
+  @@index([occurredAt])
+  @@index([performedById])
+  @@map("document_activities")
+}
+
+/// Activity type options
+enum ActivityType {
+  CREATED
+  EDITED
+  COMMENTED
+  ANNOTATED
+  REVIEW_ASSIGNED
+  REVIEW_COMPLETED
+  APPROVED
+  REJECTED
+  VERSION_CREATED
+  LINKED
+  ECO_LINKED
+  SHARED
+  EXPORTED
+  VIEWED
+}
+
+/// Document Subscription - User subscriptions to document updates
+model DocumentSubscription {
+  id                 String   @id @default(cuid())
+
+  userId             String
+
+  // Document reference
+  documentType       String
+  documentId         String
+
+  // Subscription preferences
+  notifyOnEdit       Boolean  @default(true)
+  notifyOnComment    Boolean  @default(true)
+  notifyOnApproval   Boolean  @default(true)
+  notifyOnVersion    Boolean  @default(true)
+
+  subscribedAt       DateTime @default(now())
+
+  @@unique([userId, documentType, documentId])
+  @@index([userId])
+  @@index([documentType, documentId])
+  @@map("document_subscriptions")
+}
+
+/// User Notification - System notifications
+model UserNotification {
+  id                 String   @id @default(cuid())
+  userId             String
+
+  notificationType   NotificationType
+  title              String
+  message            String   @db.Text
+
+  // Reference to related entity
+  entityType         String?
+  entityId           String?
+
+  // Link
+  actionUrl          String?
+
+  isRead             Boolean  @default(false)
+  readAt             DateTime?
+
+  createdAt          DateTime @default(now())
+  expiresAt          DateTime?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("user_notifications")
+}
+
+/// Notification type options
+enum NotificationType {
+  MENTION
+  COMMENT_REPLY
+  REVIEW_ASSIGNED
+  DOCUMENT_UPDATED
+  APPROVAL_GRANTED
+  APPROVAL_REJECTED
+  COMMENT_RESOLVED
+  DEADLINE_APPROACHING
+  REVIEW_COMPLETED
+}
+
+/// Document Edit Session - Real-time collaboration sessions
+model DocumentEditSession {
+  id                 String   @id @default(cuid())
+
+  // Document reference
+  documentType       String
+  documentId         String
+
+  // User
+  userId             String
+  userName           String
+
+  // Session
+  sessionId          String   @unique
+  startedAt          DateTime @default(now())
+  lastActivityAt     DateTime @default(now())
+  endedAt            DateTime?
+
+  // Cursor position (optional)
+  cursorPosition     Json?
+
+  // Section locks (optional)
+  lockedSections     String[]
+
+  isActive           Boolean  @default(true)
+
+  @@index([documentType, documentId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("document_edit_sessions")
+}
+
+/// Conflict Resolution - Merge conflict resolutions
+model ConflictResolution {
+  id                 String   @id @default(cuid())
+
+  // Document reference
+  documentType       String
+  documentId         String
+
+  // Conflict details
+  conflictPath       String   // Path to conflicting element
+  baseVersion        String
+  yourVersion        Json
+  theirVersion       Json
+  theirUserId        String
+
+  // Resolution
+  resolution         ResolutionType
+  mergedVersion      Json
+
+  resolvedById       String
+  resolvedByName     String
+  resolvedAt         DateTime @default(now())
+
+  @@index([documentType, documentId])
+  @@index([resolvedById])
+  @@map("conflict_resolutions")
+}
+
+/// Conflict resolution type options
+enum ResolutionType {
+  ACCEPT_YOURS
+  ACCEPT_THEIRS
+  MANUAL_MERGE
+  AUTO_MERGED
+}
