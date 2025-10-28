@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { z } from 'zod';
 import { workInstructionService } from '../services/WorkInstructionService';
 import {
   CreateWorkInstructionSchema,
@@ -7,7 +9,48 @@ import {
   UpdateStepSchema,
   WorkInstructionQueryParams,
 } from '../types/workInstruction';
+import { DocumentManagementService } from '../services/DocumentManagementService';
+import { MediaLibraryService } from '../services/MediaLibraryService';
 import { logger } from '../utils/logger';
+
+// ✅ GITHUB ISSUE #18: Enhanced document management services
+const documentService = new DocumentManagementService();
+const mediaService = new MediaLibraryService();
+
+// Configure multer for file uploads (GitHub Issue #18)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'video/mp4',
+      'video/webm'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} not supported`));
+    }
+  }
+});
+
+// Validation schemas for document management (GitHub Issue #18)
+const importMetadataSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  partId: z.string().optional(),
+  operationId: z.string().optional(),
+  tags: z.string().optional(), // JSON string array
+  categories: z.string().optional() // JSON string array
+});
 
 const router = express.Router();
 
@@ -317,6 +360,266 @@ router.get('/part/:partId', async (req: Request, res: Response, next: NextFuncti
     const workInstructions = await workInstructionService.getWorkInstructionsByPartId(partId);
 
     res.json(workInstructions);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================================
+// GitHub Issue #18: Enhanced Document Management Endpoints
+// ============================================================================
+
+/**
+ * @route   POST /api/v1/work-instructions/import/pdf
+ * @desc    Import PDF document as work instruction
+ * @access  Private
+ */
+router.post('/import/pdf', upload.single('file'), async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'PDF file is required' });
+      return;
+    }
+
+    if (req.file.mimetype !== 'application/pdf') {
+      res.status(400).json({ error: 'File must be a PDF' });
+      return;
+    }
+
+    const metadata = importMetadataSchema.parse(req.body);
+
+    // Get user ID from auth middleware
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Parse JSON strings
+    const tags = metadata.tags ? JSON.parse(metadata.tags) : undefined;
+    const categories = metadata.categories ? JSON.parse(metadata.categories) : undefined;
+
+    const importData = {
+      ...metadata,
+      tags,
+      categories,
+      createdById: userId
+    };
+
+    const instruction = await documentService.importPDF(req.file.buffer, importData);
+
+    logger.info('PDF imported as work instruction', {
+      userId,
+      instructionId: instruction.id,
+      fileName: req.file.originalname,
+      fileSize: req.file.size
+    });
+
+    res.status(201).json(instruction);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      res.status(400).json({ error: 'Validation error', details: error });
+      return;
+    }
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/v1/work-instructions/import/docx
+ * @desc    Import DOCX document as work instruction
+ * @access  Private
+ */
+router.post('/import/docx', upload.single('file'), async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'DOCX file is required' });
+      return;
+    }
+
+    const allowedTypes = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      res.status(400).json({ error: 'File must be a DOC or DOCX' });
+      return;
+    }
+
+    const metadata = importMetadataSchema.parse(req.body);
+
+    // Get user ID from auth middleware
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Parse JSON strings
+    const tags = metadata.tags ? JSON.parse(metadata.tags) : undefined;
+    const categories = metadata.categories ? JSON.parse(metadata.categories) : undefined;
+
+    const importData = {
+      ...metadata,
+      tags,
+      categories,
+      createdById: userId
+    };
+
+    const instruction = await documentService.importDOCX(req.file.buffer, importData);
+
+    logger.info('DOCX imported as work instruction', {
+      userId,
+      instructionId: instruction.id,
+      fileName: req.file.originalname,
+      fileSize: req.file.size
+    });
+
+    res.status(201).json(instruction);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      res.status(400).json({ error: 'Validation error', details: error });
+      return;
+    }
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/:id/export/pdf
+ * @desc    Export work instruction as PDF
+ * @access  Private
+ */
+router.get('/:id/export/pdf', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const pdfBuffer = await documentService.exportToPDF(req.params.id, {
+      format: 'PDF',
+      includeImages: true,
+      includeThumbnails: false
+    });
+
+    // Get instruction title for filename
+    const instruction = await workInstructionService.getWorkInstructionById(req.params.id);
+
+    const filename = `${instruction?.title || 'work-instruction'}.pdf`;
+
+    logger.info('Work instruction exported as PDF', {
+      userId: (req as any).user?.id,
+      instructionId: req.params.id,
+      fileSize: pdfBuffer.length
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/v1/work-instructions/:id/media
+ * @desc    Upload media for work instruction
+ * @access  Private
+ */
+router.post('/:id/media', upload.single('file'), async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'Media file is required' });
+      return;
+    }
+
+    // Determine media type from MIME type
+    let mediaType = 'DOCUMENT';
+    if (req.file.mimetype.startsWith('image/')) {
+      mediaType = 'IMAGE';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      mediaType = 'VIDEO';
+    }
+
+    const metadata = {
+      fileName: req.file.originalname,
+      title: req.body.title,
+      description: req.body.description,
+      tags: req.body.tags ? JSON.parse(req.body.tags) : undefined,
+      instructionId: req.params.id,
+      mediaType: mediaType as any,
+      mimeType: req.file.mimetype
+    };
+
+    const media = await mediaService.uploadMedia(req.file.buffer, metadata);
+
+    logger.info('Media uploaded for work instruction', {
+      userId: (req as any).user?.id,
+      instructionId: req.params.id,
+      mediaId: media.id,
+      fileName: req.file.originalname
+    });
+
+    res.status(201).json(media);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/:id/media
+ * @desc    List media for work instruction
+ * @access  Private
+ */
+router.get('/:id/media', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const media = await mediaService.searchMedia('', {
+      instructionId: req.params.id
+    });
+
+    res.json(media);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/search
+ * @desc    Enhanced search with document management features
+ * @access  Private
+ */
+router.get('/search', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const {
+      q,
+      tags,
+      categories,
+      contentFormat,
+      page = 1,
+      limit = 50
+    } = req.query;
+
+    // Parse comma-separated arrays
+    const tagArray = tags ? (tags as string).split(',').map(t => t.trim()) : undefined;
+    const categoryArray = categories ? (categories as string).split(',').map(c => c.trim()) : undefined;
+
+    const searchParams = {
+      text: q as string,
+      tags: tagArray,
+      categories: categoryArray,
+      contentFormat: contentFormat as string,
+      limit: parseInt(limit as string),
+      offset: (parseInt(page as string) - 1) * parseInt(limit as string)
+    };
+
+    const instructions = await documentService.searchDocuments(searchParams);
+
+    res.json({
+      data: instructions,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total: instructions.length
+      }
+    });
   } catch (error) {
     next(error);
   }

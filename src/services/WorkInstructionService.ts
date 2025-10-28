@@ -57,6 +57,13 @@ export class WorkInstructionService {
               stepNumber: 'asc',
             },
           },
+          // GitHub Issue #18: Include media and export template relationships
+          media: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          exportTemplate: true,
         },
       });
 
@@ -110,6 +117,13 @@ export class WorkInstructionService {
               stepNumber: 'asc',
             },
           },
+          // GitHub Issue #18: Include media and export template relationships
+          media: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          exportTemplate: true,
         },
       });
 
@@ -199,6 +213,26 @@ export class WorkInstructionService {
             _count: {
               select: {
                 steps: true,
+              },
+            },
+            // GitHub Issue #18: Include media relationships for list view
+            media: {
+              select: {
+                id: true,
+                mediaType: true,
+                fileName: true,
+                fileUrl: true,
+                thumbnailUrl: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 3, // Only show first 3 media items in list view
+            },
+            exportTemplate: {
+              select: {
+                id: true,
+                name: true,
               },
             },
           },
@@ -447,6 +481,13 @@ export class WorkInstructionService {
               stepNumber: 'asc',
             },
           },
+          // GitHub Issue #18: Include media relationships
+          media: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          exportTemplate: true,
         },
         orderBy: {
           version: 'desc',
@@ -591,6 +632,172 @@ export class WorkInstructionService {
       return workInstruction as WorkInstructionResponse;
     } catch (error) {
       logger.error(`Error rejecting work instruction ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // GitHub Issue #18: Document management methods
+
+  /**
+   * Update native content for work instruction
+   */
+  async updateNativeContent(
+    id: string,
+    nativeContent: any,
+    userId: string
+  ): Promise<WorkInstructionResponse> {
+    try {
+      const workInstruction = await prisma.workInstruction.update({
+        where: { id },
+        data: {
+          nativeContent,
+          contentFormat: 'NATIVE',
+          updatedById: userId,
+          updatedAt: new Date(),
+        },
+        include: {
+          createdBy: {
+            select: { id: true, username: true, firstName: true, lastName: true },
+          },
+          updatedBy: {
+            select: { id: true, username: true, firstName: true, lastName: true },
+          },
+          steps: { orderBy: { stepNumber: 'asc' } },
+          media: { orderBy: { createdAt: 'desc' } },
+          exportTemplate: true,
+        },
+      });
+
+      logger.info(`Native content updated for work instruction: ${id}`, {
+        workInstructionId: id,
+        userId,
+      });
+
+      return workInstruction as WorkInstructionResponse;
+    } catch (error) {
+      logger.error(`Error updating native content for work instruction ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update document management metadata
+   */
+  async updateDocumentMetadata(
+    id: string,
+    metadata: {
+      tags?: string[];
+      categories?: string[];
+      keywords?: string[];
+      thumbnailUrl?: string;
+      exportTemplateId?: string;
+    },
+    userId: string
+  ): Promise<WorkInstructionResponse> {
+    try {
+      const workInstruction = await prisma.workInstruction.update({
+        where: { id },
+        data: {
+          ...metadata,
+          updatedById: userId,
+          updatedAt: new Date(),
+        },
+        include: {
+          createdBy: {
+            select: { id: true, username: true, firstName: true, lastName: true },
+          },
+          updatedBy: {
+            select: { id: true, username: true, firstName: true, lastName: true },
+          },
+          steps: { orderBy: { stepNumber: 'asc' } },
+          media: { orderBy: { createdAt: 'desc' } },
+          exportTemplate: true,
+        },
+      });
+
+      logger.info(`Document metadata updated for work instruction: ${id}`, {
+        workInstructionId: id,
+        userId,
+        updates: Object.keys(metadata),
+      });
+
+      return workInstruction as WorkInstructionResponse;
+    } catch (error) {
+      logger.error(`Error updating document metadata for work instruction ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search work instructions with document management filters
+   */
+  async searchWithDocumentFilters(filters: {
+    text?: string;
+    tags?: string[];
+    categories?: string[];
+    contentFormat?: string;
+    hasMedia?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<WorkInstructionResponse[]> {
+    try {
+      const where: any = {};
+
+      // Text search
+      if (filters.text) {
+        where.OR = [
+          { title: { contains: filters.text, mode: 'insensitive' } },
+          { description: { contains: filters.text, mode: 'insensitive' } },
+          { keywords: { has: filters.text } },
+        ];
+      }
+
+      // Tag filters
+      if (filters.tags && filters.tags.length > 0) {
+        where.tags = { hasSome: filters.tags };
+      }
+
+      // Category filters
+      if (filters.categories && filters.categories.length > 0) {
+        where.categories = { hasSome: filters.categories };
+      }
+
+      // Content format filter
+      if (filters.contentFormat) {
+        where.contentFormat = filters.contentFormat;
+      }
+
+      // Media presence filter
+      if (filters.hasMedia !== undefined) {
+        if (filters.hasMedia) {
+          where.media = { some: {} };
+        } else {
+          where.media = { none: {} };
+        }
+      }
+
+      const workInstructions = await prisma.workInstruction.findMany({
+        where,
+        include: {
+          createdBy: {
+            select: { id: true, username: true, firstName: true, lastName: true },
+          },
+          steps: { orderBy: { stepNumber: 'asc' } },
+          media: {
+            select: { id: true, mediaType: true, fileName: true, fileUrl: true },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+          },
+          exportTemplate: { select: { id: true, name: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: filters.offset || 0,
+        take: filters.limit || 50,
+      });
+
+      return workInstructions as WorkInstructionResponse[];
+    } catch (error) {
+      logger.error('Error searching work instructions with document filters:', error);
       throw error;
     }
   }
