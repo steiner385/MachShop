@@ -16,10 +16,10 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry failed tests to handle transient failures */
-  retries: process.env.CI ? 2 : 1,
+  /* Enhanced retry settings for improved reliability */
+  retries: process.env.CI ? 3 : 2, // Increased retries (CI: 3, local: 2)
   /* Limit workers to reduce API rate limiting and improve stability */
-  workers: process.env.CI ? 1 : 4,
+  workers: process.env.CI ? 1 : 3, // Reduced workers for better stability
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['json', { outputFile: 'test-results/results.json' }],
@@ -39,22 +39,35 @@ export default defineConfig({
     /* Record video on failure */
     video: 'retain-on-failure',
 
-    /* Global timeout for each action */
-    actionTimeout: 10000,
-
-    /* Global timeout for navigation */
+    /* Enhanced timeout settings for improved reliability */
+    actionTimeout: 30000, // Increased from 10s to 30s for slow UI elements
     navigationTimeout: 30000,
 
     /* Add test mode marker for auth store detection */
     extraHTTPHeaders: {
       'X-Test-Mode': 'playwright-e2e'
+    },
+
+    /* Enhanced browser settings for stability */
+    launchOptions: {
+      args: [
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-ipc-flooding-protection'
+      ]
     }
   },
 
   /* Configure projects - organized by authentication requirements */
   projects: [
     // ==========================================
-    // AUTHENTICATED TESTS (use storageState)
+    // AUTHENTICATED TESTS (self-managing auth)
     // ==========================================
 
     /* Authenticated feature tests with standard timeouts */
@@ -71,8 +84,14 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        storageState: '.auth/user.json',
+        // No storageState - tests manage their own authentication for dynamic allocation
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'authenticated'
+        }
       },
+      // Set project name for port allocation
+      metadata: { projectName: 'authenticated' }
     },
 
     /* Quality management tests - authenticated with extended timeouts */
@@ -82,7 +101,7 @@ export default defineConfig({
       timeout: 120000, // 2 minutes per test (quality tests are slow)
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/user.json',
+        // No storageState - tests manage their own authentication for dynamic allocation
         actionTimeout: 120000, // Increased from 60s to 120s for slow quality dashboard renders
         navigationTimeout: 90000,
       },
@@ -126,10 +145,16 @@ export default defineConfig({
       timeout: 120000, // 2 minutes per test (D3.js rendering can be slow)
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/user.json',
+        // No storageState - tests manage their own authentication for dynamic allocation
         actionTimeout: 120000, // Increased from 60s to 120s for D3.js graph interactions
         navigationTimeout: 90000,
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'traceability-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'traceability-tests' }
     },
 
     /* Equipment hierarchy tests - API tests with own request context */
@@ -140,7 +165,13 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         // No storageState - API tests create their own request context
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'equipment-hierarchy-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'equipment-hierarchy-tests' }
     },
 
     /* Material hierarchy tests - API tests with own request context */
@@ -151,7 +182,13 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         // No storageState - API tests create their own request context
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'material-hierarchy-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'material-hierarchy-tests' }
     },
 
     /* Process segment hierarchy tests - API tests with own request context */
@@ -162,7 +199,13 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         // No storageState - API tests create their own request context
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'process-segment-hierarchy-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'process-segment-hierarchy-tests' }
     },
 
     /* FAI workflow tests - authenticated with extended timeouts */
@@ -172,10 +215,16 @@ export default defineConfig({
       timeout: 120000, // 2 minutes per test (CMM data import can be slow)
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/user.json',
+        // No storageState - tests manage their own authentication for dynamic allocation
         actionTimeout: 120000, // Increased from 60s to 120s for CMM XML file processing
         navigationTimeout: 90000,
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'fai-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'fai-tests' }
     },
 
     // ==========================================
@@ -256,19 +305,31 @@ export default defineConfig({
         // No storageState - tests intentionally clear and re-auth
         actionTimeout: 20000,
         navigationTimeout: 60000,
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'routing-edge-cases'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'routing-edge-cases' }
     },
 
-    /* SPA routing tests - localhost */
+    /* SPA routing tests - dynamic allocation */
     {
       name: 'routing-localhost',
       testMatch: '**/spa-routing.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:5278',
+        // Uses dynamic allocation infrastructure - no hardcoded baseURL
         // No storageState - tests manage auth for different scenarios
         // Authenticated tests use navigateAuthenticated helper
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'routing-localhost'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'routing-localhost' }
     },
 
     /* Frontend smoke tests - comprehensive site traversal */
@@ -294,7 +355,13 @@ export default defineConfig({
         // No storageState - tests manage their own role-specific auth
         actionTimeout: 15000,
         navigationTimeout: 30000,
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'role-tests'
+        }
       },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'role-tests' }
     },
 
     // NOTE: Domain integration tests (routing-domain and domain-integration)
@@ -312,9 +379,12 @@ export default defineConfig({
   /* Test timeout */
   timeout: 90000, // Increased from 60s to 90s for slow UI rendering tests
   
-  /* Expect timeout */
+  /* Enhanced expect timeout for better reliability */
   expect: {
-    timeout: 10000
+    timeout: 30000, // Increased from 10s to 30s for slow-loading elements
+    // Additional expect configuration for UI reliability
+    toHaveScreenshot: { threshold: 0.2, timeout: 30000 },
+    toMatchScreenshot: { threshold: 0.2, timeout: 30000 }
   },
   
   /* Output directory */

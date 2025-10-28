@@ -109,7 +109,54 @@ export async function cleanupTestData(db: PrismaClient) {
   await db.routing.deleteMany();
   await db.part.deleteMany();
   await db.site.deleteMany();
-  await db.user.deleteMany();
+
+  // CRITICAL FIX: Only delete non-essential test users, preserve admin and other seed users
+  // This prevents breaking authentication for other tests that depend on these users
+  await db.user.deleteMany({
+    where: {
+      AND: [
+        {
+          // Only delete users that are clearly test-created (not from seed)
+          OR: [
+            { username: { contains: 'test-' } },
+            { username: { contains: '-test' } },
+            { email: { contains: 'test.' } },
+            { email: { contains: '.test@' } },
+            { username: { in: ['user-to-delete', 'account.status.test'] } }, // Specific test users
+          ]
+        },
+        {
+          // Never delete essential seed users
+          username: {
+            notIn: [
+              'admin',
+              'jane.smith',
+              'john.doe',
+              'prod.operator',
+              'prod.supervisor',
+              'prod.planner',
+              'prod.scheduler',
+              'mfg.engineer',
+              'quality.engineer',
+              'quality.inspector',
+              'dcma.inspector',
+              'process.engineer',
+              'warehouse.manager',
+              'materials.handler',
+              'shipping.specialist',
+              'logistics.coordinator',
+              'maint.technician',
+              'maint.supervisor',
+              'plant.manager',
+              'sys.admin',
+              'superuser',
+              'inventory.specialist'
+            ]
+          }
+        }
+      ]
+    }
+  });
 }
 
 export async function teardownTestDatabase() {

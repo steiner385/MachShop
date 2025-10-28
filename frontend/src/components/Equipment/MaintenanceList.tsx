@@ -463,7 +463,7 @@ export const MaintenanceList: React.FC = () => {
                   onChange={setClassFilter}
                   style={{ width: '180px' }}
                 >
-                  {Object.entries(EQUIPMENT_CLASS_LABELS).map(([key, label]) => (
+                  {Object.entries(EQUIPMENT_CLASS_LABELS || {}).map(([key, label]) => (
                     <Option key={key} value={key}>
                       {label}
                     </Option>
@@ -476,7 +476,7 @@ export const MaintenanceList: React.FC = () => {
                   onChange={setStatusFilter}
                   style={{ width: '180px' }}
                 >
-                  {Object.entries(EQUIPMENT_STATUS_LABELS).map(([key, label]) => (
+                  {Object.entries(EQUIPMENT_STATUS_LABELS || {}).map(([key, label]) => (
                     <Option key={key} value={key}>
                       {label}
                     </Option>
@@ -492,7 +492,7 @@ export const MaintenanceList: React.FC = () => {
                   onChange={setMaintenanceTypeFilter}
                   style={{ width: '180px' }}
                 >
-                  {Object.entries(MAINTENANCE_TYPE_LABELS).map(([key, label]) => (
+                  {Object.entries(MAINTENANCE_TYPE_LABELS || {}).map(([key, label]) => (
                     <Option key={key} value={key}>
                       {label}
                     </Option>
@@ -505,7 +505,7 @@ export const MaintenanceList: React.FC = () => {
                   onChange={setMaintenanceStatusFilter}
                   style={{ width: '180px' }}
                 >
-                  {Object.entries(MAINTENANCE_STATUS_LABELS).map(([key, label]) => (
+                  {Object.entries(MAINTENANCE_STATUS_LABELS || {}).map(([key, label]) => (
                     <Option key={key} value={key}>
                       {label}
                     </Option>

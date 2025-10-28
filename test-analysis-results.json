@@ -1,0 +1,189 @@
+{
+  "timestamp": "2025-10-27T17:27:05.441Z",
+  "summary": {
+    "totalProjects": 17,
+    "projectsWithResults": 19,
+    "totalTests": 3420,
+    "totalPassed": 3420,
+    "totalFailed": 0,
+    "totalSkipped": 0,
+    "totalNotRun": 0,
+    "overallSuccessRate": 100
+  },
+  "expectedTotalTests": 882,
+  "testGap": -2538,
+  "projects": [
+    "authenticated",
+    "quality-tests",
+    "collaborative-routing-tests",
+    "routing-feature-tests",
+    "traceability-tests",
+    "equipment-hierarchy-tests",
+    "material-hierarchy-tests",
+    "process-segment-hierarchy-tests",
+    "fai-tests",
+    "auth-tests",
+    "api-tests",
+    "parameter-management-tests",
+    "spc-tests",
+    "routing-edge-cases",
+    "routing-localhost",
+    "smoke-tests",
+    "role-tests"
+  ],
+  "projectBreakdown": {
+    "allocated-databases": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0
+    },
+    "allocated-ports": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0
+    },
+    "authenticated": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "quality-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "collaborative-routing-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "routing-feature-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "traceability-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "equipment-hierarchy-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "material-hierarchy-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "process-segment-hierarchy-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "fai-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "auth-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "api-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "parameter-management-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "spc-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "routing-edge-cases": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "routing-localhost": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "smoke-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "role-tests": {
+      "expected": 380,
+      "passed": 380,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    }
+  },
+  "missingProjects": []
+}

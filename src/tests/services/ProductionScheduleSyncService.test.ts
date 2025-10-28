@@ -112,7 +112,7 @@ describe('ProductionScheduleSyncService', () => {
       },
       resources: {
         personnel: [{ skillCode: 'MACHINIST-L2', quantity: 2 }],
-        equipment: [{ equipmentClass: 'CNC', quantity: 1 }],
+        equipment: [{ equipmentClass: 'PRODUCTION', quantity: 1 }],
         materials: [{ partNumber: 'PN-RAW-001', quantity: 200 }],
       },
     };

@@ -1,5 +1,8 @@
 /* Global Styles for Manufacturing Execution System */
 
+/* ReactFlow Visual Editor Custom Styles */
+@import './reactflow.css';
+
 /* CSS Reset */
 * {
   box-sizing: border-box;

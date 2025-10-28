@@ -35,7 +35,7 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient, ERPTransactionType, PersonnelActionType } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
-import ProductionPerformanceExportService from '../services/ProductionPerformanceExportService';
+import productionPerformanceExportService from '../services/ProductionPerformanceExportService';
 import MaterialTransactionService from '../services/MaterialTransactionService';
 import PersonnelInfoSyncService from '../services/PersonnelInfoSyncService';
 
@@ -63,7 +63,7 @@ router.post('/production-performance/export/:workOrderId', async (req: Request, 
       return res.status(400).json({ error: 'configId is required' });
     }
 
-    const result = await ProductionPerformanceExportService.exportWorkOrderActuals({
+    const result = await productionPerformanceExportService.exportWorkOrderActuals({
       workOrderId,
       configId,
       createdBy: userId || 'SYSTEM',
@@ -91,7 +91,7 @@ router.get('/production-performance/:messageId', async (req: Request, res: Respo
   try {
     const { messageId } = req.params;
 
-    const status = await ProductionPerformanceExportService.getExportStatus(messageId);
+    const status = await productionPerformanceExportService.getExportStatus(messageId);
 
     res.json({
       success: true,
@@ -114,7 +114,7 @@ router.get('/production-performance/work-order/:workOrderId', async (req: Reques
   try {
     const { workOrderId } = req.params;
 
-    const exports = await ProductionPerformanceExportService.getWorkOrderExports(workOrderId);
+    const exports = await productionPerformanceExportService.getWorkOrderExports(workOrderId);
 
     res.json({
       success: true,
@@ -138,7 +138,7 @@ router.post('/production-performance/:messageId/retry', async (req: Request, res
     const { messageId } = req.params;
     const userId = (req as any).user?.id;
 
-    const result = await ProductionPerformanceExportService.retryExport(messageId, userId || 'SYSTEM');
+    const result = await productionPerformanceExportService.retryExport(messageId, userId || 'SYSTEM');
 
     res.json({
       success: true,

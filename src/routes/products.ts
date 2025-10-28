@@ -39,6 +39,15 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const includeRelations = req.query.includeRelations !== 'false';
 
     const part = await ProductService.getPartById(id, includeRelations);
@@ -115,6 +124,15 @@ router.get('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const part = await ProductService.updatePart(id, req.body);
     res.json(part);
   } catch (error: any) {
@@ -130,6 +148,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const hardDelete = req.query.hardDelete === 'true';
 
     const result = await ProductService.deletePart(id, hardDelete);
@@ -151,6 +178,15 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.post('/:id/specifications', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const spec = await ProductService.addSpecification(id, req.body);
     res.status(201).json(spec);
   } catch (error: any) {
@@ -166,6 +202,15 @@ router.post('/:id/specifications', async (req: Request, res: Response) => {
 router.get('/:id/specifications', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const specs = await ProductService.getPartSpecifications(id);
     res.json(specs);
   } catch (error: any) {
@@ -181,6 +226,15 @@ router.get('/:id/specifications', async (req: Request, res: Response) => {
 router.put('/specifications/:specificationId', async (req: Request, res: Response) => {
   try {
     const { specificationId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!specificationId || specificationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Specification ID is required'
+      });
+    }
+
     const spec = await ProductService.updateSpecification(specificationId, req.body);
     res.json(spec);
   } catch (error: any) {
@@ -196,6 +250,15 @@ router.put('/specifications/:specificationId', async (req: Request, res: Respons
 router.delete('/specifications/:specificationId', async (req: Request, res: Response) => {
   try {
     const { specificationId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!specificationId || specificationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Specification ID is required'
+      });
+    }
+
     const result = await ProductService.deleteSpecification(specificationId);
     res.json(result);
   } catch (error: any) {
@@ -209,12 +272,96 @@ router.delete('/specifications/:specificationId', async (req: Request, res: Resp
 // ======================
 
 /**
+ * POST /api/v1/products/configurations/:configurationId/options
+ * Add option to configuration
+ * ✅ PHASE 9A FIX: Moved before /:id/configurations to prevent route conflict
+ */
+router.post('/configurations/:configurationId/options', async (req: Request, res: Response) => {
+  try {
+    const { configurationId } = req.params;
+
+    // ✅ PHASE 8D FIX: Validate required parameter using comprehensive validation
+    if (!configurationId || configurationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Configuration ID is required'
+      });
+    }
+
+    const option = await ProductService.addConfigurationOption(configurationId, req.body);
+    res.status(201).json(option);
+  } catch (error: any) {
+    console.error('Error adding configuration option:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/v1/products/configurations/:configurationId
+ * Update configuration
+ * ✅ PHASE 9A FIX: Moved before /:id/configurations to prevent route conflict
+ */
+router.put('/configurations/:configurationId', async (req: Request, res: Response) => {
+  try {
+    const { configurationId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!configurationId || configurationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Configuration ID is required'
+      });
+    }
+
+    const config = await ProductService.updateConfiguration(configurationId, req.body);
+    res.json(config);
+  } catch (error: any) {
+    console.error('Error updating configuration:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/v1/products/configurations/:configurationId
+ * Delete configuration
+ * ✅ PHASE 9A FIX: Moved before /:id/configurations to prevent route conflict
+ */
+router.delete('/configurations/:configurationId', async (req: Request, res: Response) => {
+  try {
+    const { configurationId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!configurationId || configurationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Configuration ID is required'
+      });
+    }
+
+    const result = await ProductService.deleteConfiguration(configurationId);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error deleting configuration:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/v1/products/:id/configurations
  * Add configuration to part
  */
 router.post('/:id/configurations', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const config = await ProductService.addConfiguration(id, req.body);
     res.status(201).json(config);
   } catch (error: any) {
@@ -230,6 +377,15 @@ router.post('/:id/configurations', async (req: Request, res: Response) => {
 router.get('/:id/configurations', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const configs = await ProductService.getPartConfigurations(id);
     res.json(configs);
   } catch (error: any) {
@@ -245,6 +401,15 @@ router.get('/:id/configurations', async (req: Request, res: Response) => {
 router.put('/configurations/:configurationId', async (req: Request, res: Response) => {
   try {
     const { configurationId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!configurationId || configurationId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Configuration ID is required'
+      });
+    }
+
     const config = await ProductService.updateConfiguration(configurationId, req.body);
     res.json(config);
   } catch (error: any) {
@@ -253,35 +418,7 @@ router.put('/configurations/:configurationId', async (req: Request, res: Respons
   }
 });
 
-/**
- * DELETE /api/v1/products/configurations/:configurationId
- * Delete configuration
- */
-router.delete('/configurations/:configurationId', async (req: Request, res: Response) => {
-  try {
-    const { configurationId } = req.params;
-    const result = await ProductService.deleteConfiguration(configurationId);
-    res.json(result);
-  } catch (error: any) {
-    console.error('Error deleting configuration:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-/**
- * POST /api/v1/products/configurations/:configurationId/options
- * Add option to configuration
- */
-router.post('/configurations/:configurationId/options', async (req: Request, res: Response) => {
-  try {
-    const { configurationId } = req.params;
-    const option = await ProductService.addConfigurationOption(configurationId, req.body);
-    res.status(201).json(option);
-  } catch (error: any) {
-    console.error('Error adding configuration option:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
+// ✅ PHASE 9A FIX: Removed duplicate routes - now properly ordered above
 
 /**
  * PUT /api/v1/products/options/:optionId
@@ -290,6 +427,15 @@ router.post('/configurations/:configurationId/options', async (req: Request, res
 router.put('/options/:optionId', async (req: Request, res: Response) => {
   try {
     const { optionId } = req.params;
+
+    // ✅ PHASE 8D FIX: Validate required parameter using comprehensive validation
+    if (!optionId || optionId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Option ID is required'
+      });
+    }
+
     const option = await ProductService.updateConfigurationOption(optionId, req.body);
     res.json(option);
   } catch (error: any) {
@@ -305,6 +451,15 @@ router.put('/options/:optionId', async (req: Request, res: Response) => {
 router.delete('/options/:optionId', async (req: Request, res: Response) => {
   try {
     const { optionId } = req.params;
+
+    // ✅ PHASE 8D FIX: Validate required parameter using comprehensive validation
+    if (!optionId || optionId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Option ID is required'
+      });
+    }
+
     const result = await ProductService.deleteConfigurationOption(optionId);
     res.json(result);
   } catch (error: any) {
@@ -324,6 +479,15 @@ router.delete('/options/:optionId', async (req: Request, res: Response) => {
 router.post('/:id/lifecycle/transition', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const lifecycleRecord = await ProductService.transitionLifecycleState(id, req.body);
     res.status(201).json(lifecycleRecord);
   } catch (error: any) {
@@ -339,6 +503,15 @@ router.post('/:id/lifecycle/transition', async (req: Request, res: Response) => 
 router.get('/:id/lifecycle/history', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const history = await ProductService.getPartLifecycleHistory(id);
     res.json(history);
   } catch (error: any) {
@@ -358,6 +531,15 @@ router.get('/:id/lifecycle/history', async (req: Request, res: Response) => {
 router.post('/:id/bom', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const bomItem = await ProductService.addBOMItem({
       parentPartId: id,
       ...req.body,
@@ -376,6 +558,15 @@ router.post('/:id/bom', async (req: Request, res: Response) => {
 router.get('/:id/bom', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const includeProcessSegments = req.query.includeProcessSegments !== 'false';
 
     const bom = await ProductService.getPartBOM(id, includeProcessSegments);
@@ -393,6 +584,15 @@ router.get('/:id/bom', async (req: Request, res: Response) => {
 router.get('/:id/where-used', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Part ID is required'
+      });
+    }
+
     const whereUsed = await ProductService.getPartWhereUsed(id);
     res.json(whereUsed);
   } catch (error: any) {
@@ -408,6 +608,15 @@ router.get('/:id/where-used', async (req: Request, res: Response) => {
 router.put('/bom/:bomItemId', async (req: Request, res: Response) => {
   try {
     const { bomItemId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!bomItemId || bomItemId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'BOM Item ID is required'
+      });
+    }
+
     const bomItem = await ProductService.updateBOMItem(bomItemId, req.body);
     res.json(bomItem);
   } catch (error: any) {
@@ -423,6 +632,15 @@ router.put('/bom/:bomItemId', async (req: Request, res: Response) => {
 router.delete('/bom/:bomItemId', async (req: Request, res: Response) => {
   try {
     const { bomItemId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!bomItemId || bomItemId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'BOM Item ID is required'
+      });
+    }
+
     const hardDelete = req.query.hardDelete === 'true';
 
     const result = await ProductService.deleteBOMItem(bomItemId, hardDelete);

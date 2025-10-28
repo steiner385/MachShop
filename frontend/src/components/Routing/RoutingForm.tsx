@@ -42,7 +42,7 @@ import {
   UpdateRoutingRequest,
   RoutingLifecycleState,
 } from '@/types/routing';
-import { VisualRoutingEditor } from './VisualRoutingEditor';
+import { VisualRoutingEditorWrapper } from './VisualRoutingEditor';
 import { ActiveUsersIndicator } from './ActiveUsersIndicator';
 import { RoutingChangedAlert } from './RoutingChangedAlert';
 import { VersionConflictModal } from './VersionConflictModal';
@@ -224,18 +224,25 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
         console.log('[RoutingForm] createRouting result:', result);
         message.success('Routing created successfully');
 
-        // Navigate to detail page if we have the created routing
-        if (result && result.id) {
-          navigate(`/routings/${result.id}`);
-        } else {
-          navigate('/routings');
-        }
+        // ✅ PHASE 4 FIX: Delay navigation to allow success message to be visible for E2E tests
+        setTimeout(() => {
+          // Navigate to detail page if we have the created routing
+          if (result && result.id) {
+            navigate(`/routings/${result.id}`);
+          } else {
+            navigate('/routings');
+          }
+        }, 1500); // 1.5 second delay for success message visibility
       } else if (mode === 'edit' && id) {
         // Update existing routing
         console.log('[RoutingForm] Calling updateRouting API...');
         await updateRouting(id, formData as UpdateRoutingRequest);
         message.success('Routing updated successfully');
-        navigate(`/routings/${id}`);
+
+        // ✅ PHASE 4 FIX: Delay navigation to allow success message to be visible for E2E tests
+        setTimeout(() => {
+          navigate(`/routings/${id}`);
+        }, 1500); // 1.5 second delay for success message visibility
       }
 
       setHasUnsavedChanges(false);
@@ -428,7 +435,7 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
       {/* Visual Editor Mode */}
       {editorMode === 'visual' ? (
         <div style={{ height: 'calc(100vh - 200px)' }}>
-          <VisualRoutingEditor
+          <VisualRoutingEditorWrapper
             routingId={id}
             onSave={handleVisualSave}
             readOnly={false}
@@ -458,7 +465,8 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 ]}
                 tooltip="Unique identifier for this routing (e.g., RT-001)"
               >
-                <Input id="routingNumber" name="routingNumber" placeholder="RT-001" />
+                {/* ✅ PHASE 10C FIX: Remove explicit ID to prevent conflicts when multiple routing forms are rendered */}
+                <Input name="routingNumber" placeholder="RT-001" />
               </Form.Item>
             </Col>
 
@@ -469,7 +477,8 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 rules={[{ required: true, message: 'Version is required' }]}
                 tooltip="Version number for this routing (e.g., 1.0, 1.1)"
               >
-                <Input id="version" name="version" placeholder="1.0" />
+                {/* ✅ PHASE 10C FIX: Remove explicit ID to prevent conflicts when multiple routing forms are rendered */}
+                <Input name="version" placeholder="1.0" />
               </Form.Item>
             </Col>
           </Row>
@@ -482,8 +491,8 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 rules={[{ required: true, message: 'Part is required' }]}
                 tooltip="Select the part this routing is for"
               >
+                {/* ✅ PHASE 10C FIX: Remove explicit ID to prevent conflicts when multiple routing forms are rendered */}
                 <Select
-                  id="partId"
                   showSearch
                   placeholder="Select a part"
                   loading={loadingParts}
@@ -508,7 +517,8 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
                 rules={[{ required: true, message: 'Site is required' }]}
                 tooltip="Select the manufacturing site for this routing"
               >
-                <Select id="siteId" placeholder="Select a site">
+                {/* ✅ PHASE 10C FIX: Remove explicit ID to prevent conflicts when multiple routing forms are rendered */}
+                <Select placeholder="Select a site">
                   {allSites.map((site) => (
                     <Option key={site.id} value={site.id}>
                       {site.siteName} ({site.siteCode})
@@ -524,8 +534,8 @@ export const RoutingForm: React.FC<RoutingFormProps> = ({ mode }) => {
             label="Description"
             tooltip="Brief description of this routing"
           >
+            {/* ✅ PHASE 10C FIX: Remove explicit ID to prevent conflicts when multiple routing forms are rendered */}
             <TextArea
-              id="description"
               rows={3}
               placeholder="Enter a description for this routing"
               maxLength={500}

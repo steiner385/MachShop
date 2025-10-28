@@ -17,6 +17,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { PrismaClient, RoutingLifecycleState, StepType } from '@prisma/client';
 import { setupTestAuth } from '../helpers/testAuthHelper';
+import { TestIdentifiers } from '../helpers/uniqueTestIdentifiers';
 
 const prisma = new PrismaClient();
 
@@ -58,14 +59,14 @@ test.describe('Routing Templates E2E Tests', () => {
     });
 
     // Create a test routing to use for creating templates
-    const timestamp = Date.now();
-    const randomSuffix = Math.floor(Math.random() * 100000);
+    const uniqueVersion = TestIdentifiers.uniqueVersion();
+    const uniqueRoutingNumber = TestIdentifiers.routingNumber('TPL-RT');
     testRouting = await prisma.routing.create({
       data: {
-        routingNumber: `TPL-RT-${timestamp}-${randomSuffix}`,
+        routingNumber: uniqueRoutingNumber,
         partId: testPart.id,
         siteId: testSite.id,
-        version: `1.${timestamp}.${randomSuffix}`,
+        version: uniqueVersion,
         lifecycleState: RoutingLifecycleState.DRAFT,
         description: 'Test routing for template creation',
         notes: `Template test routing\n\n[VISUAL_DATA]${JSON.stringify({
@@ -202,7 +203,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Verify template name input exists
       await expect(templateNameInput.first()).toBeVisible();
 
-      const templateName = `Test Template ${Date.now()}`;
+      const templateName = `Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`;
       await templateNameInput.first().fill(templateName);
 
       const descriptionInput = page.locator('textarea[name="description"]').or(page.locator('input[name="description"]'));
@@ -250,7 +251,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template first via API
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Search Test Template ${Date.now()}`,
+          name: `Search Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Template for search testing',
           category: 'ASSEMBLY',
           visualData: {
@@ -342,7 +343,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template via API
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Favorite Test Template ${Date.now()}`,
+          name: `Favorite Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Template for favorite testing',
           category: 'MACHINING',
           visualData: { nodes: [], edges: [] },
@@ -394,7 +395,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template via API
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Load Test Template ${Date.now()}`,
+          name: `Load Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Template for load testing',
           category: 'INSPECTION',
           visualData: {
@@ -469,7 +470,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template with a specific usage count to test display
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Usage Count Test Template ${Date.now()}`,
+          name: `Usage Count Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Template for usage count testing',
           category: 'MACHINING',
           usageCount: 3, // Set to 3 so we can verify it displays correctly
@@ -525,7 +526,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Edit Test Template ${Date.now()}`,
+          name: `Edit Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Original description',
           category: 'ASSEMBLY',
           visualData: { nodes: [], edges: [] },
@@ -607,7 +608,7 @@ test.describe('Routing Templates E2E Tests', () => {
       // Create a template via API with matching site ID
       const template = await prisma.routingTemplate.create({
         data: {
-          name: `Delete Test Template ${Date.now()}`,
+          name: `Delete Test Template ${Date.now()}-${process.pid}-${Math.random().toString(36).substring(2, 8)}}`,
           description: 'Template to be deleted',
           category: 'OTHER',
           visualData: { nodes: [], edges: [] },

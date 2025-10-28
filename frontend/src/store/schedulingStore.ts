@@ -285,9 +285,14 @@ export const useSchedulingStore = create<SchedulingStore>()(
 
       fetchScheduleById: async (id: string) => {
         try {
+          // ✅ PHASE 5: Defensive validation to prevent undefined parameters
+          if (!id || typeof id !== 'string' || id.trim() === '') {
+            throw new Error('Schedule ID is required and must be a valid string');
+          }
+
           set({ isLoadingDetail: true, detailError: null });
 
-          const response = await schedulingAPI.getScheduleById(id, true);
+          const response = await schedulingAPI.getScheduleById(id.trim(), true);
 
           if (response.success && response.data) {
             set({
@@ -309,9 +314,14 @@ export const useSchedulingStore = create<SchedulingStore>()(
 
       fetchScheduleByNumber: async (scheduleNumber: string) => {
         try {
+          // ✅ PHASE 5: Defensive validation to prevent undefined parameters
+          if (!scheduleNumber || typeof scheduleNumber !== 'string' || scheduleNumber.trim() === '') {
+            throw new Error('Schedule number is required and must be a valid string');
+          }
+
           set({ isLoadingDetail: true, detailError: null });
 
-          const response = await schedulingAPI.getScheduleByNumber(scheduleNumber, true);
+          const response = await schedulingAPI.getScheduleByNumber(scheduleNumber.trim(), true);
 
           if (response.success && response.data) {
             set({

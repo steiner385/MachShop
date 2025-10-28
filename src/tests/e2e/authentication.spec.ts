@@ -472,9 +472,13 @@ test.describe('Authentication Flow', () => {
       
       // Trigger an API call that will return 401
       await page.reload();
-      
+
+      // ✅ PHASE 7A FIX: Small wait to allow auth interceptor redirect to complete
+      // Auth interceptor uses 10ms timeout in test environment, but add buffer for reliability
+      await page.waitForTimeout(100);
+
       // Should be redirected to login (not show 404)
-      await expect(page).toHaveURL(/\/login/);
+      await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
       
       // Should see login form, not 404 page
       await expect(page.locator('[data-testid="username-input"]')).toBeVisible();

@@ -136,6 +136,14 @@ router.get('/configurations/:parameterId', authMiddleware, async (req: Request, 
   try {
     const { parameterId } = req.params;
 
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!parameterId || parameterId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter ID is required'
+      });
+    }
+
     const config = await spcService.getSPCConfiguration(parameterId);
 
     if (!config) {
@@ -183,6 +191,15 @@ router.get('/configurations', authMiddleware, async (req: Request, res: Response
 router.put('/configurations/:parameterId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { parameterId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!parameterId || parameterId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter ID is required'
+      });
+    }
+
     const updates = req.body;
 
     const config = await spcService.updateSPCConfiguration(
@@ -225,6 +242,14 @@ router.put('/configurations/:parameterId', authMiddleware, async (req: Request, 
 router.delete('/configurations/:parameterId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { parameterId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!parameterId || parameterId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter ID is required'
+      });
+    }
 
     await spcService.deleteSPCConfiguration(parameterId);
 
@@ -595,14 +620,44 @@ router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
       sensitivity,
     } = req.body;
 
+    // ✅ PHASE 8C FIX: Enhanced input validation for analyze endpoint
     if (!data || !chartType) {
-      return res.status(400).json({ error: 'Data and chartType required' });
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Data and chartType are required'
+      });
+    }
+
+    // Validate data is array and not empty
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Data must be a non-empty array'
+      });
+    }
+
+    // Validate chart type against enum values
+    const validChartTypes = ['I_MR', 'X_BAR_R', 'X_BAR_S', 'P_CHART', 'C_CHART', 'NP_CHART', 'U_CHART', 'CUSUM', 'EWMA'] as const;
+    if (!validChartTypes.includes(chartType as any)) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: `Invalid chart type: ${chartType}. Valid types are: ${validChartTypes.join(', ')}`
+      });
     }
 
     // Extract values from data points (handle both number[] and object[] formats)
     const values = data.map((item: any) =>
       typeof item === 'number' ? item : item.value
     );
+
+    // Validate extracted values are numbers
+    const invalidValues = values.filter(val => typeof val !== 'number' || isNaN(val));
+    if (invalidValues.length > 0) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'All data points must be valid numbers'
+      });
+    }
 
     let limits;
 

@@ -29,6 +29,11 @@ afterEach(async () => {
   // Cleanup after each test
 });
 
-// Mock Date.now() to return consistent timestamps in tests
-const mockDateNow = new Date('2024-01-15T10:30:00Z').getTime();
-global.Date.now = () => mockDateNow;
+// NOTE: Removed global Date.now() mock that was causing timestamp collisions
+// in parallel test execution. Tests should use explicit timestamps when
+// deterministic values are needed, rather than a global mock that affects
+// all parallel workers identically.
+//
+// For tests requiring consistent timestamps, use test-specific mocks:
+// const fixedTimestamp = new Date('2024-01-15T10:30:00Z').getTime();
+// vi.spyOn(Date, 'now').mockReturnValue(fixedTimestamp);

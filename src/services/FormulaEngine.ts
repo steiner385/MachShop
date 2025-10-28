@@ -1,4 +1,5 @@
 import { PrismaClient, ParameterFormula, EvaluationTrigger } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { create, all, MathJsStatic } from 'mathjs';
 import { createLogger } from '../utils/logger';
 
@@ -75,6 +76,22 @@ export class FormulaEngineService {
       throw new Error(`Invalid formula: ${validation.error}`);
     }
 
+    // Check if a formula already exists for this output parameter
+    const existingFormula = await prisma.parameterFormula.findFirst({
+      where: { outputParameterId: input.outputParameterId },
+    });
+    if (existingFormula) {
+      throw new Error(`A formula already exists for parameter ${input.outputParameterId}. Only one formula per output parameter is allowed.`);
+    }
+
+    // Verify output parameter exists
+    const outputParam = await prisma.operationParameter.findUnique({
+      where: { id: input.outputParameterId },
+    });
+    if (!outputParam) {
+      throw new Error(`Output parameter ${input.outputParameterId} does not exist`);
+    }
+
     // Extract dependencies from formula
     const dependencies = this.extractDependencies(input.formulaExpression);
 
@@ -84,7 +101,8 @@ export class FormulaEngineService {
         where: { id: { in: dependencies } },
       });
       if (params.length !== dependencies.length) {
-        throw new Error('Some input parameters do not exist');
+        const missingParams = dependencies.filter(dep => !params.find(p => p.id === dep));
+        throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}`);
       }
     }
 
@@ -99,21 +117,34 @@ export class FormulaEngineService {
       }
     }
 
-    logger.info('Creating formula', { formulaName: input.formulaName });
+    logger.info('Creating formula', { formulaName: input.formulaName, outputParameterId: input.outputParameterId });
 
-    return await prisma.parameterFormula.create({
-      data: {
-        formulaName: input.formulaName,
-        outputParameterId: input.outputParameterId,
-        formulaExpression: input.formulaExpression,
-        inputParameterIds: dependencies,
-        evaluationTrigger: input.evaluationTrigger || 'ON_CHANGE',
-        evaluationSchedule: input.evaluationSchedule,
-        testCases: input.testCases as any,
-        isActive: true,
-        createdBy: input.createdBy,
-      },
-    });
+    try {
+      return await prisma.parameterFormula.create({
+        data: {
+          formulaName: input.formulaName,
+          outputParameterId: input.outputParameterId,
+          formulaExpression: input.formulaExpression,
+          inputParameterIds: dependencies,
+          evaluationTrigger: input.evaluationTrigger || 'ON_CHANGE',
+          evaluationSchedule: input.evaluationSchedule,
+          testCases: input.testCases as any,
+          isActive: true,
+          createdBy: input.createdBy,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          // Unique constraint violation
+          throw new Error(`A formula already exists for parameter ${input.outputParameterId}. Only one formula per output parameter is allowed.`);
+        } else if (error.code === 'P2003') {
+          // Foreign key constraint violation
+          throw new Error(`Referenced parameter does not exist: ${error.meta?.field_name || 'unknown'}`);
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -182,11 +213,71 @@ export class FormulaEngineService {
 
   /**
    * Safe evaluation using mathjs with restricted scope
+   * ✅ PHASE 13C FIX: Enhanced formula validation with better error reporting
    */
   private async safeEvaluate(expression: string, scope: Record<string, any>): Promise<any> {
     try {
+      // ✅ PHASE 13C FIX: Pre-validation to catch common formula errors
+      if (!expression || typeof expression !== 'string') {
+        throw new Error('Formula expression is required and must be a string');
+      }
+
+      if (expression.trim() === '') {
+        throw new Error('Formula expression cannot be empty');
+      }
+
+      // Check for obviously malformed syntax patterns that cause "Value expected" errors
+      if (/[\+\-\*\/\%\^]\s*[\+\-\*\/\%\^]/.test(expression)) {
+        throw new Error('Invalid syntax: consecutive operators detected (e.g., "++", "+-", "*+")');
+      }
+
+      if (/[\+\-\*\/\%\^]\s*$/.test(expression)) {
+        throw new Error('Invalid syntax: formula cannot end with an operator');
+      }
+
+      if (/^[\+\*\/\%\^]/.test(expression.trim())) {
+        throw new Error('Invalid syntax: formula cannot start with an operator (except "-")');
+      }
+
+      // Check for unmatched parentheses
+      let parenCount = 0;
+      for (const char of expression) {
+        if (char === '(') parenCount++;
+        if (char === ')') parenCount--;
+        if (parenCount < 0) {
+          throw new Error('Invalid syntax: unmatched closing parenthesis');
+        }
+      }
+      if (parenCount !== 0) {
+        throw new Error('Invalid syntax: unmatched opening parenthesis');
+      }
+
+      // ✅ PHASE 13C FIX: Enhanced scope validation
+      const requiredVariables = this.extractVariables(expression);
+      const missingVariables = requiredVariables.filter(variable => !(variable in scope));
+
+      if (missingVariables.length > 0) {
+        throw new Error(`Some input parameters do not exist: ${missingVariables.join(', ')}`);
+      }
+
       // Compile the expression (this validates syntax)
-      const compiled = math.compile(expression);
+      let compiled;
+      try {
+        compiled = math.compile(expression);
+      } catch (mathError: any) {
+        // Enhance mathjs error messages for better debugging
+        let enhancedMessage = mathError.message;
+
+        if (enhancedMessage.includes('Value expected')) {
+          enhancedMessage += `. Check for syntax errors like consecutive operators, missing operands, or invalid characters.`;
+        }
+
+        if (enhancedMessage.includes('Unexpected')) {
+          enhancedMessage += `. Verify all operators and function names are valid.`;
+        }
+
+        throw new Error(`Formula compilation failed: ${enhancedMessage}`);
+      }
 
       // Evaluate with the provided scope
       const result = compiled.evaluate(scope);
@@ -198,8 +289,40 @@ export class FormulaEngineService {
 
       return result;
     } catch (error: any) {
+      // ✅ PHASE 13C FIX: Add test environment debugging
+      if (process.env.NODE_ENV === 'test') {
+        console.error(`[FormulaEngine] PHASE 13C: Formula evaluation failed`);
+        console.error(`   Expression: "${expression}"`);
+        console.error(`   Scope keys: [${Object.keys(scope).join(', ')}]`);
+        console.error(`   Error: ${error.message}`);
+      }
+
       throw new Error(`Evaluation error: ${error.message}`);
     }
+  }
+
+  /**
+   * ✅ PHASE 13C FIX: Extract variable names from formula expression
+   */
+  private extractVariables(expression: string): string[] {
+    const variables = new Set<string>();
+
+    // Simple regex to find variable-like patterns (alphanumeric + underscore)
+    // This won't catch all edge cases but handles common variable naming patterns
+    const variablePattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+    let match;
+
+    while ((match = variablePattern.exec(expression)) !== null) {
+      const variable = match[0];
+
+      // Skip mathjs built-in constants and functions
+      if (!ALLOWED_FUNCTIONS.includes(variable) &&
+          !['e', 'pi', 'true', 'false', 'null', 'undefined', 'i'].includes(variable)) {
+        variables.add(variable);
+      }
+    }
+
+    return Array.from(variables);
   }
 
   /**
@@ -313,7 +436,28 @@ export class FormulaEngineService {
   ): Promise<ParameterFormula> {
     const existing = await prisma.parameterFormula.findUnique({ where: { id } });
     if (!existing) {
-      throw new Error('Formula not found');
+      throw new Error(`Formula with ID ${id} not found`);
+    }
+
+    // If output parameter is being changed, check for conflicts
+    if (updates.outputParameterId && updates.outputParameterId !== existing.outputParameterId) {
+      const conflictingFormula = await prisma.parameterFormula.findFirst({
+        where: {
+          outputParameterId: updates.outputParameterId,
+          id: { not: id } // Exclude current formula
+        },
+      });
+      if (conflictingFormula) {
+        throw new Error(`A formula already exists for parameter ${updates.outputParameterId}. Only one formula per output parameter is allowed.`);
+      }
+
+      // Verify new output parameter exists
+      const outputParam = await prisma.operationParameter.findUnique({
+        where: { id: updates.outputParameterId },
+      });
+      if (!outputParam) {
+        throw new Error(`Output parameter ${updates.outputParameterId} does not exist`);
+      }
     }
 
     // If expression is being updated, validate it
@@ -325,6 +469,18 @@ export class FormulaEngineService {
 
       // Extract new dependencies
       const dependencies = this.extractDependencies(updates.formulaExpression);
+
+      // Verify all input parameters exist
+      if (dependencies.length > 0) {
+        const params = await prisma.operationParameter.findMany({
+          where: { id: { in: dependencies } },
+        });
+        if (params.length !== dependencies.length) {
+          const missingParams = dependencies.filter(dep => !params.find(p => p.id === dep));
+          throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}`);
+        }
+      }
+
       (updates as any).inputParameterIds = dependencies;
 
       // Run test cases if provided
@@ -339,23 +495,58 @@ export class FormulaEngineService {
       }
     }
 
-    logger.info('Updating formula', { id, updates });
+    logger.info('Updating formula', { id, formulaName: existing.formulaName, updates });
 
-    return await prisma.parameterFormula.update({
-      where: { id },
-      data: {
-        ...updates,
-        lastModifiedBy: userId,
-      } as any,
-    });
+    try {
+      return await prisma.parameterFormula.update({
+        where: { id },
+        data: {
+          ...updates,
+          lastModifiedBy: userId,
+        } as any,
+      });
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          // Unique constraint violation
+          throw new Error(`A formula already exists for parameter ${updates.outputParameterId}. Only one formula per output parameter is allowed.`);
+        } else if (error.code === 'P2003') {
+          // Foreign key constraint violation
+          throw new Error(`Referenced parameter does not exist: ${error.meta?.field_name || 'unknown'}`);
+        } else if (error.code === 'P2025') {
+          // Record to update does not exist
+          throw new Error(`Formula with ID ${id} not found`);
+        }
+      }
+      throw error;
+    }
   }
 
   /**
    * Delete formula
    */
   async deleteFormula(id: string): Promise<void> {
-    await prisma.parameterFormula.delete({ where: { id } });
-    logger.info('Deleted formula', { id });
+    // Check if formula exists before attempting to delete
+    const existingFormula = await prisma.parameterFormula.findUnique({
+      where: { id },
+    });
+
+    if (!existingFormula) {
+      throw new Error(`Formula with ID ${id} not found`);
+    }
+
+    try {
+      await prisma.parameterFormula.delete({ where: { id } });
+      logger.info('Deleted formula', { id, formulaName: existingFormula.formulaName });
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          // Record to delete does not exist
+          throw new Error(`Formula with ID ${id} not found`);
+        }
+      }
+      throw error;
+    }
   }
 
   /**

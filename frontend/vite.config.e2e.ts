@@ -19,7 +19,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5278,
+    port: parseInt(process.env.FRONTEND_PORT || '5278'),
     host: '0.0.0.0',
     allowedHosts: ['e2e.mes.com', 'localhost'],
     historyApiFallback: true,
@@ -29,7 +29,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3101',
+        target: `http://localhost:${process.env.PORT || '3100'}`,
         changeOrigin: true,
         secure: false,
       },

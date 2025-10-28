@@ -175,7 +175,7 @@ describe('ISA95-B2M Integration Compliance', () => {
         },
         resources: {
           materials: [{ partNumber: 'PN-RAW-001', quantity: 200 }],
-          equipment: [{ equipmentClass: 'CNC_MILL', quantity: 1 }],
+          equipment: [{ equipmentClass: 'PRODUCTION', quantity: 1 }],
           personnel: [{ skillCode: 'MACHINIST_L2', quantity: 2 }],
         },
       });
@@ -699,7 +699,7 @@ describe('ISA95-B2M Integration Compliance', () => {
         },
         resources: {
           materials: [{ partNumber: 'PN-RAW-001', quantity: 400 }],
-          equipment: [{ equipmentClass: 'CNC_MILL', quantity: 2 }],
+          equipment: [{ equipmentClass: 'PRODUCTION', quantity: 2 }],
           personnel: [{ skillCode: 'MACHINIST_L2', quantity: 4 }],
         },
       });

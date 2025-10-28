@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { tokenUtils } from './auth';
+import { createAuthResponseInterceptor } from '@/utils/authInterceptor';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -51,16 +52,18 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling with centralized auth
+const authInterceptor = createAuthResponseInterceptor();
 apiClient.interceptors.response.use(
   (response) => response.data,
-  (error) => {
-    // Handle 401 Unauthorized
+  async (error) => {
+    // Handle 401 through centralized auth interceptor
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        localStorage.removeItem('mes-auth-storage');
-        const redirectUrl = window.location.pathname + window.location.search;
-        window.location.href = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
+      try {
+        await authInterceptor.onRejected(error);
+      } catch (authError) {
+        // The auth interceptor re-throws the error after handling 401
+        // Continue with normal error processing
       }
     }
 

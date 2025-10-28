@@ -4,8 +4,43 @@ import { DEMO_USERS, DEMO_PASSWORD, validateDemoCredentials } from '../src/confi
 
 const prisma = new PrismaClient();
 
+// Generate unique suffix from database name for parallel test execution
+function generateUniqueSuffix(): string {
+  const databaseUrl = process.env.DATABASE_URL || '';
+  const match = databaseUrl.match(/\/([^/?]+)(\?|$)/);
+  const dbName = match ? match[1] : 'default';
+
+  // Extract project-specific part from database name (e.g., "routing-feature-tests" from "mes_e2e_db_routing-feature-tests")
+  const projectPart = dbName.replace(/^mes_e2e_db_/, '');
+
+  // For serial numbers, use timestamp + project hash to ensure uniqueness
+  const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+  const projectHash = projectPart.slice(0, 4).padEnd(4, '0'); // First 4 chars of project name
+
+  return `${timestamp}${projectHash}`;
+}
+
+// Safe logging that won't crash on EPIPE errors during parallel execution
+function safeLog(message: string): void {
+  try {
+    console.log(message);
+  } catch (error: any) {
+    // Silently ignore console/stdout errors during parallel execution
+    // This includes EPIPE, ECONNRESET, and broken pipe errors
+    if (error?.code === 'EPIPE' || error?.errno === -32) {
+      return; // Just return silently - parallel test execution causes these conflicts
+    }
+    // Re-throw other unexpected errors
+    throw error;
+  }
+}
+
 async function main() {
   console.log('🌱 Starting database seed...');
+
+  // Generate unique suffix for parallel test execution
+  const uniqueSuffix = generateUniqueSuffix();
+  console.log(`📝 Using unique suffix: ${uniqueSuffix}`);
 
   // Validate demo credentials configuration
   const validation = validateDemoCredentials();
@@ -880,7 +915,7 @@ async function main() {
       }
     });
 
-    console.log('✅ Work order operations created for WO-2024-001003');
+    safeLog('✅ Work order operations created for WO-2024-001003');
   }
 
   // WO-2024-001004 (CREATED) - 3 operations from vane routing, all pending
@@ -1024,7 +1059,7 @@ async function main() {
       description: 'High precision 5-axis CNC machine',
       manufacturer: 'DMG MORI',
       model: 'DMU 50 3rd Generation',
-      serialNumber: 'DMG-2023-001',
+      serialNumber: `DMG-2023-001-${uniqueSuffix}`,
       equipmentClass: 'PRODUCTION',
       equipmentType: 'CNC_MILL',
       equipmentLevel: 1,
@@ -1041,7 +1076,8 @@ async function main() {
       availability: 92.3,
       performance: 88.7,
       quality: 97.2,
-      oee: 79.5 // OEE = 92.3 × 88.7 × 97.2 / 10000
+      oee: 79.5, // OEE = 92.3 × 88.7 × 97.2 / 10000
+      isActive: true // ✅ PHASE 5 FIX: Explicitly set isActive for OEE dashboard filtering
     },
     create: {
       equipmentNumber: 'CNC-001',
@@ -1049,7 +1085,7 @@ async function main() {
       description: 'High precision 5-axis CNC machine',
       manufacturer: 'DMG MORI',
       model: 'DMU 50 3rd Generation',
-      serialNumber: 'DMG-2023-001',
+      serialNumber: `DMG-2023-001-${uniqueSuffix}`,
       equipmentClass: 'PRODUCTION',
       equipmentType: 'CNC_MILL',
       equipmentLevel: 1,
@@ -1066,7 +1102,8 @@ async function main() {
       availability: 92.3,
       performance: 88.7,
       quality: 97.2,
-      oee: 79.5
+      oee: 79.5,
+      isActive: true // ✅ PHASE 5 FIX: Explicitly set isActive for OEE dashboard filtering
     }
   });
 
@@ -1078,7 +1115,7 @@ async function main() {
       description: 'Coordinate Measuring Machine for precision inspection',
       manufacturer: 'Zeiss',
       model: 'CONTURA G3 10/16/6',
-      serialNumber: 'ZEISS-2023-101',
+      serialNumber: `ZEISS-2023-101-${uniqueSuffix}`,
       equipmentClass: 'QUALITY',
       equipmentType: 'CMM',
       equipmentLevel: 1,
@@ -1094,7 +1131,8 @@ async function main() {
       availability: 95.0,
       performance: 85.0,
       quality: 99.5,
-      oee: 80.3
+      oee: 80.3,
+      isActive: true // ✅ PHASE 5 FIX: Explicitly set isActive for OEE dashboard filtering
     },
     create: {
       equipmentNumber: 'CMM-001',
@@ -1102,7 +1140,7 @@ async function main() {
       description: 'Coordinate Measuring Machine for precision inspection',
       manufacturer: 'Zeiss',
       model: 'CONTURA G3 10/16/6',
-      serialNumber: 'ZEISS-2023-101',
+      serialNumber: `ZEISS-2023-101-${uniqueSuffix}`,
       equipmentClass: 'QUALITY',
       equipmentType: 'CMM',
       equipmentLevel: 1,
@@ -1118,7 +1156,8 @@ async function main() {
       availability: 95.0,
       performance: 85.0,
       quality: 99.5,
-      oee: 80.3
+      oee: 80.3,
+      isActive: true // ✅ PHASE 5 FIX: Explicitly set isActive for OEE dashboard filtering
     }
   });
 
@@ -3432,20 +3471,20 @@ async function main() {
 
   // Create serialized parts for traceability using upsert
   const serializedPart1 = await prisma.serializedPart.upsert({
-    where: { serialNumber: 'TB-2024-001001-S001' },
+    where: { serialNumber: `TB-2024-001001-S001-${uniqueSuffix}` },
     update: {
       partId: turbineBlade.id,
       workOrderId: workOrder1.id,
-      lotNumber: 'LOT-2024-001',
+      lotNumber: `LOT-2024-001-${uniqueSuffix}`,
       status: 'IN_PRODUCTION',
       currentLocation: 'CNC Machining Cell 1',
       manufactureDate: new Date('2024-01-25')
     },
     create: {
-      serialNumber: 'TB-2024-001001-S001',
+      serialNumber: `TB-2024-001001-S001-${uniqueSuffix}`,
       partId: turbineBlade.id,
       workOrderId: workOrder1.id,
-      lotNumber: 'LOT-2024-001',
+      lotNumber: `LOT-2024-001-${uniqueSuffix}`,
       status: 'IN_PRODUCTION',
       currentLocation: 'CNC Machining Cell 1',
       manufactureDate: new Date('2024-01-25')
@@ -3454,20 +3493,20 @@ async function main() {
 
   // Create serialized part with LOT number as serial number for forward traceability test
   const serializedPart2 = await prisma.serializedPart.upsert({
-    where: { serialNumber: 'LOT-2024-001' },
+    where: { serialNumber: `LOT-2024-001-${uniqueSuffix}` },
     update: {
       partId: turbineBlade.id,
       workOrderId: workOrder1.id,
-      lotNumber: 'LOT-2024-001',
+      lotNumber: `LOT-2024-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2024-01-26')
     },
     create: {
-      serialNumber: 'LOT-2024-001',
+      serialNumber: `LOT-2024-001-${uniqueSuffix}`,
       partId: turbineBlade.id,
       workOrderId: workOrder1.id,
-      lotNumber: 'LOT-2024-001',
+      lotNumber: `LOT-2024-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2024-01-26')
@@ -3528,20 +3567,20 @@ async function main() {
 
   // Create test serialized parts with expected serial numbers for E2E tests
   const testSerializedPart1 = await prisma.serializedPart.upsert({
-    where: { serialNumber: 'SN-20251015-000001-7' },
+    where: { serialNumber: `SN-20251015-000001-${uniqueSuffix}` },
     update: {
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2025-10-15')
     },
     create: {
-      serialNumber: 'SN-20251015-000001-7',
+      serialNumber: `SN-20251015-000001-${uniqueSuffix}`,
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2025-10-15')
@@ -3550,20 +3589,20 @@ async function main() {
 
   // Create additional test serialized parts for list/search tests
   const testSerializedPart2 = await prisma.serializedPart.upsert({
-    where: { serialNumber: 'SN-20251015-000002-5' },
+    where: { serialNumber: `SN-20251015-000002-${uniqueSuffix}` },
     update: {
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2025-10-15')
     },
     create: {
-      serialNumber: 'SN-20251015-000002-5',
+      serialNumber: `SN-20251015-000002-${uniqueSuffix}`,
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'COMPLETED',
       currentLocation: 'Finished Goods',
       manufactureDate: new Date('2025-10-15')
@@ -3571,20 +3610,20 @@ async function main() {
   });
 
   const testSerializedPart3 = await prisma.serializedPart.upsert({
-    where: { serialNumber: 'SN-20251015-000003-3' },
+    where: { serialNumber: `SN-20251015-000003-${uniqueSuffix}` },
     update: {
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'IN_PRODUCTION',
       currentLocation: 'Assembly Station A',
       manufactureDate: new Date('2025-10-15')
     },
     create: {
-      serialNumber: 'SN-20251015-000003-3',
+      serialNumber: `SN-20251015-000003-${uniqueSuffix}`,
       partId: testPart.id,
       workOrderId: testWorkOrder.id,
-      lotNumber: 'LOT-20251015-001',
+      lotNumber: `LOT-20251015-001-${uniqueSuffix}`,
       status: 'IN_PRODUCTION',
       currentLocation: 'Assembly Station A',
       manufactureDate: new Date('2025-10-15')
@@ -3640,7 +3679,7 @@ async function main() {
     where: {
       partId: turbineBlade.id,
       location: 'Finished Goods',
-      lotNumber: 'LOT-2024-001'
+      lotNumber: `LOT-2024-001-${uniqueSuffix}`
     }
   });
 
@@ -3658,7 +3697,7 @@ async function main() {
       data: {
         partId: turbineBlade.id,
         location: 'Finished Goods',
-        lotNumber: 'LOT-2024-001',
+        lotNumber: `LOT-2024-001-${uniqueSuffix}`,
         quantity: 5,
         unitOfMeasure: 'EA',
         unitCost: 15000.00,

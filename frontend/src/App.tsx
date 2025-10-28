@@ -65,6 +65,7 @@ import OperationCreatePage from '@/pages/Operations/OperationCreatePage';
 // Routing Management (Sprint 4 - Multi-Site Routing)
 import RoutingListPage from '@/pages/Routing/RoutingListPage';
 import RoutingCreatePage from '@/pages/Routing/RoutingCreatePage';
+import RoutingEditPage from '@/pages/Routing/RoutingEditPage';
 import RoutingDetailPage from '@/pages/Routing/RoutingDetailPage';
 import RoutingTemplatesPage from '@/pages/Routing/RoutingTemplatesPage';
 
@@ -393,19 +394,24 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        {/* ✅ PHASE 10B FIX: Redirect /routings/new to /routings/create to eliminate duplicate component rendering */}
         <Route
           path="/routings/new"
-          element={
-            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
-              <RoutingCreatePage />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/routings/create" replace />}
         />
         <Route
           path="/routings/templates"
           element={
             <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
               <RoutingTemplatesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/routings/:id/edit"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Plant Manager', 'Manufacturing Engineer']}>
+              <RoutingEditPage />
             </ProtectedRoute>
           }
         />

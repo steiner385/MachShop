@@ -14,7 +14,7 @@ const router = express.Router();
 // Validation schemas
 const querySchema = z.object({
   status: z.enum(['OPERATIONAL', 'MAINTENANCE', 'DOWN', 'AVAILABLE']).optional(),
-  equipmentClass: z.enum(['PRODUCTION', 'QUALITY', 'MATERIAL_HANDLING', 'STORAGE', 'TRANSPORT', 'PACKAGING']).optional(),
+  equipmentClass: z.enum(['PRODUCTION', 'MAINTENANCE', 'QUALITY', 'MATERIAL_HANDLING', 'LABORATORY', 'STORAGE', 'ASSEMBLY']).optional(),
   equipmentType: z.string().optional(),
   type: z.string().optional(),
   search: z.string().optional(),
@@ -1008,6 +1008,118 @@ router.get('/oee/dashboard',
     });
 
     return res.status(200).json(dashboardData);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/work-centers
+ * @desc Get all work centers
+ * @access Private
+ */
+router.get('/work-centers',
+  requireMaintenanceAccess,
+  requireSiteAccess,
+  asyncHandler(async (req, res) => {
+    logger.info('Fetching work centers', {
+      userId: req.user?.id,
+      query: req.query
+    });
+
+    const workCenters = await prisma.workCenter.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        capacity: true,
+        areaId: true,
+        area: {
+          select: {
+            id: true,
+            areaName: true,
+            siteId: true,
+            site: {
+              select: {
+                id: true,
+                siteName: true,
+                siteCode: true
+              }
+            }
+          }
+        },
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    logger.info('Work centers retrieved', {
+      userId: req.user?.id,
+      count: workCenters.length
+    });
+
+    res.status(200).json(workCenters);
+  })
+);
+
+/**
+ * @route POST /api/v1/equipment/work-centers
+ * @desc Create a new work center
+ * @access Private
+ */
+router.post('/work-centers',
+  requireMaintenanceAccess,
+  requireSiteAccess,
+  auditLogger('work-centers', 'CREATE'),
+  asyncHandler(async (req, res) => {
+    const { name, description, capacity, areaId } = req.body;
+
+    if (!name || !areaId) {
+      throw new ValidationError('Name and area ID are required');
+    }
+
+    // Verify that the area exists
+    const area = await prisma.area.findUnique({
+      where: { id: areaId }
+    });
+
+    if (!area) {
+      throw new NotFoundError('Area not found');
+    }
+
+    const workCenter = await prisma.workCenter.create({
+      data: {
+        name,
+        description,
+        capacity: capacity || 0,
+        areaId
+      },
+      include: {
+        area: {
+          select: {
+            id: true,
+            areaName: true,
+            siteId: true,
+            site: {
+              select: {
+                id: true,
+                siteName: true,
+                siteCode: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    logger.info('Work center created', {
+      userId: req.user?.id,
+      workCenterId: workCenter.id,
+      name: workCenter.name
+    });
+
+    res.status(201).json(workCenter);
   })
 );
 

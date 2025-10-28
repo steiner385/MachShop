@@ -6,6 +6,9 @@ import fs from 'fs';
 import { AuthTokenCache } from '../helpers/authCache';
 import { TEST_USERS } from '../helpers/testAuthHelper';
 import { ServerHealthMonitor } from '../helpers/serverHealthMonitor';
+import FrontendStabilityManager from '../helpers/frontendStabilityManager';
+import { portAllocator, AllocatedPorts } from '../helpers/portAllocator';
+import { databaseAllocator, AllocatedDatabase } from '../helpers/databaseAllocator';
 
 // Global variables to track server processes
 let backendProcess: ChildProcess | null = null;
@@ -13,6 +16,13 @@ let frontendProcess: ChildProcess | null = null;
 
 // Server health monitor instance
 export let healthMonitor: ServerHealthMonitor | null = null;
+
+// Frontend stability manager instance
+export let frontendStabilityManager: FrontendStabilityManager | null = null;
+
+// Global variables to store allocated resources for this test session
+let allocatedPorts: AllocatedPorts | null = null;
+let allocatedDatabase: AllocatedDatabase | null = null;
 
 /**
  * Clean up zombie test processes and occupied ports
@@ -38,47 +48,153 @@ async function cleanupTestPorts(): Promise<void> {
   }
 }
 
+/**
+ * Get the current test project name from various sources
+ */
+function getTestProjectName(): string {
+  // Try multiple sources for project name
+  const projectName =
+    process.env.PLAYWRIGHT_PROJECT ||
+    process.env.PROJECT_NAME ||
+    process.argv.find(arg => arg.startsWith('--project='))?.split('=')[1] ||
+    process.argv.find((arg, index, arr) => arr[index - 1] === '--project') ||
+    'default';
+
+  console.log(`[Global Setup] Detected project name: "${projectName}"`);
+  return projectName;
+}
+
 async function globalSetup(config: FullConfig) {
   console.log('Starting global setup for E2E tests...');
 
   // Clean up any zombie processes and occupied ports from previous test runs
   await cleanupTestPorts();
 
-  // Load E2E environment variables
-  loadE2EEnvironment();
+  safeLog('[Global Setup] DEBUG: About to detect project name...');
 
-  // Setup test database
-  await setupTestDatabase();
-  
-  // Start E2E-specific servers
-  await startE2EServers();
-  
-  // Wait for servers to be ready
-  await waitForServer('http://localhost:3101/health');
-  await waitForServer('http://localhost:5278');
+  // Get project name early for better error reporting
+  const projectName = getTestProjectName();
+  safeLog(`[Global Setup] Project name detected: "${projectName}"`);
 
-  // Start server health monitoring
-  console.log('Starting server health monitoring...');
-  healthMonitor = ServerHealthMonitor.getInstance();
-  healthMonitor.startMonitoring(() => {
-    console.error('[Global Setup] ⚠️  Server crash detected by health monitor!');
-    const summary = healthMonitor?.getHealthSummary();
-    console.error('[Global Setup] Health Summary:', JSON.stringify(summary, null, 2));
-    const latestMetrics = healthMonitor?.getLatestMetrics();
-    if (latestMetrics) {
-      console.error('[Global Setup] Latest Metrics:', {
-        status: latestMetrics.status,
-        backendAvailable: latestMetrics.backendHealth.available,
-        frontendAvailable: latestMetrics.frontendHealth.available,
-        backendError: latestMetrics.backendHealth.error,
-        frontendError: latestMetrics.frontendHealth.error,
+  try {
+    safeLog('[Global Setup] DEBUG: About to allocate ports...');
+
+    // Allocate dynamic ports with retry logic for parallel execution
+    allocatedPorts = await portAllocator.allocatePortsForProject(projectName);
+    safeLog(`[Global Setup] ✅ Allocated ports for project "${projectName}": Backend ${allocatedPorts.backendPort}, Frontend ${allocatedPorts.frontendPort}`);
+
+    safeLog('[Global Setup] DEBUG: About to allocate database...');
+    // Allocate dedicated database for this test project
+    allocatedDatabase = await databaseAllocator.allocateDatabaseForProject(projectName);
+    safeLog(`[Global Setup] ✅ Allocated database for project "${projectName}": ${allocatedDatabase.databaseName}`);
+
+    // ✅ PHASE 6F FIX: Initialize reference counting for database cleanup
+    // This prevents premature database dropping when multiple parallel processes share the same database
+    await initializeDatabaseReferenceCount(projectName, allocatedDatabase.databaseName);
+
+    safeLog(`[Global Setup] ✅ DYNAMIC ALLOCATION SUCCESS for "${projectName}"`);
+
+  } catch (error) {
+    console.error(`[Global Setup] ❌ DYNAMIC ALLOCATION FAILED for project "${projectName}":`, error);
+    console.error('[Global Setup] 🔄 Will use fallback configuration (hardcoded ports)');
+    console.error('[Global Setup] ⚠️  WARNING: This may cause EADDRINUSE conflicts with other parallel tests');
+
+    // Log details for debugging
+    if (error instanceof Error) {
+      console.error('[Global Setup] Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 5).join('\n') // First 5 lines of stack
       });
     }
+  }
+
+  safeLog('[Global Setup] DEBUG: About to load environment...');
+  // Load E2E environment variables with dynamic resources (sets DATABASE_URL)
+  loadE2EEnvironment();
+
+  // Note: Database setup is now handled by DatabaseAllocator per-project
+  // No longer need shared database setup since each project gets isolated database
+
+  // Start E2E-specific servers (backend will now connect to isolated database)
+  await startE2EServers();
+  
+  // Wait for servers to be ready using dynamic ports
+  const backendUrl = `http://localhost:${process.env.PORT}/health`;
+  const frontendUrl = `http://localhost:${process.env.FRONTEND_PORT}`;
+
+  await waitForServer(backendUrl);
+  await waitForServer(frontendUrl);
+
+  console.log(`[Global Setup] Servers ready on dynamic ports: Backend ${backendUrl}, Frontend ${frontendUrl}`);
+
+  // ✅ PHASE 6C FIX: Initialize ServerHealthMonitor with correct dynamic URLs
+  console.log('Initializing ServerHealthMonitor with dynamic URLs...');
+  healthMonitor = ServerHealthMonitor.getInstance();
+
+  // ✅ CRITICAL FIX: Use updateConfiguration to ensure correct URLs even if instance exists
+  healthMonitor.updateConfiguration(
+    backendUrl.replace('/health', ''), // Remove /health suffix for base URL
+    frontendUrl,
+    30000 // 30 second check interval
+  );
+  console.log(`ServerHealthMonitor configured for Backend: ${backendUrl.replace('/health', '')}, Frontend: ${frontendUrl}`);
+
+  // ✅ ENHANCED FRONTEND STABILITY: Start advanced frontend stability management
+  console.log('Starting advanced frontend stability monitoring with intelligent recovery...');
+
+  frontendStabilityManager = FrontendStabilityManager.getInstance({
+    healthCheckInterval: 5000,        // Check every 5 seconds (vs 30s before)
+    maxConsecutiveFailures: 3,        // Trip after 3 failures
+    circuitBreakerThreshold: 3,       // Circuit breaker protection
+    maxRecoveryAttempts: 5,           // More recovery attempts
+    exponentialBackoffBase: 2000,     // 2s base delay with exponential backoff
+    gracefulDegradationEnabled: true  // Allow degraded operation for tests
   });
-  console.log('Server health monitoring started (checking every 30 seconds)');
+
+  // Set up comprehensive event callbacks for monitoring
+  frontendStabilityManager.setEventCallbacks({
+    onHealthChange: (metrics) => {
+      const statusEmoji = {
+        'healthy': '✅',
+        'degraded': '🟡',
+        'critical': '🟠',
+        'offline': '❌'
+      }[metrics.status] || '❓';
+
+      console.log(`[FrontendStability] ${statusEmoji} Status: ${metrics.status}, Response: ${metrics.responseTime}ms, Failures: ${metrics.consecutiveFailures}`);
+    },
+
+    onRecoveryStart: () => {
+      console.log('[FrontendStability] 🔄 Starting intelligent recovery process...');
+    },
+
+    onRecoveryComplete: (success) => {
+      if (success) {
+        console.log('[FrontendStability] ✅ Recovery completed successfully');
+      } else {
+        console.log('[FrontendStability] ❌ Recovery attempt failed, will retry with exponential backoff');
+      }
+    },
+
+    onCircuitBreakerTrip: () => {
+      console.log('[FrontendStability] 🔌 Circuit breaker tripped - frontend stability compromised');
+    }
+  });
+
+  // Start monitoring the frontend server
+  await frontendStabilityManager.startMonitoring(frontendUrl);
+
+  // Wait for frontend to be healthy before proceeding
+  const isHealthy = await frontendStabilityManager.waitForHealthy(30000); // 30 second timeout
+  if (!isHealthy) {
+    console.warn('[FrontendStability] ⚠️  Frontend not fully healthy, but proceeding with degraded operation');
+  }
+
+  console.log('Advanced frontend stability monitoring active (5s intervals with circuit breaker protection)');
 
   // Create test users and initial data
-  await seedTestData();
+  await seedTestData(projectName);
   
   // Authenticate and save storage state for reuse
   await authenticateTestUser();
@@ -91,44 +207,82 @@ async function globalSetup(config: FullConfig) {
 
 function loadE2EEnvironment() {
   console.log('Loading E2E environment configuration...');
-  
-  // Load E2E-specific environment variables
-  const envPath = path.join(process.cwd(), '.env.e2e');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    const envLines = envContent.split('\n');
-    
-    for (const line of envLines) {
-      if (line.trim() && !line.startsWith('#')) {
-        const [key, value] = line.split('=');
-        if (key && value) {
-          process.env[key.trim()] = value.trim().replace(/['"]/g, '');
-        }
-      }
+
+  // Set essential E2E environment variables (since backend no longer loads .env.e2e)
+  process.env.JWT_SECRET = 'e2e-test-jwt-secret-for-testing-only';
+  process.env.JWT_EXPIRE = '24h';
+  process.env.JWT_REFRESH_EXPIRE = '7d';
+  process.env.BCRYPT_ROUNDS = '10';
+  process.env.SESSION_SECRET = 'e2e-test-session-secret-for-testing-only';
+  process.env.TEST_MODE = 'true';
+  process.env.DISABLE_RATE_LIMITING = 'true';
+  process.env.FAST_BCRYPT = 'true';
+  process.env.LOG_LEVEL = 'warn';
+
+  if (allocatedPorts) {
+    process.env.PORT = allocatedPorts.backendPort.toString();
+    process.env.FRONTEND_PORT = allocatedPorts.frontendPort.toString();
+    process.env.E2E_BASE_URL = `http://localhost:${allocatedPorts.frontendPort}`;
+    console.log(`[E2E Environment] ✅ DYNAMIC ALLOCATION MODE: Backend ${allocatedPorts.backendPort}, Frontend ${allocatedPorts.frontendPort}`);
+  } else {
+    // Fallback to default ports if allocation failed
+    process.env.PORT = '3101';
+    process.env.FRONTEND_PORT = '5278';
+    process.env.E2E_BASE_URL = 'http://localhost:5278';
+    console.warn('[E2E Environment] ⚠️  FALLBACK MODE: Using hardcoded ports Backend 3101, Frontend 5278');
+    console.warn('[E2E Environment] ❌ This configuration may cause EADDRINUSE conflicts in parallel execution');
+  }
+
+  // Set project-specific database URL
+  if (allocatedDatabase) {
+    process.env.DATABASE_URL = allocatedDatabase.databaseUrl;
+    console.log(`[E2E Environment] Using project database: ${allocatedDatabase.databaseName}`);
+  } else {
+    // When dynamic allocation fails, create a fresh fallback database with current migrations
+    const fallbackDbName = `mes_e2e_fallback_${Date.now()}`;
+    const fallbackDatabaseUrl = `postgresql://mes_user:mes_password@localhost:5432/${fallbackDbName}?schema=public`;
+
+    try {
+      console.warn('[E2E Environment] ⚠️  Dynamic database allocation failed, creating fallback database...');
+
+      // Create fallback database
+      execSync(`PGPASSWORD=mes_password createdb -U mes_user -h localhost ${fallbackDbName}`, {
+        stdio: 'pipe',
+        env: { ...process.env, PGPASSWORD: 'mes_password' }
+      });
+
+      // Apply current migrations to fallback database
+      execSync(`DATABASE_URL="${fallbackDatabaseUrl}" npx prisma migrate deploy`, {
+        stdio: 'pipe',
+        cwd: process.cwd(),
+        env: { ...process.env, DATABASE_URL: fallbackDatabaseUrl }
+      });
+
+      process.env.DATABASE_URL = fallbackDatabaseUrl;
+      console.log(`[E2E Environment] ✅ Created fallback database: ${fallbackDbName}`);
+
+    } catch (fallbackError) {
+      console.error('[E2E Environment] ❌ CRITICAL: Both dynamic allocation and fallback database creation failed');
+      console.error('[E2E Environment] This indicates a serious database connectivity or permissions issue');
+      throw new Error(`Database setup completely failed: ${fallbackError}`);
     }
   }
-  
-  // Override key environment variables for E2E
-  process.env.NODE_ENV = 'test';
-  process.env.PORT = '3101';
-  process.env.FRONTEND_PORT = '5278';
-  process.env.DATABASE_URL = 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
-  
-  console.log('E2E environment loaded:', {
+
+  safeLog('E2E environment loaded: ' + JSON.stringify({
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT,
     FRONTEND_PORT: process.env.FRONTEND_PORT,
     DATABASE_URL: process.env.DATABASE_URL.split('@')[1] // Hide credentials
-  });
+  }));
 }
 
 async function startE2EServers() {
   console.log('Starting E2E-specific servers...');
-  
-  // Start backend server on port 3101
+
+  // Start backend server on dynamic port
   await startBackendServer();
-  
-  // Start frontend server on port 5278
+
+  // Start frontend server on dynamic port
   await startFrontendServer();
   
   // Store process IDs for cleanup
@@ -142,10 +296,15 @@ async function startE2EServers() {
 
 async function startBackendServer(): Promise<void> {
   return new Promise((resolve, reject) => {
-    console.log('Starting E2E backend server on port 3101...');
+    const port = process.env.PORT || '3101';
+    console.log(`Starting E2E backend server on port ${port}...`);
 
     backendProcess = spawn('npm', ['run', 'e2e:server'], {
-      env: { ...process.env },
+      env: {
+        ...process.env,
+        // Explicitly ensure our dynamic DATABASE_URL takes precedence over .env.e2e
+        DATABASE_URL: process.env.DATABASE_URL
+      },
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: false
     });
@@ -154,7 +313,7 @@ async function startBackendServer(): Promise<void> {
 
     backendProcess.stdout?.on('data', (data) => {
       const output = data.toString();
-      console.log(`[E2E Backend] ${output.trim()}`);
+      safeLog(`[E2E Backend] ${output.trim()}`);
     });
 
     backendProcess.stderr?.on('data', (data) => {
@@ -176,14 +335,15 @@ async function startBackendServer(): Promise<void> {
     });
 
     // Poll for server readiness by checking health endpoint
+    const healthUrl = `http://localhost:${port}/health`;
     const startTime = Date.now();
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch('http://localhost:3101/health');
+        const response = await fetch(healthUrl);
         if (response.ok && !serverStarted) {
           serverStarted = true;
           clearInterval(pollInterval);
-          console.log('E2E backend server is ready');
+          safeLog(`E2E backend server is ready at ${healthUrl}`);
           resolve();
         }
       } catch (error) {
@@ -193,7 +353,7 @@ async function startBackendServer(): Promise<void> {
       // Timeout after 60 seconds
       if (Date.now() - startTime > 60000 && !serverStarted) {
         clearInterval(pollInterval);
-        reject(new Error('E2E backend server failed to start within 60 seconds'));
+        reject(new Error(`E2E backend server failed to start within 60 seconds on port ${port}`));
       }
     }, 1000);
   });
@@ -201,7 +361,8 @@ async function startBackendServer(): Promise<void> {
 
 async function startFrontendServer(): Promise<void> {
   return new Promise((resolve, reject) => {
-    console.log('Starting E2E frontend server on port 5278...');
+    const port = process.env.FRONTEND_PORT || '5278';
+    console.log(`Starting E2E frontend server on port ${port}...`);
 
     frontendProcess = spawn('npm', ['run', 'e2e:frontend'], {
       env: { ...process.env },
@@ -214,9 +375,11 @@ async function startFrontendServer(): Promise<void> {
     frontendProcess.stdout?.on('data', (data) => {
       const output = data.toString();
       console.log(`[E2E Frontend] ${output.trim()}`);
-      
-      if ((output.includes('Local:') && output.includes('5278')) && !serverStarted) {
+
+      // Check for the dynamic port in the Vite output
+      if ((output.includes('Local:') && output.includes(port)) && !serverStarted) {
         serverStarted = true;
+        console.log(`E2E frontend server is ready on port ${port}`);
         resolve();
       }
     });
@@ -245,36 +408,6 @@ async function startFrontendServer(): Promise<void> {
   });
 }
 
-async function setupTestDatabase() {
-  console.log('Setting up E2E test database...');
-  
-  try {
-    // Create E2E test database if it doesn't exist
-    try {
-      execSync('PGPASSWORD=mes_password createdb -U mes_user -h localhost mes_e2e_db', { 
-        stdio: 'pipe',
-        env: { ...process.env, PGPASSWORD: 'mes_password' }
-      });
-      console.log('E2E test database created');
-    } catch (error) {
-      // Database might already exist
-      console.log('E2E test database already exists or connection issue');
-    }
-    
-    // Run migrations on E2E test database
-    const e2eDatabaseUrl = 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
-    execSync(`DATABASE_URL="${e2eDatabaseUrl}" npx prisma migrate deploy`, { 
-      stdio: 'inherit',
-      cwd: process.cwd(),
-      env: { ...process.env, DATABASE_URL: e2eDatabaseUrl }
-    });
-    
-    console.log('E2E test database migrations completed');
-  } catch (error) {
-    console.error('Failed to setup E2E test database:', error);
-    throw error;
-  }
-}
 
 async function waitForServer(url: string) {
   console.log(`Waiting for server at ${url}...`);
@@ -300,19 +433,50 @@ async function waitForServer(url: string) {
   throw new Error(`Server at ${url} did not start within ${maxAttempts} seconds`);
 }
 
-async function seedTestData() {
+async function seedTestData(projectName: string) {
   console.log('Seeding E2E test data...');
   
   try {
     // Clear existing test data before seeding
     await clearTestData();
     
-    // Seed E2E test database with test data
-    const e2eDatabaseUrl = 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
-    execSync(`DATABASE_URL="${e2eDatabaseUrl}" tsx prisma/seed.ts`, { 
+    // Use allocated database URL if available, otherwise fallback to shared database
+    const seedDatabaseUrl = allocatedDatabase
+      ? allocatedDatabase.databaseUrl
+      : 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
+
+    console.log(`[E2E Seeding] Using database: ${seedDatabaseUrl.split('@')[1]}`); // Hide credentials
+
+    // Determine seeding strategy based on project requirements
+    const projectsNeedingFullSeed = [
+      'equipment-hierarchy-tests',
+      'material-hierarchy-tests',
+      'process-segment-hierarchy-tests',
+      'traceability-tests',
+      'fai-tests',
+      'routing-feature-tests',
+      'routing-edge-cases',
+      'routing-localhost',
+      'authenticated',           // Includes production-scheduling which needs routing data
+      'quality-tests',           // May include routing-related quality checks
+      'collaborative-routing-tests', // Routing collaboration features
+      'api-tests',              // API tests need full data for proper integration testing
+      'parameter-management-tests', // Parameter tests need parameter data and routing context
+      'spc-tests',              // SPC tests need full statistical process control data
+      'smoke-tests',            // Comprehensive site traversal needs all data
+      'role-tests',             // Role validation needs access to all features/data
+      'default'                 // When running comprehensive test suite
+    ];
+
+    const needsFullSeed = projectsNeedingFullSeed.includes(projectName);
+    const seedScript = needsFullSeed ? 'prisma/seed.ts' : 'prisma/seed-auth-only.ts';
+
+    console.log(`[E2E Seeding] Using ${needsFullSeed ? 'FULL' : 'AUTH-ONLY'} seed for project: ${projectName}`);
+
+    execSync(`DATABASE_URL="${seedDatabaseUrl}" tsx ${seedScript}`, {
       stdio: 'inherit',
       cwd: process.cwd(),
-      env: { ...process.env, DATABASE_URL: e2eDatabaseUrl }
+      env: { ...process.env, DATABASE_URL: seedDatabaseUrl }
     });
     
     console.log('E2E test data seeded successfully');
@@ -324,10 +488,13 @@ async function seedTestData() {
 
 async function clearTestData() {
   console.log('Clearing existing E2E test data...');
-  
+
   try {
     // Clear E2E test data in proper order respecting foreign key constraints
-    const e2eDatabaseUrl = 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
+    // Use allocated database URL if available, otherwise fallback to shared database
+    const e2eDatabaseUrl = allocatedDatabase
+      ? allocatedDatabase.databaseUrl
+      : 'postgresql://mes_user:mes_password@localhost:5432/mes_e2e_db?schema=public';
     execSync(`DATABASE_URL="${e2eDatabaseUrl}" npx prisma db execute --stdin`, {
       input: `
         -- Disable foreign key checks temporarily for PostgreSQL
@@ -373,7 +540,7 @@ async function authenticateTestUser() {
   
   const browser = await chromium.launch();
   const context = await browser.newContext({
-    baseURL: 'http://localhost:5278'
+    baseURL: `http://localhost:${process.env.FRONTEND_PORT || '5278'}`
   });
   const page = await context.newPage();
   
@@ -495,10 +662,16 @@ async function authenticateTestUser() {
     if (localStorage.isAuthenticated && localStorage.hasToken) {
       console.log('Auth state is valid, manually navigating to dashboard for test setup...');
       await page.goto('/dashboard');
-      
-      // Wait for dashboard to load
-      await page.waitForLoadState('networkidle');
-      console.log('Dashboard navigation completed, URL:', page.url());
+
+      // Wait for dashboard to load with more reliable condition
+      // Instead of networkidle (which fails due to SiteContext polling), wait for main dashboard elements
+      try {
+        await page.waitForSelector('.ant-layout-content', { timeout: 15000 });
+        console.log('Dashboard navigation completed, URL:', page.url());
+      } catch (error) {
+        console.log('Dashboard load timeout, but continuing - auth state is valid');
+        console.log('Current URL:', page.url());
+      }
     } else {
       console.log('Auth state invalid, cannot proceed with test setup');
       throw new Error('Authentication setup failed - invalid auth state');
@@ -547,7 +720,7 @@ async function preAuthenticateAllUsers(): Promise<void> {
   // Initialize the auth cache
   AuthTokenCache.initialize();
 
-  const authEndpoint = 'http://localhost:3101/api/v1/auth/login';
+  const authEndpoint = `http://localhost:${process.env.PORT || '3101'}/api/v1/auth/login`;
   const userKeys = Object.keys(TEST_USERS) as Array<keyof typeof TEST_USERS>;
 
   let successCount = 0;
@@ -624,6 +797,112 @@ async function preAuthenticateAllUsers(): Promise<void> {
   // If more than 50% failed, throw error
   if (errorCount > userKeys.length / 2) {
     throw new Error(`Pre-authentication failed for majority of users (${errorCount}/${userKeys.length}). Check authentication endpoint and credentials.`);
+  }
+}
+
+/**
+ * ✅ PHASE 7 FIX: Frontend server recovery function
+ * Automatically restarts the frontend server when crashes are detected
+ */
+async function recoverFrontendServer(): Promise<void> {
+  console.log('[Recovery] 🔧 Starting frontend server recovery...');
+
+  try {
+    // Step 1: Kill existing frontend process if it exists
+    if (frontendProcess && !frontendProcess.killed) {
+      console.log('[Recovery] Terminating existing frontend process...');
+      frontendProcess.kill('SIGTERM');
+
+      // Wait a bit for graceful shutdown
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Force kill if still running
+      if (!frontendProcess.killed) {
+        console.log('[Recovery] Force killing frontend process...');
+        frontendProcess.kill('SIGKILL');
+      }
+    }
+
+    // Step 2: Clean up PID file
+    const frontendPidFile = path.join(__dirname, '.e2e-frontend-pid');
+    if (fs.existsSync(frontendPidFile)) {
+      fs.unlinkSync(frontendPidFile);
+    }
+
+    // Step 3: Wait a moment for port to be released
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Step 4: Restart frontend server
+    console.log('[Recovery] Restarting frontend server...');
+    await startFrontendServer();
+
+    // Step 5: Wait for frontend to be ready
+    const frontendUrl = `http://localhost:${process.env.FRONTEND_PORT}`;
+    await waitForServer(frontendUrl);
+
+    console.log('[Recovery] ✅ Frontend server recovery completed successfully');
+
+  } catch (error) {
+    console.error('[Recovery] ❌ Frontend server recovery failed:', error);
+    throw new Error(`Frontend server recovery failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * ✅ PHASE 6F FIX: Initialize database reference counting
+ * Prevents authentication failures caused by premature database dropping
+ */
+async function initializeDatabaseReferenceCount(projectName: string, databaseName: string): Promise<void> {
+  const lockFile = path.join(process.cwd(), 'test-results', `${projectName}-db-lock.json`);
+
+  try {
+    // Ensure test-results directory exists
+    const dir = path.dirname(lockFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Read existing reference count or initialize
+    let refCount = 1;
+    if (fs.existsSync(lockFile)) {
+      try {
+        const lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+        refCount = (lockData.refCount || 0) + 1;
+      } catch (error) {
+        // File corrupted, initialize fresh
+        console.warn(`[Database Setup] Lock file corrupted for ${projectName}, initializing fresh reference count`);
+        refCount = 1;
+      }
+    }
+
+    // Write updated reference count
+    const lockData = {
+      refCount,
+      databaseName,
+      lastUpdate: new Date().toISOString(),
+      createdBy: process.pid
+    };
+
+    fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2));
+    console.log(`[Database Setup] ✅ Initialized reference count for ${projectName}: ${refCount} references`);
+
+  } catch (error) {
+    console.error(`[Database Setup] Failed to initialize reference count for ${projectName}:`, error);
+    // Continue anyway - worst case we might have a premature cleanup
+  }
+}
+
+/**
+ * Safe logging that won't crash on EPIPE errors during parallel execution
+ */
+function safeLog(message: string): void {
+  try {
+    console.log(message);
+  } catch (error: any) {
+    // Silently ignore ALL console/stdout errors during parallel execution
+    // This includes EPIPE, ECONNRESET, broken pipes, and any write errors
+    // Just return silently - parallel test execution causes these conflicts
+    return;
   }
 }
 

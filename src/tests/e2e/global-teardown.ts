@@ -2,7 +2,9 @@ import { FullConfig } from '@playwright/test';
 import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { healthMonitor } from './global-setup';
+import { healthMonitor, frontendStabilityManager } from './global-setup';
+import { portAllocator } from '../helpers/portAllocator';
+import { databaseAllocator } from '../helpers/databaseAllocator';
 
 async function globalTeardown(config: FullConfig) {
   console.log('Starting global teardown...');
@@ -13,8 +15,14 @@ async function globalTeardown(config: FullConfig) {
 
     // Stop E2E servers
     await stopE2EServers();
-    
-    // Clean up test database
+
+    // Clean up allocated ports for this project
+    await cleanupAllocatedPorts();
+
+    // Clean up allocated database for this project
+    await cleanupAllocatedDatabase();
+
+    // Clean up shared test database (legacy)
     await cleanupTestDatabase();
     
     // Remove authentication files
@@ -30,45 +38,132 @@ async function globalTeardown(config: FullConfig) {
 }
 
 async function stopHealthMonitoring() {
-  if (!healthMonitor) {
-    console.log('No health monitor to stop');
-    return;
+  console.log('Stopping monitoring systems...');
+
+  // Stop Frontend Stability Manager
+  if (frontendStabilityManager) {
+    try {
+      console.log('Stopping Frontend Stability Manager...');
+
+      // Get final status report
+      const statusReport = frontendStabilityManager.getStatusReport();
+      console.log('\n========== Frontend Stability Summary ==========');
+      console.log(statusReport);
+      console.log('==============================================\n');
+
+      // Clean up the stability manager
+      await frontendStabilityManager.cleanup();
+      console.log('Frontend Stability Manager stopped');
+    } catch (error) {
+      console.error('Error stopping Frontend Stability Manager:', error);
+    }
   }
 
-  console.log('Stopping health monitoring...');
+  // Stop legacy health monitor (if still running)
+  if (healthMonitor) {
+    try {
+      console.log('Stopping legacy health monitor...');
+
+      // Get final health summary before stopping
+      const summary = healthMonitor.getHealthSummary();
+      const latestMetrics = healthMonitor.getLatestMetrics();
+
+      // Stop monitoring
+      healthMonitor.stopMonitoring();
+
+      // Log comprehensive health statistics
+      console.log('\n========== Legacy Health Monitor Summary ==========');
+      console.log(`Total health checks performed: ${summary.totalChecks}`);
+      console.log(`Healthy checks: ${summary.healthyChecks} (${summary.uptimePercentage.toFixed(2)}%)`);
+      console.log(`Unhealthy checks: ${summary.unhealthyChecks}`);
+      console.log(`Crashed checks: ${summary.crashedChecks}`);
+
+      if (latestMetrics) {
+        console.log('\nFinal Server Status:');
+        console.log(`  Overall Status: ${latestMetrics.status.toUpperCase()}`);
+        console.log(`  Backend: ${latestMetrics.backendHealth.available ? '✓ Available' : '✗ Unavailable'} (${latestMetrics.backendHealth.responseTime}ms)`);
+        console.log(`  Frontend: ${latestMetrics.frontendHealth.available ? '✓ Available' : '✗ Unavailable'} (${latestMetrics.frontendHealth.responseTime}ms)`);
+
+        if (latestMetrics.systemMetrics.memory) {
+          const memoryMB = (latestMetrics.systemMetrics.memory.heapUsed / 1024 / 1024).toFixed(2);
+          console.log(`  Memory Usage: ${memoryMB} MB`);
+        }
+        console.log(`  Test Suite Uptime: ${Math.floor(latestMetrics.systemMetrics.uptime)}s`);
+      }
+      console.log('================================================\n');
+
+      console.log('Legacy health monitor stopped');
+    } catch (error) {
+      console.error('Error stopping legacy health monitor:', error);
+    }
+  }
+
+  if (!frontendStabilityManager && !healthMonitor) {
+    console.log('No monitoring systems to stop');
+  }
+}
+
+/**
+ * Get the current test project name from various sources (same logic as global-setup)
+ */
+function getTestProjectName(): string {
+  const projectName =
+    process.env.PLAYWRIGHT_PROJECT ||
+    process.env.PROJECT_NAME ||
+    process.argv.find(arg => arg.startsWith('--project='))?.split('=')[1] ||
+    process.argv.find((arg, index, arr) => arr[index - 1] === '--project') ||
+    'default';
+
+  return projectName;
+}
+
+async function cleanupAllocatedPorts() {
+  console.log('Cleaning up allocated ports...');
 
   try {
-    // Get final health summary before stopping
-    const summary = healthMonitor.getHealthSummary();
-    const latestMetrics = healthMonitor.getLatestMetrics();
+    const projectName = getTestProjectName();
+    const allocation = portAllocator.getPortsForProject(projectName);
 
-    // Stop monitoring
-    healthMonitor.stopMonitoring();
+    if (allocation) {
+      console.log(`[Port Cleanup] Releasing ports for project "${projectName}": Backend ${allocation.backendPort}, Frontend ${allocation.frontendPort}`);
 
-    // Log comprehensive health statistics
-    console.log('\n========== Server Health Summary ==========');
-    console.log(`Total health checks performed: ${summary.totalChecks}`);
-    console.log(`Healthy checks: ${summary.healthyChecks} (${summary.uptimePercentage.toFixed(2)}%)`);
-    console.log(`Unhealthy checks: ${summary.unhealthyChecks}`);
-    console.log(`Crashed checks: ${summary.crashedChecks}`);
+      // Kill any remaining processes on the allocated ports
+      const ports = [allocation.backendPort, allocation.frontendPort];
 
-    if (latestMetrics) {
-      console.log('\nFinal Server Status:');
-      console.log(`  Overall Status: ${latestMetrics.status.toUpperCase()}`);
-      console.log(`  Backend: ${latestMetrics.backendHealth.available ? '✓ Available' : '✗ Unavailable'} (${latestMetrics.backendHealth.responseTime}ms)`);
-      console.log(`  Frontend: ${latestMetrics.frontendHealth.available ? '✓ Available' : '✗ Unavailable'} (${latestMetrics.frontendHealth.responseTime}ms)`);
+      for (const port of ports) {
+        try {
+          const pidsOutput = execSync(`lsof -ti:${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          const pids = pidsOutput.trim().split('\n').filter(pid => pid);
 
-      if (latestMetrics.systemMetrics.memory) {
-        const memoryMB = (latestMetrics.systemMetrics.memory.heapUsed / 1024 / 1024).toFixed(2);
-        console.log(`  Memory Usage: ${memoryMB} MB`);
+          for (const pid of pids) {
+            try {
+              process.kill(parseInt(pid), 'SIGTERM');
+              console.log(`[Port Cleanup] Sent SIGTERM to process ${pid} on port ${port}`);
+
+              // Wait 1 second then force kill
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              try {
+                process.kill(parseInt(pid), 'SIGKILL');
+                console.log(`[Port Cleanup] Force killed process ${pid} on port ${port}`);
+              } catch {
+                // Already dead
+              }
+            } catch (error) {
+              console.log(`[Port Cleanup] Process ${pid} on port ${port} already stopped`);
+            }
+          }
+        } catch (error) {
+          // No processes on this port - that's fine
+        }
       }
-      console.log(`  Test Suite Uptime: ${Math.floor(latestMetrics.systemMetrics.uptime)}s`);
-    }
-    console.log('==========================================\n');
 
-    console.log('Health monitoring stopped');
+      // Release the port allocation
+      portAllocator.releasePortsForProject(projectName);
+    } else {
+      console.log(`[Port Cleanup] No port allocation found for project "${projectName}"`);
+    }
   } catch (error) {
-    console.error('Error stopping health monitoring:', error);
+    console.error('[Port Cleanup] Failed to cleanup allocated ports:', error);
   }
 }
 
@@ -122,41 +217,158 @@ async function stopE2EServers() {
       fs.unlinkSync(frontendPidFile);
     }
 
-    // Use lsof to find and kill any remaining processes on E2E ports
-    const ports = [3101, 5278];
-    for (const port of ports) {
-      try {
-        const pidsOutput = execSync(`lsof -ti:${port}`, { encoding: 'utf8', stdio: 'pipe' });
-        const pids = pidsOutput.trim().split('\n').filter(pid => pid);
+    // Get allocated ports for this project and clean them up
+    const projectName = getTestProjectName();
+    const allocation = portAllocator.getPortsForProject(projectName);
 
-        for (const pid of pids) {
-          try {
-            // Try SIGTERM first
-            process.kill(parseInt(pid), 'SIGTERM');
-            console.log(`Sent SIGTERM to process ${pid} on port ${port}`);
+    if (allocation) {
+      // Use allocated ports for this project
+      const ports = [allocation.backendPort, allocation.frontendPort];
+      console.log(`Using allocated ports for cleanup: Backend ${allocation.backendPort}, Frontend ${allocation.frontendPort}`);
 
-            // Wait 1 second
-            await new Promise(resolve => setTimeout(resolve, 1000));
+      for (const port of ports) {
+        try {
+          const pidsOutput = execSync(`lsof -ti:${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          const pids = pidsOutput.trim().split('\n').filter(pid => pid);
 
-            // Force kill if still alive
+          for (const pid of pids) {
             try {
-              process.kill(parseInt(pid), 'SIGKILL');
-              console.log(`Force killed process ${pid} on port ${port}`);
-            } catch {
-              // Already dead
+              // Try SIGTERM first
+              process.kill(parseInt(pid), 'SIGTERM');
+              console.log(`Sent SIGTERM to process ${pid} on port ${port}`);
+
+              // Wait 1 second
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              // Force kill if still alive
+              try {
+                process.kill(parseInt(pid), 'SIGKILL');
+                console.log(`Force killed process ${pid} on port ${port}`);
+              } catch {
+                // Already dead
+              }
+            } catch (error) {
+              console.log(`Process ${pid} on port ${port} already stopped`);
             }
-          } catch (error) {
-            console.log(`Process ${pid} on port ${port} already stopped`);
           }
+        } catch (error) {
+          // No processes on this port - that's fine
         }
-      } catch (error) {
-        // No processes on this port - that's fine
+      }
+    } else {
+      // Fallback to default ports if no allocation found
+      console.log('No port allocation found, using default ports for cleanup');
+      const ports = [3101, 5278];
+      for (const port of ports) {
+        try {
+          const pidsOutput = execSync(`lsof -ti:${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          const pids = pidsOutput.trim().split('\n').filter(pid => pid);
+
+          for (const pid of pids) {
+            try {
+              process.kill(parseInt(pid), 'SIGTERM');
+              console.log(`Sent SIGTERM to process ${pid} on port ${port}`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              try {
+                process.kill(parseInt(pid), 'SIGKILL');
+                console.log(`Force killed process ${pid} on port ${port}`);
+              } catch {
+                // Already dead
+              }
+            } catch (error) {
+              console.log(`Process ${pid} on port ${port} already stopped`);
+            }
+          }
+        } catch (error) {
+          // No processes on this port - that's fine
+        }
       }
     }
 
     console.log('E2E servers stopped');
   } catch (error) {
     console.error('Failed to stop E2E servers:', error);
+  }
+}
+
+async function cleanupAllocatedDatabase() {
+  console.log('Cleaning up allocated database...');
+
+  try {
+    const projectName = getTestProjectName();
+    const allocation = databaseAllocator.getDatabaseForProject(projectName);
+
+    if (allocation) {
+      console.log(`[Database Cleanup] Found database for project "${projectName}": ${allocation.databaseName}`);
+
+      // ✅ PHASE 6F FIX: Use reference-counted cleanup to prevent premature database dropping
+      // Multiple parallel test processes share the same database allocation
+      // Only drop the database when ALL processes have completed
+      await safeReleaseDatabaseForProject(projectName, allocation.databaseName);
+    } else {
+      console.log(`[Database Cleanup] No database allocation found for project "${projectName}"`);
+    }
+  } catch (error) {
+    console.error('[Database Cleanup] Failed to cleanup allocated database:', error);
+  }
+}
+
+/**
+ * ✅ PHASE 6F FIX: Safe database release with reference counting
+ * Prevents authentication failures by ensuring databases aren't dropped while tests are running
+ */
+async function safeReleaseDatabaseForProject(projectName: string, databaseName: string): Promise<void> {
+  const lockFile = path.join(process.cwd(), 'test-results', `${projectName}-db-lock.json`);
+
+  try {
+    // Read or initialize reference count
+    let refCount = 1;
+    if (fs.existsSync(lockFile)) {
+      try {
+        const lockData = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+        refCount = Math.max(0, (lockData.refCount || 1) - 1);
+      } catch (error) {
+        console.warn(`[Database Cleanup] Failed to read lock file for ${projectName}, assuming refCount=1`);
+        refCount = 0; // Assume this is the last process
+      }
+    } else {
+      // No lock file exists, assume this is the last/only process
+      refCount = 0;
+    }
+
+    console.log(`[Database Cleanup] ${projectName} database reference count: ${refCount}`);
+
+    if (refCount > 0) {
+      // Update reference count and keep database alive
+      fs.writeFileSync(lockFile, JSON.stringify({
+        refCount,
+        databaseName,
+        lastUpdate: new Date().toISOString()
+      }));
+      console.log(`[Database Cleanup] Keeping database ${databaseName} alive (${refCount} references remaining)`);
+    } else {
+      // Last reference - safe to drop database
+      console.log(`[Database Cleanup] Last reference - releasing database for project "${projectName}": ${databaseName}`);
+
+      // Remove lock file first
+      if (fs.existsSync(lockFile)) {
+        fs.unlinkSync(lockFile);
+      }
+
+      // Now safe to drop the database
+      await databaseAllocator.releaseDatabaseForProject(projectName);
+    }
+  } catch (error) {
+    console.error(`[Database Cleanup] Error in safe release for ${projectName}:`, error);
+
+    // Fallback: Always try to cleanup lock file, but don't drop database to be safe
+    try {
+      if (fs.existsSync(lockFile)) {
+        fs.unlinkSync(lockFile);
+      }
+    } catch (cleanupError) {
+      console.warn(`[Database Cleanup] Failed to cleanup lock file for ${projectName}:`, cleanupError);
+    }
   }
 }
 

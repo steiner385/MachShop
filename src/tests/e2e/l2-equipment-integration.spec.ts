@@ -73,7 +73,7 @@ test.describe('L2 Equipment Integration API Tests', () => {
         data: {
           equipmentNumber: 'TEST-EQ-001',
           name: 'Test CNC Machine',
-          equipmentClass: 'PRODUCTION_UNIT',
+          equipmentClass: 'PRODUCTION',
           type: 'CNC',
           equipmentLevel: 3,
           status: 'OPERATIONAL',

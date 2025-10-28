@@ -52,6 +52,15 @@ router.post('/', requirePermission('scheduling.write'), async (req: Request, res
 router.get('/number/:scheduleNumber', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { scheduleNumber } = req.params;
+
+    // Validate required parameter
+    if (!scheduleNumber || scheduleNumber.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Schedule number is required'
+      });
+    }
+
     const includeRelations = req.query.includeRelations !== 'false';
 
     const schedule = await scheduleService.getScheduleByNumber(scheduleNumber, includeRelations);
@@ -69,6 +78,15 @@ router.get('/number/:scheduleNumber', requireProductionAccess, async (req: Reque
 router.get('/:id', requireProductionAccess, async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Schedule ID is required'
+      });
+    }
+
     const includeRelations = req.query.includeRelations !== 'false';
 
     const schedule = await scheduleService.getScheduleById(id, includeRelations);

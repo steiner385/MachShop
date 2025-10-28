@@ -39,13 +39,20 @@ export class EquipmentDataCollectionService {
       sourceAddress,
     } = input;
 
+    // ✅ PHASE 8 FIX: Enhanced equipment ID validation to prevent business logic conflicts
+    if (!equipmentId || typeof equipmentId !== 'string' || equipmentId.trim() === '' || equipmentId === 'undefined' || equipmentId === 'null') {
+      throw new Error(`Invalid equipment ID provided: "${equipmentId}". Equipment ID must be a non-empty string.`);
+    }
+
+    const cleanEquipmentId = equipmentId.trim();
+
     // Validate equipment exists
     const equipment = await prisma.equipment.findUnique({
-      where: { id: equipmentId },
+      where: { id: cleanEquipmentId },
     });
 
     if (!equipment) {
-      throw new Error(`Equipment with ID ${equipmentId} not found`);
+      throw new Error(`Equipment with ID ${cleanEquipmentId} not found`);
     }
 
     // Validate data value based on type
