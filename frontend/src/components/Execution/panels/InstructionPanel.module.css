@@ -1,0 +1,278 @@
+/**
+ * InstructionPanel Styles
+ *
+ * GitHub Issue #19: Configurable Side-by-Side Execution Interface
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #fff;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.progressInfo {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.estimate {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.stepNavigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.miniSteps {
+  flex: 1;
+  margin: 0 16px;
+}
+
+.stepContent {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.stepCard {
+  height: 100%;
+}
+
+.instructionContent {
+  min-height: 200px;
+}
+
+.mediaContent {
+  margin: 16px 0;
+}
+
+.placeholder {
+  padding: 32px;
+  text-align: center;
+  background-color: #fafafa;
+  border: 2px dashed #d9d9d9;
+  border-radius: 6px;
+  color: #8c8c8c;
+}
+
+.durationInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+  color: #389e0d;
+  font-size: 13px;
+}
+
+.completionStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: #f6ffed;
+  border: 1px solid #52c41a;
+  border-radius: 4px;
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.quickActions {
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Collapsed view */
+.collapsedView {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+}
+
+.collapsedContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #595959;
+}
+
+.stepNumber {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.stepTitle {
+  font-size: 12px;
+  text-align: center;
+  max-width: 20px;
+  word-break: break-all;
+}
+
+/* Responsive design */
+@media (max-width: 1280px) {
+  .progressHeader {
+    padding: 8px 12px;
+  }
+
+  .stepNavigation {
+    padding: 6px 12px;
+    gap: 12px;
+  }
+
+  .stepContent {
+    padding: 12px;
+  }
+
+  .quickActions {
+    padding: 8px 12px;
+  }
+
+  .timer {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .progressHeader {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .timer {
+    align-self: flex-end;
+  }
+
+  .stepNavigation {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .miniSteps {
+    margin: 0;
+    width: 100%;
+  }
+
+  .stepContent {
+    padding: 8px;
+  }
+
+  .quickActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Touch screen optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .quickActions button {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+
+  .stepNavigation button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .progressHeader,
+  .stepNavigation,
+  .quickActions {
+    border-color: #000;
+  }
+
+  .durationInfo {
+    background-color: #fff;
+    border-color: #000;
+    color: #000;
+  }
+
+  .completionStatus {
+    background-color: #fff;
+    border-color: #000;
+    color: #000;
+  }
+
+  .placeholder {
+    border-color: #000;
+    background-color: #fff;
+    color: #000;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background-color: #1f1f1f;
+    color: #fff;
+  }
+
+  .progressHeader,
+  .stepNavigation,
+  .quickActions {
+    background-color: #262626;
+    border-color: #434343;
+  }
+
+  .stepContent {
+    background-color: #1f1f1f;
+  }
+
+  .placeholder {
+    background-color: #262626;
+    border-color: #434343;
+    color: #bfbfbf;
+  }
+
+  .durationInfo {
+    background-color: #162312;
+    border-color: #389e0d;
+  }
+
+  .completionStatus {
+    background-color: #162312;
+    border-color: #52c41a;
+  }
+}

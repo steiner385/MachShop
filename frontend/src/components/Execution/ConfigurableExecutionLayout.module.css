@@ -1,0 +1,159 @@
+/**
+ * ConfigurableExecutionLayout Styles
+ *
+ * GitHub Issue #19: Configurable Side-by-Side Execution Interface
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #f5f5f5;
+  position: relative;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layoutSelector {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 1000;
+}
+
+.layoutArea {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.statusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 16px;
+  background-color: #fafafa;
+  border-top: 1px solid #d9d9d9;
+  font-size: 12px;
+  color: #666;
+}
+
+.statusBar span {
+  margin-right: 16px;
+}
+
+.noSession {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
+  font-size: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 1280px) {
+  .layoutSelector {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .toolbar {
+    padding: 6px 12px;
+  }
+
+  .statusBar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .statusBar span {
+    margin-right: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbarLeft,
+  .toolbarRight {
+    gap: 4px;
+  }
+
+  .statusBar {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .statusBar span {
+    margin-right: 4px;
+  }
+}
+
+/* Touch screen optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .toolbar button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .layoutSelector button {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .container {
+    background-color: #fff;
+  }
+
+  .toolbar {
+    border-bottom: 2px solid #000;
+  }
+
+  .layoutSelector {
+    border: 2px solid #000;
+  }
+
+  .statusBar {
+    border-top: 2px solid #000;
+    color: #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .layoutSelector {
+    transition: none;
+  }
+}
