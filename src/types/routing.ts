@@ -545,6 +545,15 @@ export interface RoutingApprovalRequest {
 }
 
 /**
+ * RoutingSubmitForReviewRequest - Request to submit a routing for review
+ */
+export interface RoutingSubmitForReviewRequest {
+  routingId: string;
+  submittedBy: string;
+  notes?: string;
+}
+
+/**
  * RoutingVersionInfo - Version information for a routing
  */
 export interface RoutingVersionInfo {

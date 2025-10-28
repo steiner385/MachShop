@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { authAPI, tokenUtils } from '@/api/auth';
 import { User, LoginRequest, LoginResponse } from '@/types/auth';
+import { AuthStateSynchronizer } from '@/utils/AuthStateSynchronizer';
 
 interface AuthState {
   user: User | null;
@@ -15,7 +16,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (credentials: LoginRequest) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshAccessToken: () => Promise<void>;
   setUser: (user: User) => void;
   setError: (error: string | null) => void;
@@ -69,7 +70,7 @@ const getInitialTestAuthState = () => {
   return { user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false };
 };
 
-const useAuthStoreBase = create<AuthStore>()(
+export const useAuthStoreBase = create<AuthStore>()(
   devtools(
     persist(
       (set, get) => {
@@ -88,9 +89,9 @@ const useAuthStoreBase = create<AuthStore>()(
           login: async (credentials: LoginRequest) => {
           try {
             set({ isLoading: true, error: null });
-            
+
             const response: LoginResponse = await authAPI.login(credentials);
-            
+
             set({
               user: response.user,
               token: response.token,
@@ -103,8 +104,10 @@ const useAuthStoreBase = create<AuthStore>()(
             // Set auth header for future requests
             tokenUtils.setAuthHeader(response.token);
 
-            // Set up automatic token refresh
-            scheduleTokenRefresh(response.expiresIn);
+            // Initialize synchronizer (automatically starts monitoring - replaces scheduleTokenRefresh)
+            const synchronizer = initializeAuthSynchronizer();
+
+            console.log('[AuthStore] Login successful, auth synchronizer initialized');
           } catch (error: any) {
             set({
               user: null,
@@ -118,25 +121,54 @@ const useAuthStoreBase = create<AuthStore>()(
           }
         },
 
-        logout: () => {
-          // Call logout API
-          authAPI.logout().catch(console.error);
-          
-          // Clear auth header
-          tokenUtils.removeAuthHeader();
-          
-          // Clear refresh timeout
-          clearTokenRefreshTimeout();
-          
-          // Reset state
-          set({
-            user: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          });
+        logout: async () => {
+          try {
+            set({ isLoading: true, error: null });
+
+            // Call logout API and wait for completion
+            await authAPI.logout();
+
+            console.log('[AuthStore] Logout API call successful');
+          } catch (error: any) {
+            // Log the error but don't prevent logout completion
+            console.error('[AuthStore] Logout API error:', error);
+
+            // For certain errors, we still want to complete local logout
+            const shouldContinueLogout =
+              error.status === 401 || // Already logged out on server
+              error.status === 404 || // Logout endpoint not found
+              error.name === 'NetworkError' || // Network issues
+              error.code === 'ECONNREFUSED'; // Server unreachable
+
+            if (!shouldContinueLogout) {
+              // For unexpected errors, set error state but still clear tokens
+              set({
+                error: `Logout failed: ${error.message || 'Unknown error'}`,
+                isLoading: false
+              });
+            }
+          } finally {
+            // Always clear local auth state regardless of API call result
+            // This ensures user is logged out locally even if server is unreachable
+
+            // Clear auth header
+            tokenUtils.removeAuthHeader();
+
+            // Clean up auth synchronizer (replaces clearTokenRefreshTimeout)
+            cleanupAuthSynchronizer();
+
+            // Reset auth state
+            set({
+              user: null,
+              token: null,
+              refreshToken: null,
+              isAuthenticated: false,
+              isLoading: false,
+              // Keep any error from the API call
+            });
+
+            console.log('[AuthStore] Local logout completed, auth synchronizer cleaned up');
+          }
         },
 
         refreshAccessToken: async () => {
@@ -147,20 +179,27 @@ const useAuthStoreBase = create<AuthStore>()(
             }
 
             const response = await authAPI.refreshToken(refreshToken);
-            
+
             set({
               token: response.token,
+              refreshToken: response.refreshToken || refreshToken,
               error: null,
             });
 
             // Set auth header for future requests
             tokenUtils.setAuthHeader(response.token);
 
-            // Schedule next refresh
-            scheduleTokenRefresh(response.expiresIn);
+            // If synchronizer is running, it will handle subsequent refreshes
+            // No need to schedule next refresh manually
+            console.log('[AuthStore] Manual token refresh successful, synchronizer will handle future refreshes');
           } catch (error: any) {
             // Refresh failed, logout user
-            get().logout();
+            try {
+              await get().logout();
+            } catch (logoutError) {
+              // Don't let logout errors interfere with the original refresh error
+              console.error('[AuthStore] Logout error during refresh failure:', logoutError);
+            }
             throw error;
           }
         },
@@ -183,64 +222,43 @@ const useAuthStoreBase = create<AuthStore>()(
 
         initialize: async () => {
           try {
-            // In test mode, skip async initialization if already authenticated
-            if (isTestMode()) {
-              const currentState = get();
-              if (currentState.isAuthenticated && currentState.user && currentState.token) {
-                console.log('[TEST MODE] Skipping auth initialization - already authenticated');
-                set({ isLoading: false });
-                return;
-              }
-              console.log('[TEST MODE] Auth state not ready, proceeding with initialization');
-            }
+            console.log('[AuthStore] Starting auth initialization with synchronizer support');
 
-            const { token, refreshToken } = get();
-            
+            const { token, refreshToken, user } = get();
+
+            // If no token, immediately finish loading
             if (!token) {
               set({ isLoading: false });
+              console.log('[AuthStore] No token found, initialization complete');
               return;
             }
 
-            // Verify token is still valid
-            try {
-              // Set auth header before making the request
-              tokenUtils.setAuthHeader(token);
-              const user = await authAPI.getCurrentUser();
-              set({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-              });
+            // In test mode with valid cached state, use optimized path
+            if (isTestMode() && user && token) {
+              console.log('[TEST MODE] Using cached auth state, initializing synchronizer');
+              set({ isAuthenticated: true, isLoading: false });
 
-              // Schedule token refresh (skip in test mode)
-              if (!isTestMode()) {
-                scheduleTokenRefresh('24h'); // Default expiry
-              }
-            } catch (error) {
-              // In test mode, be more lenient with auth failures
-              if (isTestMode()) {
-                console.warn('[TEST MODE] Auth verification failed, but continuing with cached state');
-                const currentState = get();
-                if (currentState.token && currentState.user) {
-                  set({ isAuthenticated: true, isLoading: false });
-                  return;
-                }
-              }
-
-              // Token is invalid, try to refresh
-              if (refreshToken) {
-                try {
-                  await get().refreshAccessToken();
-                } catch (refreshError) {
-                  get().logout();
-                }
-              } else {
-                get().logout();
-              }
+              // Even in test mode, initialize synchronizer for robust state management
+              const synchronizer = initializeAuthSynchronizer();
+              return;
             }
-          } catch (error) {
-            console.error('Auth initialization error:', error);
+
+            // Initialize synchronizer - it will handle state validation and recovery
+            const synchronizer = initializeAuthSynchronizer();
+
+            // Set auth header before synchronizer validation
+            tokenUtils.setAuthHeader(token);
+
+            // Synchronizer will automatically handle auth state validation
+            // It will validate tokens, refresh if needed, and resolve conflicts
+
+            // Update loading state - synchronizer will handle the rest
             set({ isLoading: false });
+
+            console.log('[AuthStore] Auth initialization complete, synchronizer handling state management');
+          } catch (error) {
+            console.error('[AuthStore] Auth initialization error:', error);
+            set({ isLoading: false, error: 'Authentication initialization failed' });
           }
         },
       };
@@ -260,29 +278,81 @@ const useAuthStoreBase = create<AuthStore>()(
   )
 );
 
-// Token refresh management
-let refreshTimeoutId: NodeJS.Timeout | null = null;
+// Auth State Synchronizer instance (replaces manual timeout management)
+let authSynchronizer: AuthStateSynchronizer | null = null;
 
-const scheduleTokenRefresh = (expiresIn: string) => {
-  clearTokenRefreshTimeout();
-  
-  // Parse expires in (e.g., "24h", "1d")
-  const expiryMs = parseExpiresIn(expiresIn);
-  
-  // Refresh 5 minutes before expiry
-  const refreshIn = Math.max(expiryMs - 5 * 60 * 1000, 60 * 1000);
-  
-  refreshTimeoutId = setTimeout(() => {
-    useAuthStoreBase.getState().refreshAccessToken().catch(() => {
-      useAuthStoreBase.getState().logout();
-    });
-  }, refreshIn);
+// Initialize synchronizer with auth store integration
+const initializeAuthSynchronizer = () => {
+  if (authSynchronizer) {
+    return authSynchronizer;
+  }
+
+  const storeActions = useAuthStoreBase.getState();
+
+  authSynchronizer = new AuthStateSynchronizer({
+    syncIntervalMs: 30000, // 30 second sync interval
+    backgroundValidationMs: 120000, // 2 minute background validation
+    refreshBufferMs: 300000, // 5 minute refresh buffer
+    enableE2ETestMode: isTestMode(),
+    persistentSync: true,
+    onStateResolved: async (resolvedState) => {
+      console.log('[AuthStore] Applying resolved auth state from synchronizer');
+
+      // Apply resolved state to Zustand store
+      storeActions.setUser(resolvedState.user);
+      storeActions.setError(null);
+
+      // Update Zustand store with synchronized state
+      const { setState } = useAuthStoreBase;
+      setState({
+        user: resolvedState.user,
+        token: resolvedState.token,
+        refreshToken: resolvedState.refreshToken,
+        isAuthenticated: resolvedState.isAuthenticated,
+        isLoading: false,
+        error: null
+      });
+
+      // Set auth header
+      if (resolvedState.token) {
+        tokenUtils.setAuthHeader(resolvedState.token);
+      } else {
+        tokenUtils.removeAuthHeader();
+      }
+    },
+    onTokenRefreshed: async (newToken, newRefreshToken) => {
+      console.log('[AuthStore] Token refreshed by synchronizer');
+
+      // Update Zustand store with new tokens
+      const { setState } = useAuthStoreBase;
+      setState({
+        token: newToken,
+        refreshToken: newRefreshToken,
+        error: null
+      });
+
+      // Set new auth header
+      tokenUtils.setAuthHeader(newToken);
+    },
+    onAuthError: async (error) => {
+      console.error('[AuthStore] Auth error from synchronizer:', error);
+
+      // Trigger logout through normal flow
+      try {
+        await storeActions.logout();
+      } catch (logoutError) {
+        console.error('[AuthStore] Logout error during synchronizer auth error:', logoutError);
+      }
+    }
+  });
+
+  return authSynchronizer;
 };
 
-const clearTokenRefreshTimeout = () => {
-  if (refreshTimeoutId) {
-    clearTimeout(refreshTimeoutId);
-    refreshTimeoutId = null;
+const cleanupAuthSynchronizer = () => {
+  if (authSynchronizer) {
+    authSynchronizer.cleanup();
+    authSynchronizer = null;
   }
 };
 
@@ -318,12 +388,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const store = useAuthStoreBase();
 
   useEffect(() => {
-    // Initialize auth state on app start
+    // Initialize auth state on app start with synchronizer support
     store.initialize();
 
-    // Cleanup on unmount
+    // Cleanup on unmount - clean up synchronizer instead of manual timeouts
     return () => {
-      clearTokenRefreshTimeout();
+      console.log('[AuthProvider] Cleaning up auth synchronizer on unmount');
+      cleanupAuthSynchronizer();
     };
   }, []);
 

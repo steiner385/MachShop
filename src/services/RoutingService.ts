@@ -28,6 +28,7 @@ import {
   RoutingStepWithRelations,
   RoutingCopyOptions,
   RoutingApprovalRequest,
+  RoutingSubmitForReviewRequest,
   RoutingVersionInfo,
   RoutingTimingCalculation,
   RoutingStepResequenceRequest,
@@ -155,8 +156,15 @@ export class RoutingService {
    * Get routing by ID
    */
   async getRoutingById(id: string, includeSteps: boolean = true): Promise<RoutingWithRelations | null> {
+    // ✅ PHASE 8 FIX: Enhanced routing ID validation to prevent business logic conflicts
+    if (!id || typeof id !== 'string' || id.trim() === '' || id === 'undefined' || id === 'null') {
+      throw new Error(`Invalid routing ID provided: "${id}". Routing ID must be a non-empty string.`);
+    }
+
+    const cleanId = id.trim();
+
     return prisma.routing.findUnique({
-      where: { id },
+      where: { id: cleanId },
       include: {
         part: {
           select: {
@@ -331,10 +339,17 @@ export class RoutingService {
    * Update routing
    */
   async updateRouting(id: string, data: UpdateRoutingDTO): Promise<RoutingWithRelations> {
+    // ✅ PHASE 8 FIX: Enhanced routing ID validation to prevent business logic conflicts
+    if (!id || typeof id !== 'string' || id.trim() === '' || id === 'undefined' || id === 'null') {
+      throw new Error(`Invalid routing ID provided: "${id}". Routing ID must be a non-empty string.`);
+    }
+
+    const cleanId = id.trim();
+
     // Get current routing state
-    const existing = await prisma.routing.findUnique({ where: { id } });
+    const existing = await prisma.routing.findUnique({ where: { id: cleanId } });
     if (!existing) {
-      throw new Error(`Routing ${id} not found`);
+      throw new Error(`Routing ${cleanId} not found`);
     }
 
     // OPTIMISTIC LOCKING: Check version if currentVersion is provided
@@ -359,7 +374,7 @@ export class RoutingService {
           partId: data.partId || existing.partId,
           siteId: data.siteId || existing.siteId,
           version: data.version || existing.version,
-          id: { not: id }
+          id: { not: cleanId }
         }
       });
 
@@ -371,7 +386,7 @@ export class RoutingService {
     }
 
     return prisma.routing.update({
-      where: { id },
+      where: { id: cleanId },
       data: {
         routingNumber: data.routingNumber,
         partId: data.partId,
@@ -437,18 +452,25 @@ export class RoutingService {
    * Delete routing
    */
   async deleteRouting(id: string): Promise<void> {
+    // ✅ PHASE 8 FIX: Enhanced routing ID validation to prevent business logic conflicts
+    if (!id || typeof id !== 'string' || id.trim() === '' || id === 'undefined' || id === 'null') {
+      throw new Error(`Invalid routing ID provided: "${id}". Routing ID must be a non-empty string.`);
+    }
+
+    const cleanId = id.trim();
+
     // Check if routing is used in work orders
     const workOrderCount = await prisma.workOrder.count({
-      where: { routingId: id }
+      where: { routingId: cleanId }
     });
 
     if (workOrderCount > 0) {
       throw new Error(
-        `Cannot delete routing ${id}: it is used by ${workOrderCount} work order(s). Consider marking it as OBSOLETE instead.`
+        `Cannot delete routing ${cleanId}: it is used by ${workOrderCount} work order(s). Consider marking it as OBSOLETE instead.`
       );
     }
 
-    await prisma.routing.delete({ where: { id } });
+    await prisma.routing.delete({ where: { id: cleanId } });
   }
 
   // ============================================
@@ -459,23 +481,30 @@ export class RoutingService {
    * Create routing step
    */
   async createRoutingStep(data: CreateRoutingStepDTO): Promise<RoutingStepWithRelations> {
+    // ✅ PHASE 8 FIX: Enhanced routing ID validation to prevent business logic conflicts
+    if (!data.routingId || typeof data.routingId !== 'string' || data.routingId.trim() === '' || data.routingId === 'undefined' || data.routingId === 'null') {
+      throw new Error(`Invalid routing ID provided: "${data.routingId}". Routing ID must be a non-empty string.`);
+    }
+
+    const cleanRoutingId = data.routingId.trim();
+
     // Validate unique step number within routing
     const existing = await prisma.routingStep.findFirst({
       where: {
-        routingId: data.routingId,
+        routingId: cleanRoutingId,
         stepNumber: data.stepNumber
       }
     });
 
     if (existing) {
       throw new Error(
-        `Step number ${data.stepNumber} already exists in routing ${data.routingId}`
+        `Step number ${data.stepNumber} already exists in routing ${cleanRoutingId}`
       );
     }
 
     return prisma.routingStep.create({
       data: {
-        routingId: data.routingId,
+        routingId: cleanRoutingId,
         stepNumber: data.stepNumber,
         operationId: data.operationId,
         workCenterId: data.workCenterId,

@@ -66,17 +66,17 @@ export const RoutingList: React.FC = () => {
     deleteRouting,
   } = useRoutingStore();
 
+  // ✅ PHASE 11B FIX: Consolidate data fetching to prevent race conditions
   // Fetch routings on mount and when current site changes
   useEffect(() => {
-    fetchRoutings();
-  }, [fetchRoutings]);
-
-  // Update site filter when current site changes
-  useEffect(() => {
     if (currentSite) {
+      // Set filters first, which will automatically trigger fetchRoutings()
       setFilters({ siteId: currentSite.id });
+    } else {
+      // If no site is selected yet, fetch without site filter
+      fetchRoutings();
     }
-  }, [currentSite, setFilters]);
+  }, [currentSite, fetchRoutings, setFilters]);
 
   // Handle search
   const handleSearch = (value: string) => {

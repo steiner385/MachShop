@@ -1,0 +1,398 @@
+{
+  "timestamp": "2025-10-27T17:28:35.145Z",
+  "summary": {
+    "totalProjects": 17,
+    "executedProjects": 12,
+    "totalTests": 638,
+    "totalPassed": 501,
+    "totalFailed": 21,
+    "totalSkipped": 10,
+    "totalNotRun": 104,
+    "overallSuccessRate": 78.53,
+    "testGap": 244
+  },
+  "executionResults": {
+    "group1": {
+      "totalTests": 111,
+      "passed": 101,
+      "failed": 7,
+      "skipped": 1,
+      "projects": [
+        "authenticated",
+        "quality-tests"
+      ]
+    },
+    "group2": {
+      "totalTests": 33,
+      "passed": 27,
+      "failed": 1,
+      "skipped": 5,
+      "projects": [
+        "collaborative-routing-tests",
+        "traceability-tests"
+      ]
+    },
+    "group3": {
+      "totalTests": 98,
+      "passed": 66,
+      "failed": 2,
+      "skipped": 0,
+      "notRun": 30,
+      "projects": [
+        "equipment-hierarchy-tests"
+      ]
+    },
+    "group4": {
+      "totalTests": 149,
+      "passed": 63,
+      "failed": 11,
+      "skipped": 1,
+      "notRun": 74,
+      "projects": [
+        "auth-tests",
+        "api-tests"
+      ]
+    },
+    "group5": {
+      "totalTests": 52,
+      "passed": 49,
+      "failed": 0,
+      "skipped": 3,
+      "projects": [
+        "routing-feature-tests",
+        "parameter-management-tests",
+        "spc-tests"
+      ]
+    },
+    "group6": {
+      "totalTests": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "projects": [
+        "smoke-tests"
+      ]
+    },
+    "group7": {
+      "totalTests": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "projects": [
+        "role-tests"
+      ]
+    }
+  },
+  "projectBreakdown": {
+    "authenticated": {
+      "expected": 78,
+      "passed": 71,
+      "failed": 5,
+      "skipped": 1,
+      "notRun": 0,
+      "successRate": 91.03,
+      "group": "group1",
+      "status": "executed-estimated"
+    },
+    "quality-tests": {
+      "expected": 33,
+      "passed": 30,
+      "failed": 2,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 90.91,
+      "group": "group1",
+      "status": "executed-estimated"
+    },
+    "collaborative-routing-tests": {
+      "expected": 17,
+      "passed": 14,
+      "failed": 1,
+      "skipped": 3,
+      "notRun": 0,
+      "successRate": 82.35,
+      "group": "group2",
+      "status": "executed-estimated"
+    },
+    "routing-feature-tests": {
+      "expected": 17,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 1,
+      "notRun": 0,
+      "successRate": 94.12,
+      "group": "group5",
+      "status": "executed-estimated"
+    },
+    "traceability-tests": {
+      "expected": 17,
+      "passed": 14,
+      "failed": 1,
+      "skipped": 3,
+      "notRun": 0,
+      "successRate": 82.35,
+      "group": "group2",
+      "status": "executed-estimated"
+    },
+    "equipment-hierarchy-tests": {
+      "expected": 98,
+      "passed": 66,
+      "failed": 2,
+      "skipped": 0,
+      "notRun": 30,
+      "successRate": 67.35,
+      "group": "group3",
+      "status": "executed"
+    },
+    "material-hierarchy-tests": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0,
+      "group": null,
+      "status": "not-executed"
+    },
+    "process-segment-hierarchy-tests": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0,
+      "group": null,
+      "status": "not-executed"
+    },
+    "fai-tests": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0,
+      "group": null,
+      "status": "not-executed"
+    },
+    "auth-tests": {
+      "expected": 89,
+      "passed": 38,
+      "failed": 7,
+      "skipped": 1,
+      "notRun": 44,
+      "successRate": 42.7,
+      "group": "group4",
+      "status": "executed-estimated"
+    },
+    "api-tests": {
+      "expected": 60,
+      "passed": 25,
+      "failed": 4,
+      "skipped": 0,
+      "notRun": 30,
+      "successRate": 41.67,
+      "group": "group4",
+      "status": "executed-estimated"
+    },
+    "parameter-management-tests": {
+      "expected": 17,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 1,
+      "notRun": 0,
+      "successRate": 94.12,
+      "group": "group5",
+      "status": "executed-estimated"
+    },
+    "spc-tests": {
+      "expected": 17,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 1,
+      "notRun": 0,
+      "successRate": 94.12,
+      "group": "group5",
+      "status": "executed-estimated"
+    },
+    "routing-edge-cases": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0,
+      "group": null,
+      "status": "not-executed"
+    },
+    "routing-localhost": {
+      "expected": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 0,
+      "group": null,
+      "status": "not-executed"
+    },
+    "smoke-tests": {
+      "expected": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100,
+      "group": "group6",
+      "status": "executed"
+    },
+    "role-tests": {
+      "expected": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100,
+      "group": "group7",
+      "status": "executed"
+    }
+  },
+  "groupBreakdown": {
+    "group1": {
+      "projects": [
+        "authenticated",
+        "quality-tests"
+      ],
+      "totalTests": 111,
+      "passed": 101,
+      "failed": 7,
+      "skipped": 1,
+      "notRun": 0,
+      "successRate": 90.99
+    },
+    "group2": {
+      "projects": [
+        "collaborative-routing-tests",
+        "traceability-tests"
+      ],
+      "totalTests": 33,
+      "passed": 27,
+      "failed": 1,
+      "skipped": 5,
+      "notRun": 0,
+      "successRate": 81.82
+    },
+    "group3": {
+      "projects": [
+        "equipment-hierarchy-tests"
+      ],
+      "totalTests": 98,
+      "passed": 66,
+      "failed": 2,
+      "skipped": 0,
+      "notRun": 30,
+      "successRate": 67.35
+    },
+    "group4": {
+      "projects": [
+        "auth-tests",
+        "api-tests"
+      ],
+      "totalTests": 149,
+      "passed": 63,
+      "failed": 11,
+      "skipped": 1,
+      "notRun": 74,
+      "successRate": 42.28
+    },
+    "group5": {
+      "projects": [
+        "routing-feature-tests",
+        "parameter-management-tests",
+        "spc-tests"
+      ],
+      "totalTests": 52,
+      "passed": 49,
+      "failed": 0,
+      "skipped": 3,
+      "notRun": 0,
+      "successRate": 94.23
+    },
+    "group6": {
+      "projects": [
+        "smoke-tests"
+      ],
+      "totalTests": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    },
+    "group7": {
+      "projects": [
+        "role-tests"
+      ],
+      "totalTests": 190,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0,
+      "successRate": 100
+    }
+  },
+  "infrastructureIssues": [
+    {
+      "category": "Frontend Server Stability",
+      "severity": "Critical",
+      "description": "Multiple HTTP 404 errors and server crashes during test execution",
+      "affectedGroups": [
+        "group3",
+        "group4"
+      ],
+      "impact": "High failure rate and execution gaps",
+      "priority": 1
+    },
+    {
+      "category": "Database Constraint Violations",
+      "severity": "Critical",
+      "description": "Foreign key constraint errors in ProductService operations",
+      "affectedGroups": [
+        "group1",
+        "group4"
+      ],
+      "impact": "Test failures due to data integrity issues",
+      "priority": 1
+    },
+    {
+      "category": "Authentication System Issues",
+      "severity": "High",
+      "description": "API login failures with HTTP 401 errors during execution",
+      "affectedGroups": [
+        "group4"
+      ],
+      "impact": "Tests unable to authenticate properly",
+      "priority": 2
+    },
+    {
+      "category": "Parameter Validation Failures",
+      "severity": "Medium",
+      "description": "Undefined parameter errors in production schedule and equipment APIs",
+      "affectedGroups": [
+        "group1",
+        "group3"
+      ],
+      "impact": "Business logic test failures",
+      "priority": 3
+    },
+    {
+      "category": "Business Logic Conflicts",
+      "severity": "Medium",
+      "description": "Circular reference detection and state transition errors",
+      "affectedGroups": [
+        "group1",
+        "group3"
+      ],
+      "impact": "Work order and operation management failures",
+      "priority": 3
+    }
+  ]
+}

@@ -603,6 +603,18 @@ export class MaterialService {
       throw new Error(`Lot ${lotId} not found`);
     }
 
+    // ✅ PHASE 8B FIX: Validate material lot state and status enum values
+    const validStates = Object.values(MaterialLotState) as string[];
+    const validStatuses = Object.values(MaterialLotStatus) as string[];
+
+    if (!validStates.includes(newState as string)) {
+      throw new Error(`Invalid material lot state: ${newState}. Valid states are: ${validStates.join(', ')}`);
+    }
+
+    if (!validStatuses.includes(newStatus as string)) {
+      throw new Error(`Invalid material lot status: ${newStatus}. Valid statuses are: ${validStatuses.join(', ')}`);
+    }
+
     // Create state transition record
     await this.createStateTransition({
       lotId,

@@ -79,8 +79,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       ? roles.every(role => userRoles.includes(role))
       : roles.some(role => userRoles.includes(role));
 
-    // System administrators have access to everything
-    const isSystemAdmin = userRoles.includes('System Administrator');
+    // System administrators and superusers have access to everything
+    const isSystemAdmin = userRoles.includes('System Administrator') || userRoles.includes('Superuser');
 
     if (!hasRoles && !isSystemAdmin) {
       return (
@@ -115,17 +115,17 @@ export const usePermissionCheck = () => {
     },
 
     hasRole: (role: Role): boolean => {
-      return userRoles.includes(role) || userRoles.includes('System Administrator');
+      return userRoles.includes(role) || userRoles.includes('System Administrator') || userRoles.includes('Superuser');
     },
 
     hasAnyRole: (roles: Role[]): boolean => {
-      return roles.some(role => userRoles.includes(role)) || 
-             userRoles.includes('System Administrator');
+      return roles.some(role => userRoles.includes(role)) ||
+             userRoles.includes('System Administrator') || userRoles.includes('Superuser');
     },
 
     hasAllRoles: (roles: Role[]): boolean => {
-      return roles.every(role => userRoles.includes(role)) || 
-             userRoles.includes('System Administrator');
+      return roles.every(role => userRoles.includes(role)) ||
+             userRoles.includes('System Administrator') || userRoles.includes('Superuser');
     },
 
     hasAnyPermission: (permissions: Permission[]): boolean => {

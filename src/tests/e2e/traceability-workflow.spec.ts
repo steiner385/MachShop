@@ -414,7 +414,9 @@ test.describe('Traceability & Serialization Workflow', () => {
     await page.waitForTimeout(1000);
 
     // Enter serial number - use more specific selector within active tab
-    const testSerial = 'SN-20251015-000001-7';
+    // ✅ PHASE 7B FIX: Use serial number format that matches actual seed data
+    // The seed creates serial numbers with unique suffix for each test project
+    const testSerial = 'TB-2024-001001-S001'; // Use working serial from seed data
 
     const serialInput = page.locator('.ant-tabs-tabpane-active input[placeholder*="serial number"]');
     if (await serialInput.isVisible()) {

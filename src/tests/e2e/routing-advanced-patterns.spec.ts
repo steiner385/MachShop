@@ -36,7 +36,7 @@ test.describe('Routing Advanced Patterns E2E Tests', () => {
       testPart = await prisma.part.create({
         data: {
           partNumber: 'ADV-PART-001',
-          name: 'Advanced Pattern Test Part',
+          partName: 'Advanced Pattern Test Part',
           description: 'Part for advanced pattern E2E tests',
           isActive: true,
         },

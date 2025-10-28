@@ -18,11 +18,15 @@
 import { test, expect, Page } from '@playwright/test';
 import { PrismaClient, RoutingLifecycleState } from '@prisma/client';
 import { setupTestAuth } from '../helpers/testAuthHelper';
+import { createNavigationManager, EnhancedNavigationManager } from '../helpers/enhancedNavigationManager';
+import { createReliableHelpers, ReliableTestHelpers } from '../helpers/reliableTestHelpers';
 
 const prisma = new PrismaClient();
 
 test.describe('Routing Visual Editor E2E Tests', () => {
   let page: Page;
+  let navigationManager: EnhancedNavigationManager;
+  let reliableHelpers: ReliableTestHelpers;
   let testPart: any;
   let testSite: any;
   let testProcessSegment: any;
@@ -32,6 +36,10 @@ test.describe('Routing Visual Editor E2E Tests', () => {
     // Create browser context
     const context = await browser.newContext();
     page = await context.newPage();
+
+    // Initialize navigation manager and reliable helpers
+    navigationManager = createNavigationManager(page);
+    reliableHelpers = createReliableHelpers(page);
 
     // Setup test data
     testSite = await prisma.site.findFirst({ where: { isActive: true } });
@@ -67,14 +75,21 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
   test.describe('Mode Switching', () => {
     test('should navigate to routing form page', async () => {
-      await page.goto('/routings/new');
+      // ✅ ENHANCED: Using navigation manager instead of raw page.goto
+      await navigationManager.navigateAuthenticated('/routings/new', {
+        description: 'Navigate to routing creation page'
+      });
       await expect(page.locator('h1')).toContainText('Create New Routing');
     });
 
     test('should display mode switcher with Form View and Visual Editor options', async () => {
-      await page.goto('/routings/new');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1500);
+      // ✅ ENHANCED: Intelligent wait strategies and route-specific configuration
+      await navigationManager.navigateAuthenticated('/routings/new', {
+        description: 'Navigate to routing creation for mode switcher test',
+        additionalWaits: [
+          { selector: '.ant-form, form', timeout: 10000 }
+        ]
+      });
 
       // Check for segmented control / mode switcher
       const formViewButton = page.locator('text=Form View').or(page.getByRole('button', { name: /form/i }));
@@ -85,9 +100,10 @@ test.describe('Routing Visual Editor E2E Tests', () => {
     });
 
     test('should start in Form View mode by default', async () => {
-      await page.goto('/routings/new');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1500);
+      // ✅ ENHANCED: Route-specific ready indicators ensure form is fully loaded
+      await navigationManager.navigateAuthenticated('/routings/new', {
+        description: 'Navigate to verify default Form View mode'
+      });
 
       // Check that form fields are visible
       const routingNumberInput = page.getByLabel(/routing number/i).or(page.locator('input[name="routingNumber"]'));
@@ -95,17 +111,38 @@ test.describe('Routing Visual Editor E2E Tests', () => {
     });
 
     test('should switch to Visual Editor mode when clicked', async () => {
-      await page.goto('/routings/new');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1500);
+      // ✅ ENHANCED: Use reliable navigation with SPA readiness
+      await navigationManager.navigateAuthenticated('/routings/new', {
+        description: 'Navigate to routing creation for Visual Editor switch test'
+      });
 
-      const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
-      await visualEditorButton.first().click();
-      await page.waitForTimeout(1000);
+      // ✅ ENHANCED: Use enhanced element waiting for Visual Editor button
+      const visualEditorButton = await reliableHelpers.waitForElementReady(
+        'text=Visual Editor, button:has-text("Visual Editor"), [role="button"]:has-text("Visual"), button:contains("Visual")',
+        {
+          timeout: 30000,
+          retries: 4,
+          description: 'Visual Editor mode button',
+          progressive: true
+        }
+      );
 
-      // Check for ReactFlow canvas
-      const reactFlowCanvas = page.locator('.react-flow').or(page.locator('[class*="reactflow"]'));
-      await expect(reactFlowCanvas.first()).toBeVisible({ timeout: 15000 });
+      // ✅ ENHANCED: Use safe click with verification
+      await reliableHelpers.safeClick(
+        'text=Visual Editor, button:has-text("Visual Editor"), [role="button"]:has-text("Visual")',
+        {
+          timeout: 20000,
+          description: 'Visual Editor mode button'
+        }
+      );
+
+      // ✅ ENHANCED: Use specialized Visual Editor wait
+      await reliableHelpers.waitForVisualEditor({
+        timeout: 45000,
+        waitForCanvas: true,
+        waitForToolbar: false,
+        description: 'Visual Editor canvas initialization'
+      });
     });
 
     test('should switch back to Form View from Visual Editor', async () => {
@@ -131,14 +168,31 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
   test.describe('Visual Editor UI Elements', () => {
     test.beforeEach(async () => {
-      await page.goto('/routings/new');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1500);
+      // ✅ ENHANCED: Reliable navigation with intelligent waiting
+      await navigationManager.navigateAuthenticated('/routings/new', {
+        description: 'Navigate to routing creation for visual editor tests',
+        additionalWaits: [
+          { selector: '.ant-form, form', timeout: 10000 }
+        ]
+      });
 
-      // Switch to visual editor mode
-      const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
-      await visualEditorButton.first().click();
-      await page.waitForTimeout(1000);
+      // ✅ ENHANCED: Switch to visual editor mode with enhanced stability
+      await reliableHelpers.safeClick(
+        'text=Visual Editor, button:has-text("Visual Editor"), [role="button"]:has-text("Visual")',
+        {
+          timeout: 30000,
+          retries: 4,
+          description: 'Visual Editor mode switch button'
+        }
+      );
+
+      // ✅ ENHANCED: Wait for ReactFlow and Visual Editor to be fully ready
+      await reliableHelpers.waitForVisualEditor({
+        timeout: 45000,
+        waitForCanvas: true,
+        waitForToolbar: true,
+        description: 'Visual Editor complete initialization'
+      });
     });
 
     test('should display ReactFlow canvas', async () => {
@@ -148,8 +202,8 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
     test('should display control panel with quick-add buttons', async () => {
       // Visual editor control panel implemented with comprehensive quick-add buttons
-      // Look for control panel with various node type buttons (use exact text match)
-      const processButton = page.getByRole('button', { name: 'Process', exact: true });
+      // Use data-testid selectors for better reliability
+      const processButton = page.getByTestId('add-process-button');
       const inspectionButton = page.getByRole('button', { name: 'Inspection', exact: true });
       const decisionButton = page.getByRole('button', { name: 'Decision', exact: true });
       const splitButton = page.getByRole('button', { name: 'Split', exact: true });
@@ -398,15 +452,23 @@ test.describe('Routing Visual Editor E2E Tests', () => {
 
       createdRoutingId = routing.id;
 
-      // Navigate to edit this routing
-      await page.goto(`/routings/${routing.id}/edit`);
-      await page.waitForTimeout(1000);
+      // ✅ ENHANCED: Navigate to edit with dynamic route handling
+      await navigationManager.navigateAuthenticated(`/routings/${routing.id}/edit`, {
+        description: `Navigate to edit routing ${routing.id}`,
+        expectedUrl: new RegExp(`/routings/${routing.id}/edit`),
+        additionalWaits: [
+          { selector: '.ant-form, form', timeout: 10000 },
+          { networkIdle: true, timeout: 5000 }
+        ]
+      });
 
-      // Switch to visual editor
+      // Switch to visual editor with enhanced stability
       const visualEditorButton = page.locator('text=Visual Editor').or(page.getByRole('button', { name: /visual/i }));
       if (await visualEditorButton.count() > 0) {
         await visualEditorButton.first().click();
-        await page.waitForTimeout(1000);
+
+        // Wait for ReactFlow and nodes to be rendered
+        await page.waitForSelector('.react-flow__node', { timeout: 15000 });
 
         // Check if nodes are rendered
         const nodes = page.locator('.react-flow__node');

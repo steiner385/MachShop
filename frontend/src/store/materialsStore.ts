@@ -185,35 +185,59 @@ export const useMaterialsStore = create<MaterialsStore>()(
 
       fetchDefinitions: async (params?: MaterialQueryParams) => {
         set({ definitionsLoading: true, definitionsError: null });
-        const filters = params || get().definitionFilters;
-        const response = await materialDefinitionAPI.getAllDefinitions(filters);
+        try {
+          const filters = params || get().definitionFilters;
+          const response = await materialDefinitionAPI.getAllDefinitions(filters);
 
-        if (response.success && response.data) {
-          set({ definitions: response.data, definitionsLoading: false });
-        } else {
-          set({ definitionsError: response.error || 'Failed to fetch definitions', definitionsLoading: false });
+          if (response.success && response.data) {
+            set({ definitions: response.data, definitionsLoading: false });
+          } else {
+            set({ definitionsError: response.error || 'Failed to fetch definitions', definitionsLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchDefinitions error:', error);
+          set({
+            definitionsError: error instanceof Error ? error.message : 'Network error while fetching definitions',
+            definitionsLoading: false
+          });
         }
       },
 
       fetchDefinitionById: async (id: string, includeRelations: boolean = true) => {
         set({ definitionsLoading: true, definitionsError: null });
-        const response = await materialDefinitionAPI.getDefinitionById(id, includeRelations);
+        try {
+          const response = await materialDefinitionAPI.getDefinitionById(id, includeRelations);
 
-        if (response.success && response.data) {
-          set({ currentDefinition: response.data, definitionsLoading: false });
-        } else {
-          set({ definitionsError: response.error || 'Failed to fetch definition', definitionsLoading: false });
+          if (response.success && response.data) {
+            set({ currentDefinition: response.data, definitionsLoading: false });
+          } else {
+            set({ definitionsError: response.error || 'Failed to fetch definition', definitionsLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchDefinitionById error:', error);
+          set({
+            definitionsError: error instanceof Error ? error.message : 'Network error while fetching definition',
+            definitionsLoading: false
+          });
         }
       },
 
       fetchDefinitionByNumber: async (materialNumber: string, includeRelations: boolean = true) => {
         set({ definitionsLoading: true, definitionsError: null });
-        const response = await materialDefinitionAPI.getDefinitionByNumber(materialNumber, includeRelations);
+        try {
+          const response = await materialDefinitionAPI.getDefinitionByNumber(materialNumber, includeRelations);
 
-        if (response.success && response.data) {
-          set({ currentDefinition: response.data, definitionsLoading: false });
-        } else {
-          set({ definitionsError: response.error || 'Failed to fetch definition', definitionsLoading: false });
+          if (response.success && response.data) {
+            set({ currentDefinition: response.data, definitionsLoading: false });
+          } else {
+            set({ definitionsError: response.error || 'Failed to fetch definition', definitionsLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchDefinitionByNumber error:', error);
+          set({
+            definitionsError: error instanceof Error ? error.message : 'Network error while fetching definition',
+            definitionsLoading: false
+          });
         }
       },
 
@@ -231,24 +255,40 @@ export const useMaterialsStore = create<MaterialsStore>()(
 
       fetchLots: async (params?: MaterialLotQueryParams) => {
         set({ lotsLoading: true, lotsError: null });
-        const filters = params || get().lotFilters;
-        const response = await materialLotAPI.getAllLots(filters);
+        try {
+          const filters = params || get().lotFilters;
+          const response = await materialLotAPI.getAllLots(filters);
 
-        if (response.success && response.data) {
-          set({ lots: response.data, lotsLoading: false });
-        } else {
-          set({ lotsError: response.error || 'Failed to fetch lots', lotsLoading: false });
+          if (response.success && response.data) {
+            set({ lots: response.data, lotsLoading: false });
+          } else {
+            set({ lotsError: response.error || 'Failed to fetch lots', lotsLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchLots error:', error);
+          set({
+            lotsError: error instanceof Error ? error.message : 'Network error while fetching lots',
+            lotsLoading: false
+          });
         }
       },
 
       fetchLotById: async (id: string, includeRelations: boolean = true) => {
         set({ lotsLoading: true, lotsError: null });
-        const response = await materialLotAPI.getLotById(id, includeRelations);
+        try {
+          const response = await materialLotAPI.getLotById(id, includeRelations);
 
-        if (response.success && response.data) {
-          set({ currentLot: response.data, lotsLoading: false });
-        } else {
-          set({ lotsError: response.error || 'Failed to fetch lot', lotsLoading: false });
+          if (response.success && response.data) {
+            set({ currentLot: response.data, lotsLoading: false });
+          } else {
+            set({ lotsError: response.error || 'Failed to fetch lot', lotsLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchLotById error:', error);
+          set({
+            lotsError: error instanceof Error ? error.message : 'Network error while fetching lot',
+            lotsLoading: false
+          });
         }
       },
 
@@ -299,12 +339,20 @@ export const useMaterialsStore = create<MaterialsStore>()(
 
       fetchClasses: async (includeRelations: boolean = false) => {
         set({ classesLoading: true, classesError: null });
-        const response = await materialClassAPI.getAllClasses(includeRelations);
+        try {
+          const response = await materialClassAPI.getAllClasses(includeRelations);
 
-        if (response.success && response.data) {
-          set({ classes: response.data, classesLoading: false });
-        } else {
-          set({ classesError: response.error || 'Failed to fetch classes', classesLoading: false });
+          if (response.success && response.data) {
+            set({ classes: response.data, classesLoading: false });
+          } else {
+            set({ classesError: response.error || 'Failed to fetch classes', classesLoading: false });
+          }
+        } catch (error) {
+          console.error('[MaterialsStore] fetchClasses error:', error);
+          set({
+            classesError: error instanceof Error ? error.message : 'Network error while fetching classes',
+            classesLoading: false
+          });
         }
       },
 

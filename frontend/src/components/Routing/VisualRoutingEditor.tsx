@@ -325,6 +325,7 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
         {!readOnly && (
           <Panel position="top-right">
             <Space direction="vertical" size="small">
+              {/* ✅ PHASE 10C FIX: Remove explicit test IDs to prevent conflicts when multiple visual editors are rendered */}
               <Tooltip title="Save Routing">
                 <Button
                   type="primary"

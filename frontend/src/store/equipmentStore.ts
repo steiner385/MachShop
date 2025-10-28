@@ -189,13 +189,21 @@ export const useEquipmentStore = create<EquipmentStore>()(
 
       fetchEquipment: async (params?: EquipmentQueryParams) => {
         set({ equipmentLoading: true, equipmentError: null });
-        const filters = params || get().equipmentFilters;
-        const response = await equipmentAPI.getAllEquipment(filters);
+        try {
+          const filters = params || get().equipmentFilters;
+          const response = await equipmentAPI.getAllEquipment(filters);
 
-        if (response.success && response.data) {
-          set({ equipment: response.data, equipmentLoading: false });
-        } else {
-          set({ equipmentError: response.error || 'Failed to fetch equipment', equipmentLoading: false });
+          if (response.success && response.data) {
+            set({ equipment: response.data, equipmentLoading: false });
+          } else {
+            set({ equipmentError: response.error || 'Failed to fetch equipment', equipmentLoading: false });
+          }
+        } catch (error) {
+          console.error('[EquipmentStore] fetchEquipment error:', error);
+          set({
+            equipmentError: error instanceof Error ? error.message : 'Network error while fetching equipment',
+            equipmentLoading: false
+          });
         }
       },
 
@@ -290,13 +298,21 @@ export const useEquipmentStore = create<EquipmentStore>()(
 
       fetchMaintenance: async (params?: MaintenanceQueryParams) => {
         set({ maintenanceLoading: true, maintenanceError: null });
-        const filters = params || get().maintenanceFilters;
-        const response = await maintenanceAPI.getAllMaintenance(filters);
+        try {
+          const filters = params || get().maintenanceFilters;
+          const response = await maintenanceAPI.getAllMaintenance(filters);
 
-        if (response.success && response.data) {
-          set({ maintenanceRecords: response.data, maintenanceLoading: false });
-        } else {
-          set({ maintenanceError: response.error || 'Failed to fetch maintenance records', maintenanceLoading: false });
+          if (response.success && response.data) {
+            set({ maintenanceRecords: response.data, maintenanceLoading: false });
+          } else {
+            set({ maintenanceError: response.error || 'Failed to fetch maintenance records', maintenanceLoading: false });
+          }
+        } catch (error) {
+          console.error('[EquipmentStore] fetchMaintenance error:', error);
+          set({
+            maintenanceError: error instanceof Error ? error.message : 'Network error while fetching maintenance records',
+            maintenanceLoading: false
+          });
         }
       },
 

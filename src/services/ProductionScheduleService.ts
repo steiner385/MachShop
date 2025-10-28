@@ -104,8 +104,14 @@ export class ProductionScheduleService {
    * Get schedule by ID
    */
   async getScheduleById(id: string, includeRelations: boolean = true) {
+  // ✅ PHASE 5: Enhanced service-level validation to prevent business logic conflicts
+  if (!id || typeof id !== 'string' || id.trim() === '' || id === 'undefined' || id === 'null') {
+    throw new Error(`Invalid schedule ID provided: "${id}". ID must be a non-empty string.`);
+  }
+
+  const cleanId = id.trim();
   const schedule = await this.prisma.productionSchedule.findUnique({
-    where: { id },
+    where: { id: cleanId },
     include: includeRelations ? {
       site: true,
       entries: {
@@ -138,8 +144,14 @@ export class ProductionScheduleService {
    * Get schedule by schedule number
    */
   async getScheduleByNumber(scheduleNumber: string, includeRelations: boolean = true) {
+  // ✅ PHASE 5: Enhanced service-level validation to prevent business logic conflicts
+  if (!scheduleNumber || typeof scheduleNumber !== 'string' || scheduleNumber.trim() === '' || scheduleNumber === 'undefined' || scheduleNumber === 'null') {
+    throw new Error(`Invalid schedule number provided: "${scheduleNumber}". Schedule number must be a non-empty string.`);
+  }
+
+  const cleanScheduleNumber = scheduleNumber.trim();
   const schedule = await this.prisma.productionSchedule.findUnique({
-    where: { scheduleNumber },
+    where: { scheduleNumber: cleanScheduleNumber },
     include: includeRelations ? {
       site: true,
       entries: {
@@ -686,6 +698,13 @@ export class ProductionScheduleService {
 
   if (!schedule) {
     throw new Error(`Production schedule with ID ${scheduleId} not found`);
+  }
+
+  // ✅ PHASE 8B FIX: Validate schedule state enum values
+  // Valid states: FORECAST, RELEASED, DISPATCHED, RUNNING, COMPLETED, CLOSED
+  const validStates = Object.values(ScheduleState) as string[];
+  if (!validStates.includes(data.newState as string)) {
+    throw new Error(`Invalid schedule state: ${data.newState}. Valid states are: ${validStates.join(', ')}`);
   }
 
   // Validate state transitions

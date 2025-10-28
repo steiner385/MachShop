@@ -104,6 +104,20 @@ export class WorkOrderService {
       });
     }
 
+    // Validate that the user creating the work order exists
+    const creator = await prisma.user.findUnique({
+      where: { id: createdBy },
+      select: { id: true, username: true, isActive: true }
+    });
+
+    if (!creator) {
+      throw new Error(`User with ID ${createdBy} not found - cannot create work order`);
+    }
+
+    if (!creator.isActive) {
+      throw new Error(`User ${creator.username} is not active - cannot create work order`);
+    }
+
     // Create work order in database
     const workOrder = await prisma.workOrder.create({
       data: {

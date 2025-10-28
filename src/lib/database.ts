@@ -41,10 +41,12 @@ function getDatabaseUrl(): string {
     poolTimeout = 30;  // Longer timeout for high-load scenarios
     connectTimeout = 10;
   } else if (isTest) {
-    // Test: Moderate limits to prevent pool exhaustion during E2E tests
-    connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '25', 10);
-    poolTimeout = 15;  // Longer timeout for test scenarios
-    connectTimeout = 10;
+    // Test: Higher limits to handle concurrent E2E test load with multiple test groups
+    // With ~25 concurrent test processes + pre-auth for 22 users + browser requests
+    // we need significant headroom to prevent connection pool exhaustion
+    connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '100', 10);
+    poolTimeout = 30;  // Extended timeout for high-concurrency test scenarios
+    connectTimeout = 15;
   } else if (isDevelopment) {
     // Development: Lower limits for local development
     connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '15', 10);

@@ -230,6 +230,15 @@ async updatePart(id: string, data: Partial<{
   isConfigurable: boolean;
   requiresFAI: boolean;
 }>) {
+  // Check if part exists first
+  const existingPart = await this.prisma.part.findUnique({
+    where: { id },
+  });
+
+  if (!existingPart) {
+    throw new Error(`Part with ID ${id} not found`);
+  }
+
   const part = await this.prisma.part.update({
     where: { id },
     data,
@@ -247,18 +256,86 @@ async updatePart(id: string, data: Partial<{
  * Delete part (soft delete by default)
  */
 async deletePart(id: string, hardDelete: boolean = false) {
-  if (hardDelete) {
-    await this.prisma.part.delete({
+  // Use transaction to ensure atomicity of part deletion with related records
+  return await this.prisma.$transaction(async (prisma) => {
+    // Check if part exists first
+    const existingPart = await prisma.part.findUnique({
       where: { id },
+      include: {
+        bomItems: { where: { isActive: true } },
+        componentItems: { where: { isActive: true } },
+        configurations: { where: { isActive: true } },
+        specifications: { where: { isActive: true } },
+      },
     });
-    return { message: 'Part permanently deleted', id };
-  } else {
-    await this.prisma.part.update({
-      where: { id },
-      data: { isActive: false },
-    });
-    return { message: 'Part deactivated', id };
-  }
+
+    if (!existingPart) {
+      throw new Error(`Part with ID ${id} not found`);
+    }
+
+    if (hardDelete) {
+      // For hard delete, we need to check dependencies
+      if (existingPart.componentItems.length > 0) {
+        const parentParts = existingPart.componentItems.map(item => item.parentPartId || 'Unknown').join(', ');
+        throw new Error(`Cannot delete part ${existingPart.partNumber} - it is used as component in parts: ${parentParts}`);
+      }
+
+      // Hard delete (cascade will handle related records)
+      await prisma.part.delete({
+        where: { id },
+      });
+      return { message: 'Part permanently deleted', id };
+    } else {
+      // Soft delete: deactivate part and related records atomically
+      await prisma.part.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      // Deactivate all BOM items where this part is the parent
+      if (existingPart.bomItems.length > 0) {
+        await prisma.bOMItem.updateMany({
+          where: { parentPartId: id, isActive: true },
+          data: { isActive: false },
+        });
+      }
+
+      // Deactivate all configurations for this part
+      if (existingPart.configurations.length > 0) {
+        // First delete all configuration options for active configurations
+        // (ConfigurationOption has no isActive field, so we delete them)
+        for (const config of existingPart.configurations) {
+          await prisma.configurationOption.deleteMany({
+            where: { configurationId: config.id },
+          });
+        }
+
+        // Then deactivate the configurations
+        await prisma.productConfiguration.updateMany({
+          where: { partId: id, isActive: true },
+          data: { isActive: false },
+        });
+      }
+
+      // Deactivate all specifications for this part
+      if (existingPart.specifications.length > 0) {
+        await prisma.productSpecification.updateMany({
+          where: { partId: id, isActive: true },
+          data: { isActive: false },
+        });
+      }
+
+      return {
+        message: 'Part and related records deactivated',
+        id,
+        affectedRecords: {
+          bomItems: existingPart.bomItems.length,
+          configurations: existingPart.configurations.length,
+          specifications: existingPart.specifications.length,
+        }
+      };
+    }
+  });
 }
 
 // ============================================================================
@@ -329,6 +406,15 @@ async updateSpecification(specificationId: string, data: Partial<{
   notes: string;
   isActive: boolean;
 }>) {
+  // Check if specification exists first
+  const existingSpec = await this.prisma.productSpecification.findUnique({
+    where: { id: specificationId },
+  });
+
+  if (!existingSpec) {
+    throw new Error(`Product specification with ID ${specificationId} not found`);
+  }
+
   const spec = await this.prisma.productSpecification.update({
     where: { id: specificationId },
     data,
@@ -341,6 +427,15 @@ async updateSpecification(specificationId: string, data: Partial<{
  * Delete specification
  */
 async deleteSpecification(specificationId: string) {
+  // Check if specification exists first
+  const existingSpec = await this.prisma.productSpecification.findUnique({
+    where: { id: specificationId },
+  });
+
+  if (!existingSpec) {
+    throw new Error(`Product specification with ID ${specificationId} not found`);
+  }
+
   await this.prisma.productSpecification.delete({
     where: { id: specificationId },
   });
@@ -371,6 +466,20 @@ async addConfiguration(partId: string, data: {
   marketingName?: string;
   imageUrl?: string;
 }) {
+  // ✅ PHASE 6F FIX: Validate part exists before creating configuration
+  const existingPart = await this.prisma.part.findUnique({
+    where: { id: partId },
+    select: { id: true, isActive: true }
+  });
+
+  if (!existingPart) {
+    throw new Error(`Part with ID ${partId} not found - cannot create configuration`);
+  }
+
+  if (!existingPart.isActive) {
+    throw new Error(`Part with ID ${partId} is not active - cannot create configuration`);
+  }
+
   const config = await this.prisma.productConfiguration.create({
     data: {
       partId,
@@ -388,6 +497,16 @@ async addConfiguration(partId: string, data: {
  * Get all configurations for a part
  */
 async getPartConfigurations(partId: string) {
+  // ✅ PHASE 6F FIX: Validate part exists before querying configurations
+  const existingPart = await this.prisma.part.findUnique({
+    where: { id: partId },
+    select: { id: true, isActive: true }
+  });
+
+  if (!existingPart) {
+    throw new Error(`Part with ID ${partId} not found - cannot retrieve configurations`);
+  }
+
   const configs = await this.prisma.productConfiguration.findMany({
     where: { partId },
     include: {
@@ -422,6 +541,30 @@ async updateConfiguration(configurationId: string, data: Partial<{
   imageUrl: string;
   isActive: boolean;
 }>) {
+  // ✅ PHASE 6F FIX: Enhanced validation for configuration updates
+  const existingConfig = await this.prisma.productConfiguration.findUnique({
+    where: { id: configurationId },
+    select: { id: true, isActive: true, partId: true }
+  });
+
+  if (!existingConfig) {
+    throw new Error(`Product configuration with ID ${configurationId} not found`);
+  }
+
+  if (!existingConfig.isActive) {
+    throw new Error(`Product configuration with ID ${configurationId} is not active - cannot update`);
+  }
+
+  // Validate that the parent part is still active
+  const parentPart = await this.prisma.part.findUnique({
+    where: { id: existingConfig.partId },
+    select: { id: true, isActive: true }
+  });
+
+  if (!parentPart?.isActive) {
+    throw new Error(`Parent part is not active - cannot update configuration ${configurationId}`);
+  }
+
   const config = await this.prisma.productConfiguration.update({
     where: { id: configurationId },
     data,
@@ -437,6 +580,22 @@ async updateConfiguration(configurationId: string, data: Partial<{
  * Delete configuration
  */
 async deleteConfiguration(configurationId: string) {
+  // Check if configuration exists first
+  const existingConfig = await this.prisma.productConfiguration.findUnique({
+    where: { id: configurationId },
+  });
+
+  if (!existingConfig) {
+    throw new Error(`Product configuration with ID ${configurationId} not found`);
+  }
+
+  // CRITICAL: Delete all configuration options first to avoid foreign key constraint violations
+  // ConfigurationOption has a foreign key to ProductConfiguration
+  await this.prisma.configurationOption.deleteMany({
+    where: { configurationId: configurationId },
+  });
+
+  // Now safe to delete the configuration
   await this.prisma.productConfiguration.delete({
     where: { id: configurationId },
   });
@@ -461,6 +620,62 @@ async addConfigurationOption(configurationId: string, data: {
   costModifier?: number;
   displayOrder?: number;
 }) {
+  // ✅ PHASE 7C FIX: Validate configurationId parameter is provided
+  if (!configurationId || configurationId === 'undefined') {
+    throw new Error(`Configuration ID is required but was: ${configurationId}. This indicates a test setup failure or missing configuration creation.`);
+  }
+
+  // CRITICAL: Validate configuration exists and is active before creating option
+  const existingConfiguration = await this.prisma.productConfiguration.findUnique({
+    where: { id: configurationId },
+    select: { id: true, isActive: true }
+  });
+
+  if (!existingConfiguration) {
+    throw new Error(`Product configuration with ID ${configurationId} not found - cannot create configuration option`);
+  }
+
+  if (!existingConfiguration.isActive) {
+    throw new Error(`Product configuration with ID ${configurationId} is not active - cannot create configuration option`);
+  }
+
+  // CRITICAL: Validate part IDs exist if provided to prevent foreign key violations
+  if (data.addedPartIds && data.addedPartIds.length > 0) {
+    const existingParts = await this.prisma.part.findMany({
+      where: {
+        id: { in: data.addedPartIds },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    const missingPartIds = data.addedPartIds.filter(
+      partId => !existingParts.some(part => part.id === partId)
+    );
+
+    if (missingPartIds.length > 0) {
+      throw new Error(`The following part IDs do not exist or are inactive: ${missingPartIds.join(', ')}`);
+    }
+  }
+
+  if (data.removedPartIds && data.removedPartIds.length > 0) {
+    const existingParts = await this.prisma.part.findMany({
+      where: {
+        id: { in: data.removedPartIds },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    const missingPartIds = data.removedPartIds.filter(
+      partId => !existingParts.some(part => part.id === partId)
+    );
+
+    if (missingPartIds.length > 0) {
+      throw new Error(`The following part IDs do not exist or are inactive: ${missingPartIds.join(', ')}`);
+    }
+  }
+
   const option = await this.prisma.configurationOption.create({
     data: {
       configurationId,
@@ -490,6 +705,66 @@ async updateConfigurationOption(optionId: string, data: Partial<{
   costModifier: number;
   displayOrder: number;
 }>) {
+  // ✅ PHASE 7C FIX: Validate optionId parameter is provided
+  if (!optionId || optionId === 'undefined') {
+    throw new Error(`Option ID is required but was: ${optionId}. This indicates a test setup failure or missing option creation.`);
+  }
+
+  // CRITICAL: Check if option exists and its configuration is active
+  const existingOption = await this.prisma.configurationOption.findUnique({
+    where: { id: optionId },
+    include: {
+      configuration: {
+        select: { id: true, isActive: true }
+      }
+    }
+  });
+
+  if (!existingOption) {
+    throw new Error(`Configuration option with ID ${optionId} not found`);
+  }
+
+  if (!existingOption.configuration?.isActive) {
+    throw new Error(`Configuration option with ID ${optionId} belongs to an inactive configuration - cannot update`);
+  }
+
+  // CRITICAL: Validate part IDs exist if being updated to prevent foreign key violations
+  if (data.addedPartIds && data.addedPartIds.length > 0) {
+    const existingParts = await this.prisma.part.findMany({
+      where: {
+        id: { in: data.addedPartIds },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    const missingPartIds = data.addedPartIds.filter(
+      partId => !existingParts.some(part => part.id === partId)
+    );
+
+    if (missingPartIds.length > 0) {
+      throw new Error(`The following part IDs do not exist or are inactive: ${missingPartIds.join(', ')}`);
+    }
+  }
+
+  if (data.removedPartIds && data.removedPartIds.length > 0) {
+    const existingParts = await this.prisma.part.findMany({
+      where: {
+        id: { in: data.removedPartIds },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    const missingPartIds = data.removedPartIds.filter(
+      partId => !existingParts.some(part => part.id === partId)
+    );
+
+    if (missingPartIds.length > 0) {
+      throw new Error(`The following part IDs do not exist or are inactive: ${missingPartIds.join(', ')}`);
+    }
+  }
+
   const option = await this.prisma.configurationOption.update({
     where: { id: optionId },
     data,
@@ -502,11 +777,42 @@ async updateConfigurationOption(optionId: string, data: Partial<{
  * Delete configuration option
  */
 async deleteConfigurationOption(optionId: string) {
-  await this.prisma.configurationOption.delete({
+  // ✅ PHASE 7C FIX: Validate optionId parameter is provided
+  if (!optionId || optionId === 'undefined') {
+    throw new Error(`Option ID is required but was: ${optionId}. This indicates a test setup failure or missing option creation.`);
+  }
+
+  // CRITICAL: Check if option exists and validate configuration state
+  const existingOption = await this.prisma.configurationOption.findUnique({
     where: { id: optionId },
+    include: {
+      configuration: {
+        select: { id: true, isActive: true }
+      }
+    }
   });
 
-  return { message: 'Configuration option deleted', id: optionId };
+  if (!existingOption) {
+    throw new Error(`Configuration option with ID ${optionId} not found`);
+  }
+
+  if (!existingOption.configuration?.isActive) {
+    throw new Error(`Configuration option with ID ${optionId} belongs to an inactive configuration - cannot delete`);
+  }
+
+  // CRITICAL: Safe deletion with proper constraint handling
+  try {
+    await this.prisma.configurationOption.delete({
+      where: { id: optionId },
+    });
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      throw new Error(`Cannot delete configuration option - it is referenced by other records. Please remove references first.`);
+    }
+    throw error;
+  }
+
+  return { message: 'Configuration option deleted successfully', id: optionId };
 }
 
 // ============================================================================
@@ -527,44 +833,47 @@ async transitionLifecycleState(partId: string, data: {
   notes?: string;
   metadata?: any;
 }) {
-  // Get current part state
-  const part = await this.prisma.part.findUnique({
-    where: { id: partId },
-    select: { lifecycleState: true },
+  // Use transaction to ensure atomicity of lifecycle transition
+  return await this.prisma.$transaction(async (prisma) => {
+    // Get current part state
+    const part = await prisma.part.findUnique({
+      where: { id: partId },
+      select: { lifecycleState: true },
+    });
+
+    if (!part) {
+      throw new Error(`Part with ID ${partId} not found`);
+    }
+
+    // Create lifecycle history record
+    const lifecycleRecord = await prisma.productLifecycle.create({
+      data: {
+        partId,
+        previousState: part.lifecycleState,
+        newState: data.newState,
+        transitionDate: new Date(),
+        reason: data.reason,
+        ecoNumber: data.ecoNumber,
+        approvedBy: data.approvedBy,
+        approvedAt: data.approvedAt,
+        notificationsSent: data.notificationsSent || false,
+        impactAssessment: data.impactAssessment,
+        notes: data.notes,
+        metadata: data.metadata,
+      },
+    });
+
+    // Update part lifecycle state atomically
+    await prisma.part.update({
+      where: { id: partId },
+      data: {
+        lifecycleState: data.newState,
+        ...(data.newState === 'OBSOLETE' ? { obsoleteDate: new Date() } : {}),
+      },
+    });
+
+    return lifecycleRecord;
   });
-
-  if (!part) {
-    throw new Error(`Part with ID ${partId} not found`);
-  }
-
-  // Create lifecycle history record
-  const lifecycleRecord = await this.prisma.productLifecycle.create({
-    data: {
-      partId,
-      previousState: part.lifecycleState,
-      newState: data.newState,
-      transitionDate: new Date(),
-      reason: data.reason,
-      ecoNumber: data.ecoNumber,
-      approvedBy: data.approvedBy,
-      approvedAt: data.approvedAt,
-      notificationsSent: data.notificationsSent || false,
-      impactAssessment: data.impactAssessment,
-      notes: data.notes,
-      metadata: data.metadata,
-    },
-  });
-
-  // Update part lifecycle state
-  await this.prisma.part.update({
-    where: { id: partId },
-    data: {
-      lifecycleState: data.newState,
-      ...(data.newState === 'OBSOLETE' ? { obsoleteDate: new Date() } : {}),
-    },
-  });
-
-  return lifecycleRecord;
 }
 
 /**
@@ -604,19 +913,72 @@ async addBOMItem(data: {
   isCritical?: boolean;
   notes?: string;
 }) {
-  const bomItem = await this.prisma.bOMItem.create({
-    data: {
-      ...data,
-      scrapFactor: data.scrapFactor || 0,
-    },
-    include: {
-      parentPart: true,
-      componentPart: true,
-      operation: true,
-    },
-  });
+  // Use transaction to ensure atomicity of BOM item creation with validation
+  return await this.prisma.$transaction(async (prisma) => {
+    // Validate parent part exists
+    const parentPart = await prisma.part.findUnique({
+      where: { id: data.parentPartId },
+      select: { id: true, partNumber: true, isActive: true },
+    });
 
-  return bomItem;
+    if (!parentPart) {
+      throw new Error(`Parent part with ID ${data.parentPartId} not found`);
+    }
+
+    if (!parentPart.isActive) {
+      throw new Error(`Parent part ${parentPart.partNumber} is not active`);
+    }
+
+    // Validate component part exists
+    const componentPart = await prisma.part.findUnique({
+      where: { id: data.componentPartId },
+      select: { id: true, partNumber: true, isActive: true },
+    });
+
+    if (!componentPart) {
+      throw new Error(`Component part with ID ${data.componentPartId} not found`);
+    }
+
+    if (!componentPart.isActive) {
+      throw new Error(`Component part ${componentPart.partNumber} is not active`);
+    }
+
+    // Validate operation exists if specified
+    if (data.operationId) {
+      const operation = await prisma.operation.findUnique({
+        where: { id: data.operationId },
+        select: { id: true, isActive: true },
+      });
+
+      if (!operation) {
+        throw new Error(`Operation with ID ${data.operationId} not found`);
+      }
+
+      if (!operation.isActive) {
+        throw new Error(`Operation with ID ${data.operationId} is not active`);
+      }
+    }
+
+    // Check for circular reference (component cannot be parent of itself)
+    if (data.parentPartId === data.componentPartId) {
+      throw new Error('Cannot add part as component of itself (circular reference)');
+    }
+
+    // Create BOM item atomically
+    const bomItem = await prisma.bOMItem.create({
+      data: {
+        ...data,
+        scrapFactor: data.scrapFactor || 0,
+      },
+      include: {
+        parentPart: true,
+        componentPart: true,
+        operation: true,
+      },
+    });
+
+    return bomItem;
+  });
 }
 
 /**
@@ -674,6 +1036,15 @@ async updateBOMItem(bomItemId: string, data: Partial<{
   notes: string;
   isActive: boolean;
 }>) {
+  // Check if BOM item exists first
+  const existingBOMItem = await this.prisma.bOMItem.findUnique({
+    where: { id: bomItemId },
+  });
+
+  if (!existingBOMItem) {
+    throw new Error(`BOM item with ID ${bomItemId} not found`);
+  }
+
   const bomItem = await this.prisma.bOMItem.update({
     where: { id: bomItemId },
     data,
@@ -691,6 +1062,15 @@ async updateBOMItem(bomItemId: string, data: Partial<{
  * Delete BOM item
  */
 async deleteBOMItem(bomItemId: string, hardDelete: boolean = false) {
+  // Check if BOM item exists first
+  const existingBOMItem = await this.prisma.bOMItem.findUnique({
+    where: { id: bomItemId },
+  });
+
+  if (!existingBOMItem) {
+    throw new Error(`BOM item with ID ${bomItemId} not found`);
+  }
+
   if (hardDelete) {
     await this.prisma.bOMItem.delete({
       where: { id: bomItemId },

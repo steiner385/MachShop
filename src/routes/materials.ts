@@ -33,12 +33,22 @@ router.get('/classes',
 router.get('/classes/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const materialClass = await MaterialService.getMaterialClassById(req.params.id);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material class ID is required'
+      });
+    }
+
+    const materialClass = await MaterialService.getMaterialClassById(id);
 
     if (!materialClass) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material class with ID ${req.params.id} not found`
+        message: `Material class with ID ${id} not found`
       });
     }
 
@@ -54,7 +64,17 @@ router.get('/classes/:id',
 router.get('/classes/:id/hierarchy',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const hierarchy = await MaterialService.getMaterialClassHierarchy(req.params.id);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material class ID is required'
+      });
+    }
+
+    const hierarchy = await MaterialService.getMaterialClassHierarchy(id);
     return res.status(200).json(hierarchy);
   })
 );
@@ -67,11 +87,21 @@ router.get('/classes/:id/hierarchy',
 router.get('/classes/:id/children',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const materialClass = await MaterialService.getMaterialClassById(req.params.id);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material class ID is required'
+      });
+    }
+
+    const materialClass = await MaterialService.getMaterialClassById(id);
     if (!materialClass) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material class with ID ${req.params.id} not found`
+        message: `Material class with ID ${id} not found`
       });
     }
     const children = materialClass.childClasses || [];
@@ -114,12 +144,22 @@ router.get('/definitions',
 router.get('/definitions/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const material = await MaterialService.getMaterialDefinitionById(req.params.id);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material definition ID is required'
+      });
+    }
+
+    const material = await MaterialService.getMaterialDefinitionById(id);
 
     if (!material) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material definition with ID ${req.params.id} not found`
+        message: `Material definition with ID ${id} not found`
       });
     }
 
@@ -135,14 +175,22 @@ router.get('/definitions/:id',
 router.get('/definitions/number/:materialNumber',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const material = await MaterialService.getMaterialDefinitionByNumber(
-      req.params.materialNumber
-    );
+    const { materialNumber } = req.params;
+
+    // Validate required parameter
+    if (!materialNumber || materialNumber.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material number is required'
+      });
+    }
+
+    const material = await MaterialService.getMaterialDefinitionByNumber(materialNumber);
 
     if (!material) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material with number ${req.params.materialNumber} not found`
+        message: `Material with number ${materialNumber} not found`
       });
     }
 
@@ -158,7 +206,17 @@ router.get('/definitions/number/:materialNumber',
 router.put('/definitions/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const updatedMaterial = await MaterialService.updateMaterialDefinition(req.params.id, req.body);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material definition ID is required'
+      });
+    }
+
+    const updatedMaterial = await MaterialService.updateMaterialDefinition(id, req.body);
     return res.status(200).json(updatedMaterial);
   })
 );
@@ -175,7 +233,17 @@ router.put('/definitions/:id',
 router.get('/definitions/:materialId/properties',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const properties = await MaterialService.getMaterialProperties(req.params.materialId);
+    const { materialId } = req.params;
+
+    // Validate required parameter
+    if (!materialId || materialId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material ID is required'
+      });
+    }
+
+    const properties = await MaterialService.getMaterialProperties(materialId);
     return res.status(200).json(properties);
   })
 );
@@ -231,12 +299,22 @@ router.get('/lots',
 router.get('/lots/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const lot = await MaterialService.getMaterialLotById(req.params.id);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material lot ID is required'
+      });
+    }
+
+    const lot = await MaterialService.getMaterialLotById(id);
 
     if (!lot) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material lot with ID ${req.params.id} not found`
+        message: `Material lot with ID ${id} not found`
       });
     }
 
@@ -252,12 +330,22 @@ router.get('/lots/:id',
 router.get('/lots/number/:lotNumber',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const lot = await MaterialService.getMaterialLotByLotNumber(req.params.lotNumber);
+    const { lotNumber } = req.params;
+
+    // Validate required parameter
+    if (!lotNumber || lotNumber.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Lot number is required'
+      });
+    }
+
+    const lot = await MaterialService.getMaterialLotByLotNumber(lotNumber);
 
     if (!lot) {
       return res.status(404).json({
         error: 'NotFound',
-        message: `Material lot with number ${req.params.lotNumber} not found`
+        message: `Material lot with number ${lotNumber} not found`
       });
     }
 
@@ -273,7 +361,17 @@ router.get('/lots/number/:lotNumber',
 router.put('/lots/:id',
   requireProductionAccess,
   asyncHandler(async (req, res) => {
-    const updatedLot = await MaterialService.updateMaterialLot(req.params.id, req.body);
+    const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Material lot ID is required'
+      });
+    }
+
+    const updatedLot = await MaterialService.updateMaterialLot(id, req.body);
     return res.status(200).json(updatedLot);
   })
 );

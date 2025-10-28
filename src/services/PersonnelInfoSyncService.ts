@@ -261,6 +261,21 @@ export class PersonnelInfoSyncService {
             throw new Error(`User with username ${message.personnel.externalId} not found`);
           }
 
+          // CRITICAL: Prevent deletion of test users during E2E testing
+          if (process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true') {
+            // Check if this is a test user
+            const isTestUser = user.username === 'admin' ||
+                              user.username.startsWith('test-') ||
+                              user.username.includes('.') || // e.g., john.doe, jane.smith
+                              ['prod.operator', 'prod.supervisor', 'quality.engineer', 'mfg.engineer',
+                               'warehouse.manager', 'plant.manager', 'sys.admin', 'superuser'].includes(user.username);
+
+            if (isTestUser) {
+              console.warn(`[PersonnelInfoSyncService] Blocked DELETE action for test user: ${user.username} (TEST_MODE active)`);
+              throw new Error(`Cannot delete test user '${user.username}' via ERP integration during testing`);
+            }
+          }
+
           // Soft delete - mark as inactive
           user = await this.prisma.user.update({
             where: { id: user.id },

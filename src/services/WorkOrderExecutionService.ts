@@ -248,16 +248,30 @@ export class WorkOrderExecutionService {
   async transitionWorkOrderStatus(data: StatusTransitionData) {
     const { workOrderId, newStatus, reason, changedBy, notes } = data;
 
+    // ✅ PHASE 8 FIX: Enhanced work order ID validation to prevent business logic conflicts
+    if (!workOrderId || typeof workOrderId !== 'string' || workOrderId.trim() === '' || workOrderId === 'undefined' || workOrderId === 'null') {
+      throw new Error(`Invalid work order ID provided: "${workOrderId}". Work order ID must be a non-empty string.`);
+    }
+
+    const cleanWorkOrderId = workOrderId.trim();
+
     // Get current work order
     const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: workOrderId }
+      where: { id: cleanWorkOrderId }
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${workOrderId} not found`);
+      throw new Error(`Work order ${cleanWorkOrderId} not found`);
     }
 
     const currentStatus = workOrder.status;
+
+    // ✅ PHASE 8B FIX: Validate work order status enum values
+    // Valid statuses: CREATED, RELEASED, IN_PROGRESS, ON_HOLD, COMPLETED, CANCELLED
+    const validStatuses = Object.values(WorkOrderStatus) as string[];
+    if (!validStatuses.includes(newStatus as string)) {
+      throw new Error(`Invalid work order status: ${newStatus}. Valid statuses are: ${validStatuses.join(', ')}`);
+    }
 
     // Validate transition
     const validNextStatuses = VALID_TRANSITIONS[currentStatus];
@@ -353,17 +367,24 @@ export class WorkOrderExecutionService {
   async recordWorkPerformance(data: WorkPerformanceData) {
     const { workOrderId, performanceType, recordedBy, ...perfData } = data;
 
+    // ✅ PHASE 8 FIX: Enhanced work order ID validation to prevent business logic conflicts
+    if (!workOrderId || typeof workOrderId !== 'string' || workOrderId.trim() === '' || workOrderId === 'undefined' || workOrderId === 'null') {
+      throw new Error(`Invalid work order ID provided: "${workOrderId}". Work order ID must be a non-empty string.`);
+    }
+
+    const cleanWorkOrderId = workOrderId.trim();
+
     // Verify work order exists and is in progress or completed
     const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: workOrderId }
+      where: { id: cleanWorkOrderId }
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${workOrderId} not found`);
+      throw new Error(`Work order ${cleanWorkOrderId} not found`);
     }
 
     if (!['IN_PROGRESS', 'COMPLETED'].includes(workOrder.status)) {
-      throw new Error(`Cannot record performance for work order ${workOrderId}. Status: ${workOrder.status}. Work order must be IN_PROGRESS or COMPLETED.`);
+      throw new Error(`Cannot record performance for work order ${cleanWorkOrderId}. Status: ${workOrder.status}. Work order must be IN_PROGRESS or COMPLETED.`);
     }
 
     // Calculate efficiency/variance for certain types
@@ -386,7 +407,7 @@ export class WorkOrderExecutionService {
     // Create performance record
     const performanceRecord = await this.prisma.workPerformance.create({
       data: {
-        workOrderId,
+        workOrderId: cleanWorkOrderId,
         performanceType,
         recordedBy,
         ...calculatedData
@@ -395,15 +416,15 @@ export class WorkOrderExecutionService {
 
     // Auto-calculate variances if applicable
     if (performanceType === 'LABOR' && perfData.laborHours) {
-      await this.autoCalculateLaborVariance(workOrderId, performanceRecord.id, perfData.laborHours);
+      await this.autoCalculateLaborVariance(cleanWorkOrderId, performanceRecord.id, perfData.laborHours);
     }
 
     if (performanceType === 'MATERIAL' && perfData.quantityConsumed && perfData.quantityPlanned) {
-      await this.autoCalculateMaterialVariance(workOrderId, performanceRecord.id, perfData.quantityConsumed, perfData.quantityPlanned, perfData.unitCost);
+      await this.autoCalculateMaterialVariance(cleanWorkOrderId, performanceRecord.id, perfData.quantityConsumed, perfData.quantityPlanned, perfData.unitCost);
     }
 
     if (performanceType === 'QUALITY' && perfData.quantityProduced && perfData.quantityGood) {
-      await this.autoCalculateYieldVariance(workOrderId, performanceRecord.id, perfData.quantityProduced, perfData.quantityGood);
+      await this.autoCalculateYieldVariance(cleanWorkOrderId, performanceRecord.id, perfData.quantityProduced, perfData.quantityGood);
     }
 
     return performanceRecord;
@@ -547,8 +568,15 @@ export class WorkOrderExecutionService {
    * Calculate comprehensive variance summary for a work order
    */
   async calculateVarianceSummary(workOrderId: string) {
+    // ✅ PHASE 8 FIX: Enhanced work order ID validation to prevent business logic conflicts
+    if (!workOrderId || typeof workOrderId !== 'string' || workOrderId.trim() === '' || workOrderId === 'undefined' || workOrderId === 'null') {
+      throw new Error(`Invalid work order ID provided: "${workOrderId}". Work order ID must be a non-empty string.`);
+    }
+
+    const cleanWorkOrderId = workOrderId.trim();
+
     const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: workOrderId },
+      where: { id: cleanWorkOrderId },
       include: {
         workPerformance: true,
         variances: true
@@ -556,7 +584,7 @@ export class WorkOrderExecutionService {
     });
 
     if (!workOrder) {
-      throw new Error(`Work order ${workOrderId} not found`);
+      throw new Error(`Work order ${cleanWorkOrderId} not found`);
     }
 
     // Aggregate variances by type

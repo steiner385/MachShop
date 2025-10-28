@@ -373,12 +373,47 @@ export class MaterialTransactionService {
         throw new Error(`Unknown transaction type: ${transactionType}`);
     }
 
+    // Validate that the part exists before creating inventory
+    const part = await this.prisma.part.findUnique({
+      where: { id: partId },
+      select: { id: true, partNumber: true, isActive: true }
+    });
+
+    if (!part) {
+      throw new Error(`Part with ID ${partId} not found - cannot create inventory record`);
+    }
+
+    if (!part.isActive) {
+      throw new Error(`Part ${part.partNumber} is not active - cannot create inventory record`);
+    }
+
+    // Find or create inventory record for this part
+    let inventory = await this.prisma.inventory.findFirst({
+      where: {
+        partId: partId,
+        // Match on location if provided, otherwise use first available
+        ...(toLocation && { location: toLocation })
+      },
+    });
+
+    // If no inventory exists for this part, create one
+    if (!inventory) {
+      inventory = await this.prisma.inventory.create({
+        data: {
+          partId: partId,
+          quantity: Math.max(0, quantityChange), // Ensure non-negative starting quantity
+          location: toLocation || fromLocation || 'WAREHOUSE',
+          unitOfMeasure: 'EA',
+        },
+      });
+    }
+
     // Create MaterialTransaction record to update inventory
     // Note: Schema simplified - only core fields available
     // TODO: Extend schema with partId, lotNumber, serialNumber, locations, notes if needed
     await this.prisma.materialTransaction.create({
       data: {
-        inventoryId: partId, // Using inventoryId as substitute
+        inventoryId: inventory.id, // Use actual inventory ID
         quantity: Math.abs(quantity),
         transactionType: internalTransactionType as any,
         transactionDate: new Date(),

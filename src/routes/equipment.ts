@@ -14,7 +14,7 @@ const router = express.Router();
 // Validation schemas
 const querySchema = z.object({
   status: z.enum(['OPERATIONAL', 'MAINTENANCE', 'DOWN', 'AVAILABLE']).optional(),
-  equipmentClass: z.enum(['PRODUCTION', 'QUALITY', 'MATERIAL_HANDLING', 'STORAGE', 'TRANSPORT', 'PACKAGING']).optional(),
+  equipmentClass: z.enum(['PRODUCTION', 'MAINTENANCE', 'QUALITY', 'MATERIAL_HANDLING', 'LABORATORY', 'STORAGE', 'ASSEMBLY']).optional(),
   equipmentType: z.string().optional(),
   type: z.string().optional(),
   search: z.string().optional(),

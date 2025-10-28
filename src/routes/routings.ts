@@ -255,6 +255,15 @@ router.get('/:id',
   requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
+
     const includeSteps = req.query.includeSteps !== 'false'; // Default true
 
     const routing = await routingService.getRoutingById(id, includeSteps);
@@ -312,6 +321,15 @@ router.put('/:id',
   requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
+
     const validatedData = updateRoutingSchema.parse(req.body);
 
     // Convert datetime strings to Date objects
@@ -346,6 +364,14 @@ router.delete('/:id',
   requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
 
     await routingService.deleteRouting(id);
 
@@ -405,6 +431,14 @@ router.get('/:routingId/steps',
   asyncHandler(async (req, res) => {
     const { routingId } = req.params;
 
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!routingId || routingId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
+
     const steps = await routingService.getRoutingSteps(routingId);
 
     logger.info('Routing steps retrieved', {
@@ -429,6 +463,14 @@ router.get('/steps/:stepId',
   requireRoutingAccess,
   asyncHandler(async (req, res) => {
     const { stepId } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!stepId || stepId.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Step ID is required'
+      });
+    }
 
     const step = await routingService.getRoutingStepById(stepId);
 
@@ -1157,6 +1199,14 @@ router.get('/:id/visual-data',
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
+
     const visualData = await routingService.getRoutingVisualData(id);
 
     logger.info('Visual routing data retrieved', {
@@ -1209,6 +1259,15 @@ router.put('/:id/visual',
   requireRoutingWrite,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
+
+    // ✅ PHASE 8C FIX: Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Routing ID is required'
+      });
+    }
+
     const updateData = req.body;
 
     const routing = await routingService.updateRoutingWithVisualData(id, updateData);

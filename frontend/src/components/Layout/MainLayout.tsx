@@ -232,9 +232,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     navigate(key);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Navigate anyway to ensure user is logged out from UI perspective
+      navigate('/login');
+    }
   };
 
   const userMenuItems = [

@@ -899,7 +899,7 @@ describe('OperationService', () => {
       const mockSpec = {
         id: 'spec-1',
         operationId: 'seg-1',
-        equipmentClass: 'CNC_MILL',
+        equipmentClass: 'PRODUCTION',
         equipmentType: 'MILLING_MACHINE',
         requiredCapabilities: ['5-AXIS', 'HIGH_SPEED'],
       };
@@ -908,7 +908,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'CNC_MILL',
+        equipmentClass: 'PRODUCTION',
         equipmentType: 'MILLING_MACHINE',
         requiredCapabilities: ['5-AXIS', 'HIGH_SPEED'],
       });
@@ -930,7 +930,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'LASER',
+        equipmentClass: 'PRODUCTION',
         requiredCapabilities: ['LASER_CUTTING', 'AUTO_FEED'],
       });
 
@@ -950,7 +950,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'CNC_MILL',
+        equipmentClass: 'PRODUCTION',
         specificEquipmentId: 'MILL-001',
       });
 
@@ -970,7 +970,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'PRESS',
+        equipmentClass: 'PRODUCTION',
         minimumCapacity: 5000,
       });
 
@@ -990,7 +990,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'ROBOT',
+        equipmentClass: 'ASSEMBLY',
         quantity: 2,
       });
 
@@ -1011,7 +1011,7 @@ describe('OperationService', () => {
       vi.mocked(mockPrisma.equipmentOperationSpecification.create).mockResolvedValue(mockSpec as any);
 
       const result = await operationService.addEquipmentSpec('seg-1', {
-        equipmentClass: 'CNC_MILL',
+        equipmentClass: 'PRODUCTION',
         setupRequired: true,
         setupTime: 3600,
       });
@@ -1263,7 +1263,7 @@ describe('OperationService', () => {
   describe('getOperationResourceSpecs', () => {
     it('should get all resource specs for operation', async () => {
       const mockPersonnel = [{ id: 'p-1', personnelClassId: 'class-1' }];
-      const mockEquipment = [{ id: 'e-1', equipmentClass: 'MILL' }];
+      const mockEquipment = [{ id: 'e-1', equipmentClass: 'PRODUCTION' }];
       const mockMaterials = [{ id: 'm-1', materialDefinitionId: 'mat-1' }];
       const mockAssets = [{ id: 'a-1', assetType: 'TOOLING' }];
 

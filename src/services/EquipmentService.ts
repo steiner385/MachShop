@@ -143,8 +143,15 @@ class EquipmentService {
    * Get equipment by ID with full relations
    */
   async getEquipmentById(id: string): Promise<EquipmentWithRelations | null> {
+    // ✅ PHASE 8 FIX: Enhanced equipment ID validation to prevent business logic conflicts
+    if (!id || typeof id !== 'string' || id.trim() === '' || id === 'undefined' || id === 'null') {
+      throw new Error(`Invalid equipment ID provided: "${id}". Equipment ID must be a non-empty string.`);
+    }
+
+    const cleanId = id.trim();
+
     return prisma.equipment.findUnique({
-      where: { id },
+      where: { id: cleanId },
       include: {
         parentEquipment: true,
         childEquipment: true,
@@ -212,12 +219,21 @@ class EquipmentService {
       }
     }
 
+    // ✅ PHASE 9D FIX: Map legacy field names to current schema
+    const mappedData = { ...data };
+
+    // Handle legacy field mapping: type -> equipmentType
+    if ('type' in mappedData && !mappedData.equipmentType) {
+      mappedData.equipmentType = (mappedData as any).type;
+      delete (mappedData as any).type;
+    }
+
     // Create equipment
     return prisma.equipment.create({
       data: {
-        ...data,
-        currentState: data.currentState || EquipmentState.IDLE,
-        equipmentLevel: data.equipmentLevel || 1,
+        ...mappedData,
+        currentState: mappedData.currentState || EquipmentState.IDLE,
+        equipmentLevel: mappedData.equipmentLevel || 1,
       },
     });
   }
@@ -342,6 +358,13 @@ class EquipmentService {
    */
   async changeEquipmentState(stateChange: EquipmentStateChange): Promise<Equipment> {
     const { equipmentId, newState, reason, changedBy, workOrderId, operationId } = stateChange;
+
+    // ✅ PHASE 8B FIX: Validate equipment state enum values
+    // Valid states: IDLE, RUNNING, BLOCKED, STARVED, FAULT, MAINTENANCE, SETUP, EMERGENCY
+    const validStates = Object.values(EquipmentState) as string[];
+    if (!validStates.includes(newState as string)) {
+      throw new ValidationError(`Invalid equipment state: ${newState}. Valid states are: ${validStates.join(', ')}`);
+    }
 
     const equipment = await this.getEquipmentById(equipmentId);
     if (!equipment) {

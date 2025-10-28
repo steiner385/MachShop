@@ -117,6 +117,29 @@ if (config.env !== 'test') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ✅ PHASE 9E FIX: Custom JSON parsing error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    logger.warn('JSON parsing error detected', {
+      url: req.url,
+      method: req.method,
+      contentType: req.get('Content-Type'),
+      contentLength: req.get('Content-Length'),
+      rawBody: err.body?.toString()?.substring(0, 200), // First 200 chars for debugging
+      error: err.message,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    return res.status(400).json({
+      error: 'INVALID_JSON',
+      message: 'Request body contains invalid JSON',
+      details: 'Please ensure the request body is valid JSON format'
+    });
+  }
+  next();
+});
+
 // Request logging
 app.use(requestLogger);
 

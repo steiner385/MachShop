@@ -43,6 +43,15 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter group ID is required'
+      });
+    }
+
     const includeChildren = req.query.includeChildren === 'true';
     const includeParameters = req.query.includeParameters === 'true';
 
@@ -66,6 +75,15 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter group ID is required'
+      });
+    }
+
     const group = await parameterGroupService.updateGroup(id, req.body);
 
     logger.info('Parameter group updated', { groupId: id });
@@ -83,6 +101,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter group ID is required'
+      });
+    }
+
     const force = req.query.force === 'true';
 
     await parameterGroupService.deleteGroup(id, force);
@@ -134,6 +161,15 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/:id/move', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter group ID is required'
+      });
+    }
+
     const { newParentId } = req.body;
 
     const group = await parameterGroupService.moveGroup(id, newParentId);
@@ -153,6 +189,15 @@ router.post('/:id/move', async (req: Request, res: Response) => {
 router.get('/:id/parameters', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate required parameter
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Parameter group ID is required'
+      });
+    }
+
     const recursive = req.query.recursive === 'true';
 
     const parameters = await parameterGroupService.getGroupParameters(id, recursive);

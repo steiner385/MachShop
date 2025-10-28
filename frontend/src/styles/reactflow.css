@@ -1,0 +1,66 @@
+/**
+ * ReactFlow Visual Editor Custom Styles
+ * Fixes for panel overflow and button selector issues
+ */
+
+/* Fix CRITICAL panel overflow issue - buttons getting clipped */
+.react-flow__panel {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+  z-index: 1000 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure panel buttons are properly styled */
+.react-flow__panel .ant-space-vertical {
+  width: 100% !important;
+}
+
+/* Fix scrollbar styling */
+.react-flow__panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.react-flow__panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.react-flow__panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.react-flow__panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure buttons are clickable and visible */
+.react-flow__panel .ant-btn {
+  position: relative !important;
+  z-index: 1001 !important;
+  white-space: nowrap !important;
+}
+
+/* Fix panel positioning for smaller viewports */
+@media (max-height: 900px) {
+  .react-flow__panel {
+    max-height: 80vh !important;
+  }
+}
+
+@media (max-height: 700px) {
+  .react-flow__panel {
+    max-height: 70vh !important;
+  }
+}
+
+/* Ensure ReactFlow container doesn't interfere */
+.react-flow__renderer {
+  overflow: visible !important;
+}

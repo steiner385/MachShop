@@ -940,7 +940,6 @@ model OperationParameter {
   @@unique([operationId, parameterName])
   @@index([operationId])
   @@index([parameterType])
-  @@index([parameterGroupId])
   @@map("operation_parameters")
 }
 

@@ -138,35 +138,62 @@ export class SerializationService {
     shipDate?: Date;
     customerInfo?: string;
   }): Promise<SerializedPart> {
-    try {
-      // Validate serial number format
-      if (!this.validateSerialNumber(data.serialNumber)) {
-        throw new Error('Invalid serial number format');
-      }
+    const MAX_RETRIES = 5;
+    let attempt = 0;
+    let currentSerialNumber = data.serialNumber;
 
-      // Create serialized part
-      const serializedPart = await prisma.serializedPart.create({
-        data: {
-          serialNumber: data.serialNumber,
-          partId: data.partId,
-          workOrderId: data.workOrderId,
-          lotNumber: data.lotNumber,
-          status: data.status,
-          currentLocation: data.currentLocation,
-          manufactureDate: data.manufactureDate,
-          shipDate: data.shipDate,
-          customerInfo: data.customerInfo,
-        },
-      });
-
-      return serializedPart;
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new Error('Serial number already exists');
-      }
-      console.error('Failed to create serialized part:', error);
-      throw new Error('Failed to create serialized part');
+    // Validate original serial number format
+    if (!this.validateSerialNumber(data.serialNumber)) {
+      throw new Error('Invalid serial number format');
     }
+
+    while (attempt < MAX_RETRIES) {
+      try {
+        // Create serialized part
+        const serializedPart = await prisma.serializedPart.create({
+          data: {
+            serialNumber: currentSerialNumber,
+            partId: data.partId,
+            workOrderId: data.workOrderId,
+            lotNumber: data.lotNumber,
+            status: data.status,
+            currentLocation: data.currentLocation,
+            manufactureDate: data.manufactureDate,
+            shipDate: data.shipDate,
+            customerInfo: data.customerInfo,
+          },
+        });
+
+        return serializedPart;
+      } catch (error: any) {
+        if (error.code === 'P2002') {
+          // Serial number conflict detected
+          attempt++;
+
+          if (attempt >= MAX_RETRIES) {
+            throw new Error(`Serial number conflict: Unable to create unique serial number after ${MAX_RETRIES} attempts`);
+          }
+
+          // Generate next serial number with suffix
+          currentSerialNumber = `${data.serialNumber}-${attempt}`;
+
+          // Validate the new serial number format
+          if (!this.validateSerialNumber(currentSerialNumber)) {
+            throw new Error(`Generated serial number format invalid: ${currentSerialNumber}`);
+          }
+
+          // Continue to next retry attempt
+          continue;
+        }
+
+        // Non-conflict error
+        console.error('Failed to create serialized part:', error);
+        throw new Error('Failed to create serialized part');
+      }
+    }
+
+    // Should never reach here, but TypeScript requires a return
+    throw new Error('Serial number creation failed unexpectedly');
   }
 
   /**
