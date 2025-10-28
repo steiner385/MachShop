@@ -58,6 +58,13 @@ import spcRoutes from './routes/spc';
 import mediaRoutes from './routes/media';
 import workflowRoutes from './routes/workflows';
 
+// GitHub Issue #23: Multi-Document Type Support Routes
+import setupSheetRoutes from './routes/setupSheets';
+import inspectionPlanRoutes from './routes/inspectionPlans';
+import sopRoutes from './routes/sops';
+import toolDrawingRoutes from './routes/toolDrawings';
+import unifiedDocumentRoutes from './routes/unifiedDocuments';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -183,6 +190,13 @@ apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
+
+// GitHub Issue #23: Multi-Document Type Support API Routes
+apiRouter.use('/setup-sheets', authMiddleware, setupSheetRoutes);
+apiRouter.use('/inspection-plans', authMiddleware, inspectionPlanRoutes);
+apiRouter.use('/sops', authMiddleware, sopRoutes);
+apiRouter.use('/tool-drawings', authMiddleware, toolDrawingRoutes);
+apiRouter.use('/documents', authMiddleware, unifiedDocumentRoutes);
 apiRouter.use('/upload', authMiddleware, uploadRoutes);
 apiRouter.use('/signatures', authMiddleware, signatureRoutes);
 apiRouter.use('/fai', authMiddleware, faiRoutes);
