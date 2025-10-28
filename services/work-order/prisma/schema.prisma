@@ -609,6 +609,13 @@ model WorkInstruction {
   mediaLibraryItems WorkInstructionMedia[]
   relatedDocuments  WorkInstructionRelation[] @relation("ParentInstruction")
 
+  // ✅ GITHUB ISSUE #20: New relations for version control system
+  deltas      WorkInstructionDelta[]
+  comparisons WorkInstructionComparison[]
+  branches    WorkInstructionBranch[]
+  auditLogs   WorkInstructionAuditLog[]
+  rollbacks   WorkInstructionRollback[]
+
   @@index([status])
   @@index([partId])
   @@index([operationId])
@@ -917,3 +924,457 @@ enum IdempotencyStatus {
   COMPLETED
   FAILED
 }
+
+// ============================================================================
+// GitHub Issue #20: Comprehensive Revision Control System
+// ============================================================================
+
+/// Work Instruction Delta - Granular change tracking for each modification
+model WorkInstructionDelta {
+  id                String @id @default(cuid())
+  workInstructionId String
+  instruction       WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  // Version information
+  fromVersion String // Previous version
+  toVersion   String // New version
+
+  // Change metadata
+  changeType   ChangeType
+  changeReason ChangeReason
+  deltaType    DeltaType
+  impactLevel  ImpactLevel
+
+  // Delta content
+  fieldPath    String // JSON path to changed field (e.g., "steps[2].content")
+  operation    DeltaOperation
+  oldValue     Json? // Previous value
+  newValue     Json? // New value
+  deltaPayload Json? // Structured diff data
+
+  // Context
+  stepNumber Int? // Affected step number if applicable
+  description String? @db.Text
+
+  // Approval tracking
+  requiresApproval Boolean @default(false)
+  approvedById     String? // User ID reference
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String? @db.Text
+
+  // Audit
+  createdById String // User who made the change
+  createdAt   DateTime @default(now())
+
+  @@index([workInstructionId])
+  @@index([fromVersion, toVersion])
+  @@index([changeType])
+  @@index([deltaType])
+  @@index([impactLevel])
+  @@index([createdAt])
+  @@map("work_instruction_deltas")
+}
+
+/// Work Instruction Comparison - Structured comparisons between versions
+model WorkInstructionComparison {
+  id                String @id @default(cuid())
+  workInstructionId String
+  instruction       WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  // Comparison metadata
+  fromVersion    String
+  toVersion      String
+  comparisonType ComparisonType @default(VERSION)
+
+  // Comparison results
+  totalChanges     Int @default(0)
+  addedLines       Int @default(0)
+  deletedLines     Int @default(0)
+  modifiedLines    Int @default(0)
+  conflictCount    Int @default(0)
+
+  // Structured diff data
+  diffData         Json // Complete diff structure
+  summary          Json // High-level change summary
+  conflictAnalysis Json? // Conflict analysis if any
+
+  // Performance metrics
+  comparisonTime   Float? // Time taken to compute (milliseconds)
+  complexityScore  Float? // Complexity rating 0-1
+
+  // Status
+  status           ComparisonStatus @default(PENDING)
+  errorMessage     String? @db.Text
+
+  // Audit
+  requestedById String // User who requested comparison
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  @@index([workInstructionId])
+  @@index([fromVersion, toVersion])
+  @@index([comparisonType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("work_instruction_comparisons")
+}
+
+/// Work Instruction Branch - Branch management for parallel development
+model WorkInstructionBranch {
+  id                String @id @default(cuid())
+  workInstructionId String
+  instruction       WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  // Branch identification
+  branchName   String
+  branchType   BranchType
+  description  String? @db.Text
+
+  // Branch relationships
+  parentBranch String? // Parent branch name
+  basedOnVersion String // Version this branch was created from
+
+  // Branch status
+  status       BranchStatus @default(ACTIVE)
+  isProtected  Boolean @default(false)
+  isDefault    Boolean @default(false)
+
+  // Latest state
+  latestVersion     String // Current version on this branch
+  totalCommits      Int @default(0)
+  lastActivityAt    DateTime @default(now())
+
+  // Merge tracking
+  mergedIntoMain    Boolean @default(false)
+  mergedAt          DateTime?
+  mergedById        String? // User ID reference
+  mergeCommitVersion String?
+
+  // Conflict tracking
+  hasConflicts      Boolean @default(false)
+  conflictsWith     String[] // Array of conflicting branch names
+  lastConflictCheck DateTime?
+
+  // Audit
+  createdById String // User who created the branch
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([workInstructionId, branchName])
+  @@index([workInstructionId])
+  @@index([branchType])
+  @@index([status])
+  @@index([lastActivityAt])
+  @@map("work_instruction_branches")
+}
+
+/// Work Instruction Audit Log - Comprehensive audit trail
+model WorkInstructionAuditLog {
+  id                String @id @default(cuid())
+  workInstructionId String
+  instruction       WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  // Audit metadata
+  action       AuditAction
+  entityType   String // "instruction", "step", "media", etc.
+  entityId     String? // ID of affected entity
+
+  // Change details
+  description  String @db.Text
+  oldValue     Json? // Before state
+  newValue     Json? // After state
+  changeSet    Json? // Structured change data
+
+  // Context
+  version      String? // Version when change occurred
+  branchName   String? // Branch context
+  sessionId    String? // User session identifier
+  ipAddress    String? // Source IP address
+  userAgent    String? // User agent string
+
+  // Impact assessment
+  impactLevel  ImpactLevel @default(LOW)
+  affectedUsers String[] // Array of affected user IDs
+
+  // Compliance
+  complianceRequired Boolean @default(false)
+  complianceStatus   String? // Compliance check status
+  retentionUntil     DateTime? // Data retention policy
+
+  // Audit
+  performedById String // User who performed the action
+  performedAt   DateTime @default(now())
+
+  @@index([workInstructionId])
+  @@index([action])
+  @@index([entityType])
+  @@index([performedAt])
+  @@index([impactLevel])
+  @@index([performedById])
+  @@map("work_instruction_audit_logs")
+}
+
+/// Work Instruction Rollback - Rollback operation tracking
+model WorkInstructionRollback {
+  id                String @id @default(cuid())
+  workInstructionId String
+  instruction       WorkInstruction @relation(fields: [workInstructionId], references: [id], onDelete: Cascade)
+
+  // Rollback metadata
+  fromVersion    String // Version being rolled back from
+  toVersion      String // Target version for rollback
+  rollbackType   RollbackType
+  reason         String @db.Text
+
+  // Rollback scope
+  affectedSteps    Int[] // Step numbers affected
+  affectedFields   String[] // Field paths affected
+  dataLossWarning  String? @db.Text
+
+  // Impact analysis
+  impactAssessment Json // Pre-rollback impact analysis
+  conflictCount    Int @default(0)
+  riskLevel        ImpactLevel @default(LOW)
+
+  // Execution tracking
+  status           RollbackStatus @default(PENDING)
+  executionPlan    Json // Step-by-step rollback plan
+  executionLog     Json? // Execution progress log
+
+  // Validation
+  preRollbackHash  String // Content hash before rollback
+  postRollbackHash String? // Content hash after rollback
+  validationResults Json? // Post-rollback validation
+
+  // Approval workflow
+  requiresApproval Boolean @default(true)
+  approvedById     String? // User ID reference
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String? @db.Text
+
+  // Timing
+  scheduledAt      DateTime? // Scheduled execution time
+  executedAt       DateTime? // Actual execution time
+  completedAt      DateTime?
+
+  // Error handling
+  errorMessage     String? @db.Text
+  failurePoint     String? // Where rollback failed
+  recoveryActions  Json? // Recovery steps taken
+
+  // Audit
+  requestedById String // User who requested rollback
+  executedById  String? // User who executed rollback
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([workInstructionId])
+  @@index([fromVersion, toVersion])
+  @@index([rollbackType])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([requestedById])
+  @@map("work_instruction_rollbacks")
+}
+
+/// Version Control Configuration - System-wide version control settings
+model VersionControlConfig {
+  id String @id @default(cuid())
+
+  // Versioning strategy
+  versioningStrategy   VersioningStrategy @default(SEMANTIC)
+  autoVersioning       Boolean @default(true)
+  majorVersionTriggers String[] // Change types that trigger major version
+  minorVersionTriggers String[] // Change types that trigger minor version
+
+  // Approval workflows
+  requireApprovalFor   ChangeType[] // Change types requiring approval
+  approvalMatrix       Json // Role-based approval configuration
+  parallelApprovals    Boolean @default(false)
+
+  // Retention policies
+  retainVersionsFor    Int @default(365) // Days
+  maxVersionsPerDoc    Int? // Maximum versions to keep
+  archiveOldVersions   Boolean @default(true)
+
+  // Branching policies
+  allowBranching       Boolean @default(true)
+  maxBranchesPerDoc    Int @default(10)
+  autoMergePolicyFor   String[] // Conditions for auto-merge
+  branchNamingPattern  String? // Regex pattern for branch names
+
+  // Conflict resolution
+  conflictResolutionStrategy ConflictStrategy @default(MANUAL)
+  autoMergeThreshold        Float @default(0.85) // Similarity threshold
+
+  // Audit and compliance
+  auditLevel           AuditLevel @default(STANDARD)
+  complianceMode       Boolean @default(false)
+  dataRetentionYears   Int @default(7)
+
+  // Performance settings
+  enableDeltaCompression Boolean @default(true)
+  diffAlgorithm         DiffAlgorithm @default(MYERS)
+  maxComparisonSize     Int @default(1000000) // Bytes
+
+  // Notification settings
+  notifyOnConflicts    Boolean @default(true)
+  notifyOnMajorChanges Boolean @default(true)
+  notificationChannels String[] // Email, Slack, etc.
+
+  // Active configuration
+  isActive    Boolean @default(true)
+  effectiveAt DateTime @default(now())
+
+  // Audit
+  createdById String // User ID reference
+  updatedById String // User ID reference
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("version_control_config")
+}
+
+// Enums for Version Control System
+
+enum ChangeType {
+  CONTENT_EDIT // Content modification
+  STEP_ADD // Adding new steps
+  STEP_REMOVE // Removing steps
+  STEP_REORDER // Reordering steps
+  MEDIA_ADD // Adding media
+  MEDIA_REMOVE // Removing media
+  MEDIA_UPDATE // Updating media
+  METADATA_CHANGE // Title, description, tags
+  APPROVAL_CHANGE // Status changes
+  STRUCTURE_CHANGE // Major structural changes
+}
+
+enum ChangeReason {
+  IMPROVEMENT // Process improvement
+  CORRECTION // Error correction
+  COMPLIANCE // Regulatory compliance
+  SAFETY // Safety requirements
+  EFFICIENCY // Efficiency optimization
+  STANDARDIZATION // Process standardization
+  ECO // Engineering Change Order
+  EMERGENCY // Emergency change
+}
+
+enum DeltaType {
+  INSERT // New content added
+  DELETE // Content removed
+  MODIFY // Content modified
+  MOVE // Content moved/reordered
+  REPLACE // Content replaced entirely
+}
+
+enum DeltaOperation {
+  ADD
+  REMOVE
+  CHANGE
+  MOVE
+  COPY
+}
+
+enum ImpactLevel {
+  LOW // Minor changes, no training required
+  MEDIUM // Moderate changes, brief training
+  HIGH // Significant changes, formal training
+  CRITICAL // Major changes, certification required
+}
+
+enum ComparisonType {
+  VERSION // Compare between versions
+  BRANCH // Compare between branches
+  BASELINE // Compare against baseline
+  CONFLICT // Conflict analysis
+}
+
+enum ComparisonStatus {
+  PENDING // Comparison queued
+  PROCESSING // Currently processing
+  COMPLETED // Successfully completed
+  FAILED // Comparison failed
+  CANCELLED // User cancelled
+}
+
+enum BranchType {
+  FEATURE // Feature development branch
+  HOTFIX // Emergency fix branch
+  RELEASE // Release preparation branch
+  EXPERIMENTAL // Experimental changes
+  COMPLIANCE // Compliance-related changes
+}
+
+enum BranchStatus {
+  ACTIVE // Currently active
+  MERGED // Successfully merged
+  ABANDONED // Abandoned/cancelled
+  ARCHIVED // Archived for reference
+  BLOCKED // Blocked due to conflicts
+}
+
+enum AuditAction {
+  CREATE // Entity created
+  UPDATE // Entity updated
+  DELETE // Entity deleted
+  APPROVE // Entity approved
+  REJECT // Entity rejected
+  PUBLISH // Entity published
+  ARCHIVE // Entity archived
+  RESTORE // Entity restored
+  MERGE // Branch merged
+  ROLLBACK // Version rolled back
+  ACCESS // Entity accessed/viewed
+  EXPORT // Entity exported
+  IMPORT // Entity imported
+}
+
+enum RollbackType {
+  FULL // Complete rollback to previous version
+  PARTIAL // Selective field rollback
+  STEP_LEVEL // Individual step rollback
+  EMERGENCY // Emergency rollback
+}
+
+enum RollbackStatus {
+  PENDING // Awaiting execution
+  APPROVED // Approved for execution
+  IN_PROGRESS // Currently executing
+  COMPLETED // Successfully completed
+  FAILED // Rollback failed
+  CANCELLED // Rollback cancelled
+  VALIDATION_FAILED // Post-rollback validation failed
+}
+
+enum VersioningStrategy {
+  SEMANTIC // Major.Minor.Patch (1.2.3)
+  INCREMENTAL // Simple incrementing (1, 2, 3)
+  TIMESTAMP // Timestamp-based versioning
+  CUSTOM // Custom versioning scheme
+}
+
+enum ConflictStrategy {
+  MANUAL // Manual conflict resolution
+  AUTO_MERGE // Automatic merge where possible
+  REJECT_CONFLICTS // Reject conflicting changes
+  LAST_WRITER_WINS // Latest change takes precedence
+}
+
+enum AuditLevel {
+  MINIMAL // Basic audit logging
+  STANDARD // Standard audit logging
+  DETAILED // Detailed audit logging
+  COMPREHENSIVE // Complete audit trail
+}
+
+enum DiffAlgorithm {
+  MYERS // Myers diff algorithm
+  PATIENCE // Patience diff algorithm
+  HISTOGRAM // Histogram diff algorithm
+  MINIMAL // Minimal diff algorithm
+}
+
