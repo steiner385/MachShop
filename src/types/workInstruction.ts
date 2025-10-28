@@ -23,6 +23,14 @@ export enum StepExecutionStatus {
   SKIPPED = 'SKIPPED',
 }
 
+// GitHub Issue #18: Enhanced enums for document management
+export enum WorkInstructionFormat {
+  NATIVE = 'NATIVE',
+  IMPORTED_PDF = 'IMPORTED_PDF',
+  IMPORTED_DOC = 'IMPORTED_DOC',
+  IMPORTED_PPT = 'IMPORTED_PPT',
+}
+
 // Zod validation schemas
 export const CreateWorkInstructionSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
@@ -31,6 +39,15 @@ export const CreateWorkInstructionSchema = z.object({
   operationId: z.string().optional(),
   version: z.string().default('1.0.0'),
   ecoNumber: z.string().optional(),
+  // GitHub Issue #18: Document management fields
+  contentFormat: z.nativeEnum(WorkInstructionFormat).default(WorkInstructionFormat.NATIVE),
+  nativeContent: z.any().optional(),
+  importedFromFile: z.string().optional(),
+  exportTemplateId: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  categories: z.array(z.string()).default([]),
+  keywords: z.array(z.string()).default([]),
+  thumbnailUrl: z.string().optional(),
 });
 
 export const UpdateWorkInstructionSchema = z.object({
@@ -43,6 +60,15 @@ export const UpdateWorkInstructionSchema = z.object({
   effectiveDate: z.string().datetime().optional(),
   supersededDate: z.string().datetime().optional(),
   ecoNumber: z.string().optional(),
+  // GitHub Issue #18: Document management fields
+  contentFormat: z.nativeEnum(WorkInstructionFormat).optional(),
+  nativeContent: z.any().optional(),
+  importedFromFile: z.string().optional(),
+  exportTemplateId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  categories: z.array(z.string()).optional(),
+  keywords: z.array(z.string()).optional(),
+  thumbnailUrl: z.string().optional(),
 });
 
 export const CreateStepSchema = z.object({
