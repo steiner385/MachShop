@@ -1,6 +1,6 @@
 import { PrismaClient, DocumentComment, CommentStatus, CommentPriority, ReactionType } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * TypeScript interfaces for Comment Operations
@@ -129,7 +129,7 @@ class CommentService {
       return comment;
     } catch (error: any) {
       logger.error('Failed to create comment', { error: error.message, input });
-      throw createError('Failed to create comment', 'COMMENT_CREATE_FAILED', 500, error);
+      throw new AppError('Failed to create comment', 500, 'COMMENT_CREATE_FAILED', error);
     }
   }
 
@@ -149,7 +149,7 @@ class CommentService {
       });
 
       if (!parentComment) {
-        throw createError('Parent comment not found', 'PARENT_COMMENT_NOT_FOUND', 404);
+        throw new AppError('Parent comment not found', 404, 'PARENT_COMMENT_NOT_FOUND');
       }
 
       const reply = await this.prisma.documentComment.create({
@@ -176,7 +176,7 @@ class CommentService {
       return reply;
     } catch (error: any) {
       logger.error('Failed to create comment reply', { error: error.message, input });
-      throw createError('Failed to create comment reply', 'COMMENT_REPLY_FAILED', 500, error);
+      throw new AppError('Failed to create comment reply', 500, 'COMMENT_REPLY_FAILED', error);
     }
   }
 
@@ -193,11 +193,11 @@ class CommentService {
       });
 
       if (!existingComment) {
-        throw createError('Comment not found', 'COMMENT_NOT_FOUND', 404);
+        throw new AppError('Comment not found', 404, 'COMMENT_NOT_FOUND');
       }
 
       if (existingComment.authorId !== userId) {
-        throw createError('Not authorized to update this comment', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to update this comment', 403, 'UNAUTHORIZED');
       }
 
       const updatedComment = await this.prisma.documentComment.update({
@@ -221,7 +221,7 @@ class CommentService {
       return updatedComment;
     } catch (error: any) {
       logger.error('Failed to update comment', { error: error.message, commentId });
-      throw createError('Failed to update comment', 'COMMENT_UPDATE_FAILED', 500, error);
+      throw new AppError('Failed to update comment', 500, 'COMMENT_UPDATE_FAILED', error);
     }
   }
 
@@ -238,11 +238,11 @@ class CommentService {
       });
 
       if (!existingComment) {
-        throw createError('Comment not found', 'COMMENT_NOT_FOUND', 404);
+        throw new AppError('Comment not found', 404, 'COMMENT_NOT_FOUND');
       }
 
       if (existingComment.authorId !== userId) {
-        throw createError('Not authorized to delete this comment', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to delete this comment', 403, 'UNAUTHORIZED');
       }
 
       await this.prisma.documentComment.update({
@@ -255,7 +255,7 @@ class CommentService {
       logger.info('Comment deleted successfully', { commentId });
     } catch (error: any) {
       logger.error('Failed to delete comment', { error: error.message, commentId });
-      throw createError('Failed to delete comment', 'COMMENT_DELETE_FAILED', 500, error);
+      throw new AppError('Failed to delete comment', 500, 'COMMENT_DELETE_FAILED', error);
     }
   }
 
@@ -288,7 +288,7 @@ class CommentService {
       return resolvedComment;
     } catch (error: any) {
       logger.error('Failed to resolve comment', { error: error.message, commentId });
-      throw createError('Failed to resolve comment', 'COMMENT_RESOLVE_FAILED', 500, error);
+      throw new AppError('Failed to resolve comment', 500, 'COMMENT_RESOLVE_FAILED', error);
     }
   }
 
@@ -317,7 +317,7 @@ class CommentService {
       return pinnedComment;
     } catch (error: any) {
       logger.error('Failed to update comment pin status', { error: error.message, commentId });
-      throw createError('Failed to update comment pin status', 'COMMENT_PIN_FAILED', 500, error);
+      throw new AppError('Failed to update comment pin status', 500, 'COMMENT_PIN_FAILED', error);
     }
   }
 
@@ -405,7 +405,7 @@ class CommentService {
       return comments;
     } catch (error: any) {
       logger.error('Failed to get comments', { error: error.message, documentType, documentId });
-      throw createError('Failed to get comments', 'COMMENT_GET_FAILED', 500, error);
+      throw new AppError('Failed to get comments', 500, 'COMMENT_GET_FAILED', error);
     }
   }
 
@@ -438,7 +438,7 @@ class CommentService {
       logger.info('Reaction added successfully', { commentId, userId, reactionType });
     } catch (error: any) {
       logger.error('Failed to add reaction', { error: error.message, commentId, userId });
-      throw createError('Failed to add reaction', 'REACTION_ADD_FAILED', 500, error);
+      throw new AppError('Failed to add reaction', 500, 'REACTION_ADD_FAILED', error);
     }
   }
 
@@ -464,7 +464,7 @@ class CommentService {
       // Ignore if reaction doesn't exist
       if (error.code !== 'P2025') {
         logger.error('Failed to remove reaction', { error: error.message, commentId, userId });
-        throw createError('Failed to remove reaction', 'REACTION_REMOVE_FAILED', 500, error);
+        throw new AppError('Failed to remove reaction', 500, 'REACTION_REMOVE_FAILED', error);
       }
     }
   }
@@ -517,7 +517,7 @@ class CommentService {
       };
     } catch (error: any) {
       logger.error('Failed to get comment statistics', { error: error.message, documentType, documentId });
-      throw createError('Failed to get comment statistics', 'COMMENT_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get comment statistics', 500, 'COMMENT_STATS_FAILED', error);
     }
   }
 
@@ -529,5 +529,6 @@ class CommentService {
   }
 }
 
+export { CommentService };
 export const commentService = new CommentService();
 export default commentService;

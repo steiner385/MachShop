@@ -1,6 +1,6 @@
 import { PrismaClient, ReviewAssignment, ReviewType, ReviewStatus, ReviewRecommendation } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * TypeScript interfaces for Review Operations
@@ -111,7 +111,7 @@ class ReviewService {
       });
 
       if (existingReview) {
-        throw createError('Review already assigned to this user for this document', 'REVIEW_ALREADY_EXISTS', 409);
+        throw new AppError('Review already assigned to this user for this document', 409, 'REVIEW_ALREADY_EXISTS');
       }
 
       const assignment = await this.prisma.reviewAssignment.create({
@@ -136,7 +136,7 @@ class ReviewService {
       return assignment;
     } catch (error: any) {
       logger.error('Failed to assign review', { error: error.message, input });
-      throw createError('Failed to assign review', 'REVIEW_ASSIGN_FAILED', 500, error);
+      throw new AppError('Failed to assign review', 500, 'REVIEW_ASSIGN_FAILED', error);
     }
   }
 
@@ -153,15 +153,15 @@ class ReviewService {
       });
 
       if (!assignment) {
-        throw createError('Review assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
+        throw new AppError('Review assignment not found', 404, 'ASSIGNMENT_NOT_FOUND');
       }
 
       if (assignment.reviewerId !== userId) {
-        throw createError('Not authorized to start this review', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to start this review', 403, 'UNAUTHORIZED');
       }
 
       if (assignment.status !== ReviewStatus.NOT_STARTED) {
-        throw createError('Review already started or completed', 'REVIEW_ALREADY_STARTED', 409);
+        throw new AppError('Review already started or completed', 409, 'REVIEW_ALREADY_STARTED');
       }
 
       const updatedAssignment = await this.prisma.reviewAssignment.update({
@@ -176,7 +176,7 @@ class ReviewService {
       return updatedAssignment;
     } catch (error: any) {
       logger.error('Failed to start review', { error: error.message, assignmentId });
-      throw createError('Failed to start review', 'REVIEW_START_FAILED', 500, error);
+      throw new AppError('Failed to start review', 500, 'REVIEW_START_FAILED', error);
     }
   }
 
@@ -193,15 +193,15 @@ class ReviewService {
       });
 
       if (!assignment) {
-        throw createError('Review assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
+        throw new AppError('Review assignment not found', 404, 'ASSIGNMENT_NOT_FOUND');
       }
 
       if (assignment.reviewerId !== userId) {
-        throw createError('Not authorized to complete this review', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to complete this review', 403, 'UNAUTHORIZED');
       }
 
       if (assignment.status === ReviewStatus.COMPLETED) {
-        throw createError('Review already completed', 'REVIEW_ALREADY_COMPLETED', 409);
+        throw new AppError('Review already completed', 409, 'REVIEW_ALREADY_COMPLETED');
       }
 
       const updatedAssignment = await this.prisma.reviewAssignment.update({
@@ -221,7 +221,7 @@ class ReviewService {
       return updatedAssignment;
     } catch (error: any) {
       logger.error('Failed to complete review', { error: error.message, assignmentId });
-      throw createError('Failed to complete review', 'REVIEW_COMPLETE_FAILED', 500, error);
+      throw new AppError('Failed to complete review', 500, 'REVIEW_COMPLETE_FAILED', error);
     }
   }
 
@@ -237,11 +237,11 @@ class ReviewService {
       });
 
       if (!assignment) {
-        throw createError('Review assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
+        throw new AppError('Review assignment not found', 404, 'ASSIGNMENT_NOT_FOUND');
       }
 
       if (assignment.reviewerId !== userId) {
-        throw createError('Not authorized to update this review', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to update this review', 403, 'UNAUTHORIZED');
       }
 
       const updatedAssignment = await this.prisma.reviewAssignment.update({
@@ -257,7 +257,7 @@ class ReviewService {
       return updatedAssignment;
     } catch (error: any) {
       logger.error('Failed to update review checklist', { error: error.message, assignmentId });
-      throw createError('Failed to update review checklist', 'CHECKLIST_UPDATE_FAILED', 500, error);
+      throw new AppError('Failed to update review checklist', 500, 'CHECKLIST_UPDATE_FAILED', error);
     }
   }
 
@@ -311,7 +311,7 @@ class ReviewService {
       return reviews;
     } catch (error: any) {
       logger.error('Failed to get user reviews', { error: error.message, userId });
-      throw createError('Failed to get user reviews', 'GET_REVIEWS_FAILED', 500, error);
+      throw new AppError('Failed to get user reviews', 500, 'GET_REVIEWS_FAILED', error);
     }
   }
 
@@ -334,7 +334,7 @@ class ReviewService {
       return reviewers;
     } catch (error: any) {
       logger.error('Failed to get document reviewers', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document reviewers', 'GET_REVIEWERS_FAILED', 500, error);
+      throw new AppError('Failed to get document reviewers', 500, 'GET_REVIEWERS_FAILED', error);
     }
   }
 
@@ -350,7 +350,7 @@ class ReviewService {
       });
 
       if (!assignment) {
-        throw createError('Review assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
+        throw new AppError('Review assignment not found', 404, 'ASSIGNMENT_NOT_FOUND');
       }
 
       // Calculate checklist progress
@@ -394,7 +394,7 @@ class ReviewService {
       return progress;
     } catch (error: any) {
       logger.error('Failed to get review progress', { error: error.message, assignmentId });
-      throw createError('Failed to get review progress', 'GET_PROGRESS_FAILED', 500, error);
+      throw new AppError('Failed to get review progress', 500, 'GET_PROGRESS_FAILED', error);
     }
   }
 
@@ -410,7 +410,7 @@ class ReviewService {
       });
 
       if (!assignment) {
-        throw createError('Review assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
+        throw new AppError('Review assignment not found', 404, 'ASSIGNMENT_NOT_FOUND');
       }
 
       // This would typically integrate with the notification service
@@ -424,7 +424,7 @@ class ReviewService {
       // TODO: Integrate with NotificationService when implemented
     } catch (error: any) {
       logger.error('Failed to send review reminder', { error: error.message, assignmentId });
-      throw createError('Failed to send review reminder', 'REMINDER_SEND_FAILED', 500, error);
+      throw new AppError('Failed to send review reminder', 500, 'REMINDER_SEND_FAILED', error);
     }
   }
 
@@ -477,7 +477,7 @@ class ReviewService {
       return [];
     } catch (error: any) {
       logger.error('Failed to get overdue reviews', { error: error.message });
-      throw createError('Failed to get overdue reviews', 'GET_OVERDUE_FAILED', 500, error);
+      throw new AppError('Failed to get overdue reviews', 500, 'GET_OVERDUE_FAILED', error);
     }
   }
 
@@ -543,7 +543,7 @@ class ReviewService {
       return stats;
     } catch (error: any) {
       logger.error('Failed to get review statistics', { error: error.message });
-      throw createError('Failed to get review statistics', 'GET_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get review statistics', 500, 'GET_STATS_FAILED', error);
     }
   }
 

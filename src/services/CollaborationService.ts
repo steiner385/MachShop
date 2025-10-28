@@ -1,6 +1,6 @@
 import { PrismaClient, DocumentEditSession, ConflictResolution, DocumentSubscription, ConflictType, ResolutionStrategy } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 import { EventEmitter } from 'events';
 
 /**
@@ -189,7 +189,7 @@ class CollaborationService extends EventEmitter {
       return session;
     } catch (error: any) {
       logger.error('Failed to start edit session', { error: error.message, input });
-      throw createError('Failed to start edit session', 'SESSION_START_FAILED', 500, error);
+      throw new AppError('Failed to start edit session', 500, 'SESSION_START_FAILED', error);
     }
   }
 
@@ -242,7 +242,7 @@ class CollaborationService extends EventEmitter {
       }
     } catch (error: any) {
       logger.error('Failed to end edit session', { error: error.message, documentType, documentId, userId });
-      throw createError('Failed to end edit session', 'SESSION_END_FAILED', 500, error);
+      throw new AppError('Failed to end edit session', 500, 'SESSION_END_FAILED', error);
     }
   }
 
@@ -281,7 +281,7 @@ class CollaborationService extends EventEmitter {
       return sessions;
     } catch (error: any) {
       logger.error('Failed to get active document sessions', { error: error.message, documentType, documentId });
-      throw createError('Failed to get active document sessions', 'SESSION_GET_FAILED', 500, error);
+      throw new AppError('Failed to get active document sessions', 500, 'SESSION_GET_FAILED', error);
     }
   }
 
@@ -329,7 +329,7 @@ class CollaborationService extends EventEmitter {
       return conflict;
     } catch (error: any) {
       logger.error('Failed to detect conflict', { error: error.message, input });
-      throw createError('Failed to detect conflict', 'CONFLICT_DETECT_FAILED', 500, error);
+      throw new AppError('Failed to detect conflict', 500, 'CONFLICT_DETECT_FAILED', error);
     }
   }
 
@@ -372,7 +372,7 @@ class CollaborationService extends EventEmitter {
       return resolvedConflict;
     } catch (error: any) {
       logger.error('Failed to resolve conflict', { error: error.message, input });
-      throw createError('Failed to resolve conflict', 'CONFLICT_RESOLVE_FAILED', 500, error);
+      throw new AppError('Failed to resolve conflict', 500, 'CONFLICT_RESOLVE_FAILED', error);
     }
   }
 
@@ -414,7 +414,7 @@ class CollaborationService extends EventEmitter {
       return subscription;
     } catch (error: any) {
       logger.error('Failed to create document subscription', { error: error.message, input });
-      throw createError('Failed to create document subscription', 'SUBSCRIPTION_CREATE_FAILED', 500, error);
+      throw new AppError('Failed to create document subscription', 500, 'SUBSCRIPTION_CREATE_FAILED', error);
     }
   }
 
@@ -439,7 +439,7 @@ class CollaborationService extends EventEmitter {
       logger.info('Document subscription removed', { documentType, documentId, userId });
     } catch (error: any) {
       logger.error('Failed to remove document subscription', { error: error.message, documentType, documentId, userId });
-      throw createError('Failed to remove document subscription', 'SUBSCRIPTION_REMOVE_FAILED', 500, error);
+      throw new AppError('Failed to remove document subscription', 500, 'SUBSCRIPTION_REMOVE_FAILED', error);
     }
   }
 
@@ -459,7 +459,7 @@ class CollaborationService extends EventEmitter {
       return subscribers;
     } catch (error: any) {
       logger.error('Failed to get document subscribers', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document subscribers', 'SUBSCRIBERS_GET_FAILED', 500, error);
+      throw new AppError('Failed to get document subscribers', 500, 'SUBSCRIBERS_GET_FAILED', error);
     }
   }
 
@@ -531,7 +531,7 @@ class CollaborationService extends EventEmitter {
       return state;
     } catch (error: any) {
       logger.error('Failed to get document collaboration state', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document collaboration state', 'COLLABORATION_STATE_FAILED', 500, error);
+      throw new AppError('Failed to get document collaboration state', 500, 'COLLABORATION_STATE_FAILED', error);
     }
   }
 
@@ -689,7 +689,7 @@ class CollaborationService extends EventEmitter {
       return conflicts;
     } catch (error: any) {
       logger.error('Failed to get document conflict history', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document conflict history', 'CONFLICT_HISTORY_FAILED', 500, error);
+      throw new AppError('Failed to get document conflict history', 500, 'CONFLICT_HISTORY_FAILED', error);
     }
   }
 
@@ -762,7 +762,7 @@ class CollaborationService extends EventEmitter {
       };
     } catch (error: any) {
       logger.error('Failed to get user collaboration stats', { error: error.message, userId });
-      throw createError('Failed to get user collaboration stats', 'COLLABORATION_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get user collaboration stats', 500, 'COLLABORATION_STATS_FAILED', error);
     }
   }
 

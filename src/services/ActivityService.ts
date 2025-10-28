@@ -1,6 +1,6 @@
 import { PrismaClient, DocumentActivity, ActivityType } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * TypeScript interfaces for Activity Operations
@@ -109,7 +109,7 @@ class ActivityService {
       return activity;
     } catch (error: any) {
       logger.error('Failed to log activity', { error: error.message, input });
-      throw createError('Failed to log activity', 'ACTIVITY_LOG_FAILED', 500, error);
+      throw new AppError('Failed to log activity', 500, 'ACTIVITY_LOG_FAILED', error);
     }
   }
 
@@ -158,7 +158,7 @@ class ActivityService {
       return activities;
     } catch (error: any) {
       logger.error('Failed to get document activities', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document activities', 'ACTIVITY_GET_FAILED', 500, error);
+      throw new AppError('Failed to get document activities', 500, 'ACTIVITY_GET_FAILED', error);
     }
   }
 
@@ -204,7 +204,7 @@ class ActivityService {
       return activities;
     } catch (error: any) {
       logger.error('Failed to get user activities', { error: error.message, userId });
-      throw createError('Failed to get user activities', 'USER_ACTIVITY_GET_FAILED', 500, error);
+      throw new AppError('Failed to get user activities', 500, 'USER_ACTIVITY_GET_FAILED', error);
     }
   }
 
@@ -272,7 +272,7 @@ class ActivityService {
       return summary;
     } catch (error: any) {
       logger.error('Failed to get document activity summary', { error: error.message, documentType, documentId });
-      throw createError('Failed to get document activity summary', 'ACTIVITY_SUMMARY_FAILED', 500, error);
+      throw new AppError('Failed to get document activity summary', 500, 'ACTIVITY_SUMMARY_FAILED', error);
     }
   }
 
@@ -329,7 +329,7 @@ class ActivityService {
       return summary;
     } catch (error: any) {
       logger.error('Failed to get user activity summary', { error: error.message, userId });
-      throw createError('Failed to get user activity summary', 'USER_ACTIVITY_SUMMARY_FAILED', 500, error);
+      throw new AppError('Failed to get user activity summary', 500, 'USER_ACTIVITY_SUMMARY_FAILED', error);
     }
   }
 
@@ -373,7 +373,7 @@ class ActivityService {
       return activities;
     } catch (error: any) {
       logger.error('Failed to get global activity feed', { error: error.message });
-      throw createError('Failed to get global activity feed', 'GLOBAL_ACTIVITY_FAILED', 500, error);
+      throw new AppError('Failed to get global activity feed', 500, 'GLOBAL_ACTIVITY_FAILED', error);
     }
   }
 
@@ -561,7 +561,7 @@ class ActivityService {
       return result.count;
     } catch (error: any) {
       logger.error('Failed to cleanup old activities', { error: error.message, retentionDays });
-      throw createError('Failed to cleanup old activities', 'ACTIVITY_CLEANUP_FAILED', 500, error);
+      throw new AppError('Failed to cleanup old activities', 500, 'ACTIVITY_CLEANUP_FAILED', error);
     }
   }
 
@@ -659,7 +659,7 @@ class ActivityService {
       };
     } catch (error: any) {
       logger.error('Failed to get activity statistics', { error: error.message, timeRange });
-      throw createError('Failed to get activity statistics', 'ACTIVITY_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get activity statistics', 500, 'ACTIVITY_STATS_FAILED', error);
     }
   }
 

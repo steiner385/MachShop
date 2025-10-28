@@ -1,6 +1,6 @@
 import { PrismaClient, DocumentAnnotation, AnnotationType } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * TypeScript interfaces for Annotation Operations
@@ -111,7 +111,7 @@ class AnnotationService {
       return annotation;
     } catch (error: any) {
       logger.error('Failed to create annotation', { error: error.message, input });
-      throw createError('Failed to create annotation', 'ANNOTATION_CREATE_FAILED', 500, error);
+      throw new AppError('Failed to create annotation', 500, 'ANNOTATION_CREATE_FAILED', error);
     }
   }
 
@@ -128,11 +128,11 @@ class AnnotationService {
       });
 
       if (!existingAnnotation) {
-        throw createError('Annotation not found', 'ANNOTATION_NOT_FOUND', 404);
+        throw new AppError('Annotation not found', 404, 'ANNOTATION_NOT_FOUND');
       }
 
       if (existingAnnotation.authorId !== userId) {
-        throw createError('Not authorized to update this annotation', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to update this annotation', 403, 'UNAUTHORIZED');
       }
 
       // Validate annotation data if being updated
@@ -149,7 +149,7 @@ class AnnotationService {
       return updatedAnnotation;
     } catch (error: any) {
       logger.error('Failed to update annotation', { error: error.message, annotationId });
-      throw createError('Failed to update annotation', 'ANNOTATION_UPDATE_FAILED', 500, error);
+      throw new AppError('Failed to update annotation', 500, 'ANNOTATION_UPDATE_FAILED', error);
     }
   }
 
@@ -166,11 +166,11 @@ class AnnotationService {
       });
 
       if (!existingAnnotation) {
-        throw createError('Annotation not found', 'ANNOTATION_NOT_FOUND', 404);
+        throw new AppError('Annotation not found', 404, 'ANNOTATION_NOT_FOUND');
       }
 
       if (existingAnnotation.authorId !== userId) {
-        throw createError('Not authorized to delete this annotation', 'UNAUTHORIZED', 403);
+        throw new AppError('Not authorized to delete this annotation', 403, 'UNAUTHORIZED');
       }
 
       await this.prisma.documentAnnotation.delete({
@@ -180,7 +180,7 @@ class AnnotationService {
       logger.info('Annotation deleted successfully', { annotationId });
     } catch (error: any) {
       logger.error('Failed to delete annotation', { error: error.message, annotationId });
-      throw createError('Failed to delete annotation', 'ANNOTATION_DELETE_FAILED', 500, error);
+      throw new AppError('Failed to delete annotation', 500, 'ANNOTATION_DELETE_FAILED', error);
     }
   }
 
@@ -251,7 +251,7 @@ class AnnotationService {
       return annotationsWithComments;
     } catch (error: any) {
       logger.error('Failed to get annotations', { error: error.message, documentType, documentId });
-      throw createError('Failed to get annotations', 'ANNOTATION_GET_FAILED', 500, error);
+      throw new AppError('Failed to get annotations', 500, 'ANNOTATION_GET_FAILED', error);
     }
   }
 
@@ -265,7 +265,7 @@ class AnnotationService {
       return this.getAnnotations(documentType, documentId, { mediaUrl });
     } catch (error: any) {
       logger.error('Failed to get annotations for media', { error: error.message, mediaUrl });
-      throw createError('Failed to get annotations for media', 'ANNOTATION_MEDIA_GET_FAILED', 500, error);
+      throw new AppError('Failed to get annotations for media', 500, 'ANNOTATION_MEDIA_GET_FAILED', error);
     }
   }
 
@@ -287,7 +287,7 @@ class AnnotationService {
       return resolvedAnnotation;
     } catch (error: any) {
       logger.error('Failed to resolve annotation', { error: error.message, annotationId });
-      throw createError('Failed to resolve annotation', 'ANNOTATION_RESOLVE_FAILED', 500, error);
+      throw new AppError('Failed to resolve annotation', 500, 'ANNOTATION_RESOLVE_FAILED', error);
     }
   }
 
@@ -334,7 +334,7 @@ class AnnotationService {
       };
     } catch (error: any) {
       logger.error('Failed to get annotation statistics', { error: error.message, documentType, documentId });
-      throw createError('Failed to get annotation statistics', 'ANNOTATION_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get annotation statistics', 500, 'ANNOTATION_STATS_FAILED', error);
     }
   }
 
@@ -367,7 +367,7 @@ class AnnotationService {
       return template;
     } catch (error: any) {
       logger.error('Failed to create annotation template', { error: error.message, name });
-      throw createError('Failed to create annotation template', 'TEMPLATE_CREATE_FAILED', 500, error);
+      throw new AppError('Failed to create annotation template', 500, 'TEMPLATE_CREATE_FAILED', error);
     }
   }
 
@@ -378,33 +378,33 @@ class AnnotationService {
     switch (annotationType) {
       case AnnotationType.ARROW:
         if (!annotationData.startX || !annotationData.startY || !annotationData.endX || !annotationData.endY) {
-          throw createError('Arrow annotation requires start and end coordinates', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Arrow annotation requires start and end coordinates', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       case AnnotationType.RECTANGLE:
       case AnnotationType.CALLOUT:
         if (!annotationData.x || !annotationData.y || !annotationData.width || !annotationData.height) {
-          throw createError('Rectangle annotation requires x, y, width, and height', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Rectangle annotation requires x, y, width, and height', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       case AnnotationType.CIRCLE:
         if (!annotationData.centerX || !annotationData.centerY || !annotationData.radius) {
-          throw createError('Circle annotation requires center coordinates and radius', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Circle annotation requires center coordinates and radius', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       case AnnotationType.FREEHAND:
         if (!annotationData.path || !Array.isArray(annotationData.path)) {
-          throw createError('Freehand annotation requires a path array', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Freehand annotation requires a path array', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       case AnnotationType.TEXT_LABEL:
         if (!annotationData.x || !annotationData.y) {
-          throw createError('Text label annotation requires x and y coordinates', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Text label annotation requires x and y coordinates', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       case AnnotationType.HIGHLIGHT:
         if (!annotationData.startOffset || !annotationData.endOffset) {
-          throw createError('Highlight annotation requires start and end offsets', 'INVALID_ANNOTATION_DATA', 400);
+          throw new AppError('Highlight annotation requires start and end offsets', 400, 'INVALID_ANNOTATION_DATA');
         }
         break;
       // Add more validation as needed
@@ -450,7 +450,7 @@ class AnnotationService {
       return annotations;
     } catch (error: any) {
       logger.error('Failed to export annotations', { error: error.message, documentType, documentId });
-      throw createError('Failed to export annotations', 'ANNOTATION_EXPORT_FAILED', 500, error);
+      throw new AppError('Failed to export annotations', 500, 'ANNOTATION_EXPORT_FAILED', error);
     }
   }
 

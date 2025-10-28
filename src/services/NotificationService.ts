@@ -1,6 +1,6 @@
 import { PrismaClient, UserNotification, NotificationType, NotificationChannel, NotificationStatus } from '@prisma/client';
-import logger from '../lib/logger';
-import { createError } from '../lib/errorHandler';
+import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * TypeScript interfaces for Notification Operations
@@ -115,7 +115,7 @@ class NotificationService {
       return notification;
     } catch (error: any) {
       logger.error('Failed to create notification', { error: error.message, input });
-      throw createError('Failed to create notification', 'NOTIFICATION_CREATE_FAILED', 500, error);
+      throw new AppError('Failed to create notification', 500, 'NOTIFICATION_CREATE_FAILED', error);
     }
   }
 
@@ -139,7 +139,7 @@ class NotificationService {
       return notifications;
     } catch (error: any) {
       logger.error('Failed to create bulk notifications', { error: error.message, userCount: users.length });
-      throw createError('Failed to create bulk notifications', 'BULK_NOTIFICATION_FAILED', 500, error);
+      throw new AppError('Failed to create bulk notifications', 500, 'BULK_NOTIFICATION_FAILED', error);
     }
   }
 
@@ -192,7 +192,7 @@ class NotificationService {
       return notifications;
     } catch (error: any) {
       logger.error('Failed to get user notifications', { error: error.message, userId });
-      throw createError('Failed to get user notifications', 'NOTIFICATION_GET_FAILED', 500, error);
+      throw new AppError('Failed to get user notifications', 500, 'NOTIFICATION_GET_FAILED', error);
     }
   }
 
@@ -208,7 +208,7 @@ class NotificationService {
       });
 
       if (!notification) {
-        throw createError('Notification not found', 'NOTIFICATION_NOT_FOUND', 404);
+        throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
       const updatedNotification = await this.prisma.userNotification.update({
@@ -223,7 +223,7 @@ class NotificationService {
       return updatedNotification;
     } catch (error: any) {
       logger.error('Failed to mark notification as read', { error: error.message, notificationId });
-      throw createError('Failed to mark notification as read', 'NOTIFICATION_READ_FAILED', 500, error);
+      throw new AppError('Failed to mark notification as read', 500, 'NOTIFICATION_READ_FAILED', error);
     }
   }
 
@@ -253,7 +253,7 @@ class NotificationService {
       return result.count;
     } catch (error: any) {
       logger.error('Failed to mark all notifications as read', { error: error.message, userId });
-      throw createError('Failed to mark all notifications as read', 'NOTIFICATION_READ_ALL_FAILED', 500, error);
+      throw new AppError('Failed to mark all notifications as read', 500, 'NOTIFICATION_READ_ALL_FAILED', error);
     }
   }
 
@@ -269,7 +269,7 @@ class NotificationService {
       });
 
       if (!notification) {
-        throw createError('Notification not found', 'NOTIFICATION_NOT_FOUND', 404);
+        throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
       await this.prisma.userNotification.delete({
@@ -279,7 +279,7 @@ class NotificationService {
       logger.info('Notification deleted successfully', { notificationId });
     } catch (error: any) {
       logger.error('Failed to delete notification', { error: error.message, notificationId });
-      throw createError('Failed to delete notification', 'NOTIFICATION_DELETE_FAILED', 500, error);
+      throw new AppError('Failed to delete notification', 500, 'NOTIFICATION_DELETE_FAILED', error);
     }
   }
 
@@ -322,7 +322,7 @@ class NotificationService {
       };
     } catch (error: any) {
       logger.error('Failed to get notification statistics', { error: error.message, userId });
-      throw createError('Failed to get notification statistics', 'NOTIFICATION_STATS_FAILED', 500, error);
+      throw new AppError('Failed to get notification statistics', 500, 'NOTIFICATION_STATS_FAILED', error);
     }
   }
 
@@ -593,7 +593,7 @@ class NotificationService {
       return result.count;
     } catch (error: any) {
       logger.error('Failed to cleanup expired notifications', { error: error.message });
-      throw createError('Failed to cleanup expired notifications', 'NOTIFICATION_CLEANUP_FAILED', 500, error);
+      throw new AppError('Failed to cleanup expired notifications', 500, 'NOTIFICATION_CLEANUP_FAILED', error);
     }
   }
 
@@ -616,7 +616,7 @@ class NotificationService {
       return [];
     } catch (error: any) {
       logger.error('Failed to get overdue review notifications', { error: error.message });
-      throw createError('Failed to get overdue review notifications', 'OVERDUE_REVIEWS_FAILED', 500, error);
+      throw new AppError('Failed to get overdue review notifications', 500, 'OVERDUE_REVIEWS_FAILED', error);
     }
   }
 
