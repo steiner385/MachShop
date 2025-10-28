@@ -95,14 +95,23 @@ export class FormulaEngineService {
     // Extract dependencies from formula
     const dependencies = this.extractDependencies(input.formulaExpression);
 
-    // Verify all input parameters exist
+    // ✅ GITHUB ISSUE #10 FIX: Enhanced parameter existence validation
     if (dependencies.length > 0) {
       const params = await prisma.operationParameter.findMany({
         where: { id: { in: dependencies } },
       });
       if (params.length !== dependencies.length) {
-        const missingParams = dependencies.filter(dep => !params.find(p => p.id === dep));
-        throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}`);
+        const foundParams = params.map(p => p.id);
+        const missingParams = dependencies.filter(dep => !foundParams.includes(dep));
+
+        // Enhanced error message with context
+        throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}. Found parameters: ${foundParams.join(', ')}. Please ensure all referenced parameters are created before using them in formulas.`);
+      }
+
+      // Additional validation: check if parameters are active/available
+      const inactiveParams = params.filter(p => (p as any).isActive === false);
+      if (inactiveParams.length > 0) {
+        console.warn(`Warning: Some referenced parameters are inactive: ${inactiveParams.map(p => p.id).join(', ')}`);
       }
     }
 
@@ -214,6 +223,7 @@ export class FormulaEngineService {
   /**
    * Safe evaluation using mathjs with restricted scope
    * ✅ PHASE 13C FIX: Enhanced formula validation with better error reporting
+   * ✅ GITHUB ISSUE #10 FIX: Additional edge case handling for mathjs validation
    */
   private async safeEvaluate(expression: string, scope: Record<string, any>): Promise<any> {
     try {
@@ -226,6 +236,7 @@ export class FormulaEngineService {
         throw new Error('Formula expression cannot be empty');
       }
 
+      // ✅ GITHUB ISSUE #10 FIX: Enhanced operator validation for edge cases
       // Check for obviously malformed syntax patterns that cause "Value expected" errors
       if (/[\+\-\*\/\%\^]\s*[\+\-\*\/\%\^]/.test(expression)) {
         throw new Error('Invalid syntax: consecutive operators detected (e.g., "++", "+-", "*+")');
@@ -237,6 +248,35 @@ export class FormulaEngineService {
 
       if (/^[\+\*\/\%\^]/.test(expression.trim())) {
         throw new Error('Invalid syntax: formula cannot start with an operator (except "-")');
+      }
+
+      // ✅ GITHUB ISSUE #10 FIX: Additional edge case patterns
+      // Check for spaces around operators that can cause parsing issues
+      if (/\s+[\+\-\*\/\%\^]\s+[\+\-\*\/\%\^]/.test(expression)) {
+        throw new Error('Invalid syntax: consecutive operators with spaces detected');
+      }
+
+      // Check for malformed operator sequences like "+*", "-/", etc.
+      if (/[\+\-\*\/\%\^][\+\*\/\%\^]/.test(expression)) {
+        throw new Error('Invalid syntax: invalid operator combination detected');
+      }
+
+      // Check for expressions starting with operators in the middle (after operators)
+      if (/[\+\-\*\/\%\^]\s*[\*\/\%\^]/.test(expression)) {
+        throw new Error('Invalid syntax: operator followed by binary operator');
+      }
+
+      // Check for empty parentheses or malformed parentheses content
+      if (/\(\s*\)/.test(expression)) {
+        throw new Error('Invalid syntax: empty parentheses not allowed');
+      }
+
+      if (/\(\s*[\+\*\/\%\^]/.test(expression)) {
+        throw new Error('Invalid syntax: parentheses cannot start with an operator (except "-")');
+      }
+
+      if (/[\+\-\*\/\%\^]\s*\)/.test(expression)) {
+        throw new Error('Invalid syntax: parentheses cannot end with an operator');
       }
 
       // Check for unmatched parentheses
@@ -252,12 +292,22 @@ export class FormulaEngineService {
         throw new Error('Invalid syntax: unmatched opening parenthesis');
       }
 
-      // ✅ PHASE 13C FIX: Enhanced scope validation
+      // ✅ GITHUB ISSUE #10 FIX: Enhanced scope validation with better error context
       const requiredVariables = this.extractVariables(expression);
       const missingVariables = requiredVariables.filter(variable => !(variable in scope));
 
       if (missingVariables.length > 0) {
-        throw new Error(`Some input parameters do not exist: ${missingVariables.join(', ')}`);
+        throw new Error(`Some input parameters do not exist: ${missingVariables.join(', ')}. Available parameters: ${Object.keys(scope).join(', ')}`);
+      }
+
+      // ✅ GITHUB ISSUE #10 FIX: Additional validation for variable names
+      const invalidVariables = requiredVariables.filter(variable => {
+        // Check for variables that might be confused with numbers or invalid identifiers
+        return /^\d/.test(variable) || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(variable);
+      });
+
+      if (invalidVariables.length > 0) {
+        throw new Error(`Invalid variable names detected: ${invalidVariables.join(', ')}. Variable names must start with a letter or underscore and contain only letters, numbers, and underscores.`);
       }
 
       // Compile the expression (this validates syntax)
@@ -265,15 +315,29 @@ export class FormulaEngineService {
       try {
         compiled = math.compile(expression);
       } catch (mathError: any) {
-        // Enhance mathjs error messages for better debugging
+        // ✅ GITHUB ISSUE #10 FIX: Enhanced mathjs error messages for better debugging
         let enhancedMessage = mathError.message;
 
+        // Handle specific mathjs error patterns
         if (enhancedMessage.includes('Value expected')) {
-          enhancedMessage += `. Check for syntax errors like consecutive operators, missing operands, or invalid characters.`;
+          const charMatch = enhancedMessage.match(/char (\d+)/);
+          const charPos = charMatch ? parseInt(charMatch[1]) : null;
+
+          enhancedMessage += `. Check for syntax errors like consecutive operators, missing operands, or invalid characters`;
+
+          if (charPos !== null && charPos < expression.length) {
+            const problemChar = expression[charPos];
+            const context = expression.substring(Math.max(0, charPos - 5), charPos + 5);
+            enhancedMessage += `. Problem near character '${problemChar}' at position ${charPos} in context: "${context}"`;
+          }
         }
 
         if (enhancedMessage.includes('Unexpected')) {
-          enhancedMessage += `. Verify all operators and function names are valid.`;
+          enhancedMessage += `. Verify all operators and function names are valid. Allowed functions: ${ALLOWED_FUNCTIONS.slice(0, 10).join(', ')}, ...`;
+        }
+
+        if (enhancedMessage.includes('Unknown function')) {
+          enhancedMessage += `. Only whitelisted functions are allowed for security. Allowed functions: ${ALLOWED_FUNCTIONS.join(', ')}`;
         }
 
         throw new Error(`Formula compilation failed: ${enhancedMessage}`);
@@ -282,19 +346,43 @@ export class FormulaEngineService {
       // Evaluate with the provided scope
       const result = compiled.evaluate(scope);
 
+      // ✅ GITHUB ISSUE #10 FIX: Enhanced result validation
+      // Check for invalid results that could cause issues
+      if (result === undefined || result === null) {
+        throw new Error('Formula evaluation resulted in undefined or null value');
+      }
+
+      if (typeof result === 'number' && !isFinite(result)) {
+        if (isNaN(result)) {
+          throw new Error('Formula evaluation resulted in NaN (Not a Number)');
+        }
+        if (!isFinite(result)) {
+          throw new Error('Formula evaluation resulted in infinite value');
+        }
+      }
+
       // Convert BigNumber to regular number for JSON serialization
       if (result && typeof result === 'object' && 'toNumber' in result) {
-        return result.toNumber();
+        const numericResult = result.toNumber();
+
+        // Validate the converted number
+        if (!isFinite(numericResult)) {
+          throw new Error('Formula evaluation resulted in non-finite number after BigNumber conversion');
+        }
+
+        return numericResult;
       }
 
       return result;
     } catch (error: any) {
-      // ✅ PHASE 13C FIX: Add test environment debugging
+      // ✅ GITHUB ISSUE #10 FIX: Enhanced test environment debugging
       if (process.env.NODE_ENV === 'test') {
-        console.error(`[FormulaEngine] PHASE 13C: Formula evaluation failed`);
+        console.error(`[FormulaEngine] ISSUE #10: Formula evaluation failed`);
         console.error(`   Expression: "${expression}"`);
         console.error(`   Scope keys: [${Object.keys(scope).join(', ')}]`);
+        console.error(`   Scope values:`, scope);
         console.error(`   Error: ${error.message}`);
+        console.error(`   Stack: ${error.stack}`);
       }
 
       throw new Error(`Evaluation error: ${error.message}`);
@@ -327,12 +415,109 @@ export class FormulaEngineService {
 
   /**
    * Validate formula syntax
+   * ✅ GITHUB ISSUE #10 FIX: Enhanced validation to catch edge cases before mathjs parsing
    */
   async validateFormula(expression: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      // Try to parse the expression
-      math.parse(expression);
-      return { valid: true };
+      // ✅ GITHUB ISSUE #10 FIX: Use enhanced pre-validation from safeEvaluate
+      if (!expression || typeof expression !== 'string') {
+        return { valid: false, error: 'Formula expression is required and must be a string' };
+      }
+
+      if (expression.trim() === '') {
+        return { valid: false, error: 'Formula expression cannot be empty' };
+      }
+
+      // Apply the same pre-validation checks from safeEvaluate
+      if (/[\+\-\*\/\%\^]\s*[\+\-\*\/\%\^]/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: consecutive operators detected (e.g., "++", "+-", "*+")' };
+      }
+
+      if (/[\+\-\*\/\%\^]\s*$/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: formula cannot end with an operator' };
+      }
+
+      if (/^[\+\*\/\%\^]/.test(expression.trim())) {
+        return { valid: false, error: 'Invalid syntax: formula cannot start with an operator (except "-")' };
+      }
+
+      if (/\s+[\+\-\*\/\%\^]\s+[\+\-\*\/\%\^]/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: consecutive operators with spaces detected' };
+      }
+
+      if (/[\+\-\*\/\%\^][\+\*\/\%\^]/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: invalid operator combination detected' };
+      }
+
+      if (/[\+\-\*\/\%\^]\s*[\*\/\%\^]/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: operator followed by binary operator' };
+      }
+
+      if (/\(\s*\)/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: empty parentheses not allowed' };
+      }
+
+      if (/\(\s*[\+\*\/\%\^]/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: parentheses cannot start with an operator (except "-")' };
+      }
+
+      if (/[\+\-\*\/\%\^]\s*\)/.test(expression)) {
+        return { valid: false, error: 'Invalid syntax: parentheses cannot end with an operator' };
+      }
+
+      // Check for unmatched parentheses
+      let parenCount = 0;
+      for (const char of expression) {
+        if (char === '(') parenCount++;
+        if (char === ')') parenCount--;
+        if (parenCount < 0) {
+          return { valid: false, error: 'Invalid syntax: unmatched closing parenthesis' };
+        }
+      }
+      if (parenCount !== 0) {
+        return { valid: false, error: 'Invalid syntax: unmatched opening parenthesis' };
+      }
+
+      // Check for invalid variable names
+      const variables = this.extractVariables(expression);
+      const invalidVariables = variables.filter(variable => {
+        return /^\d/.test(variable) || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(variable);
+      });
+
+      if (invalidVariables.length > 0) {
+        return { valid: false, error: `Invalid variable names detected: ${invalidVariables.join(', ')}. Variable names must start with a letter or underscore and contain only letters, numbers, and underscores.` };
+      }
+
+      // Try to parse the expression with mathjs
+      try {
+        math.parse(expression);
+        return { valid: true };
+      } catch (mathError: any) {
+        let enhancedMessage = mathError.message;
+
+        if (enhancedMessage.includes('Value expected')) {
+          const charMatch = enhancedMessage.match(/char (\d+)/);
+          const charPos = charMatch ? parseInt(charMatch[1]) : null;
+
+          enhancedMessage += `. Check for syntax errors like consecutive operators, missing operands, or invalid characters`;
+
+          if (charPos !== null && charPos < expression.length) {
+            const problemChar = expression[charPos];
+            const context = expression.substring(Math.max(0, charPos - 5), charPos + 5);
+            enhancedMessage += `. Problem near character '${problemChar}' at position ${charPos} in context: "${context}"`;
+          }
+        }
+
+        if (enhancedMessage.includes('Unexpected')) {
+          enhancedMessage += `. Verify all operators and function names are valid. Allowed functions: ${ALLOWED_FUNCTIONS.slice(0, 10).join(', ')}, ...`;
+        }
+
+        if (enhancedMessage.includes('Unknown function')) {
+          enhancedMessage += `. Only whitelisted functions are allowed for security. Allowed functions: ${ALLOWED_FUNCTIONS.join(', ')}`;
+        }
+
+        return { valid: false, error: enhancedMessage };
+      }
     } catch (error: any) {
       return { valid: false, error: error.message };
     }
@@ -402,11 +587,55 @@ export class FormulaEngineService {
 
   /**
    * Compare two values with tolerance for floating point
+   * ✅ GITHUB ISSUE #10 FIX: Enhanced value comparison with better type handling
    */
   private compareValues(actual: any, expected: any, tolerance = 1e-10): boolean {
+    // ✅ GITHUB ISSUE #10 FIX: Handle null/undefined cases
+    if (actual === null && expected === null) return true;
+    if (actual === undefined && expected === undefined) return true;
+    if ((actual === null || actual === undefined) !== (expected === null || expected === undefined)) {
+      return false;
+    }
+
+    // ✅ GITHUB ISSUE #10 FIX: Enhanced numeric comparison
     if (typeof actual === 'number' && typeof expected === 'number') {
+      // Handle special numeric cases
+      if (isNaN(actual) && isNaN(expected)) return true;
+      if (isNaN(actual) || isNaN(expected)) return false;
+      if (!isFinite(actual) && !isFinite(expected)) return actual === expected; // Both infinity
+      if (!isFinite(actual) || !isFinite(expected)) return false;
+
       return Math.abs(actual - expected) < tolerance;
     }
+
+    // ✅ GITHUB ISSUE #10 FIX: Handle string-to-number conversion cases
+    if ((typeof actual === 'string' && typeof expected === 'number') ||
+        (typeof actual === 'number' && typeof expected === 'string')) {
+      const actualNum = Number(actual);
+      const expectedNum = Number(expected);
+
+      if (!isNaN(actualNum) && !isNaN(expectedNum)) {
+        return Math.abs(actualNum - expectedNum) < tolerance;
+      }
+    }
+
+    // ✅ GITHUB ISSUE #10 FIX: Handle boolean comparisons
+    if (typeof actual === 'boolean' && typeof expected === 'boolean') {
+      return actual === expected;
+    }
+
+    // ✅ GITHUB ISSUE #10 FIX: Handle string comparisons with whitespace tolerance
+    if (typeof actual === 'string' && typeof expected === 'string') {
+      return actual.trim() === expected.trim();
+    }
+
+    // ✅ GITHUB ISSUE #10 FIX: Handle array comparisons
+    if (Array.isArray(actual) && Array.isArray(expected)) {
+      if (actual.length !== expected.length) return false;
+      return actual.every((val, index) => this.compareValues(val, expected[index], tolerance));
+    }
+
+    // Default comparison
     return actual === expected;
   }
 
@@ -470,14 +699,23 @@ export class FormulaEngineService {
       // Extract new dependencies
       const dependencies = this.extractDependencies(updates.formulaExpression);
 
-      // Verify all input parameters exist
+      // ✅ GITHUB ISSUE #10 FIX: Enhanced parameter existence validation (update method)
       if (dependencies.length > 0) {
         const params = await prisma.operationParameter.findMany({
           where: { id: { in: dependencies } },
         });
         if (params.length !== dependencies.length) {
-          const missingParams = dependencies.filter(dep => !params.find(p => p.id === dep));
-          throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}`);
+          const foundParams = params.map(p => p.id);
+          const missingParams = dependencies.filter(dep => !foundParams.includes(dep));
+
+          // Enhanced error message with context
+          throw new Error(`Some input parameters do not exist: ${missingParams.join(', ')}. Found parameters: ${foundParams.join(', ')}. Please ensure all referenced parameters are created before using them in formulas.`);
+        }
+
+        // Additional validation: check if parameters are active/available
+        const inactiveParams = params.filter(p => (p as any).isActive === false);
+        if (inactiveParams.length > 0) {
+          console.warn(`Warning: Some referenced parameters are inactive: ${inactiveParams.map(p => p.id).join(', ')}`);
         }
       }
 
