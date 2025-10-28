@@ -5167,6 +5167,7 @@ model WorkflowStageInstance {
 
   // Relations
   assignments        WorkflowAssignment[]
+  parallelCoordination WorkflowParallelCoordination[]
 
   @@unique([workflowInstanceId, stageNumber])
   @@index([workflowInstanceId])
@@ -5429,4 +5430,44 @@ model WorkflowMetrics {
   @@index([workflowType])
   @@index([userId])
   @@map("workflow_metrics")
+}
+
+// Parallel approval coordination tracking
+model WorkflowParallelCoordination {
+  id                    String   @id @default(cuid())
+
+  // Stage instance reference
+  stageInstanceId       String
+  stageInstance         WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
+
+  // Parallel group configuration
+  groupId               String
+  groupName             String?
+  groupType             String   // ROLE_GROUP, DEPARTMENT, CUSTOM
+
+  // Group completion criteria
+  completionType        String   // UNANIMOUS, MAJORITY, THRESHOLD, MINIMUM, ANY
+  thresholdValue        Int?     // For THRESHOLD and MINIMUM types
+
+  // Group status tracking
+  totalAssignments      Int      @default(0)
+  completedAssignments  Int      @default(0)
+  approvedAssignments   Int      @default(0)
+  rejectedAssignments   Int      @default(0)
+
+  // Group outcome
+  groupStatus           String   @default("PENDING") // PENDING, APPROVED, REJECTED, IN_PROGRESS
+  groupDecision         String?  // APPROVED, REJECTED
+  completedAt           DateTime?
+
+  // Group metadata
+  metadata              Json?    // Additional group-specific data
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([stageInstanceId, groupId])
+  @@index([stageInstanceId])
+  @@index([groupStatus])
+  @@map("workflow_parallel_coordination")
 }

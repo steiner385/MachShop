@@ -693,4 +693,281 @@ router.get('/search', async (req: Request, res: Response, next: NextFunction): P
   }
 });
 
+// ============================================================================
+// GitHub Issue #21: Workflow Integration Endpoints
+// ============================================================================
+
+import { WorkflowEngineService } from '../services/WorkflowEngineService';
+import { WorkflowDefinitionService } from '../services/WorkflowDefinitionService';
+import { WorkflowType, Priority, ImpactLevel } from '@prisma/client';
+
+const workflowEngine = new WorkflowEngineService();
+const workflowDefinitionService = new WorkflowDefinitionService();
+
+/**
+ * @route   POST /api/v1/work-instructions/:id/start-workflow
+ * @desc    Start advanced approval workflow for work instruction
+ * @access  Private
+ */
+router.post('/:id/start-workflow', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { workflowId, priority = 'MEDIUM', impactLevel = 'MEDIUM', deadline } = req.body;
+
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Validate work instruction exists and is in correct state
+    const workInstruction = await workInstructionService.getWorkInstructionById(id);
+    if (!workInstruction) {
+      res.status(404).json({ error: 'Work instruction not found' });
+      return;
+    }
+
+    // Only allow workflow for REVIEW status instructions
+    if (workInstruction.status !== 'REVIEW') {
+      res.status(400).json({
+        error: 'Work instruction must be in REVIEW status to start workflow',
+        currentStatus: workInstruction.status
+      });
+      return;
+    }
+
+    // Start workflow instance
+    const workflowInstance = await workflowEngine.startWorkflow({
+      workflowId: workflowId || 'default-work-instruction-approval',
+      entityType: 'WORK_INSTRUCTION',
+      entityId: id,
+      priority: priority as Priority,
+      impactLevel: impactLevel as ImpactLevel,
+      contextData: {
+        workInstructionTitle: workInstruction.title,
+        workInstructionVersion: workInstruction.version,
+        partId: workInstruction.partId,
+        operationId: workInstruction.operationId,
+        createdBy: workInstruction.createdBy
+      },
+      deadline: deadline ? new Date(deadline) : undefined,
+      createdById: userId
+    });
+
+    logger.info('Workflow started for work instruction', {
+      userId,
+      workInstructionId: id,
+      workflowInstanceId: workflowInstance.id,
+      workflowId
+    });
+
+    res.status(201).json({
+      message: 'Workflow started successfully',
+      workflowInstance,
+      workInstruction: {
+        id: workInstruction.id,
+        title: workInstruction.title,
+        status: workInstruction.status
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/:id/workflow-status
+ * @desc    Get workflow status for work instruction
+ * @access  Private
+ */
+router.get('/:id/workflow-status', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { id } = req.params;
+
+    // Find active workflow instances for this work instruction
+    const activeInstances = await workflowEngine.listWorkflowInstances({
+      entityType: 'WORK_INSTRUCTION',
+      entityId: id,
+      status: ['ACTIVE', 'PENDING']
+    });
+
+    if (activeInstances.data.length === 0) {
+      res.json({
+        hasActiveWorkflow: false,
+        message: 'No active workflow found for this work instruction'
+      });
+      return;
+    }
+
+    // Get detailed status for the most recent workflow
+    const latestWorkflow = activeInstances.data[0];
+    const workflowStatus = await workflowEngine.getWorkflowStatus(latestWorkflow.id);
+
+    res.json({
+      hasActiveWorkflow: true,
+      workflowInstance: latestWorkflow,
+      workflowStatus,
+      progressPercentage: latestWorkflow.progressPercentage
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/v1/work-instructions/:id/workflow-callback
+ * @desc    Workflow completion callback to update work instruction status
+ * @access  Private (Internal webhook)
+ */
+router.post('/:id/workflow-callback', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { workflowInstanceId, finalStatus, outcome, comments, completedBy } = req.body;
+
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Validate the workflow instance exists and is completed
+    const workflowInstance = await workflowEngine.getWorkflowInstance(workflowInstanceId);
+    if (!workflowInstance) {
+      res.status(404).json({ error: 'Workflow instance not found' });
+      return;
+    }
+
+    if (workflowInstance.entityType !== 'WORK_INSTRUCTION' || workflowInstance.entityId !== id) {
+      res.status(400).json({ error: 'Workflow instance does not match work instruction' });
+      return;
+    }
+
+    // Update work instruction based on workflow outcome
+    let updatedInstruction;
+
+    if (outcome === 'APPROVED') {
+      updatedInstruction = await workInstructionService.approveWorkInstruction(id, completedBy || userId);
+
+      logger.info('Work instruction approved via workflow', {
+        workInstructionId: id,
+        workflowInstanceId,
+        approvedBy: completedBy || userId
+      });
+    } else if (outcome === 'REJECTED') {
+      updatedInstruction = await workInstructionService.rejectWorkInstruction(
+        id,
+        completedBy || userId,
+        'Rejected via workflow',
+        comments || 'Rejected through advanced approval workflow'
+      );
+
+      logger.info('Work instruction rejected via workflow', {
+        workInstructionId: id,
+        workflowInstanceId,
+        rejectedBy: completedBy || userId,
+        reason: comments
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid workflow outcome. Must be APPROVED or REJECTED' });
+      return;
+    }
+
+    res.json({
+      message: `Work instruction ${outcome.toLowerCase()} successfully`,
+      workInstruction: updatedInstruction,
+      workflowResult: {
+        instanceId: workflowInstanceId,
+        finalStatus,
+        outcome
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/work-instructions/workflows/available
+ * @desc    Get available workflow definitions for work instructions
+ * @access  Private
+ */
+router.get('/workflows/available', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    // Get workflow definitions suitable for work instruction approval
+    const workflows = await workflowDefinitionService.listWorkflows({
+      workflowType: WorkflowType.APPROVAL,
+      isActive: true,
+      isTemplate: false
+    });
+
+    // Filter to only include work instruction compatible workflows
+    const compatibleWorkflows = workflows.data.filter(workflow =>
+      workflow.name.toLowerCase().includes('work instruction') ||
+      workflow.name.toLowerCase().includes('approval') ||
+      workflow.description?.toLowerCase().includes('work instruction')
+    );
+
+    res.json({
+      workflows: compatibleWorkflows,
+      total: compatibleWorkflows.length,
+      message: 'Available workflow definitions for work instruction approval'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/v1/work-instructions/:id/abort-workflow
+ * @desc    Abort active workflow for work instruction
+ * @access  Private
+ */
+router.post('/:id/abort-workflow', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    if (!reason) {
+      res.status(400).json({ error: 'Abortion reason is required' });
+      return;
+    }
+
+    // Find active workflow for this work instruction
+    const activeInstances = await workflowEngine.listWorkflowInstances({
+      entityType: 'WORK_INSTRUCTION',
+      entityId: id,
+      status: ['ACTIVE', 'PENDING']
+    });
+
+    if (activeInstances.data.length === 0) {
+      res.status(404).json({ error: 'No active workflow found for this work instruction' });
+      return;
+    }
+
+    const workflowInstance = activeInstances.data[0];
+    const abortedInstance = await workflowEngine.abortWorkflow(workflowInstance.id, reason, userId);
+
+    logger.info('Workflow aborted for work instruction', {
+      userId,
+      workInstructionId: id,
+      workflowInstanceId: workflowInstance.id,
+      reason
+    });
+
+    res.json({
+      message: 'Workflow aborted successfully',
+      workflowInstance: abortedInstance,
+      reason
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

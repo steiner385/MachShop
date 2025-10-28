@@ -56,6 +56,7 @@ import parameterGroupsRoutes from './routes/parameterGroups';
 import parameterFormulasRoutes from './routes/parameterFormulas';
 import spcRoutes from './routes/spc';
 import mediaRoutes from './routes/media';
+import workflowRoutes from './routes/workflows';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
@@ -180,6 +181,7 @@ apiRouter.use('/routing-templates', authMiddleware, routingTemplateRoutes);
 apiRouter.use('/presence', authMiddleware, presenceRoutes);
 apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
+apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
 apiRouter.use('/upload', authMiddleware, uploadRoutes);
 apiRouter.use('/signatures', authMiddleware, signatureRoutes);
