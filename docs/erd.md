@@ -763,6 +763,74 @@ MULTIPLE MULTIPLE
 SEQUENTIAL SEQUENTIAL
         }
     
+
+
+        WorkInstructionFormat {
+            NATIVE NATIVE
+IMPORTED_PDF IMPORTED_PDF
+IMPORTED_DOC IMPORTED_DOC
+IMPORTED_PPT IMPORTED_PPT
+HYBRID HYBRID
+        }
+    
+
+
+        MediaType {
+            IMAGE IMAGE
+VIDEO VIDEO
+DOCUMENT DOCUMENT
+DIAGRAM DIAGRAM
+CAD_MODEL CAD_MODEL
+ANIMATION ANIMATION
+        }
+    
+
+
+        RelationType {
+            PREREQUISITE PREREQUISITE
+SUPERSEDES SUPERSEDES
+RELATED_TO RELATED_TO
+ALTERNATIVE_TO ALTERNATIVE_TO
+REFERENCED_BY REFERENCED_BY
+        }
+    
+
+
+        ExportTemplateType {
+            WORK_INSTRUCTION WORK_INSTRUCTION
+SETUP_SHEET SETUP_SHEET
+INSPECTION_PLAN INSPECTION_PLAN
+SOP SOP
+        }
+    
+
+
+        ExportFormat {
+            PDF PDF
+DOCX DOCX
+PPTX PPTX
+        }
+    
+
+
+        LayoutMode {
+            SPLIT_VERTICAL SPLIT_VERTICAL
+SPLIT_HORIZONTAL SPLIT_HORIZONTAL
+TABBED TABBED
+OVERLAY OVERLAY
+PICTURE_IN_PICTURE PICTURE_IN_PICTURE
+        }
+    
+
+
+        PanelPosition {
+            LEFT LEFT
+RIGHT RIGHT
+TOP TOP
+BOTTOM BOTTOM
+CENTER CENTER
+        }
+    
   "enterprises" {
     String id "🗝️"
     String enterpriseCode 
@@ -1994,6 +2062,13 @@ SEQUENTIAL SEQUENTIAL
     DateTime updatedAt 
     String operationType "❓"
     Boolean requiredForExecution 
+    WorkInstructionFormat contentFormat 
+    Json nativeContent "❓"
+    String importedFromFile "❓"
+    String tags 
+    String categories 
+    String keywords 
+    String thumbnailUrl "❓"
     }
   
 
@@ -2729,6 +2804,103 @@ SEQUENTIAL SEQUENTIAL
     DateTime createdAt 
     }
   
+
+  "work_instruction_media" {
+    String id "🗝️"
+    MediaType mediaType 
+    String fileName 
+    String fileUrl 
+    Int fileSize 
+    String mimeType 
+    String title "❓"
+    String description "❓"
+    String tags 
+    Json annotations "❓"
+    Int usageCount 
+    DateTime lastUsedAt "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "work_instruction_relations" {
+    String id "🗝️"
+    String relatedId 
+    RelationType relationType 
+    String description "❓"
+    DateTime createdAt 
+    }
+  
+
+  "export_templates" {
+    String id "🗝️"
+    String name 
+    String description "❓"
+    ExportTemplateType templateType 
+    ExportFormat templateFormat 
+    String headerTemplate "❓"
+    String footerTemplate "❓"
+    Json styles "❓"
+    Json layout "❓"
+    Boolean isDefault 
+    Boolean isActive 
+    DateTime createdAt 
+    DateTime updatedAt 
+    String createdById 
+    String updatedById 
+    }
+  
+
+  "data_collection_field_templates" {
+    String id "🗝️"
+    String name 
+    String description "❓"
+    Json fieldSchema 
+    Json validationRules "❓"
+    String category "❓"
+    String tags 
+    Int usageCount 
+    Boolean isActive 
+    DateTime createdAt 
+    DateTime updatedAt 
+    String createdById 
+    }
+  
+
+  "user_workstation_preferences" {
+    String id "🗝️"
+    String userId 
+    String workstationId "❓"
+    LayoutMode layoutMode 
+    Float splitRatio "❓"
+    PanelPosition panelPosition "❓"
+    Boolean autoAdvanceSteps 
+    Boolean showStepTimer 
+    Boolean compactMode 
+    Boolean useSecondMonitor 
+    Json secondMonitorPosition "❓"
+    Boolean isActive 
+    DateTime createdAt 
+    DateTime updatedAt 
+    }
+  
+
+  "workstation_display_configs" {
+    String id "🗝️"
+    String workstationId 
+    Int screenWidth "❓"
+    Int screenHeight "❓"
+    Boolean isMultiMonitor 
+    Int monitorCount 
+    LayoutMode forcedLayout "❓"
+    Boolean allowUserOverride 
+    Boolean isTouchScreen 
+    Int touchTargetSize "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    String updatedById 
+    }
+  
     "enterprises" o{--}o "sites" : ""
     "sites" o|--|o "enterprises" : "enterprise"
     "sites" o{--}o "routings" : ""
@@ -3048,10 +3220,14 @@ SEQUENTIAL SEQUENTIAL
     "part_genealogy" o|--|| "serialized_parts" : "parentPart"
     "part_genealogy" o|--|| "serialized_parts" : "componentPart"
     "work_instructions" o|--|| "WorkInstructionStatus" : "enum:status"
+    "work_instructions" o|--|| "WorkInstructionFormat" : "enum:contentFormat"
     "work_instructions" o|--|| "users" : "createdBy"
     "work_instructions" o|--|| "users" : "updatedBy"
     "work_instructions" o|--|o "users" : "approvedBy"
     "work_instructions" o{--}o "work_instruction_steps" : ""
+    "work_instructions" o|--|o "export_templates" : "exportTemplate"
+    "work_instructions" o{--}o "work_instruction_media" : ""
+    "work_instructions" o{--}o "work_instruction_relations" : ""
     "work_instruction_steps" o|--|| "work_instructions" : "workInstruction"
     "work_instruction_executions" o|--|| "WorkInstructionExecutionStatus" : "enum:status"
     "work_instruction_executions" o|--|| "users" : "operator"
@@ -3145,4 +3321,13 @@ SEQUENTIAL SEQUENTIAL
     "sampling_plans" o|--|o "operations" : "operation"
     "sampling_plans" o{--}o "sampling_inspection_results" : ""
     "sampling_inspection_results" o|--|| "sampling_plans" : "plan"
+    "work_instruction_media" o|--|| "work_instructions" : "instruction"
+    "work_instruction_media" o|--|| "MediaType" : "enum:mediaType"
+    "work_instruction_relations" o|--|| "work_instructions" : "parent"
+    "work_instruction_relations" o|--|| "RelationType" : "enum:relationType"
+    "export_templates" o|--|| "ExportTemplateType" : "enum:templateType"
+    "export_templates" o|--|| "ExportFormat" : "enum:templateFormat"
+    "user_workstation_preferences" o|--|| "LayoutMode" : "enum:layoutMode"
+    "user_workstation_preferences" o|--|o "PanelPosition" : "enum:panelPosition"
+    "workstation_display_configs" o|--|o "LayoutMode" : "enum:forcedLayout"
 ```

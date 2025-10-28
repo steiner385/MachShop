@@ -572,6 +572,21 @@ model WorkInstruction {
   supersededDate DateTime?
   ecoNumber      String? // Engineering Change Order
 
+  // ✅ GITHUB ISSUE #18: Enhanced document management fields
+  // Content format and native authoring
+  contentFormat    WorkInstructionFormat @default(NATIVE)
+  nativeContent    Json? // Structured native format for WYSIWYG editor
+  importedFromFile String? // Original imported file name/path
+  exportTemplateId String? // Template for export formatting
+
+  // Document library and organization
+  tags       String[] // Tags for organization and search
+  categories String[] // Categories for classification
+  keywords   String[] // Keywords for full-text search
+
+  // Media and attachments
+  thumbnailUrl String? // Thumbnail for document preview
+
   // Approval
   approvedById    String? // User ID reference
   approvedAt      DateTime?
@@ -589,9 +604,17 @@ model WorkInstruction {
   WorkOrder   WorkOrder?                 @relation(fields: [workOrderId], references: [id])
   workOrderId String?
 
+  // ✅ GITHUB ISSUE #18: New relations for document management
+  exportTemplate    ExportTemplate?           @relation(fields: [exportTemplateId], references: [id])
+  mediaLibraryItems WorkInstructionMedia[]
+  relatedDocuments  WorkInstructionRelation[] @relation("ParentInstruction")
+
   @@index([status])
   @@index([partId])
   @@index([operationId])
+  @@index([contentFormat])
+  @@index([tags])
+  @@index([categories])
   @@map("work_instructions")
 }
 
@@ -720,22 +743,173 @@ enum StepExecutionStatus {
 
 /// Tracks processed events to prevent duplicate processing
 model IdempotencyRecord {
-  id           String   @id @default(uuid())
-  eventId      String   @unique
-  eventType    String
-  consumerId   String
-  status       IdempotencyStatus @default(PROCESSING)
-  consumedAt   DateTime?
-  retryCount   Int      @default(0)
-  lastError    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String            @id @default(uuid())
+  eventId    String            @unique
+  eventType  String
+  consumerId String
+  status     IdempotencyStatus @default(PROCESSING)
+  consumedAt DateTime?
+  retryCount Int               @default(0)
+  lastError  String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@index([eventType])
   @@index([consumerId])
   @@index([status])
   @@index([consumedAt])
   @@map("idempotency_records")
+}
+
+// ============================================================================
+// GitHub Issue #18: Enhanced Document Management Models
+// ============================================================================
+
+/// Work Instruction Format - Different content formats supported
+enum WorkInstructionFormat {
+  NATIVE // Structured native format for WYSIWYG editor
+  IMPORTED_PDF // Imported from PDF document
+  IMPORTED_DOC // Imported from DOC/DOCX document
+  IMPORTED_PPT // Imported from PPT/PPTX document
+  HYBRID // Combination of native and imported content
+}
+
+/// Work Instruction Media - Enhanced media library for work instructions
+model WorkInstructionMedia {
+  id            String          @id @default(cuid())
+  instructionId String
+  instruction   WorkInstruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+
+  mediaType MediaType
+  fileName  String
+  fileUrl   String
+  fileSize  Int
+  mimeType  String
+
+  // Media metadata
+  title       String?
+  description String?
+  tags        String[]
+
+  // Annotations for images/diagrams
+  annotations Json? // Arrows, callouts, highlights
+
+  // Usage tracking
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([instructionId])
+  @@index([mediaType])
+  @@map("work_instruction_media")
+}
+
+/// Media Type - Types of media supported in work instructions
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  DIAGRAM
+  CAD_MODEL
+  ANIMATION
+}
+
+/// Work Instruction Relation - Relationships between work instructions
+model WorkInstructionRelation {
+  id        String          @id @default(cuid())
+  parentId  String
+  parent    WorkInstruction @relation("ParentInstruction", fields: [parentId], references: [id], onDelete: Cascade)
+  relatedId String
+
+  relationType RelationType
+  description  String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([parentId, relatedId, relationType])
+  @@index([parentId])
+  @@index([relatedId])
+  @@map("work_instruction_relations")
+}
+
+/// Relation Type - Types of relationships between work instructions
+enum RelationType {
+  PREREQUISITE // This instruction must be completed before the related one
+  SUPERSEDES // This instruction replaces the related one
+  RELATED_TO // General relationship
+  ALTERNATIVE_TO // Alternative procedure
+  REFERENCED_BY // Referenced by other instructions
+}
+
+/// Export Template - Templates for exporting work instructions
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  templateType   ExportTemplateType
+  templateFormat ExportFormat
+
+  // Template configuration
+  headerTemplate String? // Header content template
+  footerTemplate String? // Footer content template
+  styles         Json? // CSS/styling configuration
+  layout         Json? // Layout configuration
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  instructions WorkInstruction[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String // User ID reference
+  updatedById String // User ID reference
+
+  @@index([templateType])
+  @@index([templateFormat])
+  @@map("export_templates")
+}
+
+/// Export Template Type - Types of export templates
+enum ExportTemplateType {
+  WORK_INSTRUCTION
+  SETUP_SHEET
+  INSPECTION_PLAN
+  SOP
+}
+
+/// Export Format - Supported export formats
+enum ExportFormat {
+  PDF
+  DOCX
+  PPTX
+}
+
+/// Data Collection Field Template - Reusable field templates
+model DataCollectionFieldTemplate {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  fieldSchema     Json // JSON schema for the field
+  validationRules Json? // Validation configuration
+
+  category String?
+  tags     String[]
+
+  usageCount Int @default(0)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String // User ID reference
+
+  @@index([category])
+  @@index([tags])
+  @@map("data_collection_field_templates")
 }
 
 enum IdempotencyStatus {
