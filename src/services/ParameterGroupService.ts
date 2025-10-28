@@ -29,13 +29,19 @@ export class ParameterGroupService {
    * Create a new parameter group
    */
   async createGroup(input: CreateGroupInput): Promise<ParameterGroup> {
-    // Validate parent exists if specified
+    // ✅ GITHUB ISSUE #12 FIX: Enhanced parent reference validation with context
     if (input.parentGroupId) {
       const parent = await prisma.parameterGroup.findUnique({
         where: { id: input.parentGroupId },
+        include: { parentGroup: true }
       });
       if (!parent) {
-        throw new Error(`Parent group ${input.parentGroupId} not found`);
+        throw new Error(
+          `Parent group ${input.parentGroupId} not found. ` +
+          `Cannot create parameter group '${input.groupName}' because the specified parent group does not exist. ` +
+          `Verify the parent group ID is correct and the parent group exists in the system. ` +
+          `Use GET /api/v1/parameter-groups to list available groups, or create the parent group first.`
+        );
       }
     }
 
@@ -134,11 +140,22 @@ export class ParameterGroupService {
     id: string,
     updates: Partial<CreateGroupInput>
   ): Promise<ParameterGroup> {
-    // Prevent circular references if changing parent
+    // ✅ GITHUB ISSUE #12 FIX: Enhanced circular reference prevention for group updates
     if (updates.parentGroupId) {
       const isDescendant = await this.isDescendant(id, updates.parentGroupId);
       if (isDescendant) {
-        throw new Error('Cannot set parent to a descendant group (circular reference)');
+        const currentGroup = await this.getGroup(id);
+        const targetGroup = await this.getGroup(updates.parentGroupId);
+        throw new Error(
+          `Cannot update parameter group '${currentGroup?.groupName || id}' to have parent '${targetGroup?.groupName || updates.parentGroupId}' because this would create a circular reference. ` +
+          `The target parent group is already a descendant of the current group in the hierarchy. ` +
+          `Circular references are prevented to maintain data integrity and avoid infinite loops in hierarchy traversal. ` +
+          `To resolve this issue: ` +
+          `1) Choose a different parent group that is not a descendant of the current group, ` +
+          `2) Use GET /api/v1/parameter-groups/tree to visualize the current hierarchy structure, ` +
+          `3) Move the target parent group to a different location first, ` +
+          `or 4) Set parentGroupId to null to make this group a root-level group.`
+        );
       }
     }
 
@@ -161,13 +178,26 @@ export class ParameterGroupService {
 
     if (!force) {
       if (group._count && group._count.childGroups > 0) {
+        // ✅ GITHUB ISSUE #12 FIX: Enhanced child group deletion protection with detailed guidance
         throw new Error(
-          `Cannot delete group with ${group._count.childGroups} child groups. Delete children first or use force=true.`
+          `Cannot delete parameter group '${group.groupName}' because it contains ${group._count.childGroups} child group${group._count.childGroups > 1 ? 's' : ''}. ` +
+          `Parameter groups with children cannot be deleted to maintain data integrity and prevent orphaned data. ` +
+          `To resolve this issue: ` +
+          `1) Delete or move all child groups first using DELETE /api/v1/parameter-groups/{childId} or POST /api/v1/parameter-groups/{childId}/move, ` +
+          `2) Use force=true parameter to recursively delete all children (WARNING: This will permanently delete all descendant groups and unlink their parameters), ` +
+          `or 3) Use GET /api/v1/parameter-groups/${group.id}?includeChildren=true to review the child groups before deletion.`
         );
       }
       if (group._count && group._count.parameters > 0) {
+        // ✅ GITHUB ISSUE #12 FIX: Enhanced parameter deletion protection with detailed guidance
         throw new Error(
-          `Cannot delete group with ${group._count.parameters} parameters. Reassign parameters first or use force=true.`
+          `Cannot delete parameter group '${group.groupName}' because it contains ${group._count.parameters} parameter${group._count.parameters > 1 ? 's' : ''}. ` +
+          `Parameter groups with assigned parameters cannot be deleted to prevent data loss and maintain parameter organization. ` +
+          `To resolve this issue: ` +
+          `1) Reassign all parameters to other groups using POST /api/v1/parameter-groups/assign with parameterId and new groupId, ` +
+          `2) Unlink parameters by setting their groupId to null, ` +
+          `3) Use force=true parameter to automatically unlink all parameters (parameters will remain but lose group association), ` +
+          `or 4) Use GET /api/v1/parameter-groups/${group.id}/parameters to review the parameters before deletion.`
         );
       }
     }
@@ -186,11 +216,22 @@ export class ParameterGroupService {
    * Move a group to a new parent
    */
   async moveGroup(id: string, newParentId: string | null): Promise<ParameterGroup> {
-    // Check for circular references
+    // ✅ GITHUB ISSUE #12 FIX: Enhanced circular reference prevention for group moves
     if (newParentId) {
       const isDescendant = await this.isDescendant(id, newParentId);
       if (isDescendant) {
-        throw new Error('Cannot move group to its own descendant (circular reference)');
+        const currentGroup = await this.getGroup(id);
+        const targetGroup = await this.getGroup(newParentId);
+        throw new Error(
+          `Cannot move parameter group '${currentGroup?.groupName || id}' to parent '${targetGroup?.groupName || newParentId}' because this would create a circular reference. ` +
+          `The target parent group is already a descendant of the group being moved in the hierarchy. ` +
+          `Circular references are prevented to maintain data integrity and avoid infinite loops in hierarchy traversal. ` +
+          `To resolve this issue: ` +
+          `1) Choose a different parent group that is not a descendant of the group being moved, ` +
+          `2) Use GET /api/v1/parameter-groups/tree to visualize the current hierarchy structure, ` +
+          `3) Move the target parent group to a different location first, ` +
+          `or 4) Set newParentId to null to make this group a root-level group.`
+        );
       }
     }
 
@@ -239,9 +280,18 @@ export class ParameterGroupService {
    */
   async assignParameter(parameterId: string, groupId: string | null) {
     if (groupId) {
-      const group = await prisma.parameterGroup.findUnique({ where: { id: groupId } });
+      const group = await prisma.parameterGroup.findUnique({
+        where: { id: groupId },
+        include: { parentGroup: true }
+      });
       if (!group) {
-        throw new Error(`Group ${groupId} not found`);
+        // ✅ GITHUB ISSUE #12 FIX: Enhanced group reference validation for parameter assignment
+        throw new Error(
+          `Parameter group ${groupId} not found. ` +
+          `Cannot assign parameter to group because the specified group does not exist. ` +
+          `Verify the group ID is correct and the group exists in the system. ` +
+          `Use GET /api/v1/parameter-groups to list available groups, or create the group first.`
+        );
       }
     }
 

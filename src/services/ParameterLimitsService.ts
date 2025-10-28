@@ -25,10 +25,19 @@ export class ParameterLimitsService {
     parameterId: string,
     limits: Omit<ParameterLimits, 'id' | 'parameterId' | 'parameter' | 'createdAt' | 'updatedAt'>
   ): Promise<ParameterLimits> {
-    // Validate limit hierarchy before saving
+    // ✅ GITHUB ISSUE #12 FIX: Enhanced limit hierarchy validation with detailed guidance
     const validation = this.validateLimitHierarchy(limits);
     if (!validation.valid) {
-      throw new Error(`Invalid limit hierarchy: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Invalid parameter limit hierarchy configuration. The limit values do not follow the required ordering constraints. ` +
+        `Parameter limits must follow this hierarchy: engineeringMin ≤ lowLowAlarm ≤ lowAlarm ≤ operatingMin ≤ LSL ≤ nominal ≤ USL ≤ operatingMax ≤ highAlarm ≤ highHighAlarm ≤ engineeringMax. ` +
+        `Validation errors found: ${validation.errors.join('; ')}. ` +
+        `To resolve this issue: ` +
+        `1) Review and adjust the limit values to maintain proper ordering, ` +
+        `2) Ensure each limit type serves its intended purpose (engineering limits protect equipment, alarms trigger notifications, operating limits define normal range, spec limits define quality boundaries), ` +
+        `3) Consider setting unused limits to null instead of conflicting values, ` +
+        `or 4) Use GET /api/v1/parameter-limits/validate to test limit configurations before saving.`
+      );
     }
 
     logger.info('Upserting parameter limits', { parameterId });
@@ -101,8 +110,10 @@ export class ParameterLimitsService {
         if (next.value === null) continue;
 
         if (current.value > next.value) {
+          // ✅ GITHUB ISSUE #12 FIX: Enhanced limit ordering validation messages
           errors.push(
-            `${current.name} (${current.value}) must be <= ${next.name} (${next.value})`
+            `${current.name} (${current.value}) must be ≤ ${next.name} (${next.value}). ` +
+            `Current configuration violates the limit hierarchy ordering requirement.`
           );
         }
         break; // Only compare to next defined limit
