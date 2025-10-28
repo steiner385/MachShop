@@ -248,14 +248,30 @@ export async function createFallbackWorkCenter(
 ): Promise<string> {
   console.log(`🔄 PHASE 13A: Creating fallback work center for site ${siteId}`);
 
+  // First, get an area ID from the site
+  console.log(`🔄 PHASE 13A: Looking up area for site ${siteId} to create fallback work center`);
+
+  const siteResponse = await request.get(`/api/v1/sites/${siteId}`, {
+    headers: authHeaders
+  });
+
+  if (!siteResponse.ok()) {
+    throw new Error(`Failed to get site details: HTTP ${siteResponse.status()}`);
+  }
+
+  const siteData = await siteResponse.json();
+  if (!siteData.data?.areas || siteData.data.areas.length === 0) {
+    throw new Error('No areas found in site for work center creation');
+  }
+
+  const areaId = siteData.data.areas[0].id; // Use first area
+  console.log(`✅ PHASE 13A: Using area ${areaId} for fallback work center`);
+
   const fallbackWorkCenter = {
-    workCenterCode: `FALLBACK_WC_${Date.now()}`,
-    workCenterName: 'Fallback Work Center (Test)',
-    siteId: siteId,
+    name: `Fallback Work Center ${Date.now()}`,
     description: 'Auto-generated fallback work center for test setup',
-    isActive: true,
     capacity: 1,
-    efficiency: 100
+    areaId: areaId
   };
 
   const response = await request.post('/api/v1/equipment/work-centers', {
@@ -268,7 +284,7 @@ export async function createFallbackWorkCenter(
   }
 
   const created = await response.json();
-  console.log(`✅ PHASE 13A: Fallback work center created: ${created.id}`);
+  console.log(`✅ PHASE 13A: Fallback work center created: ${created.id} (${created.name})`);
   return created.id;
 }
 
