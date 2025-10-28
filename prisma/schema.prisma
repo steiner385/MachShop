@@ -133,6 +133,39 @@ model User {
   electronicSignatures  ElectronicSignature[] @relation("ElectronicSignatureUser")
   invalidatedSignatures ElectronicSignature[] @relation("ElectronicSignatureInvalidatedBy")
 
+  // ✅ GITHUB ISSUE #23: Multi-Document Type Relations
+  // Setup Sheet relations
+  createdSetupSheets    SetupSheet[]           @relation("SetupSheetCreatedBy")
+  updatedSetupSheets    SetupSheet[]           @relation("SetupSheetUpdatedBy")
+  approvedSetupSheets   SetupSheet[]           @relation("SetupSheetApprovedBy")
+  startedSetupExecutions SetupExecution[]      @relation("SetupExecutionStartedBy")
+  completedSetupExecutions SetupExecution[]    @relation("SetupExecutionCompletedBy")
+
+  // Inspection Plan relations
+  createdInspectionPlans InspectionPlan[]      @relation("InspectionPlanCreatedBy")
+  updatedInspectionPlans InspectionPlan[]      @relation("InspectionPlanUpdatedBy")
+  approvedInspectionPlans InspectionPlan[]     @relation("InspectionPlanApprovedBy")
+  inspectionExecutions   InspectionExecution[] @relation("InspectionExecutionInspector")
+
+  // Standard Operating Procedure (SOP) relations
+  createdSOPs           StandardOperatingProcedure[] @relation("SOPCreatedBy")
+  updatedSOPs           StandardOperatingProcedure[] @relation("SOPUpdatedBy")
+  approvedSOPs          StandardOperatingProcedure[] @relation("SOPApprovedBy")
+  sopAcknowledgments    SOPAcknowledgment[]          @relation("SOPAcknowledgmentUser")
+  sopAudits             SOPAudit[]                   @relation("SOPAuditAuditor")
+
+  // Tool Drawing relations
+  createdToolDrawings   ToolDrawing[]         @relation("ToolDrawingCreatedBy")
+  updatedToolDrawings   ToolDrawing[]         @relation("ToolDrawingUpdatedBy")
+  approvedToolDrawings  ToolDrawing[]         @relation("ToolDrawingApprovedBy")
+  toolMaintenanceRecords ToolMaintenanceRecord[] @relation("ToolMaintenancePerformedBy")
+  toolCalibrationRecords ToolCalibrationRecord[] @relation("ToolCalibrationPerformedBy")
+  toolUsageLogs         ToolUsageLog[]        @relation("ToolUsageLogUsedBy")
+
+  // Document Template relations
+  createdDocumentTemplates DocumentTemplate[] @relation("DocumentTemplateCreatedBy")
+  updatedDocumentTemplates DocumentTemplate[] @relation("DocumentTemplateUpdatedBy")
+
   // ISA-95 Personnel relations
   personnelClass        PersonnelClass?                 @relation(fields: [personnelClassId], references: [id])
   supervisor            User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
@@ -4844,6 +4877,762 @@ model DataCollectionFieldTemplate {
   @@index([tags])
   @@map("data_collection_field_templates")
 }
+
+// ============================================================================
+// ✅ GITHUB ISSUE #23: Multi-Document Type Support
+// Additional operation-specific document types: Setup Sheets, Inspection Plans,
+// SOPs, and Tool/Fixture Drawings with unified document management
+// ============================================================================
+
+// Setup Sheet - Machine/equipment setup procedures and parameters
+model SetupSheet {
+  id              String                @id @default(cuid())
+
+  // Base document attributes (similar to WorkInstruction)
+  documentNumber  String                @unique
+  title           String
+  description     String?               @db.Text
+
+  // Version control (consistent with WorkInstruction)
+  version         String                @default("1.0.0")
+  status          WorkInstructionStatus @default(DRAFT)
+  effectiveDate   DateTime?
+  supersededDate  DateTime?
+  ecoNumber       String?               // Engineering Change Order number
+
+  // References
+  equipmentId     String?
+  operationId     String?               // Link to Operation
+  partId          String?
+  workCenterId    String?
+
+  // Setup-specific attributes
+  estimatedSetupTime Int?              // minutes
+
+  // Safety requirements
+  safetyChecklist    Json?             // Safety checklist items
+  requiredPPE        String[]          // Personal protective equipment
+
+  // Media (consistent with WorkInstruction pattern)
+  imageUrls          String[]          // Array of image URLs
+  videoUrls          String[]          // Array of video URLs
+  attachmentUrls     String[]          // PDF, CAD files, etc.
+
+  // Document management (same as WorkInstruction)
+  tags               String[]          // Tags for organization and search
+  categories         String[]          // Categories for classification
+  keywords           String[]          // Keywords for full-text search
+  thumbnailUrl       String?           // Thumbnail for document preview
+
+  // Version control (same pattern as WorkInstruction)
+  parentVersionId    String?
+  parentVersion      SetupSheet?       @relation("SetupSheetVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions      SetupSheet[]      @relation("SetupSheetVersionHistory")
+
+  // Approval workflow
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?             // Array of approval/rejection history
+
+  // Metadata
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  createdById        String
+  updatedById        String
+
+  // Relations
+  createdBy          User              @relation("SetupSheetCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User              @relation("SetupSheetUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy         User?             @relation("SetupSheetApprovedBy", fields: [approvedById], references: [id])
+
+  steps              SetupStep[]
+  parameters         SetupParameter[]
+  toolList           SetupTool[]
+  executions         SetupExecution[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([equipmentId])
+  @@index([operationId])
+  @@index([partId])
+  @@map("setup_sheets")
+}
+
+model SetupStep {
+  id                 String      @id @default(cuid())
+  setupSheetId       String
+  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  stepNumber         Int
+  title              String
+  instructions       String      @db.Text
+
+  imageUrls          String[]
+  videoUrls          String[]
+
+  estimatedDuration  Int?        // seconds
+  isCritical         Boolean     @default(false)
+  requiresVerification Boolean   @default(false)
+
+  @@unique([setupSheetId, stepNumber])
+  @@index([setupSheetId])
+  @@map("setup_steps")
+}
+
+model SetupParameter {
+  id                 String      @id @default(cuid())
+  setupSheetId       String
+  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  parameterName      String
+  targetValue        String
+  tolerance          String?
+  unit               String?
+
+  equipmentSetting   String?     // e.g., "Spindle Speed", "Feed Rate"
+  verificationMethod String?
+
+  @@index([setupSheetId])
+  @@map("setup_parameters")
+}
+
+model SetupTool {
+  id                 String      @id @default(cuid())
+  setupSheetId       String
+  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  toolId             String?     // Reference to ToolDrawing
+  toolName           String
+  toolNumber         String?
+  quantity           Int         @default(1)
+
+  toolOffset         String?
+  notes              String?
+
+  @@index([setupSheetId])
+  @@index([toolId])
+  @@map("setup_tools")
+}
+
+model SetupExecution {
+  id                 String            @id @default(cuid())
+  setupSheetId       String
+  setupSheet         SetupSheet        @relation(fields: [setupSheetId], references: [id])
+
+  workOrderId        String?
+  operationId        String?
+
+  // Execution tracking
+  startedById        String
+  startedBy          User              @relation("SetupExecutionStartedBy", fields: [startedById], references: [id])
+  startedAt          DateTime          @default(now())
+  completedById      String?
+  completedBy        User?             @relation("SetupExecutionCompletedBy", fields: [completedById], references: [id])
+  completedAt        DateTime?
+
+  actualSetupTime    Int?              // minutes
+
+  verificationData   Json?             // Verification measurements
+  firstPieceResults  Json?
+
+  status             WorkInstructionExecutionStatus @default(IN_PROGRESS)
+
+  @@index([setupSheetId])
+  @@index([workOrderId])
+  @@map("setup_executions")
+}
+
+// Inspection Plan - Quality inspection procedures and acceptance criteria
+model InspectionPlan {
+  id                 String                @id @default(cuid())
+
+  // Base document attributes
+  documentNumber     String                @unique
+  title              String
+  description        String?               @db.Text
+
+  // Version control
+  version            String                @default("1.0.0")
+  status             WorkInstructionStatus @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+
+  // References
+  partId             String?
+  operationId        String?
+
+  // Inspection-specific attributes
+  inspectionType     InspectionType
+  frequency          InspectionFrequency
+  samplingPlan       Json?                 // Sampling configuration
+
+  // Defect handling
+  dispositionRules   Json?
+
+  // Gage R&R
+  gageRRRequired     Boolean               @default(false)
+  gageRRFrequency    String?
+
+  // Media
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+
+  // Document management
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+
+  // Version control
+  parentVersionId    String?
+  parentVersion      InspectionPlan?       @relation("InspectionPlanVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions      InspectionPlan[]      @relation("InspectionPlanVersionHistory")
+
+  // Approval workflow
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+
+  // Metadata
+  isActive           Boolean               @default(true)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdById        String
+  updatedById        String
+
+  // Relations
+  createdBy          User                  @relation("InspectionPlanCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User                  @relation("InspectionPlanUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy         User?                 @relation("InspectionPlanApprovedBy", fields: [approvedById], references: [id])
+
+  characteristics    InspectionCharacteristic[]
+  steps              InspectionStep[]
+  executions         InspectionExecution[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([partId])
+  @@index([operationId])
+  @@index([inspectionType])
+  @@map("inspection_plans")
+}
+
+enum InspectionType {
+  FIRST_ARTICLE
+  IN_PROCESS
+  FINAL
+  RECEIVING
+  AUDIT
+  PATROL
+}
+
+enum InspectionFrequency {
+  PER_PIECE
+  PER_BATCH
+  PER_LOT
+  PERIODIC
+  SAMPLING
+  ON_DEMAND
+}
+
+model InspectionCharacteristic {
+  id                 String          @id @default(cuid())
+  inspectionPlanId   String
+  inspectionPlan     InspectionPlan  @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+
+  characteristicNumber Int
+  characteristicName String
+
+  measurementType    MeasurementType
+  nominal            Float?
+  upperLimit         Float?
+  lowerLimit         Float?
+  unit               String?
+
+  measurementMethod  String?
+  gageType           String?
+
+  isCritical         Boolean         @default(false)
+
+  @@unique([inspectionPlanId, characteristicNumber])
+  @@index([inspectionPlanId])
+  @@map("inspection_characteristics")
+}
+
+enum MeasurementType {
+  DIMENSIONAL
+  VISUAL
+  FUNCTIONAL
+  MATERIAL
+  SURFACE_FINISH
+  GEOMETRIC_TOLERANCE
+}
+
+model InspectionStep {
+  id                 String          @id @default(cuid())
+  inspectionPlanId   String
+  inspectionPlan     InspectionPlan  @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+
+  stepNumber         Int
+  title              String
+  instructions       String          @db.Text
+
+  characteristicRefs Int[]           // References to characteristic numbers
+
+  imageUrls          String[]
+
+  @@unique([inspectionPlanId, stepNumber])
+  @@index([inspectionPlanId])
+  @@map("inspection_steps")
+}
+
+model InspectionExecution {
+  id                 String            @id @default(cuid())
+  inspectionPlanId   String
+  inspectionPlan     InspectionPlan    @relation(fields: [inspectionPlanId], references: [id])
+
+  workOrderId        String?
+  operationId        String?
+  lotNumber          String?
+  serialNumber       String?
+
+  // Execution tracking
+  inspectorId        String
+  inspector          User              @relation("InspectionExecutionInspector", fields: [inspectorId], references: [id])
+  inspectedAt        DateTime          @default(now())
+
+  results            Json              // Measurement results
+  overallResult      InspectionResult
+
+  defectsFound       Json?             // Defect details
+  disposition        Disposition?
+
+  signatureId        String?
+
+  @@index([inspectionPlanId])
+  @@index([workOrderId])
+  @@index([inspectedAt])
+  @@map("inspection_executions")
+}
+
+enum InspectionResult {
+  PASS
+  FAIL
+  CONDITIONAL_PASS
+  PENDING_REVIEW
+}
+
+enum Disposition {
+  ACCEPT
+  REJECT
+  REWORK
+  USE_AS_IS
+  RETURN_TO_VENDOR
+  SCRAP
+}
+
+// Standard Operating Procedure (SOP) - Standard processes and safety procedures
+model StandardOperatingProcedure {
+  id                 String                @id @default(cuid())
+
+  // Base document attributes
+  documentNumber     String                @unique
+  title              String
+  description        String?               @db.Text
+
+  // Version control
+  version            String                @default("1.0.0")
+  status             WorkInstructionStatus @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+
+  // SOP-specific attributes
+  sopType            SOPType
+  scope              String                @db.Text
+  applicability      String?               @db.Text
+
+  responsibleRoles   String[]
+
+  references         Json?                 // Regulations, standards, other docs
+
+  // Safety
+  safetyWarnings     String[]              @db.Text
+  requiredPPE        String[]
+  emergencyProcedure String?               @db.Text
+
+  // Training
+  trainingRequired   Boolean               @default(false)
+  trainingFrequency  String?               // e.g., "annually", "one-time"
+
+  // Review schedule
+  reviewFrequency    String?               // e.g., "annually", "biannually"
+  nextReviewDate     DateTime?
+
+  // Media
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+
+  // Document management
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+
+  // Version control
+  parentVersionId    String?
+  parentVersion      StandardOperatingProcedure? @relation("SOPVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions      StandardOperatingProcedure[] @relation("SOPVersionHistory")
+
+  // Approval workflow
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+
+  // Metadata
+  isActive           Boolean               @default(true)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdById        String
+  updatedById        String
+
+  // Relations
+  createdBy          User                  @relation("SOPCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User                  @relation("SOPUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy         User?                 @relation("SOPApprovedBy", fields: [approvedById], references: [id])
+
+  steps              SOPStep[]
+  acknowledgments    SOPAcknowledgment[]
+  audits             SOPAudit[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([sopType])
+  @@index([nextReviewDate])
+  @@map("standard_operating_procedures")
+}
+
+enum SOPType {
+  SAFETY
+  QUALITY
+  MAINTENANCE
+  TRAINING
+  EMERGENCY
+  ENVIRONMENTAL
+  SECURITY
+  GENERAL
+}
+
+model SOPStep {
+  id                 String                      @id @default(cuid())
+  sopId              String
+  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id], onDelete: Cascade)
+
+  stepNumber         Int
+  title              String
+  instructions       String                      @db.Text
+
+  isWarning          Boolean                     @default(false)
+  isCritical         Boolean                     @default(false)
+
+  imageUrls          String[]
+  videoUrls          String[]
+
+  @@unique([sopId, stepNumber])
+  @@index([sopId])
+  @@map("sop_steps")
+}
+
+model SOPAcknowledgment {
+  id                 String                      @id @default(cuid())
+  sopId              String
+  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id])
+
+  userId             String
+  user               User                        @relation("SOPAcknowledgmentUser", fields: [userId], references: [id])
+  userName           String
+
+  acknowledgedAt     DateTime                    @default(now())
+
+  // Training completion
+  trainingCompletedAt DateTime?
+  assessmentScore    Float?
+  assessmentPassed   Boolean?
+
+  signatureId        String?
+
+  @@unique([sopId, userId])
+  @@index([sopId])
+  @@index([userId])
+  @@map("sop_acknowledgments")
+}
+
+model SOPAudit {
+  id                 String                      @id @default(cuid())
+  sopId              String
+  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id])
+
+  auditDate          DateTime
+  auditorId          String
+  auditor            User                        @relation("SOPAuditAuditor", fields: [auditorId], references: [id])
+  auditorName        String
+
+  complianceChecks   Json                        // Checklist results
+  overallCompliance  Boolean
+
+  findingsCount      Int                         @default(0)
+  findings           String?                     @db.Text
+
+  correctiveActions  Json?
+
+  @@index([sopId])
+  @@index([auditDate])
+  @@map("sop_audits")
+}
+
+// Tool Drawing - Tool/fixture specifications, maintenance, and usage
+model ToolDrawing {
+  id                 String                @id @default(cuid())
+
+  // Base document attributes
+  documentNumber     String                @unique
+  title              String
+  description        String?               @db.Text
+
+  // Version control
+  version            String                @default("1.0.0")
+  status             WorkInstructionStatus @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+
+  // Tool-specific attributes
+  toolType           ToolType
+  toolSubtype        String?
+
+  // Physical attributes
+  dimensions         Json?                 // Length, width, height, diameter, etc.
+  material           String?
+  weight             Float?
+  weightUnit         String?
+
+  // Vendor information
+  vendorId           String?
+  vendorName         String?
+  vendorPartNumber   String?
+  catalogNumber      String?
+  cost               Float?
+  costCurrency       String?
+
+  // Usage
+  applicablePartIds  String[]
+  applicableOperations String[]
+
+  usageInstructions  String?               @db.Text
+  maintenanceProcedure String?             @db.Text
+
+  // Inspection/Calibration
+  requiresCalibration Boolean              @default(false)
+  calibrationInterval Int?                 // days
+  lastCalibrationDate DateTime?
+  nextCalibrationDate DateTime?
+
+  // Inventory
+  storageLocation    String?
+  quantityOnHand     Int?
+  minimumQuantity    Int?
+
+  // CAD files
+  cadFileUrls        String[]
+
+  // Media
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+
+  // Document management
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+
+  // Version control
+  parentVersionId    String?
+  parentVersion      ToolDrawing?          @relation("ToolDrawingVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions      ToolDrawing[]         @relation("ToolDrawingVersionHistory")
+
+  // Approval workflow
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+
+  // Metadata
+  isActive           Boolean               @default(true)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdById        String
+  updatedById        String
+
+  // Relations
+  createdBy          User                  @relation("ToolDrawingCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User                  @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy         User?                 @relation("ToolDrawingApprovedBy", fields: [approvedById], references: [id])
+
+  maintenanceRecords ToolMaintenanceRecord[]
+  calibrationRecords ToolCalibrationRecord[]
+  usageLogs          ToolUsageLog[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([toolType])
+  @@index([vendorId])
+  @@index([nextCalibrationDate])
+  @@map("tool_drawings")
+}
+
+enum ToolType {
+  CUTTING_TOOL
+  GAGE
+  FIXTURE
+  JIG
+  DIE
+  MOLD
+  HAND_TOOL
+  MEASURING_INSTRUMENT
+  WORK_HOLDING
+  OTHER
+}
+
+model ToolMaintenanceRecord {
+  id                 String              @id @default(cuid())
+  toolDrawingId      String
+  toolDrawing        ToolDrawing         @relation(fields: [toolDrawingId], references: [id])
+
+  maintenanceDate    DateTime
+  performedById      String
+  performedBy        User                @relation("ToolMaintenancePerformedBy", fields: [performedById], references: [id])
+  performedByName    String
+
+  maintenanceType    MaintenanceType
+  description        String              @db.Text
+
+  partsReplaced      Json?
+  cost               Float?
+
+  toolConditionBefore String?
+  toolConditionAfter  String?
+
+  @@index([toolDrawingId])
+  @@index([maintenanceDate])
+  @@map("tool_maintenance_records")
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  PREDICTIVE
+  BREAKDOWN
+}
+
+model ToolCalibrationRecord {
+  id                 String       @id @default(cuid())
+  toolDrawingId      String
+  toolDrawing        ToolDrawing  @relation(fields: [toolDrawingId], references: [id])
+
+  calibrationDate    DateTime
+  performedById      String
+  performedBy        User         @relation("ToolCalibrationPerformedBy", fields: [performedById], references: [id])
+  performedByName    String
+
+  calibrationResults Json
+  passed             Boolean
+
+  certificationNumber String?
+  certificateUrl     String?
+
+  nextDueDate        DateTime
+
+  @@index([toolDrawingId])
+  @@index([calibrationDate])
+  @@map("tool_calibration_records")
+}
+
+model ToolUsageLog {
+  id                 String      @id @default(cuid())
+  toolDrawingId      String
+  toolDrawing        ToolDrawing @relation(fields: [toolDrawingId], references: [id])
+
+  usedAt             DateTime    @default(now())
+  usedById           String
+  usedBy             User        @relation("ToolUsageLogUsedBy", fields: [usedById], references: [id])
+  usedByName         String
+
+  workOrderId        String?
+  operationId        String?
+
+  usageDuration      Int?        // minutes
+  conditionAfterUse  String?
+
+  @@index([toolDrawingId])
+  @@index([usedAt])
+  @@map("tool_usage_logs")
+}
+
+// Document Template - Templates for creating new documents
+model DocumentTemplate {
+  id               String               @id @default(cuid())
+  name             String
+  description      String?
+  documentType     DocumentType
+
+  // Template content
+  templateData     Json                 // Template structure/content
+  defaultValues    Json?                // Default field values
+
+  // Template metadata
+  isPublic         Boolean              @default(false)
+  isSystemTemplate Boolean              @default(false)
+
+  tags             String[]
+  category         String?
+
+  usageCount       Int                  @default(0)
+
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  createdById      String
+  updatedById      String
+
+  // Relations
+  createdBy        User                 @relation("DocumentTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User                 @relation("DocumentTemplateUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([documentType])
+  @@index([isPublic])
+  @@index([category])
+  @@map("document_templates")
+}
+
+enum DocumentType {
+  WORK_INSTRUCTION
+  SETUP_SHEET
+  INSPECTION_PLAN
+  SOP
+  TOOL_DRAWING
+}
+
+// ============================================================================
+// End of Issue #23: Multi-Document Type Support
+// ============================================================================
 
 // GitHub Issue #19: Configurable Side-by-Side Execution Interface
 
