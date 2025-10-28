@@ -295,10 +295,22 @@ export class AuthenticationManager extends EventEmitter {
         // Note: roles are stored as String[] in the User model, no need to include relations
       });
     } catch (dbError: any) {
+      // ✅ GITHUB ISSUE #16 FIX: Enhanced undefined error handling for database operations
+      const safeErrorMessage = dbError?.message || dbError?.toString?.() || String(dbError) || 'Unknown database error';
+
       if (process.env.NODE_ENV === 'test') {
-        console.error(`[AuthManager] PHASE 13D: Database error during user lookup for '${username}':`, dbError.message);
+        console.error(`[AuthManager] GITHUB ISSUE #16: Database error during user lookup for '${username}':`, {
+          message: safeErrorMessage,
+          errorType: typeof dbError,
+          hasMessage: dbError?.message !== undefined,
+          hasCode: dbError?.code !== undefined,
+          hasName: dbError?.name !== undefined,
+          errorKeys: dbError ? Object.keys(dbError) : 'dbError is undefined',
+          originalError: dbError
+        });
       }
-      throw new Error('Database connection error during authentication');
+
+      throw new Error(`Database connection error during authentication: ${safeErrorMessage}`);
     }
 
     // ✅ PHASE 8C & 13D FIX: Enhanced debugging for user lookup failures in test mode
@@ -321,8 +333,15 @@ export class AuthenticationManager extends EventEmitter {
           if (caseInsensitiveMatch) {
             console.log(`[AuthManager] PHASE 13D: Found case-insensitive match: '${caseInsensitiveMatch.username}' (active: ${caseInsensitiveMatch.isActive})`);
           }
-        } catch (debugError) {
-          console.error(`[AuthManager] PHASE 13D: Debug query failed:`, debugError);
+        } catch (debugError: any) {
+          // ✅ GITHUB ISSUE #16 FIX: Enhanced debug error handling
+          const safeDebugErrorMessage = debugError?.message || debugError?.toString?.() || String(debugError) || 'Unknown debug error';
+          console.error(`[AuthManager] GITHUB ISSUE #16: Debug query failed:`, {
+            message: safeDebugErrorMessage,
+            errorType: typeof debugError,
+            hasMessage: debugError?.message !== undefined,
+            errorKeys: debugError ? Object.keys(debugError) : 'debugError is undefined'
+          });
         }
       }
       throw new Error('Invalid username or password');
@@ -345,11 +364,18 @@ export class AuthenticationManager extends EventEmitter {
             break;
           } catch (error: any) {
             retries--;
-            console.warn(`[AuthManager] Failed to reactivate user '${username}' (${3 - retries}/3): ${error.message}`);
+            // ✅ GITHUB ISSUE #16 FIX: Enhanced error handling for user reactivation
+            const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown reactivation error';
+            console.warn(`[AuthManager] Failed to reactivate user '${username}' (${3 - retries}/3): ${safeErrorMessage}`);
 
             if (retries === 0) {
-              console.error(`[AuthManager] PHASE 13B: Failed to reactivate user after 3 attempts`);
-              throw new Error(`Failed to reactivate user account: ${error.message}`);
+              console.error(`[AuthManager] GITHUB ISSUE #16: Failed to reactivate user after 3 attempts`, {
+                message: safeErrorMessage,
+                errorType: typeof error,
+                hasMessage: error?.message !== undefined,
+                errorKeys: error ? Object.keys(error) : 'error is undefined'
+              });
+              throw new Error(`Failed to reactivate user account: ${safeErrorMessage}`);
             }
 
             // Wait briefly before retry
@@ -366,8 +392,15 @@ export class AuthenticationManager extends EventEmitter {
     try {
       isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     } catch (error: any) {
-      console.error(`[AuthManager] PHASE 13B: Password comparison failed for user '${username}': ${error.message}`);
-      throw new Error('Password verification failed');
+      // ✅ GITHUB ISSUE #16 FIX: Enhanced password verification error handling
+      const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown password verification error';
+      console.error(`[AuthManager] GITHUB ISSUE #16: Password comparison failed for user '${username}':`, {
+        message: safeErrorMessage,
+        errorType: typeof error,
+        hasMessage: error?.message !== undefined,
+        errorKeys: error ? Object.keys(error) : 'error is undefined'
+      });
+      throw new Error(`Password verification failed: ${safeErrorMessage}`);
     }
 
     if (!isPasswordValid) {

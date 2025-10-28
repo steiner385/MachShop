@@ -27,52 +27,104 @@ const TEST_USER = {
  */
 async function ensureTestUserExists(): Promise<void> {
   try {
-    // Try to find existing user
-    let user = await prisma.user.findUnique({
-      where: { username: TEST_USER.username }
-    });
+    console.log(`[GITHUB ISSUE #16 DEBUG] Starting test user creation/verification for: ${TEST_USER.username}`);
+
+    // Try to find existing user with enhanced error handling
+    let user;
+    try {
+      console.log(`[GITHUB ISSUE #16 DEBUG] Attempting findUnique query...`);
+      user = await prisma.user.findUnique({
+        where: { username: TEST_USER.username }
+      });
+      console.log(`[GITHUB ISSUE #16 DEBUG] findUnique query completed. User found: ${!!user}`);
+    } catch (findError: any) {
+      console.error(`[GITHUB ISSUE #16 DEBUG] findUnique failed:`, {
+        error: findError,
+        errorType: typeof findError,
+        hasMessage: findError?.message !== undefined,
+        hasKind: findError?.kind !== undefined,
+        errorString: String(findError),
+        errorKeys: findError && typeof findError === 'object' ? Object.keys(findError) : 'Not an object'
+      });
+      throw findError;
+    }
 
     if (!user) {
       // Create the test user if it doesn't exist
-      console.log(`Creating dedicated test user: ${TEST_USER.username}`);
-      user = await prisma.user.create({
-        data: {
-          username: TEST_USER.username,
-          email: TEST_USER.email,
-          passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LQs47BPFmHBSf4H1O', // hashed 'password123'
-          firstName: 'Account',
-          lastName: 'Test',
-          isActive: true,
-          roles: {
-            connect: [{ name: 'Production Operator' }] // Basic role for testing
+      console.log(`[GITHUB ISSUE #16 DEBUG] Creating dedicated test user: ${TEST_USER.username}`);
+      try {
+        user = await prisma.user.create({
+          data: {
+            username: TEST_USER.username,
+            email: TEST_USER.email,
+            passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LQs47BPFmHBSf4H1O', // hashed 'password123'
+            firstName: 'Account',
+            lastName: 'Test',
+            isActive: true
+            // ✅ GITHUB ISSUE #16 FIX: Remove role connection that might not exist
+            // This avoids potential undefined error when referencing non-existent roles
           }
-        }
-      });
+        });
+        console.log(`[GITHUB ISSUE #16 DEBUG] User creation completed successfully`);
+      } catch (createError: any) {
+        console.error(`[GITHUB ISSUE #16 DEBUG] User creation failed:`, {
+          error: createError,
+          errorType: typeof createError,
+          hasMessage: createError?.message !== undefined,
+          hasKind: createError?.kind !== undefined,
+          errorString: String(createError),
+          errorKeys: createError && typeof createError === 'object' ? Object.keys(createError) : 'Not an object'
+        });
+        throw createError;
+      }
     } else {
       // Ensure the user is active
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { isActive: true }
-      });
+      console.log(`[GITHUB ISSUE #16 DEBUG] Updating existing user to active state`);
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true }
+        });
+        console.log(`[GITHUB ISSUE #16 DEBUG] User update completed successfully`);
+      } catch (updateError: any) {
+        console.error(`[GITHUB ISSUE #16 DEBUG] User update failed:`, {
+          error: updateError,
+          errorType: typeof updateError,
+          hasMessage: updateError?.message !== undefined,
+          hasKind: updateError?.kind !== undefined,
+          errorString: String(updateError),
+          errorKeys: updateError && typeof updateError === 'object' ? Object.keys(updateError) : 'Not an object'
+        });
+        throw updateError;
+      }
     }
 
     console.log(`✅ Test user ${TEST_USER.username} is ready for account status testing`);
   } catch (error: any) {
-    // ✅ PHASE 13D FIX: Enhanced error handling for undefined error objects
-    const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+    // ✅ GITHUB ISSUE #16 FIX: Enhanced error handling for undefined error objects
+    const errorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown error occurred';
     console.error(`❌ Failed to create/ensure test user:`, errorMessage);
 
-    // Additional debugging in test mode
+    // Additional debugging in test mode with comprehensive undefined handling
     if (process.env.NODE_ENV === 'test') {
-      console.error(`[PHASE 13D] Error details:`, {
+      console.error(`[GITHUB ISSUE #16] Error details:`, {
+        message: errorMessage,
         errorType: typeof error,
         hasMessage: error?.message !== undefined,
-        errorKeys: error ? Object.keys(error) : 'error is undefined',
-        errorString: String(error)
+        hasCode: error?.code !== undefined,
+        hasName: error?.name !== undefined,
+        hasStack: error?.stack !== undefined,
+        hasKind: error?.kind !== undefined,
+        errorKeys: error && typeof error === 'object' ? Object.keys(error) : 'error is not an object',
+        errorString: String(error),
+        isPrismaError: error?.name && (error.name.includes('Prisma') || error.name.includes('Client')),
+        isDatabaseError: error?.code && typeof error.code === 'string'
       });
     }
 
-    throw error;
+    // Create a safe error to re-throw with better information
+    const safeError = new Error(`Test user creation failed: ${errorMessage}`);
+    throw safeError;
   }
 }
 
@@ -90,7 +142,14 @@ async function resetTestUser(context: string = 'unknown'): Promise<void> {
 
     console.log(`[${context}] ✅ Test user reset successfully`);
   } catch (error: any) {
-    console.error(`[${context}] ❌ Failed to reset test user:`, error.message);
+    // ✅ GITHUB ISSUE #16 FIX: Enhanced error handling for user reset
+    const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown reset error';
+    console.error(`[${context}] ❌ Failed to reset test user:`, {
+      message: safeErrorMessage,
+      errorType: typeof error,
+      hasMessage: error?.message !== undefined,
+      errorKeys: error && typeof error === 'object' ? Object.keys(error) : 'error is not an object'
+    });
     // Don't throw - this shouldn't block other tests
   }
 }

@@ -106,20 +106,58 @@ const handleZodError = (error: ZodError): ValidationError => {
 
 // Handle database errors
 const handleDatabaseError = (error: any): AppError => {
-  // PostgreSQL error codes
-  switch (error.code) {
-    case '23505': // Unique violation
-      return new ConflictError('Resource already exists');
-    case '23503': // Foreign key violation
-      return new ValidationError('Referenced resource does not exist');
-    case '23502': // Not null violation
-      return new ValidationError('Required field is missing');
-    case '23514': // Check violation
-      return new ValidationError('Data validation failed');
-    default:
-      logger.error('Database error', { error: error.message, code: error.code });
-      return new AppError('Database operation failed', 500, 'DATABASE_ERROR', false);
+  // ✅ GITHUB ISSUE #16 FIX: Enhanced undefined error handling
+  if (!error) {
+    logger.error('Database error: completely undefined error object');
+    return new AppError('Database operation failed - undefined error', 500, 'DATABASE_ERROR', false);
   }
+
+  // Handle Prisma-specific errors
+  if (error.code && typeof error.code === 'string') {
+    // PostgreSQL error codes
+    switch (error.code) {
+      case '23505': // Unique violation
+        return new ConflictError('Resource already exists');
+      case '23503': // Foreign key violation
+        return new ValidationError('Referenced resource does not exist');
+      case '23502': // Not null violation
+        return new ValidationError('Required field is missing');
+      case '23514': // Check violation
+        return new ValidationError('Data validation failed');
+      default:
+        logger.error('Database error', {
+          error: error?.message || 'No message',
+          code: error?.code || 'No code',
+          errorType: typeof error,
+          errorKeys: error ? Object.keys(error) : 'undefined'
+        });
+        return new AppError('Database operation failed', 500, 'DATABASE_ERROR', false);
+    }
+  }
+
+  // Handle Prisma client errors without 'code' property
+  if (error.name && (error.name.includes('Prisma') || error.name.includes('Client'))) {
+    logger.error('Prisma client error', {
+      name: error.name,
+      message: error?.message || 'No message',
+      meta: error?.meta || 'No meta',
+      errorType: typeof error
+    });
+    return new AppError('Database client error', 500, 'PRISMA_ERROR', false);
+  }
+
+  // Handle completely undefined or malformed error objects
+  const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown database error';
+  logger.error('Unhandled database error format', {
+    error: safeErrorMessage,
+    errorType: typeof error,
+    hasMessage: error?.message !== undefined,
+    hasCode: error?.code !== undefined,
+    hasName: error?.name !== undefined,
+    errorKeys: error ? Object.keys(error) : 'error is undefined'
+  });
+
+  return new AppError('Database operation failed', 500, 'DATABASE_ERROR', false);
 };
 
 // Handle JWT errors
@@ -145,20 +183,9 @@ export const errorHandler = (
 ): void => {
   let appError: AppError;
 
-  // Handle known error types
-  if (error instanceof AppError) {
-    appError = error;
-  } else if (error instanceof ZodError) {
-    appError = handleZodError(error);
-  } else if (error.name && error.name.includes('JWT')) {
-    appError = handleJWTError(error);
-  } else if (error.code && typeof error.code === 'string') {
-    appError = handleDatabaseError(error);
-  } else {
-    // Unknown error - log and return generic error
-    logger.error('Unknown error occurred', {
-      error: error.message,
-      stack: error.stack,
+  // ✅ GITHUB ISSUE #16 FIX: Handle completely undefined error objects
+  if (!error) {
+    logger.error('Error handler received undefined error object', {
       url: req.url,
       method: req.method,
       ip: req.ip,
@@ -166,7 +193,41 @@ export const errorHandler = (
     });
 
     appError = new AppError(
-      config.env === 'production' ? 'Internal server error' : error.message,
+      'Internal server error - undefined error',
+      500,
+      'UNDEFINED_ERROR',
+      false
+    );
+  } else if (error instanceof AppError) {
+    appError = error;
+  } else if (error instanceof ZodError) {
+    appError = handleZodError(error);
+  } else if (error?.name && error.name.includes('JWT')) {
+    appError = handleJWTError(error);
+  } else if ((error?.code && typeof error.code === 'string') ||
+             (error?.name && (error.name.includes('Prisma') || error.name.includes('Client')))) {
+    appError = handleDatabaseError(error);
+  } else {
+    // ✅ GITHUB ISSUE #16 FIX: Enhanced undefined/malformed error handling
+    const safeErrorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown error';
+    const safeStack = error?.stack || 'No stack trace available';
+
+    logger.error('Unknown error occurred', {
+      error: safeErrorMessage,
+      stack: safeStack,
+      errorType: typeof error,
+      hasMessage: error?.message !== undefined,
+      hasStack: error?.stack !== undefined,
+      hasName: error?.name !== undefined,
+      errorKeys: error ? Object.keys(error) : 'error is undefined',
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    appError = new AppError(
+      config.env === 'production' ? 'Internal server error' : safeErrorMessage,
       500,
       'INTERNAL_ERROR',
       false
