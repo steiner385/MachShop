@@ -1,0 +1,323 @@
+/**
+ * DataCollectionPanel Styles
+ *
+ * GitHub Issue #19: Configurable Side-by-Side Execution Interface
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #fff;
+}
+
+.header {
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.headerContent {
+  margin-bottom: 8px;
+}
+
+.formContent {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.noData {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #8c8c8c;
+  font-style: italic;
+}
+
+.actions {
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-top: 1px solid #f0f0f0;
+}
+
+.completionInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #52c41a;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Collapsed view */
+.collapsedView {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+}
+
+.collapsedContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #595959;
+}
+
+.progressCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #1890ff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.collapsedTitle {
+  font-size: 12px;
+  text-align: center;
+  max-width: 20px;
+  word-break: break-all;
+}
+
+/* Form styling enhancements */
+.formContent .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.formContent .ant-form-item-label {
+  padding: 0 0 4px;
+}
+
+.formContent .ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+.formContent .ant-input,
+.formContent .ant-input-number,
+.formContent .ant-select-selector,
+.formContent .ant-picker {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.2s ease;
+}
+
+.formContent .ant-input:focus,
+.formContent .ant-input-number-focused,
+.formContent .ant-select-focused .ant-select-selector,
+.formContent .ant-picker:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Required field indicator */
+.formContent .ant-form-item-required {
+  position: relative;
+}
+
+.formContent .ant-form-item-required::before {
+  display: inline-block;
+  margin-right: 4px;
+  color: #ff4d4f;
+  font-size: 14px;
+  font-family: SimSun, sans-serif;
+  line-height: 1;
+  content: '*';
+}
+
+/* Error state styling */
+.formContent .ant-form-item-has-error .ant-input,
+.formContent .ant-form-item-has-error .ant-input-number,
+.formContent .ant-form-item-has-error .ant-select-selector,
+.formContent .ant-form-item-has-error .ant-picker {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+/* Success state styling */
+.formContent .ant-form-item-has-success .ant-input,
+.formContent .ant-form-item-has-success .ant-input-number,
+.formContent .ant-form-item-has-success .ant-select-selector,
+.formContent .ant-form-item-has-success .ant-picker {
+  border-color: #52c41a;
+}
+
+/* Responsive design */
+@media (max-width: 1280px) {
+  .header {
+    padding: 8px 12px;
+  }
+
+  .formContent {
+    padding: 12px;
+  }
+
+  .actions {
+    padding: 8px 12px;
+  }
+
+  .formContent .ant-form-item {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 6px 8px;
+  }
+
+  .formContent {
+    padding: 8px;
+  }
+
+  .actions {
+    padding: 6px 8px;
+  }
+
+  .formContent .ant-form-item {
+    margin-bottom: 12px;
+  }
+
+  .actions {
+    text-align: center;
+  }
+
+  .actions .ant-space {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .actions .ant-space .ant-space-item {
+    width: 100%;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}
+
+/* Touch screen optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .formContent .ant-input,
+  .formContent .ant-input-number,
+  .formContent .ant-select-selector,
+  .formContent .ant-picker {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .actions button {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+
+  .progressCircle {
+    width: 48px;
+    height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .header,
+  .actions {
+    border-color: #000;
+    background-color: #fff;
+  }
+
+  .formContent .ant-input,
+  .formContent .ant-input-number,
+  .formContent .ant-select-selector,
+  .formContent .ant-picker {
+    border-color: #000;
+  }
+
+  .progressCircle {
+    background-color: #000;
+    border: 2px solid #fff;
+  }
+
+  .completionInfo {
+    color: #000;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background-color: #1f1f1f;
+    color: #fff;
+  }
+
+  .header,
+  .actions {
+    background-color: #262626;
+    border-color: #434343;
+  }
+
+  .formContent {
+    background-color: #1f1f1f;
+  }
+
+  .formContent .ant-form-item-label > label {
+    color: #fff;
+  }
+
+  .noData {
+    color: #bfbfbf;
+  }
+}
+
+/* Animation for progress updates */
+@keyframes progressUpdate {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.progressCircle {
+  animation: progressUpdate 0.3s ease-in-out;
+}
+
+/* Focus management for accessibility */
+.formContent .ant-input:focus,
+.formContent .ant-input-number-input:focus,
+.formContent .ant-select-selector:focus,
+.formContent .ant-picker-input > input:focus {
+  outline: 2px solid #1890ff;
+  outline-offset: 2px;
+}
+
+/* Improved checkbox styling */
+.formContent .ant-checkbox-wrapper {
+  padding: 8px 0;
+}
+
+.formContent .ant-checkbox-wrapper:hover .ant-checkbox-inner {
+  border-color: #40a9ff;
+}
+
+/* Better spacing for multi-select */
+.formContent .ant-select-multiple .ant-select-selection-item {
+  margin: 2px 4px 2px 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
