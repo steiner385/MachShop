@@ -291,8 +291,8 @@ export class AuthenticationManager extends EventEmitter {
     let user;
     try {
       user = await prisma.user.findUnique({
-        where: { username },
-        include: { userRoles: { include: { role: true } } }
+        where: { username }
+        // Note: roles are stored as String[] in the User model, no need to include relations
       });
     } catch (dbError: any) {
       if (process.env.NODE_ENV === 'test') {
