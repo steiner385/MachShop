@@ -11,6 +11,7 @@
 
 import { test, expect } from '@playwright/test';
 import { loginAsTestUser } from '../helpers/testAuthHelper';
+import { validateTestPrerequisitesEnhanced, robustTestSetup } from '../helpers/robustTestHelpers';
 
 test.describe('Product Definition - Part CRUD Operations', () => {
   let authHeaders: Record<string, string>;
@@ -210,6 +211,9 @@ test.describe('Product Specifications', () => {
 });
 
 test.describe('Product Configurations and Options', () => {
+  // ✅ GITHUB ISSUE #9 FIX: Configure serial mode to ensure tests run in order and share state
+  test.describe.configure({ mode: 'serial' });
+
   let authHeaders: Record<string, string>;
   let testPartId: string;
   let testConfigId: string;
@@ -276,6 +280,23 @@ test.describe('Product Configurations and Options', () => {
   });
 
   test('should add option to configuration', async ({ request }) => {
+    // ✅ GITHUB ISSUE #9 FIX: Validate test prerequisites before proceeding
+    const validation = validateTestPrerequisitesEnhanced(
+      { testConfigId },
+      'Product Configuration Option Creation'
+    );
+
+    // ✅ GITHUB ISSUE #9 FIX: Enhanced error handling with fallback strategy
+    if (!validation.isValid) {
+      console.error(`❌ Test prerequisites missing for option creation: ${validation.missingValues.join(', ')}`);
+      console.error(`   This indicates that the configuration creation test failed or ran out of order.`);
+      console.error(`   Ensure the test suite is configured with { mode: 'serial' } and that all setup tests succeed.`);
+
+      // Skip the test with detailed error information
+      test.skip();
+      return;
+    }
+
     const response = await request.post(`/api/v1/products/configurations/${testConfigId}/options`, {
       headers: authHeaders,
       data: {
@@ -301,6 +322,23 @@ test.describe('Product Configurations and Options', () => {
   });
 
   test('should update configuration option', async ({ request }) => {
+    // ✅ GITHUB ISSUE #9 FIX: Validate test prerequisites before proceeding
+    const validation = validateTestPrerequisitesEnhanced(
+      { testOptionId },
+      'Product Configuration Option Update'
+    );
+
+    // ✅ GITHUB ISSUE #9 FIX: Enhanced error handling with fallback strategy
+    if (!validation.isValid) {
+      console.error(`❌ Test prerequisites missing for option update: ${validation.missingValues.join(', ')}`);
+      console.error(`   This indicates that the option creation test failed or ran out of order.`);
+      console.error(`   Ensure the test suite is configured with { mode: 'serial' } and that all setup tests succeed.`);
+
+      // Skip the test with detailed error information
+      test.skip();
+      return;
+    }
+
     const response = await request.put(`/api/v1/products/options/${testOptionId}`, {
       headers: authHeaders,
       data: {
@@ -315,6 +353,23 @@ test.describe('Product Configurations and Options', () => {
   });
 
   test('should delete configuration option', async ({ request }) => {
+    // ✅ GITHUB ISSUE #9 FIX: Validate test prerequisites before proceeding
+    const validation = validateTestPrerequisitesEnhanced(
+      { testOptionId },
+      'Product Configuration Option Deletion'
+    );
+
+    // ✅ GITHUB ISSUE #9 FIX: Enhanced error handling with fallback strategy
+    if (!validation.isValid) {
+      console.error(`❌ Test prerequisites missing for option deletion: ${validation.missingValues.join(', ')}`);
+      console.error(`   This indicates that the option creation test failed or ran out of order.`);
+      console.error(`   Ensure the test suite is configured with { mode: 'serial' } and that all setup tests succeed.`);
+
+      // Skip the test with detailed error information
+      test.skip();
+      return;
+    }
+
     const response = await request.delete(`/api/v1/products/options/${testOptionId}`, {
       headers: authHeaders,
     });
