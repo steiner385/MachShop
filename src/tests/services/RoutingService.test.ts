@@ -977,7 +977,7 @@ describe('RoutingService', () => {
           cycleTimeOverride: 600, // 10 minutes
           teardownTimeOverride: 180, // 3 minutes
           isCriticalPath: true,
-          processSegment: {
+          operation: {
             setupTime: 0,
             duration: 0,
             teardownTime: 0,
@@ -990,7 +990,7 @@ describe('RoutingService', () => {
           cycleTimeOverride: null,
           teardownTimeOverride: null,
           isCriticalPath: true,
-          processSegment: {
+          operation: {
             setupTime: 240, // 4 minutes
             duration: 480, // 8 minutes
             teardownTime: 120, // 2 minutes
@@ -1142,6 +1142,7 @@ describe('RoutingService', () => {
 
   describe('createRoutingTemplate', () => {
     it('should create a new routing template', async () => {
+      const now = new Date();
       const mockTemplate = {
         id: 'template-1',
         name: 'Standard Assembly',
@@ -1155,8 +1156,8 @@ describe('RoutingService', () => {
         isFavorite: false,
         usageCount: 0,
         createdById: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       };
 
       vi.mocked(mockPrisma.routingTemplate.findFirst).mockResolvedValue(null);

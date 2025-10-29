@@ -2,6 +2,8 @@
 // This ensures Prisma connects to the test database
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgresql://mes_user:mes_password@localhost:5432/mes_test';
+process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long-for-testing';
+process.env.SESSION_SECRET = 'test-session-secret-that-is-at-least-32-characters-long-for-testing';
 
 // Clear any cached Prisma instances to force fresh connection
 declare global {

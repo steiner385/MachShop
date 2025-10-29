@@ -19,6 +19,9 @@ vi.mock('@prisma/client', () => {
     personnel: {
       count: vi.fn(),
     },
+    user: {
+      count: vi.fn(),
+    },
     productionScheduleRequest: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -130,7 +133,7 @@ describe('ProductionScheduleSyncService', () => {
       mockPrisma.part.findFirst.mockResolvedValue(mockPart);
       mockPrisma.part.findUnique.mockResolvedValue({ ...mockPart, quantityOnHand: 500 });
       mockPrisma.equipment.count.mockResolvedValue(5);
-      mockPrisma.personnel.count.mockResolvedValue(10);
+      mockPrisma.user.count.mockResolvedValue(10);
 
       mockPrisma.productionScheduleRequest.create.mockResolvedValue(mockRequest);
       mockPrisma.productionScheduleRequest.findUnique.mockResolvedValue(mockRequest);
@@ -309,7 +312,7 @@ describe('ProductionScheduleSyncService', () => {
 
       mockPrisma.part.findUnique.mockResolvedValue({ partNumber: 'PN-RAW-001', quantityOnHand: 50 });
       mockPrisma.equipment.count.mockResolvedValue(5);
-      mockPrisma.personnel.count.mockResolvedValue(10);
+      mockPrisma.user.count.mockResolvedValue(10);
 
       mockPrisma.productionScheduleRequest.create.mockResolvedValue(mockRequest);
       mockPrisma.productionScheduleRequest.findUnique.mockResolvedValue(mockRequest);
@@ -343,7 +346,7 @@ describe('ProductionScheduleSyncService', () => {
       mockPrisma.part.findFirst.mockResolvedValue(mockPart);
       mockPrisma.part.findUnique.mockResolvedValue({ ...mockPart, quantityOnHand: 500 });
       mockPrisma.equipment.count.mockResolvedValue(0); // No equipment available
-      mockPrisma.personnel.count.mockResolvedValue(10);
+      mockPrisma.user.count.mockResolvedValue(10);
 
       mockPrisma.productionScheduleRequest.create.mockResolvedValue(mockRequest);
       mockPrisma.productionScheduleRequest.findUnique.mockResolvedValue(mockRequest);
@@ -377,7 +380,7 @@ describe('ProductionScheduleSyncService', () => {
       mockPrisma.part.findFirst.mockResolvedValue(mockPart);
       mockPrisma.part.findUnique.mockResolvedValue({ ...mockPart, quantityOnHand: 500 });
       mockPrisma.equipment.count.mockResolvedValue(5);
-      mockPrisma.personnel.count.mockResolvedValue(1); // Insufficient personnel
+      mockPrisma.user.count.mockResolvedValue(1); // Insufficient personnel
 
       mockPrisma.productionScheduleRequest.create.mockResolvedValue(mockRequest);
       mockPrisma.productionScheduleRequest.findUnique.mockResolvedValue(mockRequest);
@@ -683,7 +686,7 @@ describe('ProductionScheduleSyncService', () => {
 
       mockPrisma.part.findUnique.mockResolvedValue({ quantityOnHand: 500 });
       mockPrisma.equipment.count.mockResolvedValue(5);
-      mockPrisma.personnel.count.mockResolvedValue(10);
+      mockPrisma.user.count.mockResolvedValue(10);
 
       mockPrisma.productionScheduleRequest.create.mockResolvedValue({
         id: 'request-retry',
