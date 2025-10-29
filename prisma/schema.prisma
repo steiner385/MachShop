@@ -62,7 +62,11 @@ model Site {
   routingTemplates    RoutingTemplate[] // Routing templates defined for this site
 
   // ✅ GITHUB ISSUE #29: Site-specific role assignments
-  userSiteRoles       UserSiteRole[]  // Users with site-specific roles
+  userSiteRoles UserSiteRole[] // Users with site-specific roles
+
+  // ✅ GITHUB ISSUE #46: Time Tracking Relations
+  timeTrackingConfiguration TimeTrackingConfiguration? // Time tracking config for this site
+  indirectCostCodes         IndirectCostCode[] // Site-specific indirect cost codes
 
   @@index([enterpriseId])
   @@map("sites")
@@ -138,32 +142,32 @@ model User {
 
   // ✅ GITHUB ISSUE #23: Multi-Document Type Relations
   // Setup Sheet relations
-  createdSetupSheets    SetupSheet[]           @relation("SetupSheetCreatedBy")
-  updatedSetupSheets    SetupSheet[]           @relation("SetupSheetUpdatedBy")
-  approvedSetupSheets   SetupSheet[]           @relation("SetupSheetApprovedBy")
-  startedSetupExecutions SetupExecution[]      @relation("SetupExecutionStartedBy")
-  completedSetupExecutions SetupExecution[]    @relation("SetupExecutionCompletedBy")
+  createdSetupSheets       SetupSheet[]     @relation("SetupSheetCreatedBy")
+  updatedSetupSheets       SetupSheet[]     @relation("SetupSheetUpdatedBy")
+  approvedSetupSheets      SetupSheet[]     @relation("SetupSheetApprovedBy")
+  startedSetupExecutions   SetupExecution[] @relation("SetupExecutionStartedBy")
+  completedSetupExecutions SetupExecution[] @relation("SetupExecutionCompletedBy")
 
   // Inspection Plan relations
-  createdInspectionPlans InspectionPlan[]      @relation("InspectionPlanCreatedBy")
-  updatedInspectionPlans InspectionPlan[]      @relation("InspectionPlanUpdatedBy")
-  approvedInspectionPlans InspectionPlan[]     @relation("InspectionPlanApprovedBy")
-  inspectionExecutions   InspectionExecution[] @relation("InspectionExecutionInspector")
+  createdInspectionPlans  InspectionPlan[]      @relation("InspectionPlanCreatedBy")
+  updatedInspectionPlans  InspectionPlan[]      @relation("InspectionPlanUpdatedBy")
+  approvedInspectionPlans InspectionPlan[]      @relation("InspectionPlanApprovedBy")
+  inspectionExecutions    InspectionExecution[] @relation("InspectionExecutionInspector")
 
   // Standard Operating Procedure (SOP) relations
-  createdSOPs           StandardOperatingProcedure[] @relation("SOPCreatedBy")
-  updatedSOPs           StandardOperatingProcedure[] @relation("SOPUpdatedBy")
-  approvedSOPs          StandardOperatingProcedure[] @relation("SOPApprovedBy")
-  sopAcknowledgments    SOPAcknowledgment[]          @relation("SOPAcknowledgmentUser")
-  sopAudits             SOPAudit[]                   @relation("SOPAuditAuditor")
+  createdSOPs        StandardOperatingProcedure[] @relation("SOPCreatedBy")
+  updatedSOPs        StandardOperatingProcedure[] @relation("SOPUpdatedBy")
+  approvedSOPs       StandardOperatingProcedure[] @relation("SOPApprovedBy")
+  sopAcknowledgments SOPAcknowledgment[]          @relation("SOPAcknowledgmentUser")
+  sopAudits          SOPAudit[]                   @relation("SOPAuditAuditor")
 
   // Tool Drawing relations
-  createdToolDrawings   ToolDrawing[]         @relation("ToolDrawingCreatedBy")
-  updatedToolDrawings   ToolDrawing[]         @relation("ToolDrawingUpdatedBy")
-  approvedToolDrawings  ToolDrawing[]         @relation("ToolDrawingApprovedBy")
+  createdToolDrawings    ToolDrawing[]           @relation("ToolDrawingCreatedBy")
+  updatedToolDrawings    ToolDrawing[]           @relation("ToolDrawingUpdatedBy")
+  approvedToolDrawings   ToolDrawing[]           @relation("ToolDrawingApprovedBy")
   toolMaintenanceRecords ToolMaintenanceRecord[] @relation("ToolMaintenancePerformedBy")
   toolCalibrationRecords ToolCalibrationRecord[] @relation("ToolCalibrationPerformedBy")
-  toolUsageLogs         ToolUsageLog[]        @relation("ToolUsageLogUsedBy")
+  toolUsageLogs          ToolUsageLog[]          @relation("ToolUsageLogUsedBy")
 
   // Document Template relations
   createdDocumentTemplates DocumentTemplate[] @relation("DocumentTemplateCreatedBy")
@@ -191,8 +195,11 @@ model User {
   // permissions  String[]  @default([])  // Already exists at line 98
 
   // NEW: Relations to dynamic role system
-  userRoles     UserRole[]      // Global role assignments
-  userSiteRoles UserSiteRole[]  // Site-specific role assignments
+  userRoles     UserRole[] // Global role assignments
+  userSiteRoles UserSiteRole[] // Site-specific role assignments
+
+  // ✅ GITHUB ISSUE #46: Time Tracking Relations
+  laborTimeEntries LaborTimeEntry[] // Time entries for this user
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -1752,6 +1759,10 @@ model WorkOrder {
   qifMeasurementPlans   QIFMeasurementPlan[]
   qifMeasurementResults QIFMeasurementResult[]
 
+  // ✅ GITHUB ISSUE #46: Time Tracking Relations
+  laborTimeEntries   LaborTimeEntry[] // Labor time entries for this work order
+  machineTimeEntries MachineTimeEntry[] // Machine time entries for this work order
+
   @@map("work_orders")
 }
 
@@ -2098,6 +2109,10 @@ model WorkOrderOperation {
   variances       ProductionVariance[]
   RoutingStep     RoutingStep?         @relation(fields: [routingStepId], references: [id])
   routingStepId   String?
+
+  // ✅ GITHUB ISSUE #46: Time Tracking Relations
+  laborTimeEntries   LaborTimeEntry[] // Labor time entries for this operation
+  machineTimeEntries MachineTimeEntry[] // Machine time entries for this operation
 
   @@map("work_order_operations")
 }
@@ -2799,6 +2814,9 @@ model Equipment {
 
   // Aerospace integrations
   maintenanceWorkOrders MaintenanceWorkOrder[]
+
+  // ✅ GITHUB ISSUE #46: Time Tracking Relations
+  machineTimeEntries MachineTimeEntry[] // Machine time entries for this equipment
 
   @@index([parentEquipmentId])
   @@index([workUnitId])
@@ -4534,56 +4552,57 @@ model QIFMeasurement {
   @@index([status])
   @@map("qif_measurements")
 }
+
 // =============================================================================
 // STATISTICAL PROCESS CONTROL (SPC) - Phase 2
 // =============================================================================
 
 // SPC Configuration - Control charts and statistical monitoring
 model SPCConfiguration {
-  id          String   @id @default(cuid())
-  parameterId String   @unique
+  id          String             @id @default(cuid())
+  parameterId String             @unique
   parameter   OperationParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
 
   // Chart Configuration
-  chartType    SPCChartType  // X_BAR_R, X_BAR_S, I_MR, P_CHART, C_CHART, etc.
-  subgroupSize Int?          // Sample size for subgroup charts (X-bar, R)
+  chartType    SPCChartType // X_BAR_R, X_BAR_S, I_MR, P_CHART, C_CHART, etc.
+  subgroupSize Int? // Sample size for subgroup charts (X-bar, R)
 
   // Control Limits
-  UCL         Float?   // Upper Control Limit
-  centerLine  Float?   // Process mean or median
-  LCL         Float?   // Lower Control Limit
+  UCL        Float? // Upper Control Limit
+  centerLine Float? // Process mean or median
+  LCL        Float? // Lower Control Limit
 
   // Range/StdDev Limits (for X-bar/R, X-bar/S charts)
-  rangeUCL    Float?
-  rangeCL     Float?
-  rangeLCL    Float?
+  rangeUCL Float?
+  rangeCL  Float?
+  rangeLCL Float?
 
   // Specification Limits (from ParameterLimits, cached for performance)
-  USL         Float?   // Upper Specification Limit
-  LSL         Float?   // Lower Specification Limit
-  targetValue Float?   // Nominal/target value
+  USL         Float? // Upper Specification Limit
+  LSL         Float? // Lower Specification Limit
+  targetValue Float? // Nominal/target value
 
   // Calculation Method
-  limitsBasedOn      LimitCalculationMethod  // HISTORICAL_DATA, SPEC_LIMITS, MANUAL
-  historicalDataDays Int?                    // Days of data for limit calculation
+  limitsBasedOn      LimitCalculationMethod // HISTORICAL_DATA, SPEC_LIMITS, MANUAL
+  historicalDataDays Int? // Days of data for limit calculation
   lastCalculatedAt   DateTime?
 
   // Western Electric Rules (bitmask or JSON)
-  enabledRules       Json   // Array of enabled rule numbers [1,2,3,4,5,6,7,8]
-  ruleSensitivity    String @default("NORMAL")  // LOW, NORMAL, HIGH
+  enabledRules    Json // Array of enabled rule numbers [1,2,3,4,5,6,7,8]
+  ruleSensitivity String @default("NORMAL") // LOW, NORMAL, HIGH
 
   // Capability Settings
-  enableCapability   Boolean @default(true)
-  confidenceLevel    Float   @default(0.95)  // 95% confidence for capability
+  enableCapability Boolean @default(true)
+  confidenceLevel  Float   @default(0.95) // 95% confidence for capability
 
   // Status
-  isActive           Boolean @default(true)
+  isActive Boolean @default(true)
 
   // Metadata
-  createdBy          String
-  lastModifiedBy     String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdBy      String
+  lastModifiedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   violations SPCRuleViolation[]
@@ -4592,53 +4611,53 @@ model SPCConfiguration {
 }
 
 enum SPCChartType {
-  X_BAR_R        // X-bar and Range (variable data, small subgroups)
-  X_BAR_S        // X-bar and Std Dev (variable data, large subgroups)
-  I_MR           // Individual and Moving Range (variable data, n=1)
-  P_CHART        // Proportion defective (attribute data)
-  NP_CHART       // Number defective (attribute data)
-  C_CHART        // Count of defects (attribute data)
-  U_CHART        // Defects per unit (attribute data)
-  EWMA           // Exponentially Weighted Moving Average
-  CUSUM          // Cumulative Sum
+  X_BAR_R // X-bar and Range (variable data, small subgroups)
+  X_BAR_S // X-bar and Std Dev (variable data, large subgroups)
+  I_MR // Individual and Moving Range (variable data, n=1)
+  P_CHART // Proportion defective (attribute data)
+  NP_CHART // Number defective (attribute data)
+  C_CHART // Count of defects (attribute data)
+  U_CHART // Defects per unit (attribute data)
+  EWMA // Exponentially Weighted Moving Average
+  CUSUM // Cumulative Sum
 }
 
 enum LimitCalculationMethod {
-  HISTORICAL_DATA   // Calculate from historical process data
-  SPEC_LIMITS       // Derive from specification limits (LSL/USL)
-  MANUAL            // Manually entered by user
+  HISTORICAL_DATA // Calculate from historical process data
+  SPEC_LIMITS // Derive from specification limits (LSL/USL)
+  MANUAL // Manually entered by user
 }
 
 // SPC Rule Violation - Detected out-of-control conditions
 model SPCRuleViolation {
-  id              String   @id @default(cuid())
+  id              String           @id @default(cuid())
   configurationId String
   configuration   SPCConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
 
   // Violation Details
-  ruleNumber      Int      // Western Electric Rule number (1-8)
-  ruleName        String   // "Rule 1: One point beyond 3σ"
-  severity        String   // CRITICAL, WARNING, INFO
+  ruleNumber Int // Western Electric Rule number (1-8)
+  ruleName   String // "Rule 1: One point beyond 3σ"
+  severity   String // CRITICAL, WARNING, INFO
 
   // Data Point
-  dataPointId     String?  // Reference to ProcessDataPoint if available
-  value           Float
-  timestamp       DateTime
-  subgroupNumber  Int?
+  dataPointId    String? // Reference to ProcessDataPoint if available
+  value          Float
+  timestamp      DateTime
+  subgroupNumber Int?
 
   // Context
-  UCL             Float?
-  LCL             Float?
-  centerLine      Float?
-  deviationSigma  Float?   // How many σ from centerline
+  UCL            Float?
+  LCL            Float?
+  centerLine     Float?
+  deviationSigma Float? // How many σ from centerline
 
   // Status
-  acknowledged    Boolean  @default(false)
-  acknowledgedBy  String?
-  acknowledgedAt  DateTime?
-  resolution      String?  @db.Text
+  acknowledged   Boolean   @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  resolution     String?   @db.Text
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([configurationId, timestamp])
   @@index([acknowledged])
@@ -4647,33 +4666,33 @@ model SPCRuleViolation {
 
 // Sampling Plan - Acceptance sampling per ANSI/ASQ Z1.4
 model SamplingPlan {
-  id                String   @id @default(cuid())
-  planName          String
-  planType          SamplingPlanType  // SINGLE, DOUBLE, MULTIPLE, SEQUENTIAL
+  id       String           @id @default(cuid())
+  planName String
+  planType SamplingPlanType // SINGLE, DOUBLE, MULTIPLE, SEQUENTIAL
 
   // Scope
-  parameterId       String?
-  parameter         OperationParameter? @relation(fields: [parameterId], references: [id])
-  operationId       String?
-  operation         Operation? @relation(fields: [operationId], references: [id])
+  parameterId String?
+  parameter   OperationParameter? @relation(fields: [parameterId], references: [id])
+  operationId String?
+  operation   Operation?          @relation(fields: [operationId], references: [id])
 
   // ANSI/ASQ Z1.4 Configuration
-  inspectionLevel   String   // I, II, III, S1, S2, S3, S4
-  AQL               Float    // Acceptable Quality Level (%)
-  lotSizeMin        Int?
-  lotSizeMax        Int?
+  inspectionLevel String // I, II, III, S1, S2, S3, S4
+  AQL             Float // Acceptable Quality Level (%)
+  lotSizeMin      Int?
+  lotSizeMax      Int?
 
   // Sampling Parameters (Normal Inspection)
-  sampleSizeNormal  Int
-  acceptanceNumber  Int
-  rejectionNumber   Int
+  sampleSizeNormal Int
+  acceptanceNumber Int
+  rejectionNumber  Int
 
   // Sampling Parameters (Tightened Inspection)
-  sampleSizeTightened Int?
+  sampleSizeTightened       Int?
   acceptanceNumberTightened Int?
 
   // Sampling Parameters (Reduced Inspection)
-  sampleSizeReduced Int?
+  sampleSizeReduced       Int?
   acceptanceNumberReduced Int?
 
   // Double/Multiple Sampling
@@ -4682,18 +4701,18 @@ model SamplingPlan {
   rejectionNumber2  Int?
 
   // Switching Rules
-  currentInspectionLevel String @default("NORMAL")  // NORMAL, TIGHTENED, REDUCED
-  consecutiveAccepted   Int    @default(0)
-  consecutiveRejected   Int    @default(0)
+  currentInspectionLevel String @default("NORMAL") // NORMAL, TIGHTENED, REDUCED
+  consecutiveAccepted    Int    @default(0)
+  consecutiveRejected    Int    @default(0)
 
   // Status
-  isActive          Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // Metadata
-  createdBy         String
-  lastModifiedBy    String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdBy      String
+  lastModifiedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   inspectionResults SamplingInspectionResult[]
@@ -4702,38 +4721,38 @@ model SamplingPlan {
 }
 
 enum SamplingPlanType {
-  SINGLE     // Single sampling plan
-  DOUBLE     // Double sampling plan
-  MULTIPLE   // Multiple sampling plan
+  SINGLE // Single sampling plan
+  DOUBLE // Double sampling plan
+  MULTIPLE // Multiple sampling plan
   SEQUENTIAL // Sequential sampling
 }
 
 // Sampling Inspection Result - Individual inspection outcomes
 model SamplingInspectionResult {
-  id              String   @id @default(cuid())
-  planId          String
-  plan            SamplingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  id     String       @id @default(cuid())
+  planId String
+  plan   SamplingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   // Lot Information
-  lotNumber       String
-  lotSize         Int
-  inspectionDate  DateTime
+  lotNumber      String
+  lotSize        Int
+  inspectionDate DateTime
 
   // Sample Details
-  sampleSize      Int
-  defectsFound    Int
+  sampleSize   Int
+  defectsFound Int
 
   // Decision
-  decision        String   // ACCEPT, REJECT, RESAMPLE
-  inspectionLevel String   // NORMAL, TIGHTENED, REDUCED
+  decision        String // ACCEPT, REJECT, RESAMPLE
+  inspectionLevel String // NORMAL, TIGHTENED, REDUCED
 
   // Inspector
-  inspectorId     String
+  inspectorId String
 
   // Notes
-  notes           String?  @db.Text
+  notes String? @db.Text
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([planId, inspectionDate])
   @@map("sampling_inspection_results")
@@ -4745,11 +4764,11 @@ model SamplingInspectionResult {
 
 /// Work Instruction Format - Different content formats supported
 enum WorkInstructionFormat {
-  NATIVE       // Structured native format for WYSIWYG editor
+  NATIVE // Structured native format for WYSIWYG editor
   IMPORTED_PDF // Imported from PDF document
   IMPORTED_DOC // Imported from DOC/DOCX document
   IMPORTED_PPT // Imported from PPT/PPTX document
-  HYBRID       // Combination of native and imported content
+  HYBRID // Combination of native and imported content
 }
 
 /// Work Instruction Media - Enhanced media library for work instructions
@@ -4814,11 +4833,11 @@ model WorkInstructionRelation {
 
 /// Relation Type - Types of relationships between work instructions
 enum RelationType {
-  PREREQUISITE   // This instruction must be completed before the related one
-  SUPERSEDES     // This instruction replaces the related one
-  RELATED_TO     // General relationship
+  PREREQUISITE // This instruction must be completed before the related one
+  SUPERSEDES // This instruction replaces the related one
+  RELATED_TO // General relationship
   ALTERNATIVE_TO // Alternative procedure
-  REFERENCED_BY  // Referenced by other instructions
+  REFERENCED_BY // Referenced by other instructions
 }
 
 /// Export Template - Templates for exporting work instructions
@@ -4833,8 +4852,8 @@ model ExportTemplate {
   // Template configuration
   headerTemplate String? // Header content template
   footerTemplate String? // Footer content template
-  styles         Json?   // CSS/styling configuration
-  layout         Json?   // Layout configuration
+  styles         Json? // CSS/styling configuration
+  layout         Json? // Layout configuration
 
   isDefault Boolean @default(false)
   isActive  Boolean @default(true)
@@ -4843,8 +4862,8 @@ model ExportTemplate {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  createdById String   // User ID reference
-  updatedById String   // User ID reference
+  createdById String // User ID reference
+  updatedById String // User ID reference
 
   @@index([templateType])
   @@index([templateFormat])
@@ -4872,7 +4891,7 @@ model DataCollectionFieldTemplate {
   name        String
   description String?
 
-  fieldSchema     Json  // JSON schema for the field
+  fieldSchema     Json // JSON schema for the field
   validationRules Json? // Validation configuration
 
   category String?
@@ -4883,7 +4902,7 @@ model DataCollectionFieldTemplate {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  createdById String   // User ID reference
+  createdById String // User ID reference
 
   @@index([category])
   @@index([tags])
@@ -4898,71 +4917,71 @@ model DataCollectionFieldTemplate {
 
 // Setup Sheet - Machine/equipment setup procedures and parameters
 model SetupSheet {
-  id              String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Base document attributes (similar to WorkInstruction)
-  documentNumber  String                @unique
-  title           String
-  description     String?               @db.Text
+  documentNumber String  @unique
+  title          String
+  description    String? @db.Text
 
   // Version control (consistent with WorkInstruction)
-  version         String                @default("1.0.0")
-  status          WorkInstructionStatus @default(DRAFT)
-  effectiveDate   DateTime?
-  supersededDate  DateTime?
-  ecoNumber       String?               // Engineering Change Order number
+  version        String                @default("1.0.0")
+  status         WorkInstructionStatus @default(DRAFT)
+  effectiveDate  DateTime?
+  supersededDate DateTime?
+  ecoNumber      String? // Engineering Change Order number
 
   // References
-  equipmentId     String?
-  operationId     String?               // Link to Operation
-  partId          String?
-  workCenterId    String?
+  equipmentId  String?
+  operationId  String? // Link to Operation
+  partId       String?
+  workCenterId String?
 
   // Setup-specific attributes
-  estimatedSetupTime Int?              // minutes
+  estimatedSetupTime Int? // minutes
 
   // Safety requirements
-  safetyChecklist    Json?             // Safety checklist items
-  requiredPPE        String[]          // Personal protective equipment
+  safetyChecklist Json? // Safety checklist items
+  requiredPPE     String[] // Personal protective equipment
 
   // Media (consistent with WorkInstruction pattern)
-  imageUrls          String[]          // Array of image URLs
-  videoUrls          String[]          // Array of video URLs
-  attachmentUrls     String[]          // PDF, CAD files, etc.
+  imageUrls      String[] // Array of image URLs
+  videoUrls      String[] // Array of video URLs
+  attachmentUrls String[] // PDF, CAD files, etc.
 
   // Document management (same as WorkInstruction)
-  tags               String[]          // Tags for organization and search
-  categories         String[]          // Categories for classification
-  keywords           String[]          // Keywords for full-text search
-  thumbnailUrl       String?           // Thumbnail for document preview
+  tags         String[] // Tags for organization and search
+  categories   String[] // Categories for classification
+  keywords     String[] // Keywords for full-text search
+  thumbnailUrl String? // Thumbnail for document preview
 
   // Version control (same pattern as WorkInstruction)
-  parentVersionId    String?
-  parentVersion      SetupSheet?       @relation("SetupSheetVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
-  childVersions      SetupSheet[]      @relation("SetupSheetVersionHistory")
+  parentVersionId String?
+  parentVersion   SetupSheet?  @relation("SetupSheetVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions   SetupSheet[] @relation("SetupSheetVersionHistory")
 
   // Approval workflow
   approvalWorkflowId String?
   approvedById       String?
   approvedAt         DateTime?
-  approvalHistory    Json?             // Array of approval/rejection history
+  approvalHistory    Json? // Array of approval/rejection history
 
   // Metadata
-  isActive           Boolean           @default(true)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  createdById        String
-  updatedById        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  createdBy          User              @relation("SetupSheetCreatedBy", fields: [createdById], references: [id])
-  updatedBy          User              @relation("SetupSheetUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy         User?             @relation("SetupSheetApprovedBy", fields: [approvedById], references: [id])
+  createdBy  User  @relation("SetupSheetCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User  @relation("SetupSheetUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("SetupSheetApprovedBy", fields: [approvedById], references: [id])
 
-  steps              SetupStep[]
-  parameters         SetupParameter[]
-  toolList           SetupTool[]
-  executions         SetupExecution[]
+  steps      SetupStep[]
+  parameters SetupParameter[]
+  toolList   SetupTool[]
+  executions SetupExecution[]
 
   @@index([documentNumber])
   @@index([status])
@@ -4973,20 +4992,20 @@ model SetupSheet {
 }
 
 model SetupStep {
-  id                 String      @id @default(cuid())
-  setupSheetId       String
-  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  setupSheetId String
+  setupSheet   SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
 
-  stepNumber         Int
-  title              String
-  instructions       String      @db.Text
+  stepNumber   Int
+  title        String
+  instructions String @db.Text
 
-  imageUrls          String[]
-  videoUrls          String[]
+  imageUrls String[]
+  videoUrls String[]
 
-  estimatedDuration  Int?        // seconds
-  isCritical         Boolean     @default(false)
-  requiresVerification Boolean   @default(false)
+  estimatedDuration    Int? // seconds
+  isCritical           Boolean @default(false)
+  requiresVerification Boolean @default(false)
 
   @@unique([setupSheetId, stepNumber])
   @@index([setupSheetId])
@@ -4994,16 +5013,16 @@ model SetupStep {
 }
 
 model SetupParameter {
-  id                 String      @id @default(cuid())
-  setupSheetId       String
-  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  setupSheetId String
+  setupSheet   SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
 
-  parameterName      String
-  targetValue        String
-  tolerance          String?
-  unit               String?
+  parameterName String
+  targetValue   String
+  tolerance     String?
+  unit          String?
 
-  equipmentSetting   String?     // e.g., "Spindle Speed", "Feed Rate"
+  equipmentSetting   String? // e.g., "Spindle Speed", "Feed Rate"
   verificationMethod String?
 
   @@index([setupSheetId])
@@ -5011,17 +5030,17 @@ model SetupParameter {
 }
 
 model SetupTool {
-  id                 String      @id @default(cuid())
-  setupSheetId       String
-  setupSheet         SetupSheet  @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  setupSheetId String
+  setupSheet   SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
 
-  toolId             String?     // Reference to ToolDrawing
-  toolName           String
-  toolNumber         String?
-  quantity           Int         @default(1)
+  toolId     String? // Reference to ToolDrawing
+  toolName   String
+  toolNumber String?
+  quantity   Int     @default(1)
 
-  toolOffset         String?
-  notes              String?
+  toolOffset String?
+  notes      String?
 
   @@index([setupSheetId])
   @@index([toolId])
@@ -5029,27 +5048,27 @@ model SetupTool {
 }
 
 model SetupExecution {
-  id                 String            @id @default(cuid())
-  setupSheetId       String
-  setupSheet         SetupSheet        @relation(fields: [setupSheetId], references: [id])
+  id           String     @id @default(cuid())
+  setupSheetId String
+  setupSheet   SetupSheet @relation(fields: [setupSheetId], references: [id])
 
-  workOrderId        String?
-  operationId        String?
+  workOrderId String?
+  operationId String?
 
   // Execution tracking
-  startedById        String
-  startedBy          User              @relation("SetupExecutionStartedBy", fields: [startedById], references: [id])
-  startedAt          DateTime          @default(now())
-  completedById      String?
-  completedBy        User?             @relation("SetupExecutionCompletedBy", fields: [completedById], references: [id])
-  completedAt        DateTime?
+  startedById   String
+  startedBy     User      @relation("SetupExecutionStartedBy", fields: [startedById], references: [id])
+  startedAt     DateTime  @default(now())
+  completedById String?
+  completedBy   User?     @relation("SetupExecutionCompletedBy", fields: [completedById], references: [id])
+  completedAt   DateTime?
 
-  actualSetupTime    Int?              // minutes
+  actualSetupTime Int? // minutes
 
-  verificationData   Json?             // Verification measurements
-  firstPieceResults  Json?
+  verificationData  Json? // Verification measurements
+  firstPieceResults Json?
 
-  status             WorkInstructionExecutionStatus @default(IN_PROGRESS)
+  status WorkInstructionExecutionStatus @default(IN_PROGRESS)
 
   @@index([setupSheetId])
   @@index([workOrderId])
@@ -5058,51 +5077,51 @@ model SetupExecution {
 
 // Inspection Plan - Quality inspection procedures and acceptance criteria
 model InspectionPlan {
-  id                 String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Base document attributes
-  documentNumber     String                @unique
-  title              String
-  description        String?               @db.Text
+  documentNumber String  @unique
+  title          String
+  description    String? @db.Text
 
   // Version control
-  version            String                @default("1.0.0")
-  status             WorkInstructionStatus @default(DRAFT)
-  effectiveDate      DateTime?
-  supersededDate     DateTime?
-  ecoNumber          String?
+  version        String                @default("1.0.0")
+  status         WorkInstructionStatus @default(DRAFT)
+  effectiveDate  DateTime?
+  supersededDate DateTime?
+  ecoNumber      String?
 
   // References
-  partId             String?
-  operationId        String?
+  partId      String?
+  operationId String?
 
   // Inspection-specific attributes
-  inspectionType     InspectionType
-  frequency          InspectionFrequency
-  samplingPlan       Json?                 // Sampling configuration
+  inspectionType InspectionType
+  frequency      InspectionFrequency
+  samplingPlan   Json? // Sampling configuration
 
   // Defect handling
-  dispositionRules   Json?
+  dispositionRules Json?
 
   // Gage R&R
-  gageRRRequired     Boolean               @default(false)
-  gageRRFrequency    String?
+  gageRRRequired  Boolean @default(false)
+  gageRRFrequency String?
 
   // Media
-  imageUrls          String[]
-  videoUrls          String[]
-  attachmentUrls     String[]
+  imageUrls      String[]
+  videoUrls      String[]
+  attachmentUrls String[]
 
   // Document management
-  tags               String[]
-  categories         String[]
-  keywords           String[]
-  thumbnailUrl       String?
+  tags         String[]
+  categories   String[]
+  keywords     String[]
+  thumbnailUrl String?
 
   // Version control
-  parentVersionId    String?
-  parentVersion      InspectionPlan?       @relation("InspectionPlanVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
-  childVersions      InspectionPlan[]      @relation("InspectionPlanVersionHistory")
+  parentVersionId String?
+  parentVersion   InspectionPlan?  @relation("InspectionPlanVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions   InspectionPlan[] @relation("InspectionPlanVersionHistory")
 
   // Approval workflow
   approvalWorkflowId String?
@@ -5111,20 +5130,20 @@ model InspectionPlan {
   approvalHistory    Json?
 
   // Metadata
-  isActive           Boolean               @default(true)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  createdById        String
-  updatedById        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  createdBy          User                  @relation("InspectionPlanCreatedBy", fields: [createdById], references: [id])
-  updatedBy          User                  @relation("InspectionPlanUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy         User?                 @relation("InspectionPlanApprovedBy", fields: [approvedById], references: [id])
+  createdBy  User  @relation("InspectionPlanCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User  @relation("InspectionPlanUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("InspectionPlanApprovedBy", fields: [approvedById], references: [id])
 
-  characteristics    InspectionCharacteristic[]
-  steps              InspectionStep[]
-  executions         InspectionExecution[]
+  characteristics InspectionCharacteristic[]
+  steps           InspectionStep[]
+  executions      InspectionExecution[]
 
   @@index([documentNumber])
   @@index([status])
@@ -5153,23 +5172,23 @@ enum InspectionFrequency {
 }
 
 model InspectionCharacteristic {
-  id                 String          @id @default(cuid())
-  inspectionPlanId   String
-  inspectionPlan     InspectionPlan  @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  inspectionPlanId String
+  inspectionPlan   InspectionPlan @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
 
   characteristicNumber Int
-  characteristicName String
+  characteristicName   String
 
-  measurementType    MeasurementType
-  nominal            Float?
-  upperLimit         Float?
-  lowerLimit         Float?
-  unit               String?
+  measurementType MeasurementType
+  nominal         Float?
+  upperLimit      Float?
+  lowerLimit      Float?
+  unit            String?
 
-  measurementMethod  String?
-  gageType           String?
+  measurementMethod String?
+  gageType          String?
 
-  isCritical         Boolean         @default(false)
+  isCritical Boolean @default(false)
 
   @@unique([inspectionPlanId, characteristicNumber])
   @@index([inspectionPlanId])
@@ -5186,17 +5205,17 @@ enum MeasurementType {
 }
 
 model InspectionStep {
-  id                 String          @id @default(cuid())
-  inspectionPlanId   String
-  inspectionPlan     InspectionPlan  @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  inspectionPlanId String
+  inspectionPlan   InspectionPlan @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
 
-  stepNumber         Int
-  title              String
-  instructions       String          @db.Text
+  stepNumber   Int
+  title        String
+  instructions String @db.Text
 
-  characteristicRefs Int[]           // References to characteristic numbers
+  characteristicRefs Int[] // References to characteristic numbers
 
-  imageUrls          String[]
+  imageUrls String[]
 
   @@unique([inspectionPlanId, stepNumber])
   @@index([inspectionPlanId])
@@ -5204,27 +5223,27 @@ model InspectionStep {
 }
 
 model InspectionExecution {
-  id                 String            @id @default(cuid())
-  inspectionPlanId   String
-  inspectionPlan     InspectionPlan    @relation(fields: [inspectionPlanId], references: [id])
+  id               String         @id @default(cuid())
+  inspectionPlanId String
+  inspectionPlan   InspectionPlan @relation(fields: [inspectionPlanId], references: [id])
 
-  workOrderId        String?
-  operationId        String?
-  lotNumber          String?
-  serialNumber       String?
+  workOrderId  String?
+  operationId  String?
+  lotNumber    String?
+  serialNumber String?
 
   // Execution tracking
-  inspectorId        String
-  inspector          User              @relation("InspectionExecutionInspector", fields: [inspectorId], references: [id])
-  inspectedAt        DateTime          @default(now())
+  inspectorId String
+  inspector   User     @relation("InspectionExecutionInspector", fields: [inspectorId], references: [id])
+  inspectedAt DateTime @default(now())
 
-  results            Json              // Measurement results
-  overallResult      InspectionResult
+  results       Json // Measurement results
+  overallResult InspectionResult
 
-  defectsFound       Json?             // Defect details
-  disposition        Disposition?
+  defectsFound Json? // Defect details
+  disposition  Disposition?
 
-  signatureId        String?
+  signatureId String?
 
   @@index([inspectionPlanId])
   @@index([workOrderId])
@@ -5250,57 +5269,57 @@ enum Disposition {
 
 // Standard Operating Procedure (SOP) - Standard processes and safety procedures
 model StandardOperatingProcedure {
-  id                 String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Base document attributes
-  documentNumber     String                @unique
-  title              String
-  description        String?               @db.Text
+  documentNumber String  @unique
+  title          String
+  description    String? @db.Text
 
   // Version control
-  version            String                @default("1.0.0")
-  status             WorkInstructionStatus @default(DRAFT)
-  effectiveDate      DateTime?
-  supersededDate     DateTime?
-  ecoNumber          String?
+  version        String                @default("1.0.0")
+  status         WorkInstructionStatus @default(DRAFT)
+  effectiveDate  DateTime?
+  supersededDate DateTime?
+  ecoNumber      String?
 
   // SOP-specific attributes
-  sopType            SOPType
-  scope              String                @db.Text
-  applicability      String?               @db.Text
+  sopType       SOPType
+  scope         String  @db.Text
+  applicability String? @db.Text
 
-  responsibleRoles   String[]
+  responsibleRoles String[]
 
-  references         Json?                 // Regulations, standards, other docs
+  references Json? // Regulations, standards, other docs
 
   // Safety
-  safetyWarnings     String[]              @db.Text
+  safetyWarnings     String[] @db.Text
   requiredPPE        String[]
-  emergencyProcedure String?               @db.Text
+  emergencyProcedure String?  @db.Text
 
   // Training
-  trainingRequired   Boolean               @default(false)
-  trainingFrequency  String?               // e.g., "annually", "one-time"
+  trainingRequired  Boolean @default(false)
+  trainingFrequency String? // e.g., "annually", "one-time"
 
   // Review schedule
-  reviewFrequency    String?               // e.g., "annually", "biannually"
-  nextReviewDate     DateTime?
+  reviewFrequency String? // e.g., "annually", "biannually"
+  nextReviewDate  DateTime?
 
   // Media
-  imageUrls          String[]
-  videoUrls          String[]
-  attachmentUrls     String[]
+  imageUrls      String[]
+  videoUrls      String[]
+  attachmentUrls String[]
 
   // Document management
-  tags               String[]
-  categories         String[]
-  keywords           String[]
-  thumbnailUrl       String?
+  tags         String[]
+  categories   String[]
+  keywords     String[]
+  thumbnailUrl String?
 
   // Version control
-  parentVersionId    String?
-  parentVersion      StandardOperatingProcedure? @relation("SOPVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
-  childVersions      StandardOperatingProcedure[] @relation("SOPVersionHistory")
+  parentVersionId String?
+  parentVersion   StandardOperatingProcedure?  @relation("SOPVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions   StandardOperatingProcedure[] @relation("SOPVersionHistory")
 
   // Approval workflow
   approvalWorkflowId String?
@@ -5309,20 +5328,20 @@ model StandardOperatingProcedure {
   approvalHistory    Json?
 
   // Metadata
-  isActive           Boolean               @default(true)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  createdById        String
-  updatedById        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  createdBy          User                  @relation("SOPCreatedBy", fields: [createdById], references: [id])
-  updatedBy          User                  @relation("SOPUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy         User?                 @relation("SOPApprovedBy", fields: [approvedById], references: [id])
+  createdBy  User  @relation("SOPCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User  @relation("SOPUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("SOPApprovedBy", fields: [approvedById], references: [id])
 
-  steps              SOPStep[]
-  acknowledgments    SOPAcknowledgment[]
-  audits             SOPAudit[]
+  steps           SOPStep[]
+  acknowledgments SOPAcknowledgment[]
+  audits          SOPAudit[]
 
   @@index([documentNumber])
   @@index([status])
@@ -5343,19 +5362,19 @@ enum SOPType {
 }
 
 model SOPStep {
-  id                 String                      @id @default(cuid())
-  sopId              String
-  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  id    String                     @id @default(cuid())
+  sopId String
+  sop   StandardOperatingProcedure @relation(fields: [sopId], references: [id], onDelete: Cascade)
 
-  stepNumber         Int
-  title              String
-  instructions       String                      @db.Text
+  stepNumber   Int
+  title        String
+  instructions String @db.Text
 
-  isWarning          Boolean                     @default(false)
-  isCritical         Boolean                     @default(false)
+  isWarning  Boolean @default(false)
+  isCritical Boolean @default(false)
 
-  imageUrls          String[]
-  videoUrls          String[]
+  imageUrls String[]
+  videoUrls String[]
 
   @@unique([sopId, stepNumber])
   @@index([sopId])
@@ -5363,22 +5382,22 @@ model SOPStep {
 }
 
 model SOPAcknowledgment {
-  id                 String                      @id @default(cuid())
-  sopId              String
-  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id])
+  id    String                     @id @default(cuid())
+  sopId String
+  sop   StandardOperatingProcedure @relation(fields: [sopId], references: [id])
 
-  userId             String
-  user               User                        @relation("SOPAcknowledgmentUser", fields: [userId], references: [id])
-  userName           String
+  userId   String
+  user     User   @relation("SOPAcknowledgmentUser", fields: [userId], references: [id])
+  userName String
 
-  acknowledgedAt     DateTime                    @default(now())
+  acknowledgedAt DateTime @default(now())
 
   // Training completion
   trainingCompletedAt DateTime?
-  assessmentScore    Float?
-  assessmentPassed   Boolean?
+  assessmentScore     Float?
+  assessmentPassed    Boolean?
 
-  signatureId        String?
+  signatureId String?
 
   @@unique([sopId, userId])
   @@index([sopId])
@@ -5387,22 +5406,22 @@ model SOPAcknowledgment {
 }
 
 model SOPAudit {
-  id                 String                      @id @default(cuid())
-  sopId              String
-  sop                StandardOperatingProcedure  @relation(fields: [sopId], references: [id])
+  id    String                     @id @default(cuid())
+  sopId String
+  sop   StandardOperatingProcedure @relation(fields: [sopId], references: [id])
 
-  auditDate          DateTime
-  auditorId          String
-  auditor            User                        @relation("SOPAuditAuditor", fields: [auditorId], references: [id])
-  auditorName        String
+  auditDate   DateTime
+  auditorId   String
+  auditor     User     @relation("SOPAuditAuditor", fields: [auditorId], references: [id])
+  auditorName String
 
-  complianceChecks   Json                        // Checklist results
-  overallCompliance  Boolean
+  complianceChecks  Json // Checklist results
+  overallCompliance Boolean
 
-  findingsCount      Int                         @default(0)
-  findings           String?                     @db.Text
+  findingsCount Int     @default(0)
+  findings      String? @db.Text
 
-  correctiveActions  Json?
+  correctiveActions Json?
 
   @@index([sopId])
   @@index([auditDate])
@@ -5411,74 +5430,74 @@ model SOPAudit {
 
 // Tool Drawing - Tool/fixture specifications, maintenance, and usage
 model ToolDrawing {
-  id                 String                @id @default(cuid())
+  id String @id @default(cuid())
 
   // Base document attributes
-  documentNumber     String                @unique
-  title              String
-  description        String?               @db.Text
+  documentNumber String  @unique
+  title          String
+  description    String? @db.Text
 
   // Version control
-  version            String                @default("1.0.0")
-  status             WorkInstructionStatus @default(DRAFT)
-  effectiveDate      DateTime?
-  supersededDate     DateTime?
-  ecoNumber          String?
+  version        String                @default("1.0.0")
+  status         WorkInstructionStatus @default(DRAFT)
+  effectiveDate  DateTime?
+  supersededDate DateTime?
+  ecoNumber      String?
 
   // Tool-specific attributes
-  toolType           ToolType
-  toolSubtype        String?
+  toolType    ToolType
+  toolSubtype String?
 
   // Physical attributes
-  dimensions         Json?                 // Length, width, height, diameter, etc.
-  material           String?
-  weight             Float?
-  weightUnit         String?
+  dimensions Json? // Length, width, height, diameter, etc.
+  material   String?
+  weight     Float?
+  weightUnit String?
 
   // Vendor information
-  vendorId           String?
-  vendorName         String?
-  vendorPartNumber   String?
-  catalogNumber      String?
-  cost               Float?
-  costCurrency       String?
+  vendorId         String?
+  vendorName       String?
+  vendorPartNumber String?
+  catalogNumber    String?
+  cost             Float?
+  costCurrency     String?
 
   // Usage
-  applicablePartIds  String[]
+  applicablePartIds    String[]
   applicableOperations String[]
 
-  usageInstructions  String?               @db.Text
-  maintenanceProcedure String?             @db.Text
+  usageInstructions    String? @db.Text
+  maintenanceProcedure String? @db.Text
 
   // Inspection/Calibration
-  requiresCalibration Boolean              @default(false)
-  calibrationInterval Int?                 // days
+  requiresCalibration Boolean   @default(false)
+  calibrationInterval Int? // days
   lastCalibrationDate DateTime?
   nextCalibrationDate DateTime?
 
   // Inventory
-  storageLocation    String?
-  quantityOnHand     Int?
-  minimumQuantity    Int?
+  storageLocation String?
+  quantityOnHand  Int?
+  minimumQuantity Int?
 
   // CAD files
-  cadFileUrls        String[]
+  cadFileUrls String[]
 
   // Media
-  imageUrls          String[]
-  videoUrls          String[]
-  attachmentUrls     String[]
+  imageUrls      String[]
+  videoUrls      String[]
+  attachmentUrls String[]
 
   // Document management
-  tags               String[]
-  categories         String[]
-  keywords           String[]
-  thumbnailUrl       String?
+  tags         String[]
+  categories   String[]
+  keywords     String[]
+  thumbnailUrl String?
 
   // Version control
-  parentVersionId    String?
-  parentVersion      ToolDrawing?          @relation("ToolDrawingVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
-  childVersions      ToolDrawing[]         @relation("ToolDrawingVersionHistory")
+  parentVersionId String?
+  parentVersion   ToolDrawing?  @relation("ToolDrawingVersionHistory", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions   ToolDrawing[] @relation("ToolDrawingVersionHistory")
 
   // Approval workflow
   approvalWorkflowId String?
@@ -5487,16 +5506,16 @@ model ToolDrawing {
   approvalHistory    Json?
 
   // Metadata
-  isActive           Boolean               @default(true)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  createdById        String
-  updatedById        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  createdBy          User                  @relation("ToolDrawingCreatedBy", fields: [createdById], references: [id])
-  updatedBy          User                  @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy         User?                 @relation("ToolDrawingApprovedBy", fields: [approvedById], references: [id])
+  createdBy  User  @relation("ToolDrawingCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User  @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("ToolDrawingApprovedBy", fields: [approvedById], references: [id])
 
   maintenanceRecords ToolMaintenanceRecord[]
   calibrationRecords ToolCalibrationRecord[]
@@ -5524,20 +5543,20 @@ enum ToolType {
 }
 
 model ToolMaintenanceRecord {
-  id                 String              @id @default(cuid())
-  toolDrawingId      String
-  toolDrawing        ToolDrawing         @relation(fields: [toolDrawingId], references: [id])
+  id            String      @id @default(cuid())
+  toolDrawingId String
+  toolDrawing   ToolDrawing @relation(fields: [toolDrawingId], references: [id])
 
-  maintenanceDate    DateTime
-  performedById      String
-  performedBy        User                @relation("ToolMaintenancePerformedBy", fields: [performedById], references: [id])
-  performedByName    String
+  maintenanceDate DateTime
+  performedById   String
+  performedBy     User     @relation("ToolMaintenancePerformedBy", fields: [performedById], references: [id])
+  performedByName String
 
-  maintenanceType    MaintenanceType
-  description        String              @db.Text
+  maintenanceType MaintenanceType
+  description     String          @db.Text
 
-  partsReplaced      Json?
-  cost               Float?
+  partsReplaced Json?
+  cost          Float?
 
   toolConditionBefore String?
   toolConditionAfter  String?
@@ -5555,22 +5574,22 @@ enum MaintenanceType {
 }
 
 model ToolCalibrationRecord {
-  id                 String       @id @default(cuid())
-  toolDrawingId      String
-  toolDrawing        ToolDrawing  @relation(fields: [toolDrawingId], references: [id])
+  id            String      @id @default(cuid())
+  toolDrawingId String
+  toolDrawing   ToolDrawing @relation(fields: [toolDrawingId], references: [id])
 
-  calibrationDate    DateTime
-  performedById      String
-  performedBy        User         @relation("ToolCalibrationPerformedBy", fields: [performedById], references: [id])
-  performedByName    String
+  calibrationDate DateTime
+  performedById   String
+  performedBy     User     @relation("ToolCalibrationPerformedBy", fields: [performedById], references: [id])
+  performedByName String
 
   calibrationResults Json
   passed             Boolean
 
   certificationNumber String?
-  certificateUrl     String?
+  certificateUrl      String?
 
-  nextDueDate        DateTime
+  nextDueDate DateTime
 
   @@index([toolDrawingId])
   @@index([calibrationDate])
@@ -5578,20 +5597,20 @@ model ToolCalibrationRecord {
 }
 
 model ToolUsageLog {
-  id                 String      @id @default(cuid())
-  toolDrawingId      String
-  toolDrawing        ToolDrawing @relation(fields: [toolDrawingId], references: [id])
+  id            String      @id @default(cuid())
+  toolDrawingId String
+  toolDrawing   ToolDrawing @relation(fields: [toolDrawingId], references: [id])
 
-  usedAt             DateTime    @default(now())
-  usedById           String
-  usedBy             User        @relation("ToolUsageLogUsedBy", fields: [usedById], references: [id])
-  usedByName         String
+  usedAt     DateTime @default(now())
+  usedById   String
+  usedBy     User     @relation("ToolUsageLogUsedBy", fields: [usedById], references: [id])
+  usedByName String
 
-  workOrderId        String?
-  operationId        String?
+  workOrderId String?
+  operationId String?
 
-  usageDuration      Int?        // minutes
-  conditionAfterUse  String?
+  usageDuration     Int? // minutes
+  conditionAfterUse String?
 
   @@index([toolDrawingId])
   @@index([usedAt])
@@ -5600,33 +5619,33 @@ model ToolUsageLog {
 
 // Document Template - Templates for creating new documents
 model DocumentTemplate {
-  id               String               @id @default(cuid())
-  name             String
-  description      String?
-  documentType     DocumentType
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  documentType DocumentType
 
   // Template content
-  templateData     Json                 // Template structure/content
-  defaultValues    Json?                // Default field values
+  templateData  Json // Template structure/content
+  defaultValues Json? // Default field values
 
   // Template metadata
-  isPublic         Boolean              @default(false)
-  isSystemTemplate Boolean              @default(false)
+  isPublic         Boolean @default(false)
+  isSystemTemplate Boolean @default(false)
 
-  tags             String[]
-  category         String?
+  tags     String[]
+  category String?
 
-  usageCount       Int                  @default(0)
+  usageCount Int @default(0)
 
-  isActive         Boolean              @default(true)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  createdById      String
-  updatedById      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  createdBy        User                 @relation("DocumentTemplateCreatedBy", fields: [createdById], references: [id])
-  updatedBy        User                 @relation("DocumentTemplateUpdatedBy", fields: [updatedById], references: [id])
+  createdBy User @relation("DocumentTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy User @relation("DocumentTemplateUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([documentType])
   @@index([isPublic])
@@ -5650,7 +5669,7 @@ enum DocumentType {
 
 /// User Workstation Preference - Manages user layout preferences for work instruction execution
 model UserWorkstationPreference {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   userId        String
   workstationId String? // Null = default preference
 
@@ -5665,8 +5684,8 @@ model UserWorkstationPreference {
   compactMode      Boolean @default(false)
 
   // Monitor preferences
-  useSecondMonitor        Boolean @default(false)
-  secondMonitorPosition   Json? // Window position for second monitor
+  useSecondMonitor      Boolean @default(false)
+  secondMonitorPosition Json? // Window position for second monitor
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -5702,14 +5721,14 @@ model WorkstationDisplayConfig {
   workstationId String @unique
 
   // Screen configuration
-  screenWidth   Int?     // Physical screen width in pixels
-  screenHeight  Int?     // Physical screen height in pixels
+  screenWidth    Int? // Physical screen width in pixels
+  screenHeight   Int? // Physical screen height in pixels
   isMultiMonitor Boolean @default(false)
-  monitorCount  Int      @default(1)
+  monitorCount   Int     @default(1)
 
   // Forced layout for kiosk mode
-  forcedLayout     LayoutMode? // Force specific layout mode
-  allowUserOverride Boolean    @default(true)
+  forcedLayout      LayoutMode? // Force specific layout mode
+  allowUserOverride Boolean     @default(true)
 
   // Touch screen settings
   isTouchScreen   Boolean @default(false)
@@ -5717,7 +5736,7 @@ model WorkstationDisplayConfig {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  updatedById String   // User ID reference
+  updatedById String // User ID reference
 
   @@index([workstationId])
   @@map("workstation_display_configs")
@@ -5730,31 +5749,31 @@ model WorkstationDisplayConfig {
 // ============================================================================
 
 model WorkflowDefinition {
-  id                 String   @id @default(cuid())
-  name               String
-  description        String?  @db.Text
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
 
   // Workflow configuration
-  workflowType       WorkflowType
-  version            String   @default("1.0.0")
+  workflowType WorkflowType
+  version      String       @default("1.0.0")
 
   // Workflow structure (JSON representation of stages, connections, rules)
-  structure          Json     // Complete workflow graph definition
+  structure Json // Complete workflow graph definition
 
   // Status
-  isActive           Boolean  @default(true)
-  isTemplate         Boolean  @default(false)
+  isActive   Boolean @default(true)
+  isTemplate Boolean @default(false)
 
   // Metadata
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  createdById        String
-  updatedById        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String
 
   // Relations
-  stages             WorkflowStage[]
-  instances          WorkflowInstance[]
-  rules              WorkflowRule[]
+  stages    WorkflowStage[]
+  instances WorkflowInstance[]
+  rules     WorkflowRule[]
 
   @@index([workflowType])
   @@index([isActive])
@@ -5775,19 +5794,19 @@ enum WorkflowType {
 }
 
 model WorkflowStage {
-  id                 String   @id @default(cuid())
-  workflowId         String
-  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  id         String             @id @default(cuid())
+  workflowId String
+  workflow   WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   // Stage configuration
-  stageNumber        Int
-  stageName          String
-  description        String?  @db.Text
+  stageNumber Int
+  stageName   String
+  description String? @db.Text
 
   // Approval configuration
-  approvalType       ApprovalType @default(ALL_REQUIRED)
-  minimumApprovals   Int?     // For THRESHOLD type
-  approvalThreshold  Float?   // For PERCENTAGE type (0.0-1.0)
+  approvalType      ApprovalType @default(ALL_REQUIRED)
+  minimumApprovals  Int? // For THRESHOLD type
+  approvalThreshold Float? // For PERCENTAGE type (0.0-1.0)
 
   // Assignment
   requiredRoles      String[] // Role IDs that must approve
@@ -5795,20 +5814,20 @@ model WorkflowStage {
   assignmentStrategy AssignmentStrategy @default(MANUAL)
 
   // Timing
-  deadlineHours      Int?
-  escalationRules    Json?    // Escalation configuration
+  deadlineHours   Int?
+  escalationRules Json? // Escalation configuration
 
   // Actions
-  allowDelegation    Boolean  @default(true)
-  allowSkip          Boolean  @default(false)
-  skipConditions     Json?    // Conditions under which stage can be skipped
+  allowDelegation Boolean @default(true)
+  allowSkip       Boolean @default(false)
+  skipConditions  Json? // Conditions under which stage can be skipped
 
   // Electronic signature requirements
-  requiresSignature  Boolean  @default(false)
-  signatureType      String?  // REVIEWED, APPROVED, VERIFIED, etc.
+  requiresSignature Boolean @default(false)
+  signatureType     String? // REVIEWED, APPROVED, VERIFIED, etc.
 
   // Relations
-  stageInstances     WorkflowStageInstance[]
+  stageInstances WorkflowStageInstance[]
 
   @@unique([workflowId, stageNumber])
   @@index([workflowId])
@@ -5816,42 +5835,42 @@ model WorkflowStage {
 }
 
 enum ApprovalType {
-  ALL_REQUIRED       // All approvers must approve
-  ANY_ONE            // Any one approver can approve
-  THRESHOLD          // Minimum number of approvers
-  PERCENTAGE         // Minimum percentage of approvers
-  WEIGHTED           // Weighted voting
+  ALL_REQUIRED // All approvers must approve
+  ANY_ONE // Any one approver can approve
+  THRESHOLD // Minimum number of approvers
+  PERCENTAGE // Minimum percentage of approvers
+  WEIGHTED // Weighted voting
 }
 
 enum AssignmentStrategy {
-  MANUAL             // Manual assignment by author/admin
-  ROLE_BASED         // Auto-assign based on roles
-  LOAD_BALANCED      // Distribute evenly among eligible users
-  ROUND_ROBIN        // Rotate assignments
+  MANUAL // Manual assignment by author/admin
+  ROLE_BASED // Auto-assign based on roles
+  LOAD_BALANCED // Distribute evenly among eligible users
+  ROUND_ROBIN // Rotate assignments
 }
 
 model WorkflowRule {
-  id                 String   @id @default(cuid())
-  workflowId         String
-  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  id         String             @id @default(cuid())
+  workflowId String
+  workflow   WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
-  ruleName           String
-  description        String?  @db.Text
+  ruleName    String
+  description String? @db.Text
 
   // Condition
-  conditionField     String   // Field to evaluate (e.g., "impactLevel")
-  conditionOperator  ConditionOperator
-  conditionValue     Json     // Value(s) to compare against
+  conditionField    String // Field to evaluate (e.g., "impactLevel")
+  conditionOperator ConditionOperator
+  conditionValue    Json // Value(s) to compare against
 
   // Action
-  actionType         RuleActionType
-  actionConfig       Json     // Action configuration (e.g., add stage, skip stage)
+  actionType   RuleActionType
+  actionConfig Json // Action configuration (e.g., add stage, skip stage)
 
-  priority           Int      @default(0) // Lower = higher priority
-  isActive           Boolean  @default(true)
+  priority Int     @default(0) // Lower = higher priority
+  isActive Boolean @default(true)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workflowId])
   @@index([priority])
@@ -5881,36 +5900,36 @@ enum RuleActionType {
 }
 
 model WorkflowInstance {
-  id                 String   @id @default(cuid())
-  workflowId         String
-  workflow           WorkflowDefinition @relation(fields: [workflowId], references: [id])
+  id         String             @id @default(cuid())
+  workflowId String
+  workflow   WorkflowDefinition @relation(fields: [workflowId], references: [id])
 
   // Document reference
-  entityType         String   // e.g., "WorkInstruction", "SetupSheet"
-  entityId           String
+  entityType String // e.g., "WorkInstruction", "SetupSheet"
+  entityId   String
 
   // Current state
   status             WorkflowStatus @default(IN_PROGRESS)
   currentStageNumber Int?
 
   // Context data for rule evaluation
-  contextData        Json?    // Document attributes for conditional routing
+  contextData Json? // Document attributes for conditional routing
 
   // Timing
-  startedAt          DateTime @default(now())
-  completedAt        DateTime?
-  deadline           DateTime?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  deadline    DateTime?
 
   // Metadata
-  priority           Priority @default(NORMAL)
-  impactLevel        ImpactLevel?
+  priority    Priority     @default(NORMAL)
+  impactLevel ImpactLevel?
 
   // Creator
-  createdById        String
+  createdById String
 
   // Relations
-  stageInstances     WorkflowStageInstance[]
-  history            WorkflowHistory[]
+  stageInstances WorkflowStageInstance[]
+  history        WorkflowHistory[]
 
   @@unique([entityType, entityId])
   @@index([workflowId])
@@ -5944,30 +5963,30 @@ enum ImpactLevel {
 }
 
 model WorkflowStageInstance {
-  id                 String   @id @default(cuid())
+  id                 String           @id @default(cuid())
   workflowInstanceId String
   workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
 
-  stageId            String
-  stage              WorkflowStage @relation(fields: [stageId], references: [id])
+  stageId String
+  stage   WorkflowStage @relation(fields: [stageId], references: [id])
 
-  stageNumber        Int
-  stageName          String
+  stageNumber Int
+  stageName   String
 
   // State
-  status             StageStatus @default(PENDING)
+  status StageStatus @default(PENDING)
 
   // Timing
-  startedAt          DateTime?
-  completedAt        DateTime?
-  deadline           DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  deadline    DateTime?
 
   // Outcome
-  outcome            StageOutcome?
-  notes              String?      @db.Text
+  outcome StageOutcome?
+  notes   String?       @db.Text
 
   // Relations
-  assignments        WorkflowAssignment[]
+  assignments          WorkflowAssignment[]
   parallelCoordination WorkflowParallelCoordination[]
 
   @@unique([workflowInstanceId, stageNumber])
@@ -5994,37 +6013,37 @@ enum StageOutcome {
 }
 
 model WorkflowAssignment {
-  id                 String   @id @default(cuid())
-  stageInstanceId    String
-  stageInstance      WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
+  id              String                @id @default(cuid())
+  stageInstanceId String
+  stageInstance   WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
 
   // Assignment
-  assignedToId       String
-  assignedToRole     String?
-  assignmentType     AssignmentType @default(REQUIRED)
+  assignedToId   String
+  assignedToRole String?
+  assignmentType AssignmentType @default(REQUIRED)
 
   // Delegation
-  delegatedFromId    String?
-  delegationReason   String?  @db.Text
-  delegationExpiry   DateTime?
+  delegatedFromId  String?
+  delegationReason String?   @db.Text
+  delegationExpiry DateTime?
 
   // Action
-  action             ApprovalAction?
-  actionTakenAt      DateTime?
-  comments           String?      @db.Text
+  action        ApprovalAction?
+  actionTakenAt DateTime?
+  comments      String?         @db.Text
 
   // Electronic Signature integration
-  signatureId        String?      // Reference to ElectronicSignature
-  signatureType      String?      // REVIEWED, APPROVED, etc.
+  signatureId   String? // Reference to ElectronicSignature
+  signatureType String? // REVIEWED, APPROVED, etc.
 
   // Timing
-  assignedAt         DateTime @default(now())
-  dueDate            DateTime?
+  assignedAt DateTime  @default(now())
+  dueDate    DateTime?
 
   // Escalation
-  escalationLevel    Int      @default(0)
-  escalatedAt        DateTime?
-  escalatedToId      String?
+  escalationLevel Int       @default(0)
+  escalatedAt     DateTime?
+  escalatedToId   String?
 
   @@index([stageInstanceId])
   @@index([assignedToId])
@@ -6048,29 +6067,29 @@ enum ApprovalAction {
 }
 
 model WorkflowHistory {
-  id                 String   @id @default(cuid())
+  id                 String           @id @default(cuid())
   workflowInstanceId String
   workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
 
   // Event details
-  eventType          WorkflowEventType
-  eventDescription   String   @db.Text
+  eventType        WorkflowEventType
+  eventDescription String            @db.Text
 
   // Context
-  stageNumber        Int?
-  fromStatus         String?
-  toStatus           String?
+  stageNumber Int?
+  fromStatus  String?
+  toStatus    String?
 
   // Actor
-  performedById      String
-  performedByName    String
-  performedByRole    String?
+  performedById   String
+  performedByName String
+  performedByRole String?
 
   // Details
-  details            Json?
+  details Json?
 
   // Timestamp
-  occurredAt         DateTime @default(now())
+  occurredAt DateTime @default(now())
 
   @@index([workflowInstanceId])
   @@index([eventType])
@@ -6097,24 +6116,24 @@ enum WorkflowEventType {
 }
 
 model WorkflowDelegation {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  delegatorId        String
-  delegateeId        String
+  delegatorId String
+  delegateeId String
 
   // Scope
   workflowType       WorkflowType?
   specificWorkflowId String?
 
   // Timing
-  startDate          DateTime
-  endDate            DateTime?
+  startDate DateTime
+  endDate   DateTime?
 
   // Reason
-  reason             String   @db.Text
-  isActive           Boolean  @default(true)
+  reason   String  @db.Text
+  isActive Boolean @default(true)
 
-  createdAt          DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([delegatorId])
   @@index([delegateeId])
@@ -6124,26 +6143,26 @@ model WorkflowDelegation {
 
 // Pre-defined workflow templates for common scenarios
 model WorkflowTemplate {
-  id                 String   @id @default(cuid())
-  name               String
-  description        String?  @db.Text
-  workflowType       WorkflowType
-  category           String   @default("STANDARD") // STANDARD, EXPEDITED, CRITICAL
+  id           String       @id @default(cuid())
+  name         String
+  description  String?      @db.Text
+  workflowType WorkflowType
+  category     String       @default("STANDARD") // STANDARD, EXPEDITED, CRITICAL
 
   // Template definition (JSON structure)
   templateDefinition Json
 
   // Usage tracking
-  usageCount         Int      @default(0)
-  lastUsedAt         DateTime?
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
 
   // Status
-  isActive           Boolean  @default(true)
-  isBuiltIn          Boolean  @default(false) // System templates vs user-created
+  isActive  Boolean @default(true)
+  isBuiltIn Boolean @default(false) // System templates vs user-created
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  createdById        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
 
   @@index([workflowType])
   @@index([category])
@@ -6153,10 +6172,10 @@ model WorkflowTemplate {
 
 // Task queue for approvers
 model WorkflowTask {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Assignment reference
-  assignmentId       String   @unique
+  assignmentId String @unique
 
   // Derived fields for quick filtering
   assignedToId       String
@@ -6166,20 +6185,20 @@ model WorkflowTask {
   entityId           String
 
   // Task metadata
-  taskTitle          String
-  taskDescription    String?  @db.Text
-  priority           Priority @default(NORMAL)
+  taskTitle       String
+  taskDescription String?  @db.Text
+  priority        Priority @default(NORMAL)
 
   // Status
-  status             TaskStatus @default(PENDING)
+  status TaskStatus @default(PENDING)
 
   // Timing
-  createdAt          DateTime @default(now())
-  dueDate            DateTime?
+  createdAt DateTime  @default(now())
+  dueDate   DateTime?
 
   // Notifications
-  lastReminderSent   DateTime?
-  reminderCount      Int      @default(0)
+  lastReminderSent DateTime?
+  reminderCount    Int       @default(0)
 
   @@index([assignedToId, status])
   @@index([dueDate])
@@ -6198,34 +6217,34 @@ enum TaskStatus {
 
 // Approval analytics and metrics
 model WorkflowMetrics {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Time period
-  periodStart        DateTime
-  periodEnd          DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
   // Workflow/Stage identification
-  workflowId         String?
-  stageId            String?
-  workflowType       WorkflowType?
+  workflowId   String?
+  stageId      String?
+  workflowType WorkflowType?
 
   // User/Role metrics
-  userId             String?
-  roleId             String?
+  userId String?
+  roleId String?
 
   // Metrics
-  totalAssignments   Int      @default(0)
-  completedOnTime    Int      @default(0)
-  completedLate      Int      @default(0)
+  totalAssignments   Int    @default(0)
+  completedOnTime    Int    @default(0)
+  completedLate      Int    @default(0)
   avgCompletionHours Float?
-  escalationCount    Int      @default(0)
-  rejectionCount     Int      @default(0)
+  escalationCount    Int    @default(0)
+  rejectionCount     Int    @default(0)
 
   // Calculated metrics
-  onTimePercentage   Float?
-  avgResponseHours   Float?
+  onTimePercentage Float?
+  avgResponseHours Float?
 
-  updatedAt          DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   @@index([periodStart, periodEnd])
   @@index([workflowType])
@@ -6235,37 +6254,37 @@ model WorkflowMetrics {
 
 // Parallel approval coordination tracking
 model WorkflowParallelCoordination {
-  id                    String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Stage instance reference
-  stageInstanceId       String
-  stageInstance         WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
+  stageInstanceId String
+  stageInstance   WorkflowStageInstance @relation(fields: [stageInstanceId], references: [id], onDelete: Cascade)
 
   // Parallel group configuration
-  groupId               String
-  groupName             String?
-  groupType             String   // ROLE_GROUP, DEPARTMENT, CUSTOM
+  groupId   String
+  groupName String?
+  groupType String // ROLE_GROUP, DEPARTMENT, CUSTOM
 
   // Group completion criteria
-  completionType        String   // UNANIMOUS, MAJORITY, THRESHOLD, MINIMUM, ANY
-  thresholdValue        Int?     // For THRESHOLD and MINIMUM types
+  completionType String // UNANIMOUS, MAJORITY, THRESHOLD, MINIMUM, ANY
+  thresholdValue Int? // For THRESHOLD and MINIMUM types
 
   // Group status tracking
-  totalAssignments      Int      @default(0)
-  completedAssignments  Int      @default(0)
-  approvedAssignments   Int      @default(0)
-  rejectedAssignments   Int      @default(0)
+  totalAssignments     Int @default(0)
+  completedAssignments Int @default(0)
+  approvedAssignments  Int @default(0)
+  rejectedAssignments  Int @default(0)
 
   // Group outcome
-  groupStatus           String   @default("PENDING") // PENDING, APPROVED, REJECTED, IN_PROGRESS
-  groupDecision         String?  // APPROVED, REJECTED
-  completedAt           DateTime?
+  groupStatus   String    @default("PENDING") // PENDING, APPROVED, REJECTED, IN_PROGRESS
+  groupDecision String? // APPROVED, REJECTED
+  completedAt   DateTime?
 
   // Group metadata
-  metadata              Json?    // Additional group-specific data
+  metadata Json? // Additional group-specific data
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([stageInstanceId, groupId])
   @@index([stageInstanceId])
@@ -6279,45 +6298,45 @@ model WorkflowParallelCoordination {
 
 /// Engineering Change Order - Core ECO entity for formal change management
 model EngineeringChangeOrder {
-  id                 String   @id @default(cuid())
-  ecoNumber          String   @unique
+  id        String @id @default(cuid())
+  ecoNumber String @unique
 
   // Basic information
-  title              String
-  description        String   @db.Text
+  title       String
+  description String @db.Text
 
-  ecoType            ECOType
-  priority           ECOPriority
-  status             ECOStatus @default(REQUESTED)
+  ecoType  ECOType
+  priority ECOPriority
+  status   ECOStatus   @default(REQUESTED)
 
   // Change details
-  currentState       String   @db.Text
-  proposedChange     String   @db.Text
-  reasonForChange    String   @db.Text
-  benefitsExpected   String?  @db.Text
+  currentState          String  @db.Text
+  proposedChange        String  @db.Text
+  reasonForChange       String  @db.Text
+  benefitsExpected      String? @db.Text
   risksIfNotImplemented String? @db.Text
 
   // Requestor
-  requestorId        String
-  requestorName      String
-  requestorDept      String?
-  requestDate        DateTime @default(now())
+  requestorId   String
+  requestorName String
+  requestorDept String?
+  requestDate   DateTime @default(now())
 
   // Sponsor (usually manager/director)
-  sponsorId          String?
-  sponsorName        String?
+  sponsorId   String?
+  sponsorName String?
 
   // Impact
-  impactAnalysis     Json?    // Structured impact data
+  impactAnalysis     Json? // Structured impact data
   affectedParts      String[] // Part IDs
   affectedOperations String[] // Operation IDs
 
   // Cost
-  estimatedCost      Float?
-  actualCost         Float?
-  estimatedSavings   Float?
-  actualSavings      Float?
-  costCurrency       String   @default("USD")
+  estimatedCost    Float?
+  actualCost       Float?
+  estimatedSavings Float?
+  actualSavings    Float?
+  costCurrency     String @default("USD")
 
   // Schedule
   requestedEffectiveDate DateTime?
@@ -6325,34 +6344,34 @@ model EngineeringChangeOrder {
   actualEffectiveDate    DateTime?
 
   // Effectivity
-  effectivityType    EffectivityType?
-  effectivityValue   String?  // Serial number, WO number, lot number, etc.
-  isInterchangeable  Boolean  @default(false)
+  effectivityType   EffectivityType?
+  effectivityValue  String? // Serial number, WO number, lot number, etc.
+  isInterchangeable Boolean          @default(false)
 
   // CRB
-  crbReviewDate      DateTime?
-  crbDecision        CRBDecision?
-  crbNotes           String?  @db.Text
+  crbReviewDate DateTime?
+  crbDecision   CRBDecision?
+  crbNotes      String?      @db.Text
 
   // Closure
-  completedDate      DateTime?
-  verifiedDate       DateTime?
-  closedDate         DateTime?
-  closedById         String?
+  completedDate DateTime?
+  verifiedDate  DateTime?
+  closedDate    DateTime?
+  closedById    String?
 
   // Metadata
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  affectedDocuments  ECOAffectedDocument[]
-  tasks              ECOTask[]
-  attachments        ECOAttachment[]
-  history            ECOHistory[]
-  crbReviews         ECOCRBReview[]
-  relatedECOs        ECORelation[] @relation("ParentECO")
-  parentRelations    ECORelation[] @relation("RelatedECO")
+  affectedDocuments ECOAffectedDocument[]
+  tasks             ECOTask[]
+  attachments       ECOAttachment[]
+  history           ECOHistory[]
+  crbReviews        ECOCRBReview[]
+  relatedECOs       ECORelation[]         @relation("ParentECO")
+  parentRelations   ECORelation[]         @relation("RelatedECO")
 
   @@index([ecoNumber])
   @@index([status])
@@ -6415,33 +6434,33 @@ enum CRBDecision {
 
 /// ECO Affected Document - Links ECOs to documents that need updates
 model ECOAffectedDocument {
-  id                 String   @id @default(cuid())
-  ecoId              String
-  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  id    String                 @id @default(cuid())
+  ecoId String
+  eco   EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
 
   // Document reference
-  documentType       String   // WorkInstruction, SetupSheet, InspectionPlan, SOP, etc.
-  documentId         String
-  documentTitle      String
+  documentType  String // WorkInstruction, SetupSheet, InspectionPlan, SOP, etc.
+  documentId    String
+  documentTitle String
 
   // Version info
-  currentVersion     String?
-  targetVersion      String?
+  currentVersion String?
+  targetVersion  String?
 
   // Status
-  status             DocUpdateStatus @default(PENDING)
+  status DocUpdateStatus @default(PENDING)
 
   // Assignment
-  assignedToId       String?
-  assignedToName     String?
+  assignedToId   String?
+  assignedToName String?
 
   // Tracking
-  updateStartedAt    DateTime?
-  updateCompletedAt  DateTime?
-  approvedAt         DateTime?
+  updateStartedAt   DateTime?
+  updateCompletedAt DateTime?
+  approvedAt        DateTime?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([ecoId, documentType, documentId])
   @@index([ecoId])
@@ -6461,37 +6480,37 @@ enum DocUpdateStatus {
 
 /// ECO Task - Implementation tasks for ECO completion
 model ECOTask {
-  id                 String   @id @default(cuid())
-  ecoId              String
-  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  id    String                 @id @default(cuid())
+  ecoId String
+  eco   EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
 
-  taskName           String
-  description        String?  @db.Text
-  taskType           ECOTaskType
+  taskName    String
+  description String?     @db.Text
+  taskType    ECOTaskType
 
   // Assignment
-  assignedToId       String?
-  assignedToName     String?
-  assignedToDept     String?
+  assignedToId   String?
+  assignedToName String?
+  assignedToDept String?
 
   // Status
-  status             ECOTaskStatus @default(PENDING)
+  status ECOTaskStatus @default(PENDING)
 
   // Timing
-  dueDate            DateTime?
-  startedAt          DateTime?
-  completedAt        DateTime?
+  dueDate     DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
 
   // Dependencies
-  prerequisiteTasks  String[] // Task IDs that must complete first
+  prerequisiteTasks String[] // Task IDs that must complete first
 
   // Completion
-  completionNotes    String?  @db.Text
-  verifiedById       String?
-  verifiedAt         DateTime?
+  completionNotes String?   @db.Text
+  verifiedById    String?
+  verifiedAt      DateTime?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([ecoId])
   @@index([assignedToId])
@@ -6525,21 +6544,21 @@ enum ECOTaskStatus {
 
 /// ECO Attachment - Supporting documents for ECOs
 model ECOAttachment {
-  id                 String   @id @default(cuid())
-  ecoId              String
-  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  id    String                 @id @default(cuid())
+  ecoId String
+  eco   EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
 
-  fileName           String
-  fileUrl            String
-  fileSize           Int
-  mimeType           String
+  fileName String
+  fileUrl  String
+  fileSize Int
+  mimeType String
 
-  attachmentType     AttachmentType
-  description        String?
+  attachmentType AttachmentType
+  description    String?
 
-  uploadedById       String
-  uploadedByName     String
-  uploadedAt         DateTime @default(now())
+  uploadedById   String
+  uploadedByName String
+  uploadedAt     DateTime @default(now())
 
   @@index([ecoId])
   @@index([attachmentType])
@@ -6562,23 +6581,23 @@ enum AttachmentType {
 
 /// ECO History - Complete audit trail for ECO changes
 model ECOHistory {
-  id                 String   @id @default(cuid())
-  ecoId              String
-  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  id    String                 @id @default(cuid())
+  ecoId String
+  eco   EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
 
-  eventType          ECOEventType
-  eventDescription   String
+  eventType        ECOEventType
+  eventDescription String
 
-  fromStatus         ECOStatus?
-  toStatus           ECOStatus?
+  fromStatus ECOStatus?
+  toStatus   ECOStatus?
 
-  details            Json?
+  details Json?
 
-  performedById      String
-  performedByName    String
-  performedByRole    String?
+  performedById   String
+  performedByName String
+  performedByRole String?
 
-  occurredAt         DateTime @default(now())
+  occurredAt DateTime @default(now())
 
   @@index([ecoId])
   @@index([eventType])
@@ -6604,38 +6623,38 @@ enum ECOEventType {
 
 /// ECO CRB Review - Change Review Board meeting records
 model ECOCRBReview {
-  id                 String   @id @default(cuid())
-  ecoId              String
-  eco                EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  id    String                 @id @default(cuid())
+  ecoId String
+  eco   EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
 
-  meetingDate        DateTime
-  meetingAgenda      String?  @db.Text
+  meetingDate   DateTime
+  meetingAgenda String?  @db.Text
 
   // Board members present
-  members            Json     // Array of member objects
+  members Json // Array of member objects
 
   // Discussion
-  discussionNotes    String?  @db.Text
-  questionsConcerns  String?  @db.Text
+  discussionNotes   String? @db.Text
+  questionsConcerns String? @db.Text
 
   // Decision
-  decision           CRBDecision
-  decisionRationale  String?  @db.Text
+  decision          CRBDecision
+  decisionRationale String?     @db.Text
 
   // Voting
-  votesFor           Int?
-  votesAgainst       Int?
-  votesAbstain       Int?
+  votesFor     Int?
+  votesAgainst Int?
+  votesAbstain Int?
 
   // Conditions
-  conditions         String?  @db.Text
+  conditions String? @db.Text
 
   // Follow-up
-  actionItems        Json?    // Array of action items
-  nextReviewDate     DateTime?
+  actionItems    Json? // Array of action items
+  nextReviewDate DateTime?
 
-  createdById        String
-  createdAt          DateTime @default(now())
+  createdById String
+  createdAt   DateTime @default(now())
 
   @@index([ecoId])
   @@index([meetingDate])
@@ -6644,17 +6663,17 @@ model ECOCRBReview {
 
 /// ECO Relation - Relationships between ECOs
 model ECORelation {
-  id                 String   @id @default(cuid())
-  parentEcoId        String
-  parentEco          EngineeringChangeOrder @relation("ParentECO", fields: [parentEcoId], references: [id], onDelete: Cascade)
+  id          String                 @id @default(cuid())
+  parentEcoId String
+  parentEco   EngineeringChangeOrder @relation("ParentECO", fields: [parentEcoId], references: [id], onDelete: Cascade)
 
-  relatedEcoId       String
-  relatedEco         EngineeringChangeOrder @relation("RelatedECO", fields: [relatedEcoId], references: [id], onDelete: Cascade)
+  relatedEcoId String
+  relatedEco   EngineeringChangeOrder @relation("RelatedECO", fields: [relatedEcoId], references: [id], onDelete: Cascade)
 
-  relationType       ECORelationType
-  description        String?
+  relationType ECORelationType
+  description  String?
 
-  createdAt          DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([parentEcoId, relatedEcoId])
   @@index([parentEcoId])
@@ -6674,26 +6693,26 @@ enum ECORelationType {
 
 /// CRB Configuration - Change Review Board setup
 model CRBConfiguration {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Board composition
-  boardMembers       Json     // Array of member roles and users
+  boardMembers Json // Array of member roles and users
 
   // Meeting schedule
-  meetingFrequency   String?  // e.g., "weekly", "biweekly", "monthly"
-  meetingDay         String?  // e.g., "Monday"
-  meetingTime        String?  // e.g., "14:00"
+  meetingFrequency String? // e.g., "weekly", "biweekly", "monthly"
+  meetingDay       String? // e.g., "Monday"
+  meetingTime      String? // e.g., "14:00"
 
   // Decision rules
-  votingRule         VotingRule @default(MAJORITY)
-  quorumRequired     Int?     // Minimum members for valid meeting
+  votingRule     VotingRule @default(MAJORITY)
+  quorumRequired Int? // Minimum members for valid meeting
 
   // Process
-  preReviewDays      Int      @default(3) // Days before meeting to distribute materials
+  preReviewDays Int @default(3) // Days before meeting to distribute materials
 
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@map("crb_configurations")
@@ -6701,10 +6720,10 @@ model CRBConfiguration {
 
 /// Voting rule options
 enum VotingRule {
-  UNANIMOUS          // All must agree
-  MAJORITY           // > 50% must agree
-  SUPERMAJORITY      // >= 2/3 must agree
-  CONSENSUS          // Discuss until consensus
+  UNANIMOUS // All must agree
+  MAJORITY // > 50% must agree
+  SUPERMAJORITY // >= 2/3 must agree
+  CONSENSUS // Discuss until consensus
 }
 
 // =============================================================================
@@ -6713,50 +6732,50 @@ enum VotingRule {
 
 /// Document Comment - Threaded comments on documents
 model DocumentComment {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference (polymorphic)
-  documentType       String   // WorkInstruction, SetupSheet, etc.
-  documentId         String
+  documentType String // WorkInstruction, SetupSheet, etc.
+  documentId   String
 
   // Context within document
-  contextType        CommentContextType?
-  contextId          String?  // stepId, paramId, etc.
-  contextPath        String?  // JSON path or line number
+  contextType CommentContextType?
+  contextId   String? // stepId, paramId, etc.
+  contextPath String? // JSON path or line number
 
   // Comment content
-  commentText        String   @db.Text
-  attachments        String[] // URLs to attached files
+  commentText String   @db.Text
+  attachments String[] // URLs to attached files
 
   // Threading
-  parentCommentId    String?
-  parentComment      DocumentComment? @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies            DocumentComment[] @relation("CommentThread")
+  parentCommentId String?
+  parentComment   DocumentComment?  @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         DocumentComment[] @relation("CommentThread")
 
   // Metadata
-  status             CommentStatus @default(OPEN)
-  priority           CommentPriority @default(MEDIUM)
-  tags               String[]
+  status   CommentStatus   @default(OPEN)
+  priority CommentPriority @default(MEDIUM)
+  tags     String[]
 
-  isPinned           Boolean  @default(false)
-  isResolved         Boolean  @default(false)
-  resolvedAt         DateTime?
-  resolvedById       String?
+  isPinned     Boolean   @default(false)
+  isResolved   Boolean   @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
 
   // Author
-  authorId           String
-  authorName         String
+  authorId   String
+  authorName String
 
   // Mentions
-  mentionedUserIds   String[]
+  mentionedUserIds String[]
 
   // Reactions
-  reactions          CommentReaction[]
+  reactions CommentReaction[]
 
   // Timestamps
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  editedAt           DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   @@index([documentType, documentId])
   @@index([parentCommentId])
@@ -6793,16 +6812,16 @@ enum CommentPriority {
 
 /// Comment Reaction - Reactions to comments
 model CommentReaction {
-  id                 String   @id @default(cuid())
-  commentId          String
-  comment            DocumentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  id        String          @id @default(cuid())
+  commentId String
+  comment   DocumentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
-  userId             String
-  userName           String
+  userId   String
+  userName String
 
-  reactionType       ReactionType
+  reactionType ReactionType
 
-  createdAt          DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([commentId, userId, reactionType])
   @@index([commentId])
@@ -6820,42 +6839,42 @@ enum ReactionType {
 
 /// Document Annotation - Visual annotations on media
 model DocumentAnnotation {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference
-  documentType       String
-  documentId         String
+  documentType String
+  documentId   String
 
   // Media reference (for image/video/PDF annotations)
-  mediaType          String?  // image, video, pdf, text
-  mediaUrl           String?
+  mediaType String? // image, video, pdf, text
+  mediaUrl  String?
 
   // Annotation data
-  annotationType     AnnotationType
-  annotationData     Json     // SVG path, coordinates, etc.
+  annotationType AnnotationType
+  annotationData Json // SVG path, coordinates, etc.
 
   // Text/label
-  text               String?
+  text String?
 
   // Style
-  color              String?
-  strokeWidth        Int?
-  opacity            Float?
-  fontSize           Int?
+  color       String?
+  strokeWidth Int?
+  opacity     Float?
+  fontSize    Int?
 
   // Video timestamp (for video annotations)
-  timestamp          Float?   // seconds
+  timestamp Float? // seconds
 
   // Author
-  authorId           String
-  authorName         String
+  authorId   String
+  authorName String
 
   // Comments on annotation (no direct relation - use contextType and contextId)
 
-  isResolved         Boolean  @default(false)
+  isResolved Boolean @default(false)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([documentType, documentId])
   @@index([authorId])
@@ -6881,46 +6900,46 @@ enum AnnotationType {
 
 /// Review Assignment - Document review assignments
 model ReviewAssignment {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference
-  documentType       String
-  documentId         String
-  documentVersion    String
+  documentType    String
+  documentId      String
+  documentVersion String
 
   // Reviewer
-  reviewerId         String
-  reviewerName       String
+  reviewerId   String
+  reviewerName String
 
   // Assignment details
-  assignedById       String
-  assignedByName     String
-  assignedAt         DateTime @default(now())
+  assignedById   String
+  assignedByName String
+  assignedAt     DateTime @default(now())
 
-  reviewType         ReviewType
-  instructions       String?  @db.Text
-  focusAreas         String[] // Specific areas to review
+  reviewType   ReviewType
+  instructions String?    @db.Text
+  focusAreas   String[] // Specific areas to review
 
-  isRequired         Boolean  @default(true)
-  deadline           DateTime?
+  isRequired Boolean   @default(true)
+  deadline   DateTime?
 
   // Review checklist
-  checklistItems     Json?    // Array of checklist items
+  checklistItems Json? // Array of checklist items
 
   // Status
-  status             ReviewStatus @default(NOT_STARTED)
+  status ReviewStatus @default(NOT_STARTED)
 
-  startedAt          DateTime?
-  completedAt        DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
 
   // Review outcome
-  recommendation     ReviewRecommendation?
-  summary            String?  @db.Text
-  timeSpent          Int?     // minutes
+  recommendation ReviewRecommendation?
+  summary        String?               @db.Text
+  timeSpent      Int? // minutes
 
   // Sign-off
-  signatureId        String?
-  signedOffAt        DateTime?
+  signatureId String?
+  signedOffAt DateTime?
 
   @@unique([documentType, documentId, reviewerId])
   @@index([reviewerId])
@@ -6958,28 +6977,28 @@ enum ReviewRecommendation {
 
 /// Document Activity - Activity log for documents
 model DocumentActivity {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference
-  documentType       String
-  documentId         String
+  documentType String
+  documentId   String
 
   // Activity details
-  activityType       ActivityType
-  description        String
+  activityType ActivityType
+  description  String
 
   // Changes (for edit activities)
-  changesSummary     Json?
+  changesSummary Json?
 
   // Actor
-  performedById      String
-  performedByName    String
-  performedByRole    String?
+  performedById   String
+  performedByName String
+  performedByRole String?
 
   // Metadata
-  metadata           Json?
+  metadata Json?
 
-  occurredAt         DateTime @default(now())
+  occurredAt DateTime @default(now())
 
   @@index([documentType, documentId])
   @@index([activityType])
@@ -7008,21 +7027,21 @@ enum ActivityType {
 
 /// Document Subscription - User subscriptions to document updates
 model DocumentSubscription {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId             String
+  userId String
 
   // Document reference
-  documentType       String
-  documentId         String
+  documentType String
+  documentId   String
 
   // Subscription preferences
-  notifyOnEdit       Boolean  @default(true)
-  notifyOnComment    Boolean  @default(true)
-  notifyOnApproval   Boolean  @default(true)
-  notifyOnVersion    Boolean  @default(true)
+  notifyOnEdit     Boolean @default(true)
+  notifyOnComment  Boolean @default(true)
+  notifyOnApproval Boolean @default(true)
+  notifyOnVersion  Boolean @default(true)
 
-  subscribedAt       DateTime @default(now())
+  subscribedAt DateTime @default(now())
 
   @@unique([userId, documentType, documentId])
   @@index([userId])
@@ -7032,25 +7051,25 @@ model DocumentSubscription {
 
 /// User Notification - System notifications
 model UserNotification {
-  id                 String   @id @default(cuid())
-  userId             String
+  id     String @id @default(cuid())
+  userId String
 
-  notificationType   NotificationType
-  title              String
-  message            String   @db.Text
+  notificationType NotificationType
+  title            String
+  message          String           @db.Text
 
   // Reference to related entity
-  entityType         String?
-  entityId           String?
+  entityType String?
+  entityId   String?
 
   // Link
-  actionUrl          String?
+  actionUrl String?
 
-  isRead             Boolean  @default(false)
-  readAt             DateTime?
+  isRead Boolean   @default(false)
+  readAt DateTime?
 
-  createdAt          DateTime @default(now())
-  expiresAt          DateTime?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
 
   @@index([userId])
   @@index([isRead])
@@ -7073,29 +7092,29 @@ enum NotificationType {
 
 /// Document Edit Session - Real-time collaboration sessions
 model DocumentEditSession {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference
-  documentType       String
-  documentId         String
+  documentType String
+  documentId   String
 
   // User
-  userId             String
-  userName           String
+  userId   String
+  userName String
 
   // Session
-  sessionId          String   @unique
-  startedAt          DateTime @default(now())
-  lastActivityAt     DateTime @default(now())
-  endedAt            DateTime?
+  sessionId      String    @unique
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  endedAt        DateTime?
 
   // Cursor position (optional)
-  cursorPosition     Json?
+  cursorPosition Json?
 
   // Section locks (optional)
-  lockedSections     String[]
+  lockedSections String[]
 
-  isActive           Boolean  @default(true)
+  isActive Boolean @default(true)
 
   @@index([documentType, documentId])
   @@index([userId])
@@ -7105,26 +7124,26 @@ model DocumentEditSession {
 
 /// Conflict Resolution - Merge conflict resolutions
 model ConflictResolution {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Document reference
-  documentType       String
-  documentId         String
+  documentType String
+  documentId   String
 
   // Conflict details
-  conflictPath       String   // Path to conflicting element
-  baseVersion        String
-  yourVersion        Json
-  theirVersion       Json
-  theirUserId        String
+  conflictPath String // Path to conflicting element
+  baseVersion  String
+  yourVersion  Json
+  theirVersion Json
+  theirUserId  String
 
   // Resolution
-  resolution         ResolutionType
-  mergedVersion      Json
+  resolution    ResolutionType
+  mergedVersion Json
 
-  resolvedById       String
-  resolvedByName     String
-  resolvedAt         DateTime @default(now())
+  resolvedById   String
+  resolvedByName String
+  resolvedAt     DateTime @default(now())
 
   @@index([documentType, documentId])
   @@index([resolvedById])
@@ -7146,81 +7165,81 @@ enum ResolutionType {
 /// Cloud storage file registry
 /// Tracks all files stored in S3/MinIO with versioning, deduplication, and metadata
 model StoredFile {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Storage location
-  storagePath        String   @unique
-  storageProvider    String   // 's3' or 'minio'
-  bucket             String
+  storagePath     String @unique
+  storageProvider String // 's3' or 'minio'
+  bucket          String
 
   // File info
-  fileName           String
-  originalFileName   String
-  fileSize           Int
-  mimeType           String
-  fileHash           String   // SHA-256 for deduplication
+  fileName         String
+  originalFileName String
+  fileSize         Int
+  mimeType         String
+  fileHash         String // SHA-256 for deduplication
 
   // Versioning
-  versionId          String?  // S3/MinIO version ID
-  isLatestVersion    Boolean  @default(true)
-  versionNumber      Int      @default(1)
+  versionId       String? // S3/MinIO version ID
+  isLatestVersion Boolean @default(true)
+  versionNumber   Int     @default(1)
 
   // Storage class and lifecycle
-  storageClass       StorageClass @default(HOT)
-  transitionedAt     DateTime?
+  storageClass   StorageClass @default(HOT)
+  transitionedAt DateTime?
 
   // Metadata and tags
-  metadata           Json?
-  tags               String[] // For categorization and search
+  metadata Json?
+  tags     String[] // For categorization and search
 
   // CDN and caching
-  cdnUrl             String?
-  cacheStatus        CacheStatus?
-  lastCacheUpdate    DateTime?
+  cdnUrl          String?
+  cacheStatus     CacheStatus?
+  lastCacheUpdate DateTime?
 
   // Usage tracking
-  accessCount        Int      @default(0)
-  lastAccessedAt     DateTime?
-  downloadCount      Int      @default(0)
+  accessCount    Int       @default(0)
+  lastAccessedAt DateTime?
+  downloadCount  Int       @default(0)
 
   // Document relationships (polymorphic)
-  documentType       String?
-  documentId         String?
-  attachmentType     FileAttachmentType?
+  documentType   String?
+  documentId     String?
+  attachmentType FileAttachmentType?
 
   // Deduplication
-  deduplicationRefs  Int      @default(1) // Reference count
-  originalFileId     String?  // Reference to original if deduplicated
-  duplicateFiles     StoredFile[] @relation("FileDuplicates")
-  originalFile       StoredFile?  @relation("FileDuplicates", fields: [originalFileId], references: [id])
+  deduplicationRefs Int          @default(1) // Reference count
+  originalFileId    String? // Reference to original if deduplicated
+  duplicateFiles    StoredFile[] @relation("FileDuplicates")
+  originalFile      StoredFile?  @relation("FileDuplicates", fields: [originalFileId], references: [id])
 
   // Lifecycle and retention
-  retentionPolicy    String?
-  expiresAt          DateTime?
-  autoDeleteAt       DateTime?
+  retentionPolicy String?
+  expiresAt       DateTime?
+  autoDeleteAt    DateTime?
 
   // Encryption
-  isEncrypted        Boolean  @default(false)
-  encryptionKeyId    String?
+  isEncrypted         Boolean @default(false)
+  encryptionKeyId     String?
   encryptionAlgorithm String?
 
   // Upload tracking
-  uploadedById       String
-  uploadedByName     String
-  uploadedAt         DateTime @default(now())
-  uploadMethod       UploadMethod @default(DIRECT)
-  uploadSessionId    String?  // For multipart uploads
+  uploadedById    String
+  uploadedByName  String
+  uploadedAt      DateTime     @default(now())
+  uploadMethod    UploadMethod @default(DIRECT)
+  uploadSessionId String? // For multipart uploads
 
   // Processing status
   processingStatus   ProcessingStatus @default(COMPLETED)
   processingError    String?
-  thumbnailGenerated Boolean  @default(false)
+  thumbnailGenerated Boolean          @default(false)
   thumbnailPath      String?
 
   // Relationships
-  versions           FileVersion[]
-  backupEntries      BackupEntry[]
-  accessLogs         FileAccessLog[]
+  versions      FileVersion[]
+  backupEntries BackupEntry[]
+  accessLogs    FileAccessLog[]
 
   // Indexes for performance
   @@index([storagePath])
@@ -7235,40 +7254,40 @@ model StoredFile {
 
 /// File version history for comprehensive version tracking
 model FileVersion {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Parent file reference
-  fileId             String
-  file               StoredFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId String
+  file   StoredFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   // Version info
-  versionNumber      Int
-  versionId          String   // S3/MinIO version ID
-  storagePath        String
+  versionNumber Int
+  versionId     String // S3/MinIO version ID
+  storagePath   String
 
   // File details
-  fileSize           Int
-  fileHash           String
-  mimeType           String
+  fileSize Int
+  fileHash String
+  mimeType String
 
   // Change tracking
-  changeDescription  String?
-  changeType         VersionChangeType @default(UPDATE)
+  changeDescription String?
+  changeType        VersionChangeType @default(UPDATE)
 
   // Storage info
-  storageClass       StorageClass @default(HOT)
+  storageClass StorageClass @default(HOT)
 
   // Metadata
-  metadata           Json?
+  metadata Json?
 
   // Creation tracking
-  createdAt          DateTime @default(now())
-  createdById        String
-  createdByName      String
+  createdAt     DateTime @default(now())
+  createdById   String
+  createdByName String
 
   // Retention
-  retentionPolicy    String?
-  expiresAt          DateTime?
+  retentionPolicy String?
+  expiresAt       DateTime?
 
   @@unique([fileId, versionNumber])
   @@index([fileId])
@@ -7278,49 +7297,49 @@ model FileVersion {
 
 /// Backup schedules for automated backup management
 model BackupSchedule {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Schedule info
-  name               String
-  description        String?
+  name        String
+  description String?
 
   // Backup configuration
-  bucketName         String
-  backupBucket       String?  // Destination bucket for cross-region
-  includePattern     String?  // Glob pattern for files to include
-  excludePattern     String?  // Glob pattern for files to exclude
+  bucketName     String
+  backupBucket   String? // Destination bucket for cross-region
+  includePattern String? // Glob pattern for files to include
+  excludePattern String? // Glob pattern for files to exclude
 
   // Schedule configuration
-  frequency          BackupFrequency
-  cronExpression     String?  // For custom schedules
-  timezone           String   @default("UTC")
+  frequency      BackupFrequency
+  cronExpression String? // For custom schedules
+  timezone       String          @default("UTC")
 
   // Retention policy
-  retentionDays      Int      @default(30)
-  maxBackups         Int?     // Maximum number of backups to keep
+  retentionDays Int  @default(30)
+  maxBackups    Int? // Maximum number of backups to keep
 
   // Options
-  enableCompression  Boolean  @default(true)
-  enableEncryption   Boolean  @default(true)
+  enableCompression      Boolean @default(true)
+  enableEncryption       Boolean @default(true)
   crossRegionReplication Boolean @default(false)
 
   // Status
-  isActive           Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // Execution tracking
-  lastBackupAt       DateTime?
-  nextBackupAt       DateTime?
-  lastSuccessAt      DateTime?
-  lastFailureAt      DateTime?
+  lastBackupAt  DateTime?
+  nextBackupAt  DateTime?
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
 
   // Relationships
-  backupHistory      BackupHistory[]
+  backupHistory BackupHistory[]
 
   // Audit fields
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  createdById        String
-  updatedById        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  updatedById String?
 
   @@index([isActive])
   @@index([nextBackupAt])
@@ -7329,45 +7348,45 @@ model BackupSchedule {
 
 /// Backup execution history and status tracking
 model BackupHistory {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Schedule reference (optional for manual backups)
-  scheduleId         String?
-  schedule           BackupSchedule? @relation(fields: [scheduleId], references: [id])
+  scheduleId String?
+  schedule   BackupSchedule? @relation(fields: [scheduleId], references: [id])
 
   // Backup details
-  backupType         BackupType
-  status             BackupStatus
+  backupType BackupType
+  status     BackupStatus
 
   // Source and destination
-  sourceBucket       String
-  destBucket         String
-  backupLocation     String   // Full path to backup
+  sourceBucket   String
+  destBucket     String
+  backupLocation String // Full path to backup
 
   // Statistics
-  fileCount          Int?
-  totalSize          Int?     // Bytes
-  compressedSize     Int?     // Bytes after compression
-  compressionRatio   Float?
+  fileCount        Int?
+  totalSize        Int? // Bytes
+  compressedSize   Int? // Bytes after compression
+  compressionRatio Float?
 
   // Timing
-  startedAt          DateTime
-  completedAt        DateTime?
-  duration           Int?     // Seconds
+  startedAt   DateTime
+  completedAt DateTime?
+  duration    Int? // Seconds
 
   // Error handling
-  errorMessage       String?
-  errorCode          String?
+  errorMessage String?
+  errorCode    String?
 
   // Verification
-  checksumVerified   Boolean  @default(false)
-  verificationDate   DateTime?
+  checksumVerified Boolean   @default(false)
+  verificationDate DateTime?
 
   // Metadata
-  metadata           Json?
+  metadata Json?
 
   // Relation to backup entries
-  backupEntries      BackupEntry[]
+  backupEntries BackupEntry[]
 
   @@index([scheduleId])
   @@index([status])
@@ -7378,25 +7397,25 @@ model BackupHistory {
 
 /// Backup entries linking files to backup instances
 model BackupEntry {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // References
-  backupId           String
-  backup             BackupHistory @relation(fields: [backupId], references: [id], onDelete: Cascade)
+  backupId String
+  backup   BackupHistory @relation(fields: [backupId], references: [id], onDelete: Cascade)
 
-  fileId             String
-  file               StoredFile @relation(fields: [fileId], references: [id])
+  fileId String
+  file   StoredFile @relation(fields: [fileId], references: [id])
 
   // Backup details
-  backupPath         String   // Path in backup location
-  originalPath       String   // Original file path
+  backupPath   String // Path in backup location
+  originalPath String // Original file path
 
   // Verification
-  checksum           String
-  checksumVerified   Boolean  @default(false)
+  checksum         String
+  checksumVerified Boolean @default(false)
 
   // Metadata
-  metadata           Json?
+  metadata Json?
 
   @@unique([backupId, fileId])
   @@index([backupId])
@@ -7406,40 +7425,40 @@ model BackupEntry {
 
 /// File access logging for security and analytics
 model FileAccessLog {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // File reference
-  fileId             String
-  file               StoredFile @relation(fields: [fileId], references: [id])
+  fileId String
+  file   StoredFile @relation(fields: [fileId], references: [id])
 
   // Access details
-  accessType         AccessType
-  accessMethod       String   // 'download', 'stream', 'preview', etc.
+  accessType   AccessType
+  accessMethod String // 'download', 'stream', 'preview', etc.
 
   // User info
-  userId             String?
-  userName           String?
-  userAgent          String?
-  ipAddress          String?
+  userId    String?
+  userName  String?
+  userAgent String?
+  ipAddress String?
 
   // Request info
-  referrer           String?
-  requestHeaders     Json?
-  responseCode       Int?
-  responseSize       Int?     // Bytes transferred
+  referrer       String?
+  requestHeaders Json?
+  responseCode   Int?
+  responseSize   Int? // Bytes transferred
 
   // Timing
-  accessedAt         DateTime @default(now())
-  duration           Int?     // Milliseconds
+  accessedAt DateTime @default(now())
+  duration   Int? // Milliseconds
 
   // Geolocation (optional)
-  country            String?
-  region             String?
-  city               String?
+  country String?
+  region  String?
+  city    String?
 
   // CDN info
-  cdnHit             Boolean?
-  edgeLocation       String?
+  cdnHit       Boolean?
+  edgeLocation String?
 
   @@index([fileId])
   @@index([accessedAt])
@@ -7450,53 +7469,53 @@ model FileAccessLog {
 
 /// Storage analytics and metrics for monitoring
 model StorageMetrics {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Time period
-  date               DateTime @unique
-  hour               Int?     // For hourly metrics (0-23)
+  date DateTime @unique
+  hour Int? // For hourly metrics (0-23)
 
   // Storage metrics
-  totalFiles         Int      @default(0)
-  totalSize          Int      @default(0) // Bytes
+  totalFiles Int @default(0)
+  totalSize  Int @default(0) // Bytes
 
   // By storage class
-  hotStorageFiles    Int      @default(0)
-  hotStorageSize     Int      @default(0)
-  warmStorageFiles   Int      @default(0)
-  warmStorageSize    Int      @default(0)
-  coldStorageFiles   Int      @default(0)
-  coldStorageSize    Int      @default(0)
-  archiveFiles       Int      @default(0)
-  archiveSize        Int      @default(0)
+  hotStorageFiles  Int @default(0)
+  hotStorageSize   Int @default(0)
+  warmStorageFiles Int @default(0)
+  warmStorageSize  Int @default(0)
+  coldStorageFiles Int @default(0)
+  coldStorageSize  Int @default(0)
+  archiveFiles     Int @default(0)
+  archiveSize      Int @default(0)
 
   // By file type
-  imageFiles         Int      @default(0)
-  imageSize          Int      @default(0)
-  videoFiles         Int      @default(0)
-  videoSize          Int      @default(0)
-  documentFiles      Int      @default(0)
-  documentSize       Int      @default(0)
-  cadFiles           Int      @default(0)
-  cadSize            Int      @default(0)
+  imageFiles    Int @default(0)
+  imageSize     Int @default(0)
+  videoFiles    Int @default(0)
+  videoSize     Int @default(0)
+  documentFiles Int @default(0)
+  documentSize  Int @default(0)
+  cadFiles      Int @default(0)
+  cadSize       Int @default(0)
 
   // Activity metrics
-  uploads            Int      @default(0)
-  downloads          Int      @default(0)
-  deletes            Int      @default(0)
+  uploads   Int @default(0)
+  downloads Int @default(0)
+  deletes   Int @default(0)
 
   // Traffic metrics
-  totalRequests      Int      @default(0)
-  totalBandwidth     Int      @default(0) // Bytes
-  cdnHits            Int      @default(0)
-  cdnMisses          Int      @default(0)
+  totalRequests  Int @default(0)
+  totalBandwidth Int @default(0) // Bytes
+  cdnHits        Int @default(0)
+  cdnMisses      Int @default(0)
 
   // Deduplication savings
-  duplicateFiles     Int      @default(0)
-  spaceSaved         Int      @default(0) // Bytes
+  duplicateFiles Int @default(0)
+  spaceSaved     Int @default(0) // Bytes
 
   // Cost metrics (optional)
-  estimatedCost      Decimal? @db.Decimal(10, 2)
+  estimatedCost Decimal? @db.Decimal(10, 2)
 
   @@index([date])
   @@index([hour])
@@ -7505,41 +7524,41 @@ model StorageMetrics {
 
 /// Multipart upload session tracking
 model MultipartUpload {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Upload details
-  uploadId           String   @unique // S3/MinIO upload ID
-  fileName           String
-  storagePath        String
+  uploadId    String @unique // S3/MinIO upload ID
+  fileName    String
+  storagePath String
 
   // File info
-  totalSize          Int
-  chunkSize          Int
-  totalChunks        Int
-  uploadedChunks     Int      @default(0)
+  totalSize      Int
+  chunkSize      Int
+  totalChunks    Int
+  uploadedChunks Int @default(0)
 
   // Status
-  status             UploadStatus @default(IN_PROGRESS)
+  status UploadStatus @default(IN_PROGRESS)
 
   // Parts tracking
-  parts              Json[]   // Array of part ETags
+  parts Json[] // Array of part ETags
 
   // User info
-  uploadedById       String
-  uploadedByName     String
+  uploadedById   String
+  uploadedByName String
 
   // Timing
-  startedAt          DateTime @default(now())
-  lastActivityAt     DateTime @default(now())
-  completedAt        DateTime?
-  expiresAt          DateTime // Auto-cleanup incomplete uploads
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  completedAt    DateTime?
+  expiresAt      DateTime // Auto-cleanup incomplete uploads
 
   // Error handling
-  errorMessage       String?
-  retryCount         Int      @default(0)
+  errorMessage String?
+  retryCount   Int     @default(0)
 
   // Metadata
-  metadata           Json?
+  metadata Json?
 
   @@index([uploadId])
   @@index([status])
@@ -7554,10 +7573,10 @@ model MultipartUpload {
 
 /// Storage class for lifecycle management
 enum StorageClass {
-  HOT          // Frequently accessed (STANDARD)
-  WARM         // Infrequently accessed (STANDARD_IA)
-  COLD         // Rarely accessed (GLACIER)
-  ARCHIVE      // Long-term archival (DEEP_ARCHIVE)
+  HOT // Frequently accessed (STANDARD)
+  WARM // Infrequently accessed (STANDARD_IA)
+  COLD // Rarely accessed (GLACIER)
+  ARCHIVE // Long-term archival (DEEP_ARCHIVE)
 }
 
 /// CDN cache status
@@ -7570,10 +7589,10 @@ enum CacheStatus {
 
 /// File upload method
 enum UploadMethod {
-  DIRECT       // Direct to server
-  MULTIPART    // Multipart upload
-  PRESIGNED    // Direct browser-to-S3
-  RESUMABLE    // Resumable upload (TUS)
+  DIRECT // Direct to server
+  MULTIPART // Multipart upload
+  PRESIGNED // Direct browser-to-S3
+  RESUMABLE // Resumable upload (TUS)
 }
 
 /// File processing status
@@ -7587,41 +7606,41 @@ enum ProcessingStatus {
 
 /// File attachment types for cloud storage
 enum FileAttachmentType {
-  PRIMARY      // Main document file
-  ATTACHMENT   // Supporting file
-  THUMBNAIL    // Generated thumbnail
-  PREVIEW      // Preview image/PDF
-  EXPORT       // Generated export (PDF, DOCX, etc.)
-  BACKUP       // Backup copy
-  TEMP         // Temporary file
+  PRIMARY // Main document file
+  ATTACHMENT // Supporting file
+  THUMBNAIL // Generated thumbnail
+  PREVIEW // Preview image/PDF
+  EXPORT // Generated export (PDF, DOCX, etc.)
+  BACKUP // Backup copy
+  TEMP // Temporary file
 }
 
 /// Version change types
 enum VersionChangeType {
-  CREATE       // Initial version
-  UPDATE       // Content update
-  RENAME       // Filename change
-  METADATA     // Metadata only change
-  RESTORE      // Restored from previous version
-  MIGRATE      // Migrated from old system
+  CREATE // Initial version
+  UPDATE // Content update
+  RENAME // Filename change
+  METADATA // Metadata only change
+  RESTORE // Restored from previous version
+  MIGRATE // Migrated from old system
 }
 
 /// Backup frequency options
 enum BackupFrequency {
-  REAL_TIME    // Continuous replication
+  REAL_TIME // Continuous replication
   HOURLY
   DAILY
   WEEKLY
   MONTHLY
-  CUSTOM       // Custom cron expression
+  CUSTOM // Custom cron expression
 }
 
 /// Backup types
 enum BackupType {
-  FULL         // Complete backup
-  INCREMENTAL  // Only new/changed files
+  FULL // Complete backup
+  INCREMENTAL // Only new/changed files
   DIFFERENTIAL // Changed since last full backup
-  SNAPSHOT     // Point-in-time snapshot
+  SNAPSHOT // Point-in-time snapshot
 }
 
 /// Backup status
@@ -7631,17 +7650,17 @@ enum BackupStatus {
   COMPLETED
   FAILED
   CANCELLED
-  PARTIAL      // Completed with some failures
+  PARTIAL // Completed with some failures
 }
 
 /// File access types for logging
 enum AccessType {
-  READ         // File read/download
-  WRITE        // File upload/update
-  DELETE       // File deletion
-  METADATA     // Metadata access
-  LIST         // Directory listing
-  PREVIEW      // Thumbnail/preview access
+  READ // File read/download
+  WRITE // File upload/update
+  DELETE // File deletion
+  METADATA // Metadata access
+  LIST // Directory listing
+  PREVIEW // Thumbnail/preview access
 }
 
 /// Upload status for multipart uploads
@@ -7653,6 +7672,7 @@ enum UploadStatus {
   CANCELLED
   EXPIRED
 }
+
 // =============================================================================
 // ENHANCED ROLE-BASED ACCESS CONTROL (RBAC) SYSTEM
 // GitHub Issue #29: Dynamic Role and Permission System with Site-Level Configuration
@@ -7662,19 +7682,19 @@ enum UploadStatus {
 /// Supports both global and site-specific roles with flexible permission assignment
 model Role {
   id          String   @id @default(cuid())
-  roleCode    String   @unique  // e.g., "mfg_engineer", "quality_inspector"
-  roleName    String              // e.g., "Manufacturing Engineer", "Quality Inspector"
+  roleCode    String   @unique // e.g., "mfg_engineer", "quality_inspector"
+  roleName    String // e.g., "Manufacturing Engineer", "Quality Inspector"
   description String?
   isActive    Boolean  @default(true)
-  isGlobal    Boolean  @default(true)  // true = available globally, false = site-specific only
+  isGlobal    Boolean  @default(true) // true = available globally, false = site-specific only
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String?
 
   // Relations
-  userRoles     UserRole[]        // Users with this role globally
-  userSiteRoles UserSiteRole[]    // Users with this role at specific sites
-  permissions   RolePermission[]  // Permissions assigned to this role
+  userRoles     UserRole[] // Users with this role globally
+  userSiteRoles UserSiteRole[] // Users with this role at specific sites
+  permissions   RolePermission[] // Permissions assigned to this role
 
   @@index([roleCode])
   @@index([isActive])
@@ -7685,18 +7705,18 @@ model Role {
 /// Enhanced Permission model - Replaces placeholder in auth service
 /// Granular permissions with wildcard support and categorization
 model Permission {
-  id              String   @id @default(cuid())
-  permissionCode  String   @unique  // e.g., "workorders.read", "quality.*", "*"
-  permissionName  String              // e.g., "View Work Orders", "All Quality Permissions"
-  description     String?
-  category        String?             // e.g., "workorders", "quality", "routings", "admin"
-  isActive        Boolean  @default(true)
-  isWildcard      Boolean  @default(false)  // true for permissions like "workorders.*" or "*"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  permissionCode String   @unique // e.g., "workorders.read", "quality.*", "*"
+  permissionName String // e.g., "View Work Orders", "All Quality Permissions"
+  description    String?
+  category       String? // e.g., "workorders", "quality", "routings", "admin"
+  isActive       Boolean  @default(true)
+  isWildcard     Boolean  @default(false) // true for permissions like "workorders.*" or "*"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  roles           RolePermission[]
+  roles RolePermission[]
 
   @@index([permissionCode])
   @@index([category])
@@ -7712,10 +7732,10 @@ model RolePermission {
   roleId       String
   permissionId String
   grantedAt    DateTime @default(now())
-  grantedBy    String?  // User ID who granted this permission
+  grantedBy    String? // User ID who granted this permission
 
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@index([roleId])
@@ -7726,15 +7746,15 @@ model RolePermission {
 /// Junction table: User ↔ Role (many-to-many, global)
 /// Assigns global roles to users that apply across all sites
 model UserRole {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   roleId     String
-  assignedAt DateTime @default(now())
-  assignedBy String?  // User ID who assigned this role
-  expiresAt  DateTime?  // Optional expiration for time-limited assignments
+  assignedAt DateTime  @default(now())
+  assignedBy String? // User ID who assigned this role
+  expiresAt  DateTime? // Optional expiration for time-limited assignments
 
-  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@index([userId])
@@ -7746,17 +7766,17 @@ model UserRole {
 /// Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
 /// Assigns site-specific roles to users for enhanced granular control
 model UserSiteRole {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   roleId     String
   siteId     String
-  assignedAt DateTime @default(now())
-  assignedBy String?  // User ID who assigned this role
-  expiresAt  DateTime?  // Optional expiration for time-limited assignments
+  assignedAt DateTime  @default(now())
+  assignedBy String? // User ID who assigned this role
+  expiresAt  DateTime? // Optional expiration for time-limited assignments
 
-  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  site       Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, siteId])
   @@index([userId])
@@ -7764,4 +7784,306 @@ model UserSiteRole {
   @@index([siteId])
   @@index([expiresAt])
   @@map("user_site_roles")
+}
+
+// ============================================================================
+// Time Tracking Infrastructure (GitHub Issue #46)
+// Core time tracking models for labor and machine time with site-level configuration
+// ============================================================================
+
+/// Time tracking configuration (site level)
+/// Controls how time tracking behaves at each manufacturing site
+model TimeTrackingConfiguration {
+  id     String @id @default(cuid())
+  siteId String @unique
+
+  // Enable/disable
+  timeTrackingEnabled Boolean @default(true)
+
+  // Tracking settings
+  trackingGranularity TimeTrackingGranularity @default(OPERATION)
+  costingModel        CostingModel            @default(LABOR_HOURS)
+  allowMultiTasking   Boolean                 @default(false)
+  multiTaskingMode    MultiTaskingMode? // If allowMultiTasking=true
+
+  // Break rules
+  autoSubtractBreaks   Boolean @default(false)
+  standardBreakMinutes Int? // Total break time to auto-subtract
+  requireBreakClockOut Boolean @default(false)
+
+  // Overtime
+  overtimeThresholdHours Float?  @default(8.0)
+  warnOnOvertime         Boolean @default(true)
+
+  // Machine tracking
+  enableMachineTracking Boolean @default(false)
+  autoStartFromMachine  Boolean @default(false) // Auto-start time from machine signal
+  autoStopFromMachine   Boolean @default(false) // Auto-stop time from machine signal
+
+  // Approval
+  requireTimeApproval Boolean           @default(true)
+  approvalFrequency   ApprovalFrequency @default(DAILY)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
+  // Relations
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@map("time_tracking_configurations")
+}
+
+enum TimeTrackingGranularity {
+  NONE // No time tracking
+  WORK_ORDER // Track time per work order
+  OPERATION // Track time per operation
+}
+
+enum CostingModel {
+  LABOR_HOURS // Cost based on labor hours
+  MACHINE_HOURS // Cost based on machine hours
+  BOTH // Track both, cost calculation configurable
+}
+
+enum MultiTaskingMode {
+  CONCURRENT // Multiple active time entries allowed
+  SPLIT_ALLOCATION // Single time entry, split % to multiple WOs
+}
+
+enum ApprovalFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  NONE
+}
+
+/// Labor time entry (operator clocking in/out)
+/// Records when operators clock in and out for work orders, operations, or indirect activities
+model LaborTimeEntry {
+  id String @id @default(cuid())
+
+  // Who
+  userId String // Changed from personnelId to userId
+
+  // What (either work order, operation, or indirect code)
+  workOrderId    String?
+  operationId    String?
+  indirectCodeId String?
+
+  // Time type
+  timeType TimeType
+
+  // When
+  clockInTime  DateTime
+  clockOutTime DateTime?
+  duration     Float? // Hours (calculated on clock out)
+
+  // Where (entry source)
+  entrySource TimeEntrySource
+  deviceId    String? // Kiosk ID, tablet ID, etc.
+  location    String? // Shop floor location
+
+  // Status
+  status TimeEntryStatus @default(ACTIVE)
+
+  // Approval
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Costing
+  costCenter String?
+  laborRate  Float? // $/hour
+  laborCost  Float? // Calculated: duration * laborRate
+
+  // Edits
+  originalClockInTime  DateTime? // If edited
+  originalClockOutTime DateTime? // If edited
+  editedBy             String?
+  editedAt             DateTime?
+  editReason           String?
+
+  // Export
+  exportedToSystem    String? // "KRONOS", "WORKDAY", etc.
+  exportedAt          DateTime?
+  externalReferenceId String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User                @relation(fields: [userId], references: [id])
+  workOrder    WorkOrder?          @relation(fields: [workOrderId], references: [id])
+  operation    WorkOrderOperation? @relation(fields: [operationId], references: [id])
+  indirectCode IndirectCostCode?   @relation(fields: [indirectCodeId], references: [id])
+
+  @@index([userId])
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([status])
+  @@index([clockInTime])
+  @@index([timeType])
+  @@map("labor_time_entries")
+}
+
+enum TimeType {
+  DIRECT_LABOR // Working on work order/operation
+  INDIRECT // Non-productive (break, training, meeting)
+  MACHINE // Machine time (for equipment-based costing)
+}
+
+enum TimeEntrySource {
+  MANUAL // Manually entered by user
+  KIOSK // Time clock kiosk (badge scan)
+  MOBILE // Mobile/tablet app
+  MACHINE_AUTO // Automatically from machine signal
+  API // External system API
+  HISTORIAN // From historian (e.g., GE Proficy)
+}
+
+enum TimeEntryStatus {
+  ACTIVE // Clocked in, no clock out
+  COMPLETED // Clock in + clock out recorded
+  PENDING_APPROVAL // Awaiting approval
+  APPROVED // Approved for payroll
+  REJECTED // Rejected, needs correction
+  EXPORTED // Sent to external system
+}
+
+/// Machine time entry (equipment run time)
+/// Records machine run time separately from labor for equipment-based costing
+model MachineTimeEntry {
+  id String @id @default(cuid())
+
+  // Which machine
+  equipmentId String
+
+  // What work
+  workOrderId String?
+  operationId String?
+
+  // When
+  startTime DateTime
+  endTime   DateTime?
+  duration  Float? // Hours
+
+  // Source
+  entrySource TimeEntrySource
+  dataSource  String? // "PLC_OPC_UA", "CNC_FANUC", "HISTORIAN_TAG_001"
+
+  // Machine data
+  cycleCount         Int? // Number of cycles completed
+  partCount          Int? // Number of parts produced
+  machineUtilization Float? // % of time machine was running
+
+  // Status
+  status TimeEntryStatus @default(ACTIVE)
+
+  // Costing
+  machineRate Float? // $/hour
+  machineCost Float? // Calculated: duration * machineRate
+
+  // Export
+  exportedToSystem String?
+  exportedAt       DateTime?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  equipment Equipment           @relation(fields: [equipmentId], references: [id])
+  workOrder WorkOrder?          @relation(fields: [workOrderId], references: [id])
+  operation WorkOrderOperation? @relation(fields: [operationId], references: [id])
+
+  @@index([equipmentId])
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([status])
+  @@index([startTime])
+  @@map("machine_time_entries")
+}
+
+/// Indirect cost codes (non-productive time)
+/// Defines categories for non-productive time like breaks, training, meetings
+model IndirectCostCode {
+  id          String           @id @default(cuid())
+  code        String           @unique
+  description String
+  category    IndirectCategory
+
+  // Costing
+  costCenter String?
+  glAccount  String? // General ledger account
+
+  // Availability
+  isActive Boolean @default(true)
+  siteId   String? // Null = available to all sites
+
+  // Visual indicators
+  displayColor String? // Hex color for UI
+  displayIcon  String? // Icon name
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
+  // Relations
+  site         Site?            @relation(fields: [siteId], references: [id])
+  laborEntries LaborTimeEntry[]
+
+  @@index([code])
+  @@index([category])
+  @@index([siteId])
+  @@map("indirect_cost_codes")
+}
+
+enum IndirectCategory {
+  BREAK // Scheduled break time
+  LUNCH // Lunch break
+  TRAINING // Training activities
+  MEETING // Meetings
+  MAINTENANCE // Equipment maintenance (not on WO)
+  SETUP // General setup (not tied to WO)
+  CLEANUP // Shop cleanup
+  WAITING // Waiting for material, tools, etc.
+  ADMINISTRATIVE // Paperwork, admin tasks
+  OTHER // Other non-productive time
+}
+
+/// Time entry validation rules (business logic)
+/// Configurable rules for validating time entries and preventing common errors
+model TimeEntryValidationRule {
+  id           String                 @id @default(cuid())
+  ruleName     String
+  ruleType     TimeValidationRuleType
+  condition    String // Expression to evaluate
+  errorMessage String
+  severity     String // 'ERROR', 'WARNING'
+  isActive     Boolean                @default(true)
+
+  // Scope
+  siteId String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ruleType])
+  @@index([siteId])
+  @@map("time_entry_validation_rules")
+}
+
+enum TimeValidationRuleType {
+  MAX_DURATION // Maximum allowed time entry duration
+  MIN_DURATION // Minimum time entry duration
+  MISSING_CLOCK_OUT // Detect missing clock out
+  CONCURRENT_ENTRIES // Detect overlapping time entries
+  OVERTIME_THRESHOLD // Overtime warning threshold
+  INVALID_TIME_RANGE // Clock in/out time validation
 }
