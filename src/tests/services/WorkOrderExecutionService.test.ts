@@ -11,9 +11,11 @@ vi.mock('@prisma/client', async () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
     dispatchLog: {
       create: vi.fn(),
+      count: vi.fn(),
     },
     workOrderStatusHistory: {
       create: vi.fn(),
@@ -24,12 +26,19 @@ vi.mock('@prisma/client', async () => {
       findMany: vi.fn(),
       count: vi.fn(),
       groupBy: vi.fn(),
+      aggregate: vi.fn(),
     },
     productionVariance: {
       create: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
       aggregate: vi.fn(),
+    },
+    workCenter: {
+      findUnique: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -50,9 +59,11 @@ describe('WorkOrderExecutionService', () => {
         findUnique: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
+        count: vi.fn(),
       },
       dispatchLog: {
         create: vi.fn(),
+        count: vi.fn(),
       },
       workOrderStatusHistory: {
         create: vi.fn(),
@@ -63,12 +74,19 @@ describe('WorkOrderExecutionService', () => {
         findMany: vi.fn(),
         count: vi.fn(),
         groupBy: vi.fn(),
+        aggregate: vi.fn(),
       },
       productionVariance: {
         create: vi.fn(),
         findMany: vi.fn(),
         count: vi.fn(),
         aggregate: vi.fn(),
+      },
+      workCenter: {
+        findUnique: vi.fn(),
+      },
+      user: {
+        findUnique: vi.fn(),
       },
       $transaction: vi.fn(),
     };

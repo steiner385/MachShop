@@ -18,6 +18,7 @@ vi.mock('@prisma/client', async () => {
     },
     productSpecification: {
       create: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@prisma/client', async () => {
     },
     productConfiguration: {
       create: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock('@prisma/client', async () => {
     },
     configurationOption: {
       create: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
@@ -43,11 +46,13 @@ vi.mock('@prisma/client', async () => {
     },
     bOMItem: {
       create: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
     },
+    $transaction: vi.fn(),
   };
 
   return {
@@ -73,6 +78,7 @@ describe('ProductService', () => {
       },
       productSpecification: {
         create: vi.fn(),
+        findUnique: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
@@ -80,6 +86,7 @@ describe('ProductService', () => {
       },
       productConfiguration: {
         create: vi.fn(),
+        findUnique: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
@@ -87,6 +94,7 @@ describe('ProductService', () => {
       },
       configurationOption: {
         create: vi.fn(),
+        findUnique: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
         count: vi.fn(),
@@ -98,11 +106,13 @@ describe('ProductService', () => {
       },
       bOMItem: {
         create: vi.fn(),
+        findUnique: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
         count: vi.fn(),
       },
+      $transaction: vi.fn(),
     };
 
     productService = new ProductService(mockPrisma as unknown as PrismaClient);
@@ -247,7 +257,7 @@ describe('ProductService', () => {
           {
             id: 'bom-1',
             componentPart: { id: 'part-2', partNumber: 'PN-COMP' },
-            processSegment: { id: 'ps-1', segmentName: 'Assembly' },
+            operation: { id: 'ps-1', segmentName: 'Assembly' },
           },
         ],
         componentItems: [],
@@ -275,7 +285,7 @@ describe('ProductService', () => {
           bomItems: expect.objectContaining({
             include: {
               componentPart: true,
-              processSegment: true,
+              operation: true,
             },
           }),
         }),
@@ -1125,7 +1135,7 @@ describe('ProductService', () => {
         sequence: 10,
         findNumber: '1',
         referenceDesignator: 'R1, R2, R3, R4',
-        processSegmentId: 'ps-1',
+        operationId: 'ps-1',
         operationNumber: 100,
         effectiveDate: new Date('2025-01-01'),
         ecoNumber: 'ECO-2025-001',
@@ -1135,7 +1145,7 @@ describe('ProductService', () => {
         isActive: true,
         parentPart: { id: 'part-1', partNumber: 'PN-PARENT' },
         componentPart: { id: 'part-2', partNumber: 'PN-COMP' },
-        processSegment: { id: 'ps-1', segmentName: 'PCB Assembly' },
+        operation: { id: 'ps-1', segmentName: 'PCB Assembly' },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1151,7 +1161,7 @@ describe('ProductService', () => {
         sequence: 10,
         findNumber: '1',
         referenceDesignator: 'R1, R2, R3, R4',
-        processSegmentId: 'ps-1',
+        operationId: 'ps-1',
         operationNumber: 100,
         effectiveDate: new Date('2025-01-01'),
         ecoNumber: 'ECO-2025-001',
@@ -1166,13 +1176,13 @@ describe('ProductService', () => {
           componentPartId: 'part-2',
           quantity: 4.0,
           scrapFactor: 0.05,
-          processSegmentId: 'ps-1',
+          operationId: 'ps-1',
           isCritical: true,
         }),
         include: {
           parentPart: true,
           componentPart: true,
-          processSegment: true,
+          operation: true,
         },
       });
       expect(result).toEqual(mockBOMItem);
@@ -1189,7 +1199,7 @@ describe('ProductService', () => {
         isActive: true,
         parentPart: { id: 'part-1' },
         componentPart: { id: 'part-2' },
-        processSegment: null,
+        operation: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1225,7 +1235,7 @@ describe('ProductService', () => {
           findNumber: '1',
           isActive: true,
           componentPart: { id: 'part-2', partNumber: 'PN-COMP-1' },
-          processSegment: { id: 'ps-1', segmentName: 'Assembly' },
+          operation: { id: 'ps-1', segmentName: 'Assembly' },
         },
         {
           id: 'bom-2',
@@ -1236,7 +1246,7 @@ describe('ProductService', () => {
           findNumber: '2',
           isActive: true,
           componentPart: { id: 'part-3', partNumber: 'PN-COMP-2' },
-          processSegment: { id: 'ps-2', segmentName: 'Testing' },
+          operation: { id: 'ps-2', segmentName: 'Testing' },
         },
       ];
 
@@ -1248,7 +1258,7 @@ describe('ProductService', () => {
         where: { parentPartId: 'part-1', isActive: true },
         include: {
           componentPart: true,
-          processSegment: true,
+          operation: true,
         },
         orderBy: [
           { sequence: 'asc' },
@@ -1268,7 +1278,7 @@ describe('ProductService', () => {
           quantity: 2.0,
           isActive: true,
           componentPart: { id: 'part-2', partNumber: 'PN-COMP-1' },
-          processSegment: false,
+          operation: false,
         },
       ];
 
@@ -1280,7 +1290,7 @@ describe('ProductService', () => {
         where: { parentPartId: 'part-1', isActive: true },
         include: {
           componentPart: true,
-          processSegment: false,
+          operation: false,
         },
         orderBy: expect.any(Array),
       });
@@ -1302,7 +1312,7 @@ describe('ProductService', () => {
             partNumber: 'PN-ASSEMBLY-1',
             partName: 'Assembly 1',
           },
-          processSegment: { id: 'ps-1', segmentName: 'Assembly' },
+          operation: { id: 'ps-1', segmentName: 'Assembly' },
         },
         {
           id: 'bom-2',
@@ -1315,7 +1325,7 @@ describe('ProductService', () => {
             partNumber: 'PN-ASSEMBLY-2',
             partName: 'Assembly 2',
           },
-          processSegment: { id: 'ps-2', segmentName: 'PCB Assembly' },
+          operation: { id: 'ps-2', segmentName: 'PCB Assembly' },
         },
       ];
 
@@ -1327,7 +1337,7 @@ describe('ProductService', () => {
         where: { componentPartId: 'part-comp', isActive: true },
         include: {
           parentPart: true,
-          processSegment: true,
+          operation: true,
         },
         orderBy: { parentPart: { partNumber: 'asc' } },
       });
@@ -1346,7 +1356,7 @@ describe('ProductService', () => {
         isCritical: true,
         parentPart: { id: 'part-1' },
         componentPart: { id: 'part-2' },
-        processSegment: { id: 'ps-1' },
+        operation: { id: 'ps-1' },
       };
 
       mockPrisma.bOMItem.update.mockResolvedValue(mockUpdatedBOM);
@@ -1369,7 +1379,7 @@ describe('ProductService', () => {
         include: {
           parentPart: true,
           componentPart: true,
-          processSegment: true,
+          operation: true,
         },
       });
       expect(result).toEqual(mockUpdatedBOM);
@@ -1641,7 +1651,7 @@ describe('ProductService', () => {
         quantity: 1.0,
         isActive: true,
         componentPart: { id: 'part-subassembly', partNumber: 'PN-SUB' },
-        processSegment: { id: 'ps-1', segmentName: 'Assembly' },
+        operation: { id: 'ps-1', segmentName: 'Assembly' },
       };
 
       const mockBOMLevel2 = {
@@ -1651,7 +1661,7 @@ describe('ProductService', () => {
         quantity: 2.0,
         isActive: true,
         componentPart: { id: 'part-component', partNumber: 'PN-COMP' },
-        processSegment: { id: 'ps-2', segmentName: 'Sub-assembly' },
+        operation: { id: 'ps-2', segmentName: 'Sub-assembly' },
       };
 
       mockPrisma.bOMItem.create
