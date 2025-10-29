@@ -39,27 +39,48 @@ You are tasked with systematically implementing a solution for a GitHub issue. T
 ### Step 6: Create Pull Request
 - Push your branch: `git push -u origin issue-[ISSUE_NUMBER]-brief-description`
 - Create PR using `gh pr create` with:
-  - Clear title referencing the issue
+  - Clear title: "feat: implement [brief description] (closes #[ISSUE_NUMBER])"
   - Comprehensive description of changes made
-  - Link to the original issue: "Fixes #[ISSUE_NUMBER]"
+  - **REQUIRED**: Include "Fixes #[ISSUE_NUMBER]" in the description for automatic issue closure
   - Include testing instructions if applicable
+  - Add any breaking changes or migration notes
 
 ### Step 7: Final Verification
-- Ensure the PR passes any automated checks
-- Review the diff one final time
-- Confirm all acceptance criteria are met
+- Ensure the PR passes any automated checks (CI/CD, tests, linting)
+- Review the diff one final time for code quality
+- Confirm all acceptance criteria from the original issue are met
+- Verify no breaking changes are introduced
+- Test the implementation end-to-end
 
-### Step 8: Merge & Cleanup
-- Merge the PR (or mark ready for review if approval needed)
-- Use `gh issue close [ISSUE_NUMBER]` to close the issue
+### Step 8: Mandatory PR Merge
+- **Always merge the PR using**: `gh pr merge --squash` (or `--merge` if preserving commit history)
+- **Verify the issue was automatically closed** by the "Fixes #[ISSUE_NUMBER]" keyword
+- **If issue not auto-closed**: Manually close with `gh issue close [ISSUE_NUMBER] --comment "Implemented and merged via PR #[PR_NUMBER]"`
+- Confirm merge was successful: `git log --oneline -5` should show your changes in main
+
+### Step 9: Cleanup & Return to Main
+- Switch to main branch: `git checkout main`
+- Pull latest changes: `git pull origin main`
 - Delete the feature branch: `git branch -d issue-[ISSUE_NUMBER]-brief-description`
-- Return to main branch: `git checkout main && git pull origin main`
+- Clean up remote branch: `git push origin --delete issue-[ISSUE_NUMBER]-brief-description`
+- Verify clean state: `git status` should show "working tree clean"
 
 ## Important Notes
 
-- Always link commits and PRs to the issue number for traceability
+- **Always link commits and PRs to the issue number** for traceability
+- **Never skip the PR merge step** - every implementation must be merged via PR
+- **The "Fixes #[ISSUE_NUMBER]" keyword is mandatory** - this ensures automatic issue closure
+- **Always verify the issue was closed** after PR merge - manually close if needed
 - If the issue is complex, consider breaking it into smaller sub-issues
 - Communicate progress in issue comments if implementation takes multiple sessions
 - Ask for clarification if requirements are unclear before implementing
+
+## Failure Recovery
+
+If any step fails:
+- **PR merge fails**: Check for conflicts, resolve, and retry merge
+- **Issue not auto-closed**: Use the manual close command in Step 8
+- **Branch conflicts**: Rebase or merge main into your feature branch
+- **CI/CD failures**: Fix issues before merging - never bypass checks
 
 Now proceed with implementing the GitHub issue following this systematic approach. Remember to substitute [ISSUE_NUMBER] with the actual issue number provided as an argument.
