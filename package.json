@@ -53,6 +53,8 @@
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:enhanced": "tsx prisma/seed-enhanced.ts",
+    "db:seed:comprehensive": "COMPREHENSIVE_SEED=true tsx prisma/seed-enhanced.ts",
     "docs:api": "redoc-cli serve openapi.yaml",
     "prepare": "husky install",
     "validate:deps": "node scripts/validate-dependencies.js",
