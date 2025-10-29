@@ -17,16 +17,17 @@ import {
 } from '@prisma/client';
 
 // Mock Prisma Client
-jest.mock('@prisma/client');
-const MockedPrismaClient = PrismaClient as jest.MockedClass<typeof PrismaClient>;
+import { vi, MockedClass } from 'vitest';
+vi.mock('@prisma/client');
+const MockedPrismaClient = PrismaClient as MockedClass<typeof PrismaClient>;
 
 describe('TimeTrackingService', () => {
   let service: TimeTrackingService;
-  let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockPrisma: MockedClass<PrismaClient>;
 
   beforeEach(() => {
     // Create a new mocked Prisma instance for each test
-    mockPrisma = new MockedPrismaClient() as jest.Mocked<PrismaClient>;
+    mockPrisma = new MockedPrismaClient() as MockedClass<PrismaClient>;
 
     // Mock the prisma instance used by the service
     (service as any) = new TimeTrackingService();
@@ -34,44 +35,44 @@ describe('TimeTrackingService', () => {
 
     // Setup default mocks
     mockPrisma.user = {
-      findUnique: jest.fn(),
+      findUnique: vi.fn(),
     } as any;
 
     mockPrisma.laborTimeEntry = {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-      count: jest.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      count: vi.fn(),
     } as any;
 
     mockPrisma.machineTimeEntry = {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
     } as any;
 
     mockPrisma.timeTrackingConfiguration = {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      upsert: jest.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
     } as any;
 
     mockPrisma.equipment = {
-      findUnique: jest.fn(),
+      findUnique: vi.fn(),
     } as any;
 
     mockPrisma.indirectCostCode = {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     } as any;
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('clockIn', () => {
@@ -333,7 +334,7 @@ describe('TimeTrackingService', () => {
       };
 
       const mockCurrentTime = new Date('2024-10-29T12:00:00Z');
-      jest.spyOn(global, 'Date').mockImplementation(() => mockCurrentTime);
+      vi.spyOn(global, 'Date').mockImplementation(() => mockCurrentTime);
 
       await service.clockOut(clockOutRequest);
 

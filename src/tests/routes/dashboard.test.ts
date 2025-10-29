@@ -100,38 +100,40 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-1',
             workOrderNumber: 'WO-001',
+            partId: 'test-part-123', // Added required partId
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10, // Changed from quantityOrdered to quantity
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId // Changed from createdBy to createdById
           },
           {
             id: 'wo-2',
             workOrderNumber: 'WO-002',
+            partId: 'test-part-123',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 5,
             quantityScrapped: 0,
             status: 'IN_PROGRESS',
             priority: 'HIGH',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           },
           {
             id: 'wo-3',
             workOrderNumber: 'WO-003',
             partNumber: 'PART-003',
-            quantityOrdered: 15,
+            quantity: 15,
             quantityCompleted: 15,
             quantityScrapped: 0,
             status: 'COMPLETED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           }
         ]
       });
@@ -158,13 +160,13 @@ describe('Dashboard Routes', () => {
             id: 'wo-old-1',
             workOrderNumber: 'WO-OLD-001',
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             createdAt: yesterday
           }
         ]
@@ -177,13 +179,13 @@ describe('Dashboard Routes', () => {
             id: 'wo-new-1',
             workOrderNumber: 'WO-NEW-001',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'HIGH',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             createdAt: new Date()
           }
         ]
@@ -208,26 +210,26 @@ describe('Dashboard Routes', () => {
             id: 'wo-completed-1',
             workOrderNumber: 'WO-COMP-001',
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10,
             quantityCompleted: 10,
             quantityScrapped: 0,
             status: 'COMPLETED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             actualEndDate: new Date()
           },
           {
             id: 'wo-completed-2',
             workOrderNumber: 'WO-COMP-002',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 20,
             quantityScrapped: 0,
             status: 'COMPLETED',
             priority: 'HIGH',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             actualEndDate: new Date()
           }
         ]
@@ -248,13 +250,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-quality-1',
           workOrderNumber: 'WO-QUALITY-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 0,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -358,25 +360,25 @@ describe('Dashboard Routes', () => {
             id: 'wo-site1-1',
             workOrderNumber: 'WO-SITE1-001',
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           },
           {
             id: 'wo-site2-1',
             workOrderNumber: 'WO-SITE2-001',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'HIGH',
             siteId: otherSite.id,
-            createdBy: testUserId
+            createdById: testUserId
           }
         ]
       });
@@ -410,13 +412,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-recent-1',
           workOrderNumber: 'WO-RECENT-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 3,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'HIGH',
           siteId: testSiteId,
-          createdBy: testUserId,
+          createdById: testUserId,
           dueDate: new Date('2025-12-31')
         }
       });
@@ -445,13 +447,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-progress-1',
           workOrderNumber: 'WO-PROGRESS-001',
           partNumber: 'PART-001',
-          quantityOrdered: 100,
+          quantity: 100,
           quantityCompleted: 25,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -469,13 +471,13 @@ describe('Dashboard Routes', () => {
         id: `wo-limit-${i}`,
         workOrderNumber: `WO-LIMIT-${String(i).padStart(3, '0')}`,
         partNumber: 'PART-001',
-        quantityOrdered: 10,
+        quantity: 10,
         quantityCompleted: 0,
         quantityScrapped: 0,
         status: 'RELEASED',
         priority: 'NORMAL',
         siteId: testSiteId,
-        createdBy: testUserId
+        createdById: testUserId
       }));
 
       await testDb.workOrder.createMany({ data: workOrders });
@@ -495,37 +497,37 @@ describe('Dashboard Routes', () => {
             id: 'wo-active-1',
             workOrderNumber: 'WO-ACTIVE-001',
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'RELEASED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           },
           {
             id: 'wo-completed-1',
             workOrderNumber: 'WO-COMPLETED-001',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 20,
             quantityScrapped: 0,
             status: 'COMPLETED',
             priority: 'HIGH',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           },
           {
             id: 'wo-cancelled-1',
             workOrderNumber: 'WO-CANCELLED-001',
             partNumber: 'PART-003',
-            quantityOrdered: 15,
+            quantity: 15,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'CANCELLED',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId
+            createdById: testUserId
           }
         ]
       });
@@ -567,13 +569,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-overdue-1',
           workOrderNumber: 'WO-OVERDUE-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 5,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'HIGH',
           siteId: testSiteId,
-          createdBy: testUserId,
+          createdById: testUserId,
           dueDate: pastDate
         }
       });
@@ -619,13 +621,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-ncr-1',
           workOrderNumber: 'WO-NCR-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 0,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -667,26 +669,26 @@ describe('Dashboard Routes', () => {
             id: 'wo-old',
             workOrderNumber: 'WO-OLD',
             partNumber: 'PART-001',
-            quantityOrdered: 10,
+            quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'IN_PROGRESS',
             priority: 'NORMAL',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             dueDate: twoHoursAgo
           },
           {
             id: 'wo-recent',
             workOrderNumber: 'WO-RECENT',
             partNumber: 'PART-002',
-            quantityOrdered: 20,
+            quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
             status: 'IN_PROGRESS',
             priority: 'HIGH',
             siteId: testSiteId,
-            createdBy: testUserId,
+            createdById: testUserId,
             dueDate: oneHourAgo
           }
         ]
@@ -745,13 +747,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-fpy-1',
           workOrderNumber: 'WO-FPY-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 0,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -824,13 +826,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-oee-1',
           workOrderNumber: 'WO-OEE-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 0,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -904,13 +906,13 @@ describe('Dashboard Routes', () => {
           id: 'wo-defect-1',
           workOrderNumber: 'WO-DEFECT-001',
           partNumber: 'PART-001',
-          quantityOrdered: 10,
+          quantity: 10,
           quantityCompleted: 0,
           quantityScrapped: 0,
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           siteId: testSiteId,
-          createdBy: testUserId
+          createdById: testUserId
         }
       });
 
@@ -959,13 +961,13 @@ describe('Dashboard Routes', () => {
               id: `wo-ncr-rate-${i}`,
               workOrderNumber: `WO-NCR-RATE-${String(i).padStart(3, '0')}`,
               partNumber: 'PART-001',
-              quantityOrdered: 10,
+              quantity: 10,
               quantityCompleted: 10,
               quantityScrapped: 0,
               status: 'COMPLETED',
               priority: 'NORMAL',
               siteId: testSiteId,
-              createdBy: testUserId,
+              createdById: testUserId,
               actualEndDate: twentyDaysAgo
             }
           });
@@ -1027,13 +1029,13 @@ describe('Dashboard Routes', () => {
               id: `wo-complaint-${i}`,
               workOrderNumber: `WO-COMPLAINT-${String(i).padStart(3, '0')}`,
               partNumber: 'PART-001',
-              quantityOrdered: 10,
+              quantity: 10,
               quantityCompleted: 10,
               quantityScrapped: 0,
               status: 'COMPLETED',
               priority: 'NORMAL',
               siteId: testSiteId,
-              createdBy: testUserId,
+              createdById: testUserId,
               actualEndDate: twentyDaysAgo
             }
           });
