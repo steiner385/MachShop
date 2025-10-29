@@ -16,7 +16,7 @@ import express from 'express';
 import { z } from 'zod';
 import { SsoProviderType } from '@prisma/client';
 import { asyncHandler } from '../middleware/errorHandler';
-import { requirePermission } from '../middleware/rbac';
+import { requirePermission } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import SsoProviderService from '../services/SsoProviderService';
 import HomeRealmDiscoveryService from '../services/HomeRealmDiscoveryService';
