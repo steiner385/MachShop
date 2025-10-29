@@ -13,6 +13,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { config, logConfiguration } from './config/config';
 import integrationRoutes from './routes/workOrders';
+import directoryRoutes from './routes/directory';
 
 // ============================================================================
 // Express App Configuration
@@ -138,6 +139,9 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // Work Order routes
 app.use('/api/v1/integration', writeLimiter, integrationRoutes);
+
+// Directory services routes
+app.use('/api/v1/directory', writeLimiter, directoryRoutes);
 
 // ============================================================================
 // Error Handling Middleware

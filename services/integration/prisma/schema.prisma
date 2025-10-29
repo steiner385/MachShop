@@ -625,3 +625,200 @@ enum IdempotencyStatus {
   COMPLETED
   FAILED
 }
+
+// ============================================================================
+// DIRECTORY SERVICES (LDAP/AD) INTEGRATION
+// Issue #128: External Integration: LDAP/AD Role Synchronization
+// ============================================================================
+
+/// Configuration for LDAP/Active Directory directory services
+model DirectoryConfig {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?  @db.Text
+
+  // Directory type and connection details
+  type              DirectoryType
+  host              String
+  port              Int      @default(389)
+  useSSL            Boolean  @default(false)
+  useStartTLS       Boolean  @default(false)
+
+  // Directory structure
+  baseDN            String
+  bindDN            String?  // Service account DN
+  bindPassword      String?  // Encrypted password
+
+  // Search configuration
+  userSearchBase    String
+  userSearchFilter  String   @default("(objectClass=person)")
+  groupSearchBase   String?
+  groupSearchFilter String?  @default("(objectClass=group)")
+
+  // Connection settings
+  timeout           Int      @default(30000)  // milliseconds
+  maxConnections    Int      @default(10)
+
+  // Synchronization settings
+  isActive          Boolean  @default(true)
+  enableSync        Boolean  @default(true)
+  syncInterval      Int      @default(3600)   // seconds
+  lastSync          DateTime?
+  lastSyncStatus    SyncStatus?
+
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?  // User ID
+
+  // Relations
+  userMappings      DirectoryUserMapping[]
+  groupMappings     DirectoryGroupMapping[]
+  syncLogs          DirectorySyncLog[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([lastSync])
+  @@map("directory_configs")
+}
+
+/// Maps LDAP/AD attributes to MES user fields
+model DirectoryUserMapping {
+  id                String   @id @default(cuid())
+  configId          String
+
+  // Mapping configuration
+  ldapAttribute     String   // e.g., "sAMAccountName", "mail", "givenName"
+  mesField          String   // e.g., "username", "email", "firstName"
+  isRequired        Boolean  @default(false)
+  isIdentity        Boolean  @default(false)  // Used for user matching
+  defaultValue      String?  // Default value if LDAP attribute is empty
+
+  // Transformation
+  transform         String?  // Optional transformation function
+  transformConfig   Json?    // Configuration for transformation
+
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  config            DirectoryConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, ldapAttribute])
+  @@unique([configId, mesField])
+  @@map("directory_user_mappings")
+}
+
+/// Maps LDAP/AD groups to MES roles
+model DirectoryGroupMapping {
+  id              String   @id @default(cuid())
+  configId        String
+
+  // Group identification
+  groupDN         String   // Distinguished Name of LDAP/AD group
+  groupName       String?  // Human-readable group name
+
+  // Role mapping
+  roleId          String   // References role in main schema
+  siteId          String?  // For site-specific role mapping
+
+  // Mapping rules
+  isActive        Boolean  @default(true)
+  autoAssign      Boolean  @default(true)   // Automatically assign role based on group membership
+  requiresApproval Boolean @default(false)  // Requires manual approval
+
+  // Priority for conflicting mappings
+  priority        Int      @default(0)      // Higher number = higher priority
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String?  // User ID
+
+  // Relations
+  config          DirectoryConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, groupDN, roleId, siteId])
+  @@index([configId])
+  @@index([roleId])
+  @@index([siteId])
+  @@map("directory_group_mappings")
+}
+
+/// Logs directory synchronization operations
+model DirectorySyncLog {
+  id                    String   @id @default(cuid())
+  configId              String
+
+  // Sync details
+  syncType              SyncType
+  batchId               String?  // Groups related sync operations
+
+  // Timing
+  startTime             DateTime @default(now())
+  endTime               DateTime?
+  duration              Int?     // milliseconds
+
+  // Status and results
+  status                SyncStatus
+
+  // User statistics
+  usersProcessed        Int      @default(0)
+  usersCreated          Int      @default(0)
+  usersUpdated          Int      @default(0)
+  usersDeactivated      Int      @default(0)
+  usersSkipped          Int      @default(0)
+
+  // Group/role statistics
+  groupsProcessed       Int      @default(0)
+  rolesAssigned         Int      @default(0)
+  rolesRevoked          Int      @default(0)
+
+  // Error handling
+  errorCount            Int      @default(0)
+  warningCount          Int      @default(0)
+  errors                Json?    // Array of error details
+  warnings              Json?    // Array of warning details
+
+  // Performance metrics
+  directoryResponseTime Int?     // Average response time from directory
+  recordsPerSecond      Float?   // Processing speed
+
+  // Summary
+  summary               String?  @db.Text
+
+  // Relations
+  config                DirectoryConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId, startTime])
+  @@index([status])
+  @@index([syncType])
+  @@index([batchId])
+  @@map("directory_sync_logs")
+}
+
+enum DirectoryType {
+  LDAP
+  ACTIVE_DIRECTORY
+  AZURE_AD
+  OPENLDAP
+}
+
+enum SyncType {
+  FULL          // Complete synchronization
+  INCREMENTAL   // Only changed records
+  USERS_ONLY    // Only user data
+  GROUPS_ONLY   // Only group mappings
+  TEST          // Test synchronization (dry run)
+}
+
+enum SyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_WARNINGS
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
