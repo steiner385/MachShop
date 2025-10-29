@@ -79,6 +79,10 @@ import adminPermissionsRoutes from './routes/admin/permissions';
 import adminRolePermissionsRoutes from './routes/admin/role-permissions';
 import adminUserRolesRoutes from './routes/admin/user-roles';
 
+// GitHub Issue #134: Unified SSO Management System Routes
+import ssoRoutes from './routes/sso';
+import ssoAdminRoutes from './routes/ssoAdmin';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -183,6 +187,7 @@ const apiRouter = express.Router();
 
 // Public routes (no authentication required)
 apiRouter.use('/auth', authRoutes);
+apiRouter.use('/sso', ssoRoutes);
 
 // Protected routes (authentication required)
 apiRouter.use('/search', authMiddleware, searchRoutes);
@@ -250,6 +255,9 @@ apiRouter.use('/admin/roles', authMiddleware, adminRolesRoutes);
 apiRouter.use('/admin/permissions', authMiddleware, adminPermissionsRoutes);
 apiRouter.use('/admin/role-permissions', authMiddleware, adminRolePermissionsRoutes);
 apiRouter.use('/admin/user-roles', authMiddleware, adminUserRolesRoutes);
+
+// GitHub Issue #134: Unified SSO Management System Admin Routes
+apiRouter.use('/admin/sso', authMiddleware, ssoAdminRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
