@@ -18,57 +18,58 @@ import {
 
 // Mock Prisma Client
 import { vi, MockedClass } from 'vitest';
-vi.mock('@prisma/client');
+
+// Create a mock prisma instance using vi.hoisted to ensure it's available before imports
+const mockPrismaInstance = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
+  laborTimeEntry: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    count: vi.fn(),
+  },
+  machineTimeEntry: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  timeTrackingConfiguration: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    upsert: vi.fn(),
+  },
+  equipment: {
+    findUnique: vi.fn(),
+  },
+  indirectCostCode: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+}));
+
+// Mock the PrismaClient constructor to return our mock instance
+vi.mock('@prisma/client', async () => {
+  const actual = await vi.importActual('@prisma/client');
+  return {
+    ...actual,
+    PrismaClient: vi.fn().mockImplementation(() => mockPrismaInstance),
+  };
+});
+
 const MockedPrismaClient = PrismaClient as MockedClass<typeof PrismaClient>;
 
 describe('TimeTrackingService', () => {
   let service: TimeTrackingService;
-  let mockPrisma: MockedClass<PrismaClient>;
 
   beforeEach(() => {
-    // Create a new mocked Prisma instance for each test
-    mockPrisma = new MockedPrismaClient() as MockedClass<PrismaClient>;
-
-    // Mock the prisma instance used by the service
-    (service as any) = new TimeTrackingService();
-    (service as any).prisma = mockPrisma;
-
-    // Setup default mocks
-    mockPrisma.user = {
-      findUnique: vi.fn(),
-    } as any;
-
-    mockPrisma.laborTimeEntry = {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      count: vi.fn(),
-    } as any;
-
-    mockPrisma.machineTimeEntry = {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-    } as any;
-
-    mockPrisma.timeTrackingConfiguration = {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      upsert: vi.fn(),
-    } as any;
-
-    mockPrisma.equipment = {
-      findUnique: vi.fn(),
-    } as any;
-
-    mockPrisma.indirectCostCode = {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    } as any;
+    // Create a new service instance for each test
+    service = new TimeTrackingService();
   });
 
   afterEach(() => {
@@ -97,9 +98,9 @@ describe('TimeTrackingService', () => {
     };
 
     beforeEach(() => {
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([]); // No active entries
+      mockPrismaInstance.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([]); // No active entries
     });
 
     it('should successfully clock in to a work order', async () => {
@@ -120,11 +121,11 @@ describe('TimeTrackingService', () => {
         costCenter: 'PRODUCTION',
       };
 
-      mockPrisma.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
+      mockPrismaInstance.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
 
       const result = await service.clockIn(clockInRequest);
 
-      expect(mockPrisma.laborTimeEntry.create).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: 'user-1',
           workOrderId: 'wo-123',
@@ -157,11 +158,11 @@ describe('TimeTrackingService', () => {
         deviceId: 'kiosk-001',
       };
 
-      mockPrisma.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
+      mockPrismaInstance.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
 
       const result = await service.clockIn(clockInRequest);
 
-      expect(mockPrisma.laborTimeEntry.create).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           operationId: 'op-456',
           entrySource: TimeEntrySource.KIOSK,
@@ -184,11 +185,11 @@ describe('TimeTrackingService', () => {
         timeType: TimeType.INDIRECT,
       };
 
-      mockPrisma.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
+      mockPrismaInstance.laborTimeEntry.create.mockResolvedValue(expectedTimeEntry);
 
       const result = await service.clockIn(clockInRequest);
 
-      expect(mockPrisma.laborTimeEntry.create).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           indirectCodeId: 'break-15',
           timeType: TimeType.INDIRECT,
@@ -198,7 +199,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should throw error if user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrismaInstance.user.findUnique.mockResolvedValue(null);
 
       const clockInRequest: ClockInRequest = {
         userId: 'invalid-user',
@@ -209,7 +210,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should throw error if time tracking is disabled', async () => {
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue({
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue({
         ...mockConfig,
         timeTrackingEnabled: false,
       });
@@ -230,7 +231,7 @@ describe('TimeTrackingService', () => {
         status: TimeEntryStatus.ACTIVE,
       };
 
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([activeEntry]);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([activeEntry]);
 
       const clockInRequest: ClockInRequest = {
         userId: 'user-1',
@@ -243,7 +244,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should throw error if operation-level tracking not enabled', async () => {
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue({
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue({
         ...mockConfig,
         trackingGranularity: TimeTrackingGranularity.WORK_ORDER,
       });
@@ -291,8 +292,8 @@ describe('TimeTrackingService', () => {
     };
 
     beforeEach(() => {
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(mockActiveEntry);
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(mockActiveEntry);
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
     });
 
     it('should successfully clock out and calculate duration', async () => {
@@ -310,11 +311,11 @@ describe('TimeTrackingService', () => {
         status: TimeEntryStatus.PENDING_APPROVAL,
       };
 
-      mockPrisma.laborTimeEntry.update.mockResolvedValue(expectedUpdatedEntry);
+      mockPrismaInstance.laborTimeEntry.update.mockResolvedValue(expectedUpdatedEntry);
 
       const result = await service.clockOut(clockOutRequest);
 
-      expect(mockPrisma.laborTimeEntry.update).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.update).toHaveBeenCalledWith({
         where: { id: 'entry-1' },
         data: {
           clockOutTime,
@@ -338,7 +339,7 @@ describe('TimeTrackingService', () => {
 
       await service.clockOut(clockOutRequest);
 
-      expect(mockPrisma.laborTimeEntry.update).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.update).toHaveBeenCalledWith({
         where: { id: 'entry-1' },
         data: expect.objectContaining({
           clockOutTime: mockCurrentTime,
@@ -348,7 +349,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should subtract break time when configured', async () => {
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue({
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue({
         ...mockConfig,
         autoSubtractBreaks: true,
         standardBreakMinutes: 30, // 0.5 hours
@@ -362,7 +363,7 @@ describe('TimeTrackingService', () => {
 
       await service.clockOut(clockOutRequest);
 
-      expect(mockPrisma.laborTimeEntry.update).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.update).toHaveBeenCalledWith({
         where: { id: 'entry-1' },
         data: expect.objectContaining({
           duration: 7.5, // 8 hours - 0.5 hour break
@@ -373,7 +374,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should set status to COMPLETED when approval not required', async () => {
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue({
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue({
         ...mockConfig,
         requireTimeApproval: false,
       });
@@ -384,7 +385,7 @@ describe('TimeTrackingService', () => {
 
       await service.clockOut(clockOutRequest);
 
-      expect(mockPrisma.laborTimeEntry.update).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.update).toHaveBeenCalledWith({
         where: { id: 'entry-1' },
         data: expect.objectContaining({
           status: TimeEntryStatus.COMPLETED,
@@ -394,7 +395,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should throw error if time entry not found', async () => {
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(null);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(null);
 
       const clockOutRequest: ClockOutRequest = {
         timeEntryId: 'invalid-entry',
@@ -404,7 +405,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should throw error if time entry is not active', async () => {
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue({
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue({
         ...mockActiveEntry,
         status: TimeEntryStatus.COMPLETED,
       });
@@ -436,11 +437,11 @@ describe('TimeTrackingService', () => {
         },
       ];
 
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue(mockActiveEntries);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue(mockActiveEntries);
 
       const result = await service.getActiveTimeEntries('user-1');
 
-      expect(mockPrisma.laborTimeEntry.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           status: TimeEntryStatus.ACTIVE,
@@ -455,7 +456,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should return empty array if no active entries', async () => {
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([]);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([]);
 
       const result = await service.getActiveTimeEntries('user-1');
 
@@ -495,16 +496,16 @@ describe('TimeTrackingService', () => {
       };
 
       // Mock the sequence of calls
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue(mockActiveEntries);
-      mockPrisma.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue(mockActiveEntries);
+      mockPrismaInstance.timeTrackingConfiguration.findUnique.mockResolvedValue(mockConfig);
 
       // Mock findUnique for each clockOut call
-      mockPrisma.laborTimeEntry.findUnique
+      mockPrismaInstance.laborTimeEntry.findUnique
         .mockResolvedValueOnce(mockActiveEntries[0])
         .mockResolvedValueOnce(mockActiveEntries[1]);
 
       // Mock update for each clockOut call
-      mockPrisma.laborTimeEntry.update
+      mockPrismaInstance.laborTimeEntry.update
         .mockResolvedValueOnce({ ...mockActiveEntries[0], status: TimeEntryStatus.COMPLETED })
         .mockResolvedValueOnce({ ...mockActiveEntries[1], status: TimeEntryStatus.COMPLETED })
         .mockResolvedValueOnce({ id: 'entry-1' }) // For edit reason update
@@ -513,7 +514,7 @@ describe('TimeTrackingService', () => {
       const result = await service.stopAllActiveEntries('user-1', 'Emergency stop');
 
       expect(result).toHaveLength(2);
-      expect(mockPrisma.laborTimeEntry.update).toHaveBeenCalledTimes(4); // 2 clockouts + 2 edit reason updates
+      expect(mockPrismaInstance.laborTimeEntry.update).toHaveBeenCalledTimes(4); // 2 clockouts + 2 edit reason updates
     });
   });
 
@@ -528,7 +529,7 @@ describe('TimeTrackingService', () => {
     } as any;
 
     it('should validate a good time entry', async () => {
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([]); // No overlapping entries
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([]); // No overlapping entries
 
       const result = await service.validateTimeEntry(mockTimeEntry);
 
@@ -562,10 +563,11 @@ describe('TimeTrackingService', () => {
     });
 
     it('should warn about long active entries', async () => {
+      const now = new Date();
       const longActiveEntry = {
         ...mockTimeEntry,
         status: TimeEntryStatus.ACTIVE,
-        clockInTime: new Date(Date.now() - 17 * 60 * 60 * 1000), // 17 hours ago
+        clockInTime: new Date(now.getTime() - 17 * 60 * 60 * 1000), // 17 hours ago
         clockOutTime: null,
       };
 
@@ -582,7 +584,7 @@ describe('TimeTrackingService', () => {
         clockOutTime: new Date('2024-10-29T09:00:00Z'), // Overlaps with mock entry
       };
 
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([overlappingEntry]);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([overlappingEntry]);
 
       const result = await service.validateTimeEntry(mockTimeEntry);
 
@@ -600,7 +602,7 @@ describe('TimeTrackingService', () => {
         user: { laborRate: 30.0 },
       };
 
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
 
       const result = await service.calculateLaborCost('entry-1');
 
@@ -615,7 +617,7 @@ describe('TimeTrackingService', () => {
         user: { laborRate: 30.0 },
       };
 
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
 
       const result = await service.calculateLaborCost('entry-1');
 
@@ -623,7 +625,7 @@ describe('TimeTrackingService', () => {
     });
 
     it('should return 0 if entry not found', async () => {
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(null);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(null);
 
       const result = await service.calculateLaborCost('invalid-entry');
 
@@ -638,7 +640,7 @@ describe('TimeTrackingService', () => {
         user: { laborRate: 30.0 },
       };
 
-      mockPrisma.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
+      mockPrismaInstance.laborTimeEntry.findUnique.mockResolvedValue(mockEntry);
 
       const result = await service.calculateLaborCost('entry-1');
 
@@ -653,8 +655,8 @@ describe('TimeTrackingService', () => {
         { id: 'entry-2', userId: 'user-1', operationId: 'op-456' },
       ];
 
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue(mockEntries);
-      mockPrisma.laborTimeEntry.count.mockResolvedValue(25);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue(mockEntries);
+      mockPrismaInstance.laborTimeEntry.count.mockResolvedValue(25);
 
       const filters = {
         userId: 'user-1',
@@ -665,7 +667,7 @@ describe('TimeTrackingService', () => {
 
       const result = await service.getTimeEntries(filters);
 
-      expect(mockPrisma.laborTimeEntry.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           status: TimeEntryStatus.COMPLETED,
@@ -692,12 +694,12 @@ describe('TimeTrackingService', () => {
         endDate,
       };
 
-      mockPrisma.laborTimeEntry.findMany.mockResolvedValue([]);
-      mockPrisma.laborTimeEntry.count.mockResolvedValue(0);
+      mockPrismaInstance.laborTimeEntry.findMany.mockResolvedValue([]);
+      mockPrismaInstance.laborTimeEntry.count.mockResolvedValue(0);
 
       await service.getTimeEntries(filters);
 
-      expect(mockPrisma.laborTimeEntry.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaInstance.laborTimeEntry.findMany).toHaveBeenCalledWith({
         where: {
           clockInTime: {
             gte: startDate,

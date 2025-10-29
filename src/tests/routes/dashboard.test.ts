@@ -30,13 +30,43 @@ describe('Dashboard Routes', () => {
       req.user = {
         id: 'test-user-123',
         username: 'testuser',
-        roles: ['Production Manager'],
-        permissions: ['production.read', 'site.access']
+        roles: ['Production Supervisor'],
+        permissions: ['production.read', 'site.access', 'dashboard.read', 'dashboard.access']
       };
       next();
     });
 
     app.use('/api/v1/dashboard', dashboardRouter);
+
+    // Create test part for work order references
+    await testDb.part.upsert({
+      where: { partNumber: 'PART-TEST-123' },
+      update: {},
+      create: {
+        id: 'test-part-123',
+        partNumber: 'PART-TEST-123',
+        partName: 'Test Part',
+        partType: 'MANUFACTURED',
+        description: 'Test part for dashboard tests',
+        revision: 'A',
+        isActive: true,
+        unitOfMeasure: 'EA'
+      }
+    });
+
+    // Create test quality plan for inspection references
+    await testDb.qualityPlan.upsert({
+      where: { planNumber: 'PLAN-TEST-123' },
+      update: {},
+      create: {
+        id: 'test-plan-123',
+        planNumber: 'PLAN-TEST-123',
+        planName: 'Test Quality Plan',
+        partId: 'test-part-123',
+        description: 'Test quality plan for dashboard tests',
+        isActive: true
+      }
+    });
 
     // Create test data using upsert to avoid conflicts
     const testUser = await testDb.user.upsert({
@@ -49,7 +79,7 @@ describe('Dashboard Routes', () => {
         firstName: 'Test',
         lastName: 'User',
         passwordHash: '$2b$10$test.hash.value',
-        roles: ['Production Manager'],
+        roles: ['Production Supervisor'],
         permissions: ['production.read'],
         isActive: true
       }
@@ -100,7 +130,7 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-1',
             workOrderNumber: 'WO-001',
-            partId: 'test-part-123', // Added required partId
+            partId: 'test-part-123',
             partNumber: 'PART-001',
             quantity: 10, // Changed from quantityOrdered to quantity
             quantityCompleted: 0,
@@ -114,7 +144,7 @@ describe('Dashboard Routes', () => {
             id: 'wo-2',
             workOrderNumber: 'WO-002',
             partId: 'test-part-123',
-            partNumber: 'PART-002',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 5,
             quantityScrapped: 0,
@@ -126,7 +156,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-3',
             workOrderNumber: 'WO-003',
-            partNumber: 'PART-003',
+            partId: 'test-part-123',
+          partNumber: 'PART-003',
             quantity: 15,
             quantityCompleted: 15,
             quantityScrapped: 0,
@@ -159,7 +190,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-old-1',
             workOrderNumber: 'WO-OLD-001',
-            partNumber: 'PART-001',
+            partId: 'test-part-123',
+          partNumber: 'PART-001',
             quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -178,7 +210,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-new-1',
             workOrderNumber: 'WO-NEW-001',
-            partNumber: 'PART-002',
+            partId: 'test-part-123',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -209,7 +242,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-completed-1',
             workOrderNumber: 'WO-COMP-001',
-            partNumber: 'PART-001',
+            partId: 'test-part-123',
+          partNumber: 'PART-001',
             quantity: 10,
             quantityCompleted: 10,
             quantityScrapped: 0,
@@ -222,7 +256,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-completed-2',
             workOrderNumber: 'WO-COMP-002',
-            partNumber: 'PART-002',
+            partId: 'test-part-123',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 20,
             quantityScrapped: 0,
@@ -249,6 +284,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-quality-1',
           workOrderNumber: 'WO-QUALITY-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 0,
@@ -265,28 +301,37 @@ describe('Dashboard Routes', () => {
         data: [
           {
             id: 'insp-1',
+            inspectionNumber: 'INS-001',
             workOrderId: workOrder.id,
-            operation: 'Final Inspection',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'insp-2',
+            inspectionNumber: 'INS-002',
             workOrderId: workOrder.id,
-            operation: 'Dimensional Inspection',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'insp-3',
+            inspectionNumber: 'INS-003',
             workOrderId: workOrder.id,
-            operation: 'Surface Inspection',
             result: 'FAIL',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           }
@@ -308,8 +353,10 @@ describe('Dashboard Routes', () => {
           {
             id: 'eq-1',
             name: 'CNC Machine 1',
+            equipmentNumber: 'EQ-001',
+            equipmentClass: 'PRODUCTION',
             serialNumber: 'CNC-001',
-            type: 'CNC',
+            equipmentType: 'CNC',
             status: 'OPERATIONAL',
             utilizationRate: 85.5,
             siteId: testSiteId
@@ -317,8 +364,10 @@ describe('Dashboard Routes', () => {
           {
             id: 'eq-2',
             name: 'CNC Machine 2',
+            equipmentNumber: 'EQ-002',
+            equipmentClass: 'PRODUCTION',
             serialNumber: 'CNC-002',
-            type: 'CNC',
+            equipmentType: 'CNC',
             status: 'OPERATIONAL',
             utilizationRate: 92.3,
             siteId: testSiteId
@@ -326,8 +375,10 @@ describe('Dashboard Routes', () => {
           {
             id: 'eq-3',
             name: 'CNC Machine 3',
+            equipmentNumber: 'EQ-003',
+            equipmentClass: 'PRODUCTION',
             serialNumber: 'CNC-003',
-            type: 'CNC',
+            equipmentType: 'CNC',
             status: 'MAINTENANCE',
             utilizationRate: 0,
             siteId: testSiteId
@@ -359,7 +410,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-site1-1',
             workOrderNumber: 'WO-SITE1-001',
-            partNumber: 'PART-001',
+            partId: 'test-part-123',
+          partNumber: 'PART-001',
             quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -371,7 +423,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-site2-1',
             workOrderNumber: 'WO-SITE2-001',
-            partNumber: 'PART-002',
+            partId: 'test-part-123',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -411,6 +464,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-recent-1',
           workOrderNumber: 'WO-RECENT-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 3,
@@ -446,6 +500,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-progress-1',
           workOrderNumber: 'WO-PROGRESS-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 100,
           quantityCompleted: 25,
@@ -470,7 +525,8 @@ describe('Dashboard Routes', () => {
       const workOrders = Array.from({ length: 10 }, (_, i) => ({
         id: `wo-limit-${i}`,
         workOrderNumber: `WO-LIMIT-${String(i).padStart(3, '0')}`,
-        partNumber: 'PART-001',
+        partId: 'test-part-123',
+          partNumber: 'PART-001',
         quantity: 10,
         quantityCompleted: 0,
         quantityScrapped: 0,
@@ -496,7 +552,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-active-1',
             workOrderNumber: 'WO-ACTIVE-001',
-            partNumber: 'PART-001',
+            partId: 'test-part-123',
+          partNumber: 'PART-001',
             quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -508,7 +565,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-completed-1',
             workOrderNumber: 'WO-COMPLETED-001',
-            partNumber: 'PART-002',
+            partId: 'test-part-123',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 20,
             quantityScrapped: 0,
@@ -520,7 +578,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-cancelled-1',
             workOrderNumber: 'WO-CANCELLED-001',
-            partNumber: 'PART-003',
+            partId: 'test-part-123',
+          partNumber: 'PART-003',
             quantity: 15,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -568,6 +627,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-overdue-1',
           workOrderNumber: 'WO-OVERDUE-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 5,
@@ -595,8 +655,10 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'eq-maintenance-1',
           name: 'CNC Machine Under Maintenance',
+          equipmentNumber: 'EQ-001',
+          equipmentClass: 'PRODUCTION',
           serialNumber: 'CNC-MAINT-001',
-          type: 'CNC',
+          equipmentType: 'CNC',
           status: 'MAINTENANCE',
           utilizationRate: 0,
           siteId: testSiteId
@@ -620,6 +682,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-ncr-1',
           workOrderNumber: 'WO-NCR-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 0,
@@ -635,6 +698,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'ncr-1',
           ncrNumber: 'NCR-001',
+          partNumber: 'PART-001',
           workOrderId: workOrder.id,
           operation: 'Final Inspection',
           defectType: 'Dimensional',
@@ -642,7 +706,8 @@ describe('Dashboard Routes', () => {
           severity: 'CRITICAL',
           quantity: 5,
           status: 'OPEN',
-          assignedTo: testUserId,
+          assignedToId: testUserId,
+          createdById: testUserId,
           dueDate: new Date('2025-12-31')
         }
       });
@@ -668,7 +733,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-old',
             workOrderNumber: 'WO-OLD',
-            partNumber: 'PART-001',
+            partId: 'test-part-123',
+          partNumber: 'PART-001',
             quantity: 10,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -681,7 +747,8 @@ describe('Dashboard Routes', () => {
           {
             id: 'wo-recent',
             workOrderNumber: 'WO-RECENT',
-            partNumber: 'PART-002',
+            partId: 'test-part-123',
+          partNumber: 'PART-002',
             quantity: 20,
             quantityCompleted: 0,
             quantityScrapped: 0,
@@ -712,8 +779,10 @@ describe('Dashboard Routes', () => {
         data: Array.from({ length: 10 }, (_, i) => ({
           id: `eq-maint-${i}`,
           name: `Equipment ${i}`,
+          equipmentNumber: `EQ-${String(i).padStart(3, '0')}`,
+          equipmentClass: 'PRODUCTION',
           serialNumber: `EQ-${i}`,
-          type: 'CNC',
+          equipmentType: 'CNC',
           status: 'MAINTENANCE',
           utilizationRate: 0,
           siteId: testSiteId
@@ -746,6 +815,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-fpy-1',
           workOrderNumber: 'WO-FPY-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 0,
@@ -761,37 +831,49 @@ describe('Dashboard Routes', () => {
         data: [
           {
             id: 'fpy-insp-1',
+            inspectionNumber: 'INS-004',
             workOrderId: workOrder.id,
-            operation: 'Inspection 1',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'fpy-insp-2',
+            inspectionNumber: 'INS-005',
             workOrderId: workOrder.id,
-            operation: 'Inspection 2',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'fpy-insp-3',
+            inspectionNumber: 'INS-006',
             workOrderId: workOrder.id,
-            operation: 'Inspection 3',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'fpy-insp-4',
+            inspectionNumber: 'INS-007',
             workOrderId: workOrder.id,
-            operation: 'Inspection 4',
             result: 'FAIL',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           }
@@ -812,8 +894,10 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'eq-oee-1',
           name: 'CNC Machine',
+          equipmentNumber: 'EQ-001',
+          equipmentClass: 'PRODUCTION',
           serialNumber: 'CNC-OEE-001',
-          type: 'CNC',
+          equipmentType: 'CNC',
           status: 'OPERATIONAL',
           utilizationRate: 80.0, // 80% availability
           siteId: testSiteId
@@ -825,6 +909,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-oee-1',
           workOrderNumber: 'WO-OEE-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 0,
@@ -840,19 +925,25 @@ describe('Dashboard Routes', () => {
         data: [
           {
             id: 'oee-insp-1',
+            inspectionNumber: 'INS-008',
             workOrderId: workOrder.id,
-            operation: 'Inspection 1',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           },
           {
             id: 'oee-insp-2',
+            inspectionNumber: 'INS-009',
             workOrderId: workOrder.id,
-            operation: 'Inspection 2',
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: new Date(),
             completedAt: new Date()
           }
@@ -905,6 +996,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'wo-defect-1',
           workOrderNumber: 'WO-DEFECT-001',
+          partId: 'test-part-123',
           partNumber: 'PART-001',
           quantity: 10,
           quantityCompleted: 0,
@@ -921,19 +1013,25 @@ describe('Dashboard Routes', () => {
         data: [
           ...Array(5).fill(null).map((_, i) => ({
             id: `defect-pass-${i}`,
+            inspectionNumber: `INS-${String(10 + i).padStart(3, '0')}`,
             workOrderId: workOrder.id,
-            operation: `Inspection ${i}`,
             result: 'PASS',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: twentyDaysAgo,
             completedAt: twentyDaysAgo
           })),
           ...Array(2).fill(null).map((_, i) => ({
             id: `defect-fail-${i}`,
+            inspectionNumber: `INS-${String(15 + i).padStart(3, '0')}`,
             workOrderId: workOrder.id,
-            operation: `Inspection Fail ${i}`,
             result: 'FAIL',
-            inspector: testUserId,
+            inspectorId: testUserId,
+            planId: 'test-plan-123',
+            status: 'COMPLETED',
+            quantity: 1,
             startedAt: twentyDaysAgo,
             completedAt: twentyDaysAgo
           }))
@@ -960,7 +1058,8 @@ describe('Dashboard Routes', () => {
             data: {
               id: `wo-ncr-rate-${i}`,
               workOrderNumber: `WO-NCR-RATE-${String(i).padStart(3, '0')}`,
-              partNumber: 'PART-001',
+              partId: 'test-part-123',
+          partNumber: 'PART-001',
               quantity: 10,
               quantityCompleted: 10,
               quantityScrapped: 0,
@@ -980,6 +1079,7 @@ describe('Dashboard Routes', () => {
           {
             id: 'ncr-rate-1',
             ncrNumber: 'NCR-RATE-001',
+            partNumber: 'PART-002',
             workOrderId: workOrders[0].id,
             operation: 'Final Inspection',
             defectType: 'Dimensional',
@@ -987,13 +1087,15 @@ describe('Dashboard Routes', () => {
             severity: 'MAJOR',
             quantity: 1,
             status: 'OPEN',
-            assignedTo: testUserId,
+            assignedToId: testUserId,
+            createdById: testUserId,
             dueDate: new Date('2025-12-31'),
             createdAt: twentyDaysAgo
           },
           {
             id: 'ncr-rate-2',
             ncrNumber: 'NCR-RATE-002',
+            partNumber: 'PART-003',
             workOrderId: workOrders[1].id,
             operation: 'Final Inspection',
             defectType: 'Surface',
@@ -1001,7 +1103,8 @@ describe('Dashboard Routes', () => {
             severity: 'MINOR',
             quantity: 1,
             status: 'CLOSED',
-            assignedTo: testUserId,
+            assignedToId: testUserId,
+            createdById: testUserId,
             dueDate: new Date('2025-12-31'),
             createdAt: twentyDaysAgo
           }
@@ -1028,7 +1131,8 @@ describe('Dashboard Routes', () => {
             data: {
               id: `wo-complaint-${i}`,
               workOrderNumber: `WO-COMPLAINT-${String(i).padStart(3, '0')}`,
-              partNumber: 'PART-001',
+              partId: 'test-part-123',
+          partNumber: 'PART-001',
               quantity: 10,
               quantityCompleted: 10,
               quantityScrapped: 0,
@@ -1047,6 +1151,7 @@ describe('Dashboard Routes', () => {
         data: {
           id: 'ncr-critical-1',
           ncrNumber: 'NCR-CRITICAL-001',
+          partNumber: 'PART-004',
           workOrderId: workOrders[0].id,
           operation: 'Final Inspection',
           defectType: 'Material',
@@ -1054,7 +1159,8 @@ describe('Dashboard Routes', () => {
           severity: 'CRITICAL',
           quantity: 1,
           status: 'OPEN',
-          assignedTo: testUserId,
+          assignedToId: testUserId,
+          createdById: testUserId,
           dueDate: new Date('2025-12-31'),
           createdAt: twentyDaysAgo
         }

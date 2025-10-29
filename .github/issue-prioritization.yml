@@ -93,7 +93,7 @@ issues:
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
-    blocks: []
+    blocks: [147]
     notes: "Extends existing RBAC system for audit and compliance"
 
   - number: 126
@@ -163,6 +163,30 @@ issues:
     effort_estimate: 10
     blocks: [144, 145, 146]
     notes: "Foundation for all AI/ML capabilities - model management, training, inference"
+
+  # --- Unified Workflow & Approval System ---
+  - number: 147
+    title: "Workflow & Approvals: Core Unified Workflow Engine"
+    category: workflow_approvals
+    foundation_level: 0
+    dependencies: [127]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: [148]
+    notes: "Foundation for unified approvals - replaces disparate approval implementations"
+
+  # --- Advanced Serialization System ---
+  - number: 149
+    title: "Serialization: Configurable Serial Number Format Engine"
+    category: serialization
+    foundation_level: 0
+    dependencies: [90]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: []
+    notes: "Flexible serial number formats for diverse requirements across sites and parts"
 
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
@@ -267,7 +291,7 @@ issues:
     strategic_focus: null
     business_value: 9
     effort_estimate: 7
-    blocks: [105]
+    blocks: [105, 149, 150]
     notes: "Critical for traceability in aerospace manufacturing"
 
   - number: 91
@@ -291,6 +315,18 @@ issues:
     effort_estimate: 7
     blocks: []
     notes: "Automated data capture for inventory operations"
+
+  # --- Advanced Serialization System ---
+  - number: 150
+    title: "Serialization: Advanced Assignment Workflows (Vendor, Late, Propagation)"
+    category: serialization
+    foundation_level: 1
+    dependencies: [90]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: []
+    notes: "Vendor serials, late assignment, and propagation workflows for diverse scenarios"
 
   # --- Production Planning Foundation ---
   - number: 82
@@ -449,6 +485,18 @@ issues:
     effort_estimate: 10
     blocks: []
     notes: "Smart scheduling, demand forecasting, process parameter optimization"
+
+  # --- Unified Workflow & Approval System ---
+  - number: 148
+    title: "Workflow & Approvals: Migrate Existing Approvals to Unified System"
+    category: workflow_approvals
+    foundation_level: 1
+    dependencies: [147]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: []
+    notes: "Migrate routes, work instructions, quality, ECO, and document approvals to unified engine"
 
   # ============================================================================
   # L2: ENHANCED FEATURES
@@ -1122,3 +1170,11 @@ categories:
   ai_ml_capabilities:
     name: "AI/ML Capabilities"
     description: "Artificial intelligence and machine learning features including predictive analytics, process optimization, computer vision, and NLU"
+
+  workflow_approvals:
+    name: "Workflow & Approval System"
+    description: "Unified workflow engine and approval system for routes, work instructions, quality, documents, and ECO processes"
+
+  serialization:
+    name: "Advanced Serialization"
+    description: "Configurable serial number formats and advanced assignment workflows for vendor, late, and propagation scenarios"
