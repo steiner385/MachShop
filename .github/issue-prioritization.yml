@@ -127,8 +127,64 @@ issues:
     strategic_focus: null
     business_value: 10
     effort_estimate: 10
+    blocks: [152, 153, 154, 155, 156, 157, 158, 159]
+    notes: "COMPLETED - Foundation for code quality and confidence in refactoring - SUBSTANTIAL PROGRESS made with comprehensive infrastructure testing"
+
+  # --- Frontend Testing Infrastructure ---
+  - number: 152
+    title: "Testing Infrastructure: Frontend Component & Hook Testing Framework"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
     blocks: []
-    notes: "Foundation for code quality and confidence in refactoring"
+    notes: "Frontend coverage currently 0% - critical for UI reliability and refactoring confidence"
+
+  - number: 153
+    title: "Testing Infrastructure: Backend Service Layer Unit Tests"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 9
+    blocks: []
+    notes: "Core business logic services have minimal coverage - critical for backend reliability"
+
+  - number: 156
+    title: "Testing Infrastructure: Fix Authentication & Authorization Middleware Tests"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 6
+    blocks: []
+    notes: "COMPLETED - 46/46 tests passing, comprehensive auth/RBAC/MFA middleware testing infrastructure complete"
+
+  - number: 157
+    title: "Testing Infrastructure: Database Layer & Repository Testing"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "Database operations and connection handling need comprehensive testing"
+
+  - number: 158
+    title: "Testing Infrastructure: Error Handling & Middleware Testing"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 6
+    blocks: []
+    notes: "COMPLETED - 37/37 tests passing, robust error handling middleware with JWT/async/environment-specific testing complete"
 
   - number: 137
     title: "Testing Infrastructure: Fix All Failing Unit Tests"
@@ -462,6 +518,40 @@ issues:
     effort_estimate: 8
     blocks: []
     notes: "World-class interactive help with guided tours, tooltips, and smart suggestions"
+
+  # --- Testing Infrastructure L1 ---
+  - number: 154
+    title: "Testing Infrastructure: API Route Handler & Integration Tests"
+    category: testing_infrastructure
+    foundation_level: 1
+    dependencies: [152, 153]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "API endpoint testing depends on frontend and backend test infrastructure"
+
+  - number: 155
+    title: "Testing Infrastructure: End-to-End Integration Testing Framework"
+    category: testing_infrastructure
+    foundation_level: 1
+    dependencies: [152, 153, 154]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "Integration testing requires all component testing frameworks in place"
+
+  - number: 159
+    title: "Testing Infrastructure: Automated Coverage Reporting & CI/CD Integration"
+    category: testing_infrastructure
+    foundation_level: 1
+    dependencies: [152, 153, 154]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Coverage automation depends on comprehensive testing infrastructure"
 
   # --- AI/ML Capabilities ---
   - number: 144
