@@ -169,7 +169,7 @@ export class UnifiedApprovalIntegration {
       const workflowInstance = await this.workflowEngine.startWorkflow(workflowInput, createdById);
 
       // Update entity status to reflect workflow initiation
-      await this.updateEntityStatus(entityMapping, 'IN_REVIEW');
+      await this.updateEntityStatus(entityMapping, 'REVIEW');
 
       logger.info(`Successfully initiated workflow ${workflowInstance.id} for ${entityMapping.entityType}:${entityMapping.entityId}`);
 
@@ -210,8 +210,15 @@ export class UnifiedApprovalIntegration {
         throw new Error(`No active workflow found for ${entityType}:${entityId}`);
       }
 
+      // Find the user's assignment in the current workflow
+      const userAssignment = await this.findUserAssignmentInWorkflow(workflowInstance.id, userId);
+      if (!userAssignment) {
+        throw new Error(`No assignment found for user ${userId} in workflow ${workflowInstance.id}`);
+      }
+
       // Create approval action input
       const approvalInput: ApprovalActionInput = {
+        assignmentId: userAssignment.id,
         action,
         comments: comments || '',
         metadata: {
@@ -299,7 +306,7 @@ export class UnifiedApprovalIntegration {
     const mapping: ApprovalEntityMapping = {
       entityType: 'FAI_REPORT',
       entityId: faiId,
-      currentStatus: 'IN_REVIEW',
+      currentStatus: 'REVIEW',
       requiredApproverRoles: ['quality_manager', 'customer_representative'],
       priority: 'HIGH',
       metadata: { requiresSignature, regulatoryCompliance: true }
@@ -422,6 +429,28 @@ export class UnifiedApprovalIntegration {
   // Private Helper Methods
   // ============================================================================
 
+  /**
+   * Find a user's pending assignment in a workflow
+   */
+  private async findUserAssignmentInWorkflow(workflowInstanceId: string, userId: string): Promise<any> {
+    return await this.prisma.workflowAssignment.findFirst({
+      where: {
+        stageInstance: {
+          workflowInstanceId: workflowInstanceId
+        },
+        assignedToId: userId,
+        action: null // Assignment hasn't been completed yet
+      },
+      include: {
+        stageInstance: {
+          include: {
+            stage: true
+          }
+        }
+      }
+    });
+  }
+
   private getWorkflowIdForEntityType(entityType: string, config: UnifiedApprovalConfig): string {
     switch (entityType.toUpperCase()) {
       case 'WORK_INSTRUCTION':
@@ -449,14 +478,10 @@ export class UnifiedApprovalIntegration {
         },
         include: {
           workflow: true,
-          stages: {
+          stageInstances: {
             include: {
               stage: true,
-              assignments: {
-                include: {
-                  user: true
-                }
-              }
+              assignments: true
             }
           }
         }

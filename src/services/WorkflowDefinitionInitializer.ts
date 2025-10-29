@@ -59,7 +59,7 @@ export class WorkflowDefinitionInitializer {
       stages: [
         {
           stageNumber: 1,
-          name: 'Manager Review',
+          stageName: 'Manager Review',
           description: 'Department manager review of work instruction',
           approvalType: 'ANY_ONE',
           assignmentStrategy: 'ROLE_BASED',
@@ -73,7 +73,7 @@ export class WorkflowDefinitionInitializer {
         },
         {
           stageNumber: 2,
-          name: 'Quality Approval',
+          stageName: 'Quality Approval',
           description: 'Quality manager final approval',
           approvalType: 'ALL_REQUIRED',
           assignmentStrategy: 'ROLE_BASED',
@@ -112,7 +112,7 @@ export class WorkflowDefinitionInitializer {
       isTemplate: true
     };
 
-    const result = await this.workflowDefinitionService.createWorkflowDefinition(definition, createdById);
+    const result = await this.workflowDefinitionService.createWorkflow(definition, createdById);
     logger.info(`Created Work Instruction workflow definition: ${result.id}`);
     return result.id;
   }
@@ -126,7 +126,7 @@ export class WorkflowDefinitionInitializer {
       stages: [
         {
           stageNumber: 1,
-          name: 'Technical Review',
+          stageName: 'Technical Review',
           description: 'Engineering review of FAI measurements and documentation',
           approvalType: 'ALL_REQUIRED',
           assignmentStrategy: 'ROLE_BASED',
@@ -140,7 +140,7 @@ export class WorkflowDefinitionInitializer {
         },
         {
           stageNumber: 2,
-          name: 'Quality Manager Approval',
+          stageName: 'Quality Manager Approval',
           description: 'Quality manager certification of FAI compliance',
           approvalType: 'ALL_REQUIRED',
           assignmentStrategy: 'ROLE_BASED',
@@ -154,7 +154,7 @@ export class WorkflowDefinitionInitializer {
         },
         {
           stageNumber: 3,
-          name: 'Customer Approval',
+          stageName: 'Customer Approval',
           description: 'Customer representative review and acceptance',
           approvalType: 'ANY_ONE',
           assignmentStrategy: 'ROLE_BASED',
@@ -193,14 +193,14 @@ export class WorkflowDefinitionInitializer {
     const definition: WorkflowDefinitionInput = {
       name: 'FAI Report Approval',
       description: 'First Article Inspection approval workflow with customer validation',
-      workflowType: 'FAI_REPORT',
+      workflowType: 'INSPECTION_PLAN',
       version: '1.0.0',
       structure,
       isActive: true,
       isTemplate: true
     };
 
-    const result = await this.workflowDefinitionService.createWorkflowDefinition(definition, createdById);
+    const result = await this.workflowDefinitionService.createWorkflow(definition, createdById);
     logger.info(`Created FAI Report workflow definition: ${result.id}`);
     return result.id;
   }
@@ -214,7 +214,7 @@ export class WorkflowDefinitionInitializer {
       stages: [
         {
           stageNumber: 1,
-          name: 'QC Inspector Review',
+          stageName: 'QC Inspector Review',
           description: 'Quality control inspector verification',
           approvalType: 'ANY_ONE',
           assignmentStrategy: 'ROLE_BASED',
@@ -228,7 +228,7 @@ export class WorkflowDefinitionInitializer {
         },
         {
           stageNumber: 2,
-          name: 'Quality Manager Approval',
+          stageName: 'Quality Manager Approval',
           description: 'Quality manager final approval',
           approvalType: 'ALL_REQUIRED',
           assignmentStrategy: 'ROLE_BASED',
@@ -260,14 +260,14 @@ export class WorkflowDefinitionInitializer {
     const definition: WorkflowDefinitionInput = {
       name: 'Quality Process Approval',
       description: 'Standard approval workflow for quality processes and inspections',
-      workflowType: 'QUALITY_PROCESS',
+      workflowType: 'SOP',
       version: '1.0.0',
       structure,
       isActive: true,
       isTemplate: true
     };
 
-    const result = await this.workflowDefinitionService.createWorkflowDefinition(definition, createdById);
+    const result = await this.workflowDefinitionService.createWorkflow(definition, createdById);
     logger.info(`Created Quality Process workflow definition: ${result.id}`);
     return result.id;
   }
@@ -281,7 +281,7 @@ export class WorkflowDefinitionInitializer {
       stages: [
         {
           stageNumber: 1,
-          name: 'Document Control Review',
+          stageName: 'Document Control Review',
           description: 'Document controller review for compliance and formatting',
           approvalType: 'ALL_REQUIRED',
           assignmentStrategy: 'ROLE_BASED',
@@ -295,7 +295,7 @@ export class WorkflowDefinitionInitializer {
         },
         {
           stageNumber: 2,
-          name: 'Department Approval',
+          stageName: 'Department Approval',
           description: 'Department manager content approval',
           approvalType: 'ANY_ONE',
           assignmentStrategy: 'ROLE_BASED',
@@ -334,7 +334,7 @@ export class WorkflowDefinitionInitializer {
       isTemplate: true
     };
 
-    const result = await this.workflowDefinitionService.createWorkflowDefinition(definition, createdById);
+    const result = await this.workflowDefinitionService.createWorkflow(definition, createdById);
     logger.info(`Created Document Approval workflow definition: ${result.id}`);
     return result.id;
   }
@@ -348,7 +348,7 @@ export class WorkflowDefinitionInitializer {
       stages: [
         {
           stageNumber: 1,
-          name: 'Emergency Approval',
+          stageName: 'Emergency Approval',
           description: 'Expedited approval for emergency situations',
           approvalType: 'ANY_ONE',
           assignmentStrategy: 'ROLE_BASED',
@@ -381,7 +381,7 @@ export class WorkflowDefinitionInitializer {
       isTemplate: true
     };
 
-    const result = await this.workflowDefinitionService.createWorkflowDefinition(definition, createdById);
+    const result = await this.workflowDefinitionService.createWorkflow(definition, createdById);
     logger.info(`Created Emergency Approval workflow definition: ${result.id}`);
     return result.id;
   }
