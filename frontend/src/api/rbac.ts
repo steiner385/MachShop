@@ -9,8 +9,6 @@ import {
   Role,
   Permission,
   RolePermission,
-  UserRole,
-  UserSiteRole,
   Site,
   CreateRoleRequest,
   UpdateRoleRequest,
@@ -18,7 +16,6 @@ import {
   UpdatePermissionRequest,
   AssignRolePermissionRequest,
   RevokeRolePermissionRequest,
-  ReplaceRolePermissionsRequest,
   AssignUserRoleRequest,
   RevokeUserRoleRequest,
   PaginatedRolesResponse,
@@ -318,7 +315,7 @@ export const rbacAPI = {
     if (excludeId) {
       params.append('excludeId', excludeId);
     }
-    const response = await rbacClient.get(`/roles/check-code?${params.toString()}`);
+    const response: { available: boolean } = await rbacClient.get(`/roles/check-code?${params.toString()}`);
     return response.available;
   },
 
@@ -330,7 +327,7 @@ export const rbacAPI = {
     if (excludeId) {
       params.append('excludeId', excludeId);
     }
-    const response = await rbacClient.get(`/permissions/check-code?${params.toString()}`);
+    const response: { available: boolean } = await rbacClient.get(`/permissions/check-code?${params.toString()}`);
     return response.available;
   },
 };
