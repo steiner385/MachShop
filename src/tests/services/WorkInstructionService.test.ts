@@ -396,38 +396,10 @@ describe('WorkInstructionService', () => {
     });
   });
 
-  describe('approveWorkInstruction', () => {
-    it('should approve work instruction', async () => {
-      const mockId = 'wi-123';
-      const mockUserId = 'user-123';
-
-      const mockResult = {
-        id: mockId,
-        status: WorkInstructionStatus.APPROVED,
-        approvedById: mockUserId,
-        approvedAt: expect.any(Date),
-        updatedById: mockUserId,
-      };
-
-      mockPrisma.workInstruction.update.mockResolvedValue(mockResult);
-
-      const result = await service.approveWorkInstruction(mockId, mockUserId);
-
-      expect(mockPrisma.workInstruction.update).toHaveBeenCalledWith({
-        where: { id: mockId },
-        data: {
-          status: WorkInstructionStatus.APPROVED,
-          approvedById: mockUserId,
-          approvedAt: expect.any(Date),
-          updatedById: mockUserId,
-        },
-        include: expect.any(Object),
-      });
-
-      expect(result.status).toBe(WorkInstructionStatus.APPROVED);
-      expect(result.approvedById).toBe(mockUserId);
-    });
-  });
+  // ✅ GITHUB ISSUE #147: Legacy approval tests removed
+  // Approval functionality now uses the unified workflow system
+  // See: src/tests/services/UnifiedApprovalIntegration.test.ts
+  // See: src/tests/unit/approval-double-update-prevention.test.ts
 
   describe('getWorkInstructionsByPartId', () => {
     it('should return approved work instructions for part', async () => {

@@ -258,6 +258,7 @@ router.delete('/:id/steps/:stepId', async (req: Request, res: Response, next: Ne
 router.post('/:id/approve', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
+    const { comments } = req.body;
 
     // Get user ID from auth middleware
     const userId = (req as any).user?.id;
@@ -266,10 +267,22 @@ router.post('/:id/approve', async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    // TODO: Check if user has approval permission
+    // ✅ GITHUB ISSUE #147: Redirect to unified approval endpoint
+    // This route now forwards to the unified approval system for consistency
+    const unifiedApprovalService = new (require('../services/UnifiedApprovalIntegration').UnifiedApprovalIntegration)(
+      (workInstructionService as any).prisma
+    );
 
-    const workInstruction = await workInstructionService.approveWorkInstruction(id, userId);
+    await unifiedApprovalService.initialize(userId);
+    const result = await unifiedApprovalService.approveWorkInstruction(id, userId, comments);
 
+    if (!result.success) {
+      res.status(400).json({ error: result.error || 'Approval failed' });
+      return;
+    }
+
+    // Fetch the updated work instruction
+    const workInstruction = await workInstructionService.getWorkInstructionById(id);
     res.json(workInstruction);
   } catch (error) {
     next(error);
@@ -310,15 +323,28 @@ router.post('/:id/reject', async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    // TODO: Check if user has rejection permission
-
-    const workInstruction = await workInstructionService.rejectWorkInstruction(
-      id,
-      userId,
-      reason,
-      comments
+    // ✅ GITHUB ISSUE #147: Redirect to unified approval endpoint
+    // This route now forwards to the unified approval system for consistency
+    const unifiedApprovalService = new (require('../services/UnifiedApprovalIntegration').UnifiedApprovalIntegration)(
+      (workInstructionService as any).prisma
     );
 
+    await unifiedApprovalService.initialize(userId);
+    const result = await unifiedApprovalService.processApprovalAction(
+      'WORK_INSTRUCTION',
+      id,
+      'REJECT',
+      userId,
+      `${reason}: ${comments}`
+    );
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error || 'Rejection failed' });
+      return;
+    }
+
+    // Fetch the updated work instruction
+    const workInstruction = await workInstructionService.getWorkInstructionById(id);
     res.json(workInstruction);
   } catch (error) {
     next(error);

@@ -20,6 +20,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import SsoOrchestrationService from '../services/SsoOrchestrationService';
 import { resolveUserPermissions } from '../services/permissionService';
+import prisma from '../lib/database';
 
 const router = express.Router();
 
@@ -286,8 +287,8 @@ router.all('/callback/saml',
     }
 
     try {
-      // Parse SAML response (would use actual SAML library in production)
-      const userProfile = await parseSamlResponse(SAMLResponse);
+      // Parse SAML response using real SAML library
+      const userProfile = await parseSamlResponse(SAMLResponse, flow.providerId);
 
       const flow = orchestrationService.getFlowStatus(flowId);
       if (!flow) {
@@ -472,39 +473,166 @@ async function generateSsoTokens(user: any, sessionId: string) {
 }
 
 /**
- * Parse SAML response (mock implementation)
+ * Parse SAML response using @node-saml/node-saml
  */
-async function parseSamlResponse(samlResponse: string): Promise<any> {
-  // This would use a proper SAML library like node-saml
-  // For now, return a mock user profile
-  return {
-    email: 'user@company.com',
-    firstName: 'SAML',
-    lastName: 'User'
-  };
+async function parseSamlResponse(samlResponse: string, providerId: string): Promise<any> {
+  try {
+    const { SAML } = await import('@node-saml/node-saml');
+
+    // Get provider configuration from database
+    const provider = await prisma.ssoProvider.findUnique({
+      where: { id: providerId }
+    });
+
+    if (!provider) {
+      throw new Error(`Provider ${providerId} not found`);
+    }
+
+    // Get SAML configuration from provider metadata
+    const samlConfig = {
+      cert: provider.metadata.cert || provider.metadata.certificate,
+      issuer: provider.metadata.issuer,
+      callbackUrl: provider.metadata.callbackUrl,
+      entryPoint: provider.metadata.entryPoint,
+      logoutUrl: provider.metadata.logoutUrl,
+      identifierFormat: provider.metadata.identifierFormat || 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
+    };
+
+    const saml = new SAML(samlConfig);
+
+    return new Promise((resolve, reject) => {
+      saml.validatePostResponse({ SAMLResponse: samlResponse }, (err: any, profile: any) => {
+        if (err) {
+          logger.error('SAML validation failed', { error: err, providerId });
+          reject(new Error(`SAML validation failed: ${err.message}`));
+        } else if (!profile) {
+          reject(new Error('No profile returned from SAML response'));
+        } else {
+          // Extract user information from SAML profile
+          const userProfile = {
+            email: profile.nameID || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || profile.email,
+            firstName: profile.givenName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || profile.firstName,
+            lastName: profile.surname || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] || profile.lastName,
+            displayName: profile.displayName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'],
+            attributes: profile
+          };
+
+          logger.info('SAML response parsed successfully', {
+            providerId,
+            email: userProfile.email,
+            attributes: Object.keys(profile)
+          });
+
+          resolve(userProfile);
+        }
+      });
+    });
+
+  } catch (error) {
+    logger.error('Failed to parse SAML response', { error, providerId });
+    throw new Error(`SAML parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
- * Exchange OIDC authorization code for tokens (mock implementation)
+ * Exchange OIDC authorization code for tokens using openid-client
  */
 async function exchangeOidcCode(code: string, providerId: string): Promise<{
   userProfile: any;
   sessionData: any;
 }> {
-  // This would implement the actual OIDC token exchange
-  // For now, return mock data
-  return {
-    userProfile: {
-      email: 'user@company.com',
-      firstName: 'OIDC',
-      lastName: 'User'
-    },
-    sessionData: {
-      accessToken: 'mock_access_token',
-      refreshToken: 'mock_refresh_token',
-      expiresIn: 3600
+  try {
+    const { Client, Issuer } = await import('openid-client');
+
+    // Get provider configuration from database
+    const provider = await prisma.ssoProvider.findUnique({
+      where: { id: providerId }
+    });
+
+    if (!provider) {
+      throw new Error(`Provider ${providerId} not found`);
     }
-  };
+
+    // Extract OIDC configuration from provider metadata
+    const {
+      issuer_url,
+      client_id,
+      client_secret,
+      redirect_uri,
+      scope = 'openid profile email'
+    } = provider.metadata;
+
+    if (!issuer_url || !client_id || !client_secret || !redirect_uri) {
+      throw new Error(`Missing OIDC configuration for provider ${providerId}`);
+    }
+
+    // Discover issuer configuration
+    const issuer = await Issuer.discover(issuer_url);
+    logger.info('OIDC issuer discovered', {
+      providerId,
+      issuer: issuer.issuer,
+      authorization_endpoint: issuer.authorization_endpoint,
+      token_endpoint: issuer.token_endpoint
+    });
+
+    // Create client
+    const client = new issuer.Client({
+      client_id,
+      client_secret,
+      redirect_uris: [redirect_uri],
+      response_types: ['code']
+    });
+
+    // Exchange authorization code for tokens
+    const tokenSet = await client.callback(redirect_uri, { code });
+
+    if (!tokenSet.access_token) {
+      throw new Error('No access token received from OIDC provider');
+    }
+
+    // Get user info using access token
+    const userinfo = await client.userinfo(tokenSet);
+
+    // Normalize user profile
+    const userProfile = {
+      email: userinfo.email || userinfo.preferred_username,
+      firstName: userinfo.given_name || userinfo.first_name,
+      lastName: userinfo.family_name || userinfo.last_name,
+      displayName: userinfo.name || userinfo.display_name,
+      picture: userinfo.picture,
+      attributes: userinfo
+    };
+
+    const sessionData = {
+      accessToken: tokenSet.access_token,
+      refreshToken: tokenSet.refresh_token,
+      idToken: tokenSet.id_token,
+      tokenType: tokenSet.token_type || 'Bearer',
+      expiresIn: tokenSet.expires_in || 3600,
+      expiresAt: tokenSet.expires_at,
+      scope: tokenSet.scope
+    };
+
+    logger.info('OIDC token exchange completed successfully', {
+      providerId,
+      email: userProfile.email,
+      hasRefreshToken: !!sessionData.refreshToken,
+      expiresIn: sessionData.expiresIn
+    });
+
+    return {
+      userProfile,
+      sessionData
+    };
+
+  } catch (error) {
+    logger.error('OIDC token exchange failed', {
+      error: error instanceof Error ? error.message : error,
+      providerId,
+      code: code.substring(0, 20) + '...' // Log partial code for debugging
+    });
+    throw new Error(`OIDC token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export default router;

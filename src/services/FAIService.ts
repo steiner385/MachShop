@@ -17,6 +17,8 @@ import {
 } from '@/types/fai';
 import { QIFService } from './QIFService';
 import { QIFDocument, MESQIFPlan, MESQIFResults } from '@/types/qif';
+// ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+import { UnifiedApprovalIntegration } from './UnifiedApprovalIntegration';
 
 /**
  * FAIService
@@ -33,9 +35,12 @@ import { QIFDocument, MESQIFPlan, MESQIFResults } from '@/types/qif';
  */
 export class FAIService {
   private qifService: QIFService;
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+  private unifiedApprovalService: UnifiedApprovalIntegration;
 
   constructor(private prisma: PrismaClient) {
     this.qifService = new QIFService();
+    this.unifiedApprovalService = new UnifiedApprovalIntegration(prisma);
   }
 
   /**
@@ -527,14 +532,88 @@ export class FAIService {
   }
 
   /**
-   * Approve FAI report
+   * Submit FAI report for approval using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+   */
+  async submitFAIReportForApproval(
+    faiReportId: string,
+    userId: string,
+    requiredApproverRoles: string[] = ['quality_manager', 'customer_representative'],
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'HIGH'
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    nextApprovers?: string[];
+    error?: string;
+  }> {
+    try {
+      logger.info(`Submitting FAI report for approval through unified workflow: ${faiReportId}`, {
+        faiReportId,
+        submittedBy: userId,
+        requiredApproverRoles,
+        priority
+      });
+
+      // Initialize the unified approval service if needed
+      await this.unifiedApprovalService.initialize(userId);
+
+      // Initiate approval workflow
+      const result = await this.unifiedApprovalService.initiateApproval(
+        {
+          entityType: 'FAI_REPORT',
+          entityId: faiReportId,
+          currentStatus: 'IN_REVIEW',
+          requiredApproverRoles,
+          priority,
+          metadata: {
+            submittedAt: new Date().toISOString(),
+            submittedBy: userId,
+            requiresSignature: true,
+            regulatoryCompliance: true
+          }
+        },
+        userId
+      );
+
+      // Update FAI report status to in review
+      await this.prisma.fAIReport.update({
+        where: { id: faiReportId },
+        data: {
+          status: 'IN_REVIEW' as FAIStatus,
+        },
+      });
+
+      logger.info(`FAI report submitted for approval successfully: ${faiReportId}`, {
+        faiReportId,
+        workflowInstanceId: result.workflowInstanceId,
+        currentStage: result.currentStage
+      });
+
+      return result;
+    } catch (error) {
+      logger.error(`Error submitting FAI report ${faiReportId} for approval:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve FAI report using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
    *
    * @param faiReportId - FAI report ID
    * @param approvedById - User ID approving the report
+   * @param comments - Optional approval comments
    * @returns Updated FAI report
    */
-  async approveFAIReport(faiReportId: string, approvedById: string): Promise<FAIReport> {
+  async approveFAIReport(faiReportId: string, approvedById: string, comments?: string): Promise<FAIReport> {
     try {
+      logger.info(`Approving FAI report through unified workflow: ${faiReportId}`, {
+        faiReportId,
+        approvedBy: approvedById,
+        comments: comments?.substring(0, 100)
+      });
+
       const faiReport = await this.prisma.fAIReport.findUnique({
         where: { id: faiReportId },
         include: { characteristics: true },
@@ -567,13 +646,21 @@ export class FAIService {
         });
       }
 
-      const updated = await this.prisma.fAIReport.update({
+      // Use unified approval service (FAI always requires signature for regulatory compliance)
+      const approvalResult = await this.unifiedApprovalService.approveFAIReport(
+        faiReportId,
+        approvedById,
+        comments,
+        true // FAI always requires signature for regulatory compliance
+      );
+
+      if (!approvalResult.success) {
+        throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
+      }
+
+      // Fetch the updated FAI report (already updated by unified approval service)
+      const updated = await this.prisma.fAIReport.findUnique({
         where: { id: faiReportId },
-        data: {
-          status: FAIStatus.APPROVED,
-          approvedById,
-          approvedAt: new Date(),
-        },
         include: {
           characteristics: {
             orderBy: { characteristicNumber: 'asc' },
@@ -581,16 +668,115 @@ export class FAIService {
         },
       });
 
-      logger.info(`FAI report approved`, {
+      if (!updated) {
+        throw new Error(`FAI report not found after approval: ${faiReportId}`);
+      }
+
+      logger.info(`FAI report approved successfully through unified workflow`, {
         faiId: faiReportId,
         approvedById,
         characteristicsCount: updated.characteristics.length,
         failedCount: failedChars.length,
+        workflowInstanceId: approvalResult.workflowInstanceId,
+        requiresSignature: approvalResult.requiresSignature
       });
 
       return this.mapToFAIReport(updated);
     } catch (error) {
-      logger.error('Error approving FAI report', { error, faiReportId });
+      logger.error('Error approving FAI report through unified workflow', { error, faiReportId });
+      throw error;
+    }
+  }
+
+  /**
+   * Reject FAI report using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+   */
+  async rejectFAIReport(
+    faiReportId: string,
+    userId: string,
+    rejectionReason: string,
+    comments: string
+  ): Promise<FAIReport> {
+    try {
+      logger.info(`Rejecting FAI report through unified workflow: ${faiReportId}`, {
+        faiReportId,
+        rejectedBy: userId,
+        rejectionReason: rejectionReason.substring(0, 100),
+        comments: comments.substring(0, 100)
+      });
+
+      // Use unified approval service for rejection
+      const rejectionResult = await this.unifiedApprovalService.processApprovalAction(
+        'FAI_REPORT',
+        faiReportId,
+        'REJECT',
+        userId,
+        `${rejectionReason}: ${comments}`
+      );
+
+      if (!rejectionResult.success) {
+        throw new Error(`Rejection failed: ${rejectionResult.error || 'Unknown error'}`);
+      }
+
+      // Fetch the updated FAI report (already updated by unified approval service)
+      const updated = await this.prisma.fAIReport.findUnique({
+        where: { id: faiReportId },
+        include: {
+          characteristics: {
+            orderBy: { characteristicNumber: 'asc' },
+          },
+        },
+      });
+
+      if (!updated) {
+        throw new Error(`FAI report not found after rejection: ${faiReportId}`);
+      }
+
+      logger.info(`FAI report rejected successfully through unified workflow: ${faiReportId}`, {
+        faiReportId,
+        rejectedBy: userId,
+        rejectionReason,
+        workflowInstanceId: rejectionResult.workflowInstanceId
+      });
+
+      return this.mapToFAIReport(updated);
+    } catch (error) {
+      logger.error(`Error rejecting FAI report ${faiReportId} through unified workflow:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get approval status for FAI report from unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+   */
+  async getFAIReportApprovalStatus(faiReportId: string): Promise<{
+    hasActiveWorkflow: boolean;
+    workflowStatus?: string;
+    currentStage?: string;
+    completionPercentage?: number;
+    nextApprovers?: string[];
+    requiresSignature?: boolean;
+    approvalHistory?: any[];
+  }> {
+    try {
+      logger.debug(`Getting approval status for FAI report: ${faiReportId}`);
+
+      const status = await this.unifiedApprovalService.getApprovalStatus(
+        'FAI_REPORT',
+        faiReportId
+      );
+
+      logger.debug(`Retrieved approval status for FAI report ${faiReportId}`, {
+        hasActiveWorkflow: status.hasActiveWorkflow,
+        workflowStatus: status.workflowStatus,
+        currentStage: status.currentStage
+      });
+
+      return status;
+    } catch (error) {
+      logger.error(`Error getting approval status for FAI report ${faiReportId}:`, error);
       throw error;
     }
   }

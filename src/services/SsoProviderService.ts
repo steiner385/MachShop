@@ -488,9 +488,148 @@ export class SsoProviderService extends EventEmitter {
     success: boolean;
     error?: string;
   }> {
-    // This would contain provider-specific health checks
-    // For now, we'll return a mock success response
-    return { success: true };
+    try {
+      // Perform provider-specific health checks based on provider type
+      switch (provider.type) {
+        case 'SAML2':
+          return await this.testSamlProvider(provider);
+        case 'OIDC':
+          return await this.testOidcProvider(provider);
+        case 'OAuth2':
+          return await this.testOAuth2Provider(provider);
+        default:
+          return {
+            success: false,
+            error: `Unsupported provider type: ${provider.type}`
+          };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during provider test'
+      };
+    }
+  }
+
+  private async testSamlProvider(provider: SsoProvider): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { metadata } = provider;
+
+      // Check if required SAML metadata is present
+      if (!metadata.entryPoint && !metadata.issuer_url) {
+        return { success: false, error: 'Missing SAML entry point or issuer URL' };
+      }
+
+      // Test connectivity to SAML metadata endpoint
+      const metadataUrl = metadata.metadataUrl || `${metadata.entryPoint}/metadata`;
+
+      const response = await fetch(metadataUrl, {
+        method: 'GET',
+        timeout: 10000,
+        headers: { 'User-Agent': 'MachShop-SSO-Health-Check/1.0' }
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `SAML metadata endpoint returned ${response.status}`
+        };
+      }
+
+      // Basic validation that we got XML metadata
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('xml')) {
+        return {
+          success: false,
+          error: 'SAML metadata endpoint did not return XML content'
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `SAML provider test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async testOidcProvider(provider: SsoProvider): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { metadata } = provider;
+
+      if (!metadata.issuer_url) {
+        return { success: false, error: 'Missing OIDC issuer URL' };
+      }
+
+      // Test OIDC discovery endpoint
+      const discoveryUrl = `${metadata.issuer_url}/.well-known/openid-configuration`;
+
+      const response = await fetch(discoveryUrl, {
+        method: 'GET',
+        timeout: 10000,
+        headers: { 'User-Agent': 'MachShop-SSO-Health-Check/1.0' }
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `OIDC discovery endpoint returned ${response.status}`
+        };
+      }
+
+      const config = await response.json();
+
+      // Validate required OIDC endpoints are present
+      if (!config.authorization_endpoint || !config.token_endpoint) {
+        return {
+          success: false,
+          error: 'OIDC discovery missing required endpoints'
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `OIDC provider test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async testOAuth2Provider(provider: SsoProvider): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { metadata } = provider;
+
+      if (!metadata.authorization_endpoint) {
+        return { success: false, error: 'Missing OAuth2 authorization endpoint' };
+      }
+
+      // Test OAuth2 authorization endpoint (just check if it's reachable)
+      const response = await fetch(metadata.authorization_endpoint, {
+        method: 'HEAD',
+        timeout: 10000,
+        headers: { 'User-Agent': 'MachShop-SSO-Health-Check/1.0' }
+      });
+
+      if (!response.ok && response.status !== 400) {
+        // 400 is acceptable for HEAD request to auth endpoint
+        return {
+          success: false,
+          error: `OAuth2 authorization endpoint returned ${response.status}`
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `OAuth2 provider test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
   }
 
   private startHealthChecking(): void {
