@@ -1,0 +1,986 @@
+# MES Issue Prioritization Framework
+# This file defines the prioritization logic for GitHub issues to ensure
+# foundational features are built before dependent features.
+#
+# Foundation Levels:
+#   L0 (Core Infrastructure) - Must be built first, enables everything else
+#   L1 (Essential Capabilities) - Core business features that depend on L0
+#   L2 (Enhanced Features) - Advanced capabilities that extend L1
+#   L3 (Refinements) - Nice-to-have features, optimizations, and tools
+
+# Scoring Weights (must sum to 100)
+scoring_weights:
+  foundation_level: 35    # Lower level = higher priority (L0 > L1 > L2 > L3)
+  dependency_status: 25   # All dependencies resolved = eligible, otherwise blocked
+  strategic_alignment: 20 # Alignment with Time Tracking & Quality Management
+  business_value: 10      # Customer impact and revenue potential
+  effort_value_ratio: 10  # Quick wins get modest boost (value/effort)
+
+# Strategic Focus Areas (get priority boost)
+strategic_focus:
+  - time_tracking
+  - quality_management
+
+# Issue Definitions
+issues:
+  # ============================================================================
+  # L0: CORE INFRASTRUCTURE
+  # ============================================================================
+
+  # --- Time Tracking Core ---
+  - number: 46
+    title: "Core Time Tracking Infrastructure & Configuration"
+    category: time_tracking
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: time_tracking
+    business_value: 9      # 1-10 scale
+    effort_estimate: 8     # 1-10 scale (story points proxy)
+    blocks: [47, 49, 51, 52, 53]
+    notes: "COMPLETED - Foundation for all time tracking features"
+
+  # --- Enterprise SSO & Authentication ---
+  - number: 134
+    title: "Unified Multi-Provider SSO Management System"
+    category: security_auth
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 9
+    blocks: [133, 132, 131]
+    notes: "Foundation for enterprise SSO, must come before specific providers"
+
+  - number: 133
+    title: "Azure AD/Entra ID Native Integration"
+    category: security_auth
+    foundation_level: 0
+    dependencies: [134]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Most requested enterprise SSO provider"
+
+  - number: 132
+    title: "OAuth 2.0/OpenID Connect Integration"
+    category: security_auth
+    foundation_level: 0
+    dependencies: [134]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Standard SSO protocol support"
+
+  - number: 131
+    title: "SAML 2.0 Integration"
+    category: security_auth
+    foundation_level: 0
+    dependencies: [134]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: []
+    notes: "Legacy enterprise SSO support"
+
+  # --- Advanced RBAC Extensions ---
+  - number: 127
+    title: "Comprehensive Permission Usage Tracking"
+    category: security_rbac
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Extends existing RBAC system for audit and compliance"
+
+  - number: 126
+    title: "Time-Based Permission Grants (Temporal Permissions)"
+    category: security_rbac
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Critical for temporary access scenarios"
+
+  - number: 125
+    title: "Role Templates for Predefined Configurations"
+    category: security_rbac
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 4
+    blocks: []
+    notes: "Makes RBAC easier to deploy for customers"
+
+  # ============================================================================
+  # L1: ESSENTIAL CAPABILITIES
+  # ============================================================================
+
+  # --- Time Tracking Operations ---
+  - number: 47
+    title: "Multi-Interface Time Clock System (Kiosk, Mobile, Embedded)"
+    category: time_tracking
+    foundation_level: 1
+    dependencies: [46]
+    strategic_focus: time_tracking
+    business_value: 9
+    effort_estimate: 7
+    blocks: [51, 53]
+    notes: "Primary time entry interface for shop floor"
+
+  - number: 49
+    title: "Machine-Based Time Tracking & Costing"
+    category: time_tracking
+    foundation_level: 1
+    dependencies: [46]
+    strategic_focus: time_tracking
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "Automatic time tracking from equipment"
+
+  - number: 51
+    title: "Time Entry Management & Approvals"
+    category: time_tracking
+    foundation_level: 1
+    dependencies: [46, 47]
+    strategic_focus: time_tracking
+    business_value: 8
+    effort_estimate: 6
+    blocks: [53]
+    notes: "Manual time entry corrections and supervisor approvals"
+
+  # --- Quality Management Foundation ---
+  - number: 54
+    title: "Hierarchical Cause Code System for NCR Root Cause Analysis"
+    category: quality_management
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 5
+    blocks: [56, 57, 58]
+    notes: "Foundation for structured root cause analysis"
+
+  - number: 55
+    title: "Enhanced NCR Workflow States & Disposition (CTP, DDR, MRB)"
+    category: quality_management
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: quality_management
+    business_value: 9
+    effort_estimate: 6
+    blocks: [56, 57, 58]
+    notes: "Extends existing NCR system with aerospace-specific dispositions"
+
+  - number: 56
+    title: "CAPA (Corrective & Preventive Action) Tracking"
+    category: quality_management
+    foundation_level: 1
+    dependencies: [54, 55]
+    strategic_focus: quality_management
+    business_value: 9
+    effort_estimate: 7
+    blocks: [57, 58]
+    notes: "Critical for quality management and compliance"
+
+  - number: 57
+    title: "8D Problem Solving Framework"
+    category: quality_management
+    foundation_level: 1
+    dependencies: [56]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 6
+    blocks: [58]
+    notes: "Structured problem-solving methodology"
+
+  # --- Inventory & Material Management Foundation ---
+  - number: 88
+    title: "Comprehensive Inventory Management"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 9
+    blocks: [89, 90, 91, 92, 84]
+    notes: "Core inventory tracking system, foundational for material management"
+
+  - number: 90
+    title: "Lot Tracking & Serialization"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: [88]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: [105]
+    notes: "Critical for traceability in aerospace manufacturing"
+
+  - number: 91
+    title: "Inventory Transaction Engine & Cycle Counting"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: [88]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: [89]
+    notes: "Transaction processing and inventory accuracy"
+
+  - number: 92
+    title: "Barcode & RFID Scanning Infrastructure"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: [88]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Automated data capture for inventory operations"
+
+  # --- Production Planning Foundation ---
+  - number: 82
+    title: "Advanced Production Scheduler (Finite Capacity)"
+    category: production_planning
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 10
+    blocks: [83, 85, 86, 87]
+    notes: "Core scheduling engine, complex but foundational"
+
+  - number: 83
+    title: "Capacity Planning & Resource Management"
+    category: production_planning
+    foundation_level: 1
+    dependencies: [82]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: [87]
+    notes: "Resource allocation and capacity analysis"
+
+  - number: 84
+    title: "Material Requirements Planning (MRP)"
+    category: production_planning
+    foundation_level: 1
+    dependencies: [88]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 9
+    blocks: []
+    notes: "Material demand calculation based on production schedule"
+
+  - number: 85
+    title: "Master Production Schedule (MPS)"
+    category: production_planning
+    foundation_level: 1
+    dependencies: [82]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: [86]
+    notes: "High-level production planning"
+
+  # --- Regulatory Compliance Foundation ---
+  - number: 102
+    title: "AS9100/ISO 9001/ISO 13485 Compliance Framework"
+    category: regulatory_compliance
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: quality_management
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "Critical for aerospace and medical device manufacturing"
+
+  - number: 103
+    title: "FDA 21 CFR Part 11 Electronic Records & Signatures"
+    category: regulatory_compliance
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Extends existing electronic signature system for FDA compliance"
+
+  - number: 104
+    title: "ITAR/Export Control Management"
+    category: regulatory_compliance
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 9
+    blocks: []
+    notes: "Critical for aerospace and defense manufacturing"
+
+  - number: 105
+    title: "Full Product Genealogy & Where-Used Traceability"
+    category: regulatory_compliance
+    foundation_level: 1
+    dependencies: [90]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "Complete traceability for recalls and compliance"
+
+  # ============================================================================
+  # L2: ENHANCED FEATURES
+  # ============================================================================
+
+  # --- Advanced Quality Management ---
+  - number: 58
+    title: "Quality Analytics, Pareto Analysis & Cost of Quality"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [54, 55, 56, 57]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Analytics on top of quality foundation"
+
+  - number: 98
+    title: "Statistical Process Control (SPC) & Control Charts"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [54, 55]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 8
+    blocks: [99, 101]
+    notes: "Real-time process monitoring and control"
+
+  - number: 99
+    title: "PPAP & APQP System"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [98]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Production Part Approval Process for automotive/aerospace"
+
+  - number: 100
+    title: "First Article Inspection (FAI) Management (AS9102)"
+    category: quality_management
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Some FAI functionality exists, needs enhancement for AS9102"
+
+  - number: 101
+    title: "Control Plans & Inspection Planning"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [98]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Formalized inspection planning and control plans"
+
+  # --- Equipment & Maintenance Management ---
+  - number: 94
+    title: "Equipment Registry & Maintenance Management"
+    category: equipment_maintenance
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: [95, 96, 97]
+    notes: "Extends existing ISA-95 equipment hierarchy with maintenance"
+
+  - number: 95
+    title: "Tool Life Tracking & Management"
+    category: equipment_maintenance
+    foundation_level: 2
+    dependencies: [94]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Tool wear tracking and replacement scheduling"
+
+  - number: 96
+    title: "Calibration Management for Measurement Equipment"
+    category: equipment_maintenance
+    foundation_level: 2
+    dependencies: [94]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Critical for quality compliance and measurement accuracy"
+
+  - number: 97
+    title: "Preventive & Predictive Maintenance"
+    category: equipment_maintenance
+    foundation_level: 2
+    dependencies: [94]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: []
+    notes: "Reduces downtime and extends equipment life"
+
+  # --- Outside Processing (OSP) Operations ---
+  - number: 59
+    title: "Core OSP/Farmout Operations Management"
+    category: osp_operations
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: [60, 61, 62]
+    notes: "Foundation for external processing workflows"
+
+  - number: 60
+    title: "ERP Integration for OSP (Impact, SAP, Oracle)"
+    category: osp_operations
+    foundation_level: 2
+    dependencies: [59]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: []
+    notes: "OSP purchase order and receiving integration"
+
+  - number: 61
+    title: "Label Printing System Integration"
+    category: osp_operations
+    foundation_level: 2
+    dependencies: [59]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 4
+    blocks: []
+    notes: "Automated label generation for OSP shipments"
+
+  - number: 62
+    title: "Supplier Portal & Collaboration Platform"
+    category: osp_operations
+    foundation_level: 2
+    dependencies: [59]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 8
+    blocks: []
+    notes: "External supplier access for work instructions and data collection"
+
+  # --- Flexible MES Workflow System ---
+  - number: 40
+    title: "Site-Level Workflow Configuration"
+    category: flexible_workflow
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: [41, 43, 44, 45]
+    notes: "Foundation for configurable shop floor execution"
+
+  - number: 41
+    title: "Flexible Workflow Enforcement Engine"
+    category: flexible_workflow
+    foundation_level: 2
+    dependencies: [40]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: [43, 44, 45]
+    notes: "Runtime enforcement of configured workflow rules"
+
+  - number: 43
+    title: "External System Vouching API"
+    category: flexible_workflow
+    foundation_level: 2
+    dependencies: [41]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Allow external systems to vouch for operation completion"
+
+  - number: 44
+    title: "Flexible Quality & Compliance Controls"
+    category: flexible_workflow
+    foundation_level: 2
+    dependencies: [40, 41]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Configurable quality checkpoints in workflows"
+
+  - number: 45
+    title: "Work Instruction Viewer with Data Collection"
+    category: flexible_workflow
+    foundation_level: 2
+    dependencies: [40]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Enhanced work instruction display with inline data capture"
+
+  # ============================================================================
+  # L3: REFINEMENTS & ADVANCED TOOLS
+  # ============================================================================
+
+  # --- Advanced Time Tracking ---
+  - number: 52
+    title: "External Time & Attendance Integration (Kronos, Workday)"
+    category: time_tracking
+    foundation_level: 3
+    dependencies: [46]
+    strategic_focus: time_tracking
+    business_value: 6
+    effort_estimate: 7
+    blocks: []
+    notes: "Integration with external T&A systems"
+
+  - number: 53
+    title: "Performance Feedback & Time Reporting"
+    category: time_tracking
+    foundation_level: 3
+    dependencies: [46, 47, 51]
+    strategic_focus: time_tracking
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Productivity analytics and operator feedback"
+
+  # --- Advanced Production Planning ---
+  - number: 86
+    title: "Demand Forecasting & Planning"
+    category: production_planning
+    foundation_level: 3
+    dependencies: [85]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 7
+    blocks: []
+    notes: "Predictive demand planning capabilities"
+
+  - number: 87
+    title: "What-If Analysis & Production Simulation"
+    category: production_planning
+    foundation_level: 3
+    dependencies: [82, 83]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 8
+    blocks: []
+    notes: "Scenario planning and simulation tools"
+
+  # --- Warehouse Management ---
+  - number: 89
+    title: "Warehouse Management System (WMS)"
+    category: inventory_material
+    foundation_level: 3
+    dependencies: [88, 91]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 9
+    blocks: []
+    notes: "Advanced warehouse operations (putaway, picking, etc.)"
+
+  # --- Analytics & Reporting ---
+  - number: 106
+    title: "Executive Dashboards & KPI Framework"
+    category: analytics_reporting
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "High-level business intelligence dashboards"
+
+  - number: 107
+    title: "Advanced OEE & Performance Analytics"
+    category: analytics_reporting
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Deep equipment effectiveness analysis"
+
+  - number: 108
+    title: "Custom Report Builder & Ad-Hoc Reporting"
+    category: analytics_reporting
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 7
+    blocks: []
+    notes: "User-configurable reporting tools"
+
+  - number: 109
+    title: "BI Tool Integration (Power BI, Tableau, Looker)"
+    category: analytics_reporting
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Integration with external BI platforms"
+
+  # --- Document Management Enhancements ---
+  - number: 64
+    title: "Material Movement & Logistics Management"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 6
+    blocks: []
+    notes: "Enhanced material movement tracking"
+
+  - number: 65
+    title: "Native WYSIWYG Editor Implementation"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 6
+    blocks: []
+    notes: "Rich text editing for work instructions"
+
+  - number: 66
+    title: "Advanced Media Annotation Tools"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 5
+    blocks: []
+    notes: "Image and video annotation capabilities"
+
+  - number: 67
+    title: "Electronic Work Instructions for Suppliers"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Extend work instructions to external suppliers"
+
+  - number: 68
+    title: "PowerPoint Import/Export Support"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 4
+    effort_estimate: 5
+    blocks: []
+    notes: "PowerPoint file format support"
+
+  - number: 69
+    title: "Document Template System"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 4
+    blocks: []
+    notes: "Reusable document templates"
+
+  - number: 70
+    title: "Bulk Document Operations"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 4
+    blocks: []
+    notes: "Batch operations on multiple documents"
+
+  - number: 71
+    title: "AI-Powered Content Discovery"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 7
+    blocks: []
+    notes: "Intelligent document search and recommendations"
+
+  - number: 72
+    title: "Document Version Control & History"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Enhanced versioning (some exists already)"
+
+  - number: 73
+    title: "Collaboration & Approval Workflows"
+    category: document_management
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Enhanced collaboration features (some exist)"
+
+  # --- SDK & Extensibility Platform ---
+  - number: 74
+    title: "API Access Control & Security Model"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 6
+    blocks: [75, 76, 77, 79, 80, 81]
+    notes: "Foundation for SDK and third-party integrations"
+
+  - number: 75
+    title: "Plugin & Hook System Architecture"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [74]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 8
+    blocks: [79, 80]
+    notes: "Extensibility framework for custom plugins"
+
+  - number: 76
+    title: "API Versioning & Backward Compatibility"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [74]
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 6
+    blocks: []
+    notes: "API stability and version management"
+
+  - number: 77
+    title: "Documentation & Developer Portal"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [74]
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 7
+    blocks: []
+    notes: "External developer documentation"
+
+  - number: 79
+    title: "Private Plugin Registry"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [75]
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 5
+    blocks: []
+    notes: "Plugin distribution and management"
+
+  - number: 80
+    title: "Developer Tooling & Testing Framework"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [75]
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 6
+    blocks: []
+    notes: "SDK development tools and testing utilities"
+
+  - number: 81
+    title: "Best Practices & Governance Framework"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [74]
+    strategic_focus: null
+    business_value: 4
+    effort_estimate: 4
+    blocks: []
+    notes: "SDK usage guidelines and governance"
+
+  # --- Data Migration Tools ---
+  - number: 31
+    title: "Import Template System"
+    category: data_migration
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: [32, 33]
+    notes: "Template-based data import foundation"
+
+  - number: 32
+    title: "Bulk Import Engine (CSV/Excel/JSON)"
+    category: data_migration
+    foundation_level: 3
+    dependencies: [31]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: [37, 39]
+    notes: "File-based data import capabilities"
+
+  - number: 33
+    title: "Data Validation Framework"
+    category: data_migration
+    foundation_level: 3
+    dependencies: [31]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: [32, 34, 37]
+    notes: "Data quality validation for imports"
+
+  - number: 34
+    title: "Database Direct Import/ETL Engine"
+    category: data_migration
+    foundation_level: 3
+    dependencies: [33]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 8
+    blocks: []
+    notes: "Direct database-to-database migration"
+
+  - number: 36
+    title: "Paper-Based Traveler Digitization"
+    category: data_migration
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 7
+    blocks: []
+    notes: "OCR and digitization of paper documents"
+
+  - number: 37
+    title: "Guided Migration Wizard UI"
+    category: data_migration
+    foundation_level: 3
+    dependencies: [32, 33]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 6
+    blocks: []
+    notes: "User-friendly migration interface"
+
+  - number: 38
+    title: "Data Mapping Assistant with AI"
+    category: data_migration
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 7
+    blocks: []
+    notes: "AI-assisted field mapping for migrations"
+
+  - number: 39
+    title: "Progress Dashboard & Cutover Management"
+    category: data_migration
+    foundation_level: 3
+    dependencies: [32]
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 5
+    blocks: []
+    notes: "Migration progress tracking and cutover planning"
+
+# Category Definitions
+categories:
+  time_tracking:
+    name: "Time Tracking & Labor Costing"
+    description: "Shop floor time tracking, labor costing, and productivity analytics"
+
+  quality_management:
+    name: "Quality Management"
+    description: "Quality control, CAPA, SPC, and compliance tools"
+
+  security_auth:
+    name: "Enterprise SSO & Authentication"
+    description: "Single sign-on and identity management"
+
+  security_rbac:
+    name: "Advanced RBAC & Security"
+    description: "Role-based access control enhancements"
+
+  inventory_material:
+    name: "Inventory & Material Management"
+    description: "Inventory tracking, warehouse management, and lot control"
+
+  production_planning:
+    name: "Production Planning & Scheduling"
+    description: "Scheduling, capacity planning, and MRP"
+
+  regulatory_compliance:
+    name: "Regulatory Compliance"
+    description: "AS9100, FDA, ITAR, and industry compliance frameworks"
+
+  equipment_maintenance:
+    name: "Equipment & Maintenance Management"
+    description: "Asset management, maintenance, and calibration"
+
+  osp_operations:
+    name: "Outside Processing (OSP) Operations"
+    description: "External supplier and farmout management"
+
+  flexible_workflow:
+    name: "Flexible MES Workflow"
+    description: "Configurable shop floor execution workflows"
+
+  analytics_reporting:
+    name: "Analytics & Reporting"
+    description: "Business intelligence, dashboards, and reporting"
+
+  document_management:
+    name: "Document Management"
+    description: "Work instructions, documents, and media management"
+
+  sdk_extensibility:
+    name: "SDK & Extensibility"
+    description: "Platform extensibility and third-party development"
+
+  data_migration:
+    name: "Data Migration Tools"
+    description: "Customer onboarding and data migration utilities"

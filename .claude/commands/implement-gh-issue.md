@@ -10,6 +10,29 @@ You are tasked with systematically implementing a solution for a GitHub issue. T
 - Analyze the issue description, acceptance criteria, and any linked discussions
 - Identify the scope, complexity, and affected components
 
+### Step 1.5: Check Prioritization Framework
+- Read `.github/issue-prioritization.yml` to check if this issue is in the framework
+- If found, display the issue's metadata:
+  ```
+  📊 Prioritization Framework Info:
+  - Category: [category]
+  - Foundation Level: L[0-3]
+  - Dependencies: [list or "None"]
+  - Business Value: [value]/10
+  - Effort Estimate: [effort]/10
+  - Strategic Focus: [focus or "None"]
+  - Will unlock: [list of blocked issues or "None"]
+  ```
+- If the issue has unresolved dependencies, **warn the user**:
+  ```
+  ⚠️  WARNING: This issue has unresolved dependencies:
+  - Issue #X: [Title] (currently OPEN)
+  - Issue #Y: [Title] (currently OPEN)
+
+  Consider implementing dependencies first, or proceed with caution.
+  ```
+- If not found in framework, note: "This issue is not yet in the prioritization framework. Consider adding it with `/add-gh-issues` after completion."
+
 ### Step 2: Create Dedicated Branch
 - Create a descriptive branch name: `git checkout -b issue-[ISSUE_NUMBER]-brief-description`
 - Ensure you're working from the latest main: `git pull origin main`
@@ -58,6 +81,44 @@ You are tasked with systematically implementing a solution for a GitHub issue. T
 - **If issue not auto-closed**: Manually close with `gh issue close [ISSUE_NUMBER] --comment "Implemented and merged via PR #[PR_NUMBER]"`
 - Confirm merge was successful: `git log --oneline -5` should show your changes in main
 
+### Step 8.5: Update Prioritization Framework
+After successfully merging the PR and closing the issue:
+
+1. **Read the prioritization config**: `.github/issue-prioritization.yml`
+
+2. **Find and update the completed issue**:
+   - Locate the issue entry by number
+   - Update the `notes` field to indicate completion:
+     ```yaml
+     notes: "COMPLETED - [original notes] - Implemented in PR #[PR_NUMBER]"
+     ```
+
+3. **Identify newly unblocked issues**:
+   - Look at the `blocks` array for the completed issue
+   - For each blocked issue number, check if ALL its dependencies are now closed
+   - Create a list of newly eligible issues
+
+4. **Display the impact**:
+   ```
+   ✅ Updated Prioritization Framework
+
+   Completed Issue:
+   - #[ISSUE_NUMBER]: [Title] (L[level], [category])
+
+   Newly Unblocked Issues (all dependencies now resolved):
+   - #X: [Title] (L[level], [category])
+   - #Y: [Title] (L[level], [category])
+
+   💡 Run `/implement-next-gh-issue` to see updated priorities!
+   ```
+
+5. **Write the updated config** back to `.github/issue-prioritization.yml`
+
+**Important**:
+- Maintain proper YAML formatting and indentation
+- Preserve all other issue entries unchanged
+- If issue not found in framework, skip this step and note: "Issue not in prioritization framework - no update needed"
+
 ### Step 9: Cleanup & Return to Main
 - Switch to main branch: `git checkout main`
 - Pull latest changes: `git pull origin main`
@@ -71,6 +132,8 @@ You are tasked with systematically implementing a solution for a GitHub issue. T
 - **Never skip the PR merge step** - every implementation must be merged via PR
 - **The "Fixes #[ISSUE_NUMBER]" keyword is mandatory** - this ensures automatic issue closure
 - **Always verify the issue was closed** after PR merge - manually close if needed
+- **Always update the prioritization framework** (Step 8.5) after closing the issue
+- **Check dependencies** before starting (Step 1.5) - implementing blocked dependencies first is recommended
 - If the issue is complex, consider breaking it into smaller sub-issues
 - Communicate progress in issue comments if implementation takes multiple sessions
 - Ask for clarification if requirements are unclear before implementing
@@ -82,5 +145,7 @@ If any step fails:
 - **Issue not auto-closed**: Use the manual close command in Step 8
 - **Branch conflicts**: Rebase or merge main into your feature branch
 - **CI/CD failures**: Fix issues before merging - never bypass checks
+- **Prioritization framework update fails**: Check YAML syntax, manually update if needed, or skip if issue not in framework
+- **Dependencies warning**: Either implement dependencies first or document the risk and proceed
 
 Now proceed with implementing the GitHub issue following this systematic approach. Remember to substitute [ISSUE_NUMBER] with the actual issue number provided as an argument.
