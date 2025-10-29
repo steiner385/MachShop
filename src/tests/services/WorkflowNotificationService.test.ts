@@ -33,6 +33,7 @@ vi.mock('@prisma/client', () => {
     },
     workflowAssignment: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
     workflowHistory: {

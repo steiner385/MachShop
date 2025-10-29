@@ -237,18 +237,19 @@ export class WorkflowEngineService {
   }
 
   /**
-   * Complete workflow
+   * Complete workflow (public method for direct workflow completion)
    */
-  async completeWorkflow(instanceId: string, performedById: string): Promise<WorkflowInstanceResponse> {
+  async completeWorkflow(instanceId: string, performedById?: string): Promise<void> {
     try {
       logger.info(`Completing workflow ${instanceId}`, { performedById });
 
-      const instance = await this.prisma.$transaction(async (tx) => {
-        const updated = await tx.workflowInstance.update({
+      await this.prisma.$transaction(async (tx) => {
+        await tx.workflowInstance.update({
           where: { id: instanceId },
           data: {
             status: 'COMPLETED',
             completedAt: new Date(),
+            progressPercentage: 100,
             currentStageNumber: null
           }
         });
@@ -258,16 +259,13 @@ export class WorkflowEngineService {
             workflowInstanceId: instanceId,
             eventType: 'WORKFLOW_COMPLETED',
             eventDescription: 'Workflow completed successfully',
-            performedById,
+            performedById: performedById || 'system',
             performedByName: 'System' // TODO: Get actual user name
           }
         });
-
-        return updated;
       });
 
       logger.info(`Workflow ${instanceId} completed successfully`);
-      return this.getWorkflowStatus(instanceId);
     } catch (error: any) {
       logger.error('Failed to complete workflow:', {
         error: error?.message || 'Unknown error',
@@ -290,7 +288,9 @@ export class WorkflowEngineService {
           where: { id: instanceId },
           data: {
             status: 'CANCELLED',
-            completedAt: new Date()
+            cancellationReason: reason,
+            cancelledAt: new Date(),
+            cancelledById: performedById
           }
         });
 
@@ -351,7 +351,7 @@ export class WorkflowEngineService {
       });
 
       // Create assignments based on stage configuration
-      await this.createStageAssignments(stageInstance.id, stageInstance.stage);
+      await this.createStageAssignments(stageInstance, this.prisma);
 
       // Create history entry
       await this.prisma.workflowHistory.create({
@@ -484,9 +484,65 @@ export class WorkflowEngineService {
   }
 
   /**
-   * Process approval action
+   * Assign users to a stage instance
    */
-  async processApproval(
+  async assignUsersToStage(
+    stageInstanceId: string,
+    assignments: Array<{ userId: string; roleId: string; assignmentType: AssignmentType }>
+  ): Promise<WorkflowAssignmentResponse[]> {
+    try {
+      logger.info(`Assigning users to stage ${stageInstanceId}`, {
+        assignmentCount: assignments.length
+      });
+
+      const stageInstance = await this.prisma.workflowStageInstance.findUnique({
+        where: { id: stageInstanceId }
+      });
+
+      if (!stageInstance) {
+        throw new WorkflowValidationError(`Stage instance ${stageInstanceId} not found`);
+      }
+
+      const results = await this.prisma.$transaction(async (tx) => {
+        const assignmentResults: any[] = [];
+
+        for (const assignment of assignments) {
+          const result = await tx.workflowAssignment.create({
+            data: {
+              stageInstanceId,
+              assignedToId: assignment.userId,
+              assignedToRole: assignment.roleId,
+              assignmentType: assignment.assignmentType,
+              assignedAt: new Date(),
+              dueDate: this.calculateAssignmentDeadline(),
+              escalationLevel: 0
+            }
+          });
+
+          assignmentResults.push(result);
+        }
+
+        return assignmentResults;
+      });
+
+      logger.info(`Successfully assigned ${results.length} users to stage ${stageInstanceId}`);
+      return results.map(this.mapAssignmentResponse.bind(this));
+    } catch (error: any) {
+      logger.error('Failed to assign users to stage:', {
+        error: error?.message || 'Unknown error',
+        stageInstanceId,
+        assignments
+      });
+      throw error instanceof WorkflowEngineError
+        ? error
+        : new WorkflowEngineError('Failed to assign users to stage', 'ASSIGN_USERS_ERROR', error);
+    }
+  }
+
+  /**
+   * Process approval action (public method)
+   */
+  async processApprovalAction(
     input: ApprovalActionInput,
     performedById: string
   ): Promise<void> {
@@ -511,15 +567,15 @@ export class WorkflowEngineService {
       });
 
       if (!assignment) {
-        throw new WorkflowValidationError('Assignment not found');
+        throw new WorkflowValidationError(`Assignment ${input.assignmentId} not found`);
       }
 
       if (assignment.assignedToId !== performedById) {
-        throw new WorkflowPermissionError('User not authorized for this assignment');
+        throw new WorkflowPermissionError('Permission denied');
       }
 
       if (assignment.action) {
-        throw new WorkflowStateError('Assignment already completed');
+        throw new WorkflowStateError('Assignment already has an action');
       }
 
       // Update assignment
@@ -529,16 +585,9 @@ export class WorkflowEngineService {
           data: {
             action: input.action,
             actionTakenAt: new Date(),
-            comments: input.comments,
-            signatureId: input.signatureId,
-            signatureType: input.signatureType
+            actionTakenById: performedById,
+            notes: input.comments
           }
-        });
-
-        // Update task status
-        await tx.workflowTask.updateMany({
-          where: { assignmentId: input.assignmentId },
-          data: { status: 'COMPLETED' }
         });
 
         // Create history entry
@@ -549,7 +598,7 @@ export class WorkflowEngineService {
             eventDescription: `${input.action} by user ${performedById}`,
             stageNumber: assignment.stageInstance.stageNumber,
             performedById,
-            performedByName: 'User', // TODO: Get actual user name
+            performedByName: 'User',
             details: {
               comments: input.comments,
               signatureId: input.signatureId
@@ -566,15 +615,25 @@ export class WorkflowEngineService {
         action: input.action
       });
     } catch (error: any) {
-      logger.error('Failed to process approval:', {
+      logger.error('Failed to process approval action:', {
         error: error?.message || 'Unknown error',
         input,
         performedById
       });
       throw error instanceof WorkflowEngineError
         ? error
-        : new WorkflowEngineError('Failed to process approval', 'PROCESS_APPROVAL_ERROR', error);
+        : new WorkflowEngineError('Failed to process approval action', 'PROCESS_APPROVAL_ERROR', error);
     }
+  }
+
+  /**
+   * Process approval action (internal method, kept for backwards compatibility)
+   */
+  async processApproval(
+    input: ApprovalActionInput,
+    performedById: string
+  ): Promise<void> {
+    return this.processApprovalAction(input, performedById);
   }
 
   // ============================================================================
@@ -621,33 +680,74 @@ export class WorkflowEngineService {
   }
 
   /**
-   * Get user's task queue
+   * Get user's task queue with filtering and pagination
    */
-  async getMyTasks(userId: string, filters: TaskFilters = {}): Promise<WorkflowTaskResponse[]> {
+  async getMyTasks(
+    userId: string,
+    filters: { status?: any; priority?: any; page?: number; limit?: number } = {}
+  ): Promise<{ tasks: any[]; pagination: { total: number; page: number; limit: number } }> {
     try {
-      const where: Prisma.WorkflowTaskWhereInput = {
+      const where: any = {
         assignedToId: userId,
-        ...(filters.status && { status: { in: filters.status } }),
-        ...(filters.priority && { priority: { in: filters.priority } }),
-        ...(filters.entityType && { entityType: { in: filters.entityType } }),
-        ...(filters.dueDateBefore && { dueDate: { lte: filters.dueDateBefore } }),
-        ...(filters.dueDateAfter && { dueDate: { gte: filters.dueDateAfter } }),
-        ...(filters.overdue && {
-          dueDate: { lt: new Date() },
-          status: { not: 'COMPLETED' }
-        })
+        action: null // Only pending assignments
       };
 
-      const tasks = await this.prisma.workflowTask.findMany({
-        where,
-        orderBy: {
-          [filters.sortBy || 'dueDate']: filters.sortOrder || 'asc'
-        },
-        skip: filters.page ? (filters.page - 1) * (filters.limit || 20) : 0,
-        take: filters.limit || 20
-      });
+      if (filters.status) {
+        where.stageInstance = {
+          status: filters.status
+        };
+      }
 
-      return tasks.map(this.mapTaskResponse);
+      if (filters.priority) {
+        where.stageInstance = {
+          ...where.stageInstance,
+          workflowInstance: {
+            priority: filters.priority
+          }
+        };
+      }
+
+      const page = filters.page || 1;
+      const limit = filters.limit || 10;
+
+      const [assignments, total] = await Promise.all([
+        this.prisma.workflowAssignment.findMany({
+          where,
+          include: {
+            stageInstance: {
+              include: {
+                workflowInstance: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit
+        }),
+        this.prisma.workflowAssignment.count({ where })
+      ]);
+
+      const tasks = assignments.map((assignment: any) => ({
+        id: assignment.id,
+        stageInstance: {
+          stageName: assignment.stageInstance.stageName,
+          deadline: assignment.stageInstance.deadline,
+          workflowInstance: {
+            id: assignment.stageInstance.workflowInstance.id,
+            entityType: assignment.stageInstance.workflowInstance.entityType,
+            priority: assignment.stageInstance.workflowInstance.priority
+          }
+        }
+      }));
+
+      return {
+        tasks,
+        pagination: {
+          total,
+          page,
+          limit
+        }
+      };
     } catch (error: any) {
       logger.error('Failed to get user tasks:', {
         error: error?.message || 'Unknown error',
@@ -655,6 +755,67 @@ export class WorkflowEngineService {
         filters
       });
       throw new WorkflowEngineError('Failed to get user tasks', 'GET_TASKS_ERROR', error);
+    }
+  }
+
+  /**
+   * Get workflow progress information
+   */
+  async getWorkflowProgress(workflowInstanceId: string): Promise<{
+    completedStages: number;
+    totalStages: number;
+    percentage: number;
+    completedAssignments: number;
+    totalAssignments: number;
+  }> {
+    try {
+      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+        where: { id: workflowInstanceId },
+        include: {
+          stageInstances: {
+            include: {
+              assignments: true
+            }
+          }
+        }
+      });
+
+      if (!workflowInstance) {
+        throw new WorkflowValidationError(`Workflow instance ${workflowInstanceId} not found`);
+      }
+
+      const totalStages = workflowInstance.stageInstances.length;
+      const completedStages = workflowInstance.stageInstances.filter(
+        (s: any) => s.status === 'COMPLETED'
+      ).length;
+
+      const totalAssignments = workflowInstance.stageInstances.reduce(
+        (sum: number, stage: any) => sum + stage.assignments.length,
+        0
+      );
+      const completedAssignments = workflowInstance.stageInstances.reduce(
+        (sum: number, stage: any) =>
+          sum + stage.assignments.filter((a: any) => a.action).length,
+        0
+      );
+
+      const percentage = totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
+
+      return {
+        completedStages,
+        totalStages,
+        percentage,
+        completedAssignments,
+        totalAssignments
+      };
+    } catch (error: any) {
+      logger.error('Failed to get workflow progress:', {
+        error: error?.message || 'Unknown error',
+        workflowInstanceId
+      });
+      throw error instanceof WorkflowEngineError
+        ? error
+        : new WorkflowEngineError('Failed to get workflow progress', 'GET_PROGRESS_ERROR', error);
     }
   }
 
@@ -2209,8 +2370,8 @@ export class WorkflowEngineService {
       completedAt: instance.completedAt,
       deadline: instance.deadline,
       createdById: instance.createdById,
-      stageInstances: instance.stageInstances?.map(this.mapStageInstanceResponse) || [],
-      history: instance.history?.map(this.mapHistoryResponse) || [],
+      stageInstances: instance.stageInstances?.map(s => this.mapStageInstanceResponse(s)) || [],
+      history: instance.history?.map(h => this.mapHistoryResponse(h)) || [],
       progressPercentage: this.calculateProgress(instance.stageInstances || [])
     };
   }
@@ -2226,7 +2387,7 @@ export class WorkflowEngineService {
       completedAt: stage.completedAt,
       deadline: stage.deadline,
       notes: stage.notes,
-      assignments: stage.assignments?.map(this.mapAssignmentResponse) || [],
+      assignments: stage.assignments?.map(a => this.mapAssignmentResponse(a)) || [],
       approvalProgress: this.calculateApprovalProgress(stage.assignments || [])
     };
   }

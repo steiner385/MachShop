@@ -397,20 +397,10 @@ export class OperationService {
    * Get ancestor chain (path to root)
    */
   async getAncestorChain(operationId: string): Promise<any[]> {
-    const ancestors: any[] = [];
+    const chain: any[] = [];
 
-    // First, get the starting operation to find its parent
-    const startOperation = await this.prisma.operation.findUnique({
-      where: { id: operationId },
-      include: { parentOperation: true }
-    });
-
-    if (!startOperation) {
-      throw new Error(`Operation with ID ${operationId} not found`);
-    }
-
-    // Start from the parent (not the operation itself)
-    let currentId: string | null = startOperation.parentOperationId;
+    // Start from the operation itself
+    let currentId: string | null = operationId;
 
     while (currentId) {
       const operation = await this.prisma.operation.findUnique({
@@ -418,18 +408,20 @@ export class OperationService {
         include: { parentOperation: true }
       });
 
-      if (!operation) break;
+      if (!operation) {
+        throw new Error(`Operation with ID ${currentId} not found`);
+      }
 
-      ancestors.push(operation);
+      chain.push(operation);
       currentId = operation.parentOperationId;
 
       // Prevent infinite loops
-      if (ancestors.length > 10) {
+      if (chain.length > 10) {
         throw new Error('Circular reference detected in operation hierarchy');
       }
     }
 
-    return ancestors.reverse(); // Root first
+    return chain.reverse(); // Root first
   }
 
   /**

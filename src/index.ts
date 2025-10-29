@@ -57,6 +57,7 @@ import parameterFormulasRoutes from './routes/parameterFormulas';
 import spcRoutes from './routes/spc';
 import mediaRoutes from './routes/media';
 import workflowRoutes from './routes/workflows';
+import timeTrackingRoutes from './routes/timeTracking';
 
 // GitHub Issue #23: Multi-Document Type Support Routes
 import setupSheetRoutes from './routes/setupSheets';
@@ -209,6 +210,7 @@ apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
+apiRouter.use('/time-tracking', authMiddleware, timeTrackingRoutes);
 
 // GitHub Issue #23: Multi-Document Type Support API Routes
 apiRouter.use('/setup-sheets', authMiddleware, setupSheetRoutes);

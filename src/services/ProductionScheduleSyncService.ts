@@ -261,16 +261,15 @@ export class ProductionScheduleSyncService {
           constraints.missingMaterials = constraints.missingMaterials || [];
           constraints.missingMaterials.push(material.partNumber);
         }
-        // TODO: Add quantityOnHand field to Part model to enable material availability checking
-        // else if ((materialPart as any).quantityOnHand < material.quantity) {
-        //   issues.push(`Insufficient material ${material.partNumber}: required ${material.quantity}, available ${(materialPart as any).quantityOnHand}`);
-        //   constraints.materialShortages = constraints.materialShortages || {};
-        //   constraints.materialShortages[material.partNumber] = {
-        //     required: material.quantity,
-        //     available: (materialPart as any).quantityOnHand,
-        //     shortage: material.quantity - (materialPart as any).quantityOnHand,
-        //   };
-        // }
+        else if ((materialPart as any).quantityOnHand < material.quantity) {
+          issues.push(`Insufficient material ${material.partNumber}: required ${material.quantity}, available ${(materialPart as any).quantityOnHand}`);
+          constraints.materialShortages = constraints.materialShortages || {};
+          constraints.materialShortages[material.partNumber] = {
+            required: material.quantity,
+            available: (materialPart as any).quantityOnHand,
+            shortage: material.quantity - (materialPart as any).quantityOnHand,
+          };
+        }
       }
     }
 

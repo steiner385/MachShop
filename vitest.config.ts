@@ -3,6 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   test: {
+    watch: false, // Disable watch mode by default - use "vitest --watch" for development
     globals: true,
     // Default to node environment for backend tests
     environment: 'node',

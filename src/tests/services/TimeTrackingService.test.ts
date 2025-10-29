@@ -335,7 +335,7 @@ describe('TimeTrackingService', () => {
       };
 
       const mockCurrentTime = new Date('2024-10-29T12:00:00Z');
-      vi.spyOn(global, 'Date').mockImplementation(() => mockCurrentTime);
+      const dateSpy = vi.spyOn(global, 'Date').mockImplementation(() => mockCurrentTime as any);
 
       await service.clockOut(clockOutRequest);
 
@@ -346,6 +346,9 @@ describe('TimeTrackingService', () => {
         }),
         include: expect.any(Object),
       });
+
+      // Restore the Date constructor to prevent affecting subsequent tests
+      dateSpy.mockRestore();
     });
 
     it('should subtract break time when configured', async () => {

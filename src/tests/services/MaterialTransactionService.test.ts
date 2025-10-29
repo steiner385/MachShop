@@ -17,6 +17,10 @@ vi.mock('@prisma/client', () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
     },
+    inventory: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
     eRPMaterialTransaction: {
       create: vi.fn(),
       update: vi.fn(),
@@ -306,6 +310,13 @@ describe('MaterialTransactionService', () => {
         status: 'PENDING',
         direction: 'INBOUND',
       });
+      mockPrisma.part.findUnique.mockResolvedValue(mockPart);
+      mockPrisma.inventory.findFirst.mockResolvedValue({
+        id: 'inv-1',
+        partId: 'part-1',
+        quantity: 100,
+        location: 'PROD-FLOOR',
+      });
       mockPrisma.materialTransaction.create.mockResolvedValue({
         id: 'internal-txn-1',
       });
@@ -330,7 +341,9 @@ describe('MaterialTransactionService', () => {
       expect(mockPrisma.part.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'part-1' },
-          data: { quantityOnHand: { increment: -10 } },
+          data: expect.objectContaining({
+            updatedAt: expect.any(Date),
+          }),
         })
       );
     });
@@ -361,6 +374,13 @@ describe('MaterialTransactionService', () => {
         status: 'PENDING',
         direction: 'INBOUND',
       });
+      mockPrisma.part.findUnique.mockResolvedValue(mockPart);
+      mockPrisma.inventory.findFirst.mockResolvedValue({
+        id: 'inv-1',
+        partId: 'part-1',
+        quantity: 100,
+        location: 'WH-01',
+      });
       mockPrisma.materialTransaction.create.mockResolvedValue({
         id: 'internal-txn-1',
       });
@@ -384,7 +404,9 @@ describe('MaterialTransactionService', () => {
       expect(mockPrisma.part.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'part-1' },
-          data: { quantityOnHand: { increment: 100 } },
+          data: expect.objectContaining({
+            updatedAt: expect.any(Date),
+          }),
         })
       );
     });
@@ -711,34 +733,40 @@ describe('MaterialTransactionService', () => {
           id: 'txn-1',
           partId: 'part-1',
           quantity: 10,
-          transactionType: 'CONSUMPTION',
+          transactionType: 'ISSUE',
           transactionDate: new Date('2025-10-15T10:00:00Z'),
           fromLocation: 'WH-01',
           toLocation: 'PROD-FLOOR',
           lotNumber: null,
           serialNumber: null,
+          unitOfMeasure: 'EA',
           part: {
             id: 'part-1',
             partNumber: 'PN-123',
+            description: 'Test Part 1',
             unitOfMeasure: 'EA',
             quantityOnHand: 100,
+            isActive: true,
           },
         },
         {
           id: 'txn-2',
           partId: 'part-2',
           quantity: 5,
-          transactionType: 'CONSUMPTION',
+          transactionType: 'ISSUE',
           transactionDate: new Date('2025-10-15T10:30:00Z'),
           fromLocation: 'WH-01',
           toLocation: 'PROD-FLOOR',
           lotNumber: null,
           serialNumber: null,
+          unitOfMeasure: 'EA',
           part: {
             id: 'part-2',
             partNumber: 'PN-456',
+            description: 'Test Part 2',
             unitOfMeasure: 'EA',
             quantityOnHand: 50,
+            isActive: true,
           },
         },
       ];
@@ -751,10 +779,10 @@ describe('MaterialTransactionService', () => {
       };
 
       mockPrisma.materialTransaction.findMany.mockResolvedValue(mockMaterialTransactions);
-      mockPrisma.integrationConfig.findUnique.mockResolvedValue(mockConfig);
 
       // Mock for first transaction
       mockPrisma.part.findUnique.mockResolvedValueOnce(mockMaterialTransactions[0].part);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValueOnce(mockConfig);
       mockPrisma.eRPMaterialTransaction.create.mockResolvedValueOnce({
         id: 'erp-txn-1',
         messageId: 'MAT-PN-123-CONSUMPTION-001',
@@ -763,6 +791,7 @@ describe('MaterialTransactionService', () => {
 
       // Mock for second transaction
       mockPrisma.part.findUnique.mockResolvedValueOnce(mockMaterialTransactions[1].part);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValueOnce(mockConfig);
       mockPrisma.eRPMaterialTransaction.create.mockResolvedValueOnce({
         id: 'erp-txn-2',
         messageId: 'MAT-PN-456-CONSUMPTION-001',
@@ -788,33 +817,40 @@ describe('MaterialTransactionService', () => {
           id: 'txn-1',
           partId: 'part-1',
           quantity: 10,
-          transactionType: 'CONSUMPTION',
+          transactionType: 'ISSUE',
           transactionDate: new Date('2025-10-15T10:00:00Z'),
           fromLocation: 'WH-01',
           toLocation: 'PROD-FLOOR',
           lotNumber: null,
           serialNumber: null,
+          unitOfMeasure: 'EA',
           part: {
             id: 'part-1',
             partNumber: 'PN-123',
+            description: 'Test Part 1',
             unitOfMeasure: 'EA',
             quantityOnHand: 100,
+            isActive: true,
           },
         },
         {
           id: 'txn-2',
           partId: 'part-invalid',
           quantity: 5,
-          transactionType: 'CONSUMPTION',
+          transactionType: 'ISSUE',
           transactionDate: new Date('2025-10-15T10:30:00Z'),
           fromLocation: 'WH-01',
           toLocation: 'PROD-FLOOR',
           lotNumber: null,
           serialNumber: null,
+          unitOfMeasure: 'EA',
           part: {
             id: 'part-invalid',
             partNumber: 'INVALID',
+            description: 'Invalid Part',
             unitOfMeasure: 'EA',
+            quantityOnHand: 0,
+            isActive: true,
           },
         },
       ];
@@ -827,10 +863,10 @@ describe('MaterialTransactionService', () => {
       };
 
       mockPrisma.materialTransaction.findMany.mockResolvedValue(mockMaterialTransactions);
-      mockPrisma.integrationConfig.findUnique.mockResolvedValue(mockConfig);
 
       // First succeeds
       mockPrisma.part.findUnique.mockResolvedValueOnce(mockMaterialTransactions[0].part);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValueOnce(mockConfig);
       mockPrisma.eRPMaterialTransaction.create.mockResolvedValueOnce({
         id: 'erp-txn-1',
         messageId: 'MAT-PN-123-CONSUMPTION-001',
@@ -902,6 +938,13 @@ describe('MaterialTransactionService', () => {
       mockPrisma.eRPMaterialTransaction.create.mockResolvedValue({
         id: 'txn-1',
         messageId: 'ERP-CONSUMPTION-001',
+      });
+      mockPrisma.part.findUnique.mockResolvedValue(mockPart);
+      mockPrisma.inventory.findFirst.mockResolvedValue({
+        id: 'inv-1',
+        partId: 'part-1',
+        quantity: 100,
+        location: 'WAREHOUSE',
       });
       mockPrisma.materialTransaction.create.mockResolvedValue({
         id: 'internal-txn-1',

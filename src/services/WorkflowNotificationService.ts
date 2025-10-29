@@ -77,11 +77,414 @@ export interface DigestContext {
   completedToday: number;
 }
 
+export interface EmailService {
+  sendEmail(data: any): Promise<any>;
+  sendBatchEmails(data: any[]): Promise<any>;
+}
+
 export class WorkflowNotificationService {
   private prisma: PrismaClient;
+  private emailService?: EmailService;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
+  }
+
+  // ============================================================================
+  // Workflow Lifecycle Notifications
+  // ============================================================================
+
+  /**
+   * Send notification when workflow starts
+   */
+  async sendWorkflowStartedNotification(workflowInstanceId: string): Promise<void> {
+    logger.info(`Sending workflow started notification for: ${workflowInstanceId}`);
+
+    const workflowInstance = await this.prisma.workflowInstance.findUnique({
+      where: { id: workflowInstanceId },
+      include: {
+        workflowDefinition: true,
+        requestedBy: true,
+        stageInstances: {
+          include: {
+            assignments: {
+              include: {
+                assignedTo: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!workflowInstance) {
+      throw new Error(`Workflow instance ${workflowInstanceId} not found`);
+    }
+
+    try {
+
+      // Get email template
+      const template = await this.prisma.notificationTemplate.findFirst({
+        where: {
+          eventType: 'WORKFLOW_STARTED',
+          isActive: true
+        }
+      });
+
+      // Collect all recipients (requester + all assignees)
+      const recipients: string[] = [];
+      if (workflowInstance.requestedBy?.email) {
+        recipients.push(workflowInstance.requestedBy.email);
+      }
+
+      workflowInstance.stageInstances.forEach((stage: any) => {
+        stage.assignments.forEach((assignment: any) => {
+          if (assignment.assignedTo?.email && !recipients.includes(assignment.assignedTo.email)) {
+            recipients.push(assignment.assignedTo.email);
+          }
+        });
+      });
+
+      // Process template variables
+      const variables = {
+        workflowName: workflowInstance.workflowDefinition?.name || 'Workflow',
+        entityType: workflowInstance.entityType,
+        entityId: workflowInstance.entityId
+      };
+
+      const subject = template?.subject || 'Workflow Notification';
+      const htmlContent = template?.htmlContent || '<p>Workflow has started</p>';
+      const textContent = template?.textContent || 'Workflow has started';
+
+      const emails = recipients.map(email => ({
+        to: email,
+        subject: this.processTemplate(subject, variables),
+        html: this.processTemplate(htmlContent, variables),
+        text: this.processTemplate(textContent, variables)
+      }));
+
+      // Send emails
+      if (this.emailService) {
+        try {
+          await this.emailService.sendBatchEmails(emails);
+        } catch (error) {
+          logger.error('Email service error:', error);
+          // Don't throw - gracefully handle email failures
+        }
+      }
+
+      logger.info(`Workflow started notification sent for: ${workflowInstanceId}`);
+    } catch (error: any) {
+      logger.error('Failed to send workflow started notification:', error);
+      // Don't throw - gracefully handle notification failures
+    }
+  }
+
+  /**
+   * Send workflow completion notification to all participants
+   */
+  async sendWorkflowCompletedNotification(workflowInstanceId: string): Promise<void> {
+    try {
+      logger.info(`Sending workflow completed notification for: ${workflowInstanceId}`);
+
+      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+        where: { id: workflowInstanceId },
+        include: {
+          workflowDefinition: true,
+          requestedBy: true
+        }
+      });
+
+      if (!workflowInstance) {
+        throw new Error(`Workflow instance ${workflowInstanceId} not found`);
+      }
+
+      // Get all participants
+      const participants = await this.prisma.workflowAssignment.findMany({
+        where: {
+          stageInstance: {
+            workflowInstanceId
+          }
+        },
+        include: {
+          assignedTo: true
+        },
+        distinct: ['assignedToId']
+      });
+
+      // Get email template
+      const template = await this.prisma.notificationTemplate.findFirst({
+        where: {
+          eventType: 'WORKFLOW_COMPLETED',
+          isActive: true
+        }
+      });
+
+      // Collect recipients
+      const recipients: string[] = [];
+      if (workflowInstance.requestedBy?.email) {
+        recipients.push(workflowInstance.requestedBy.email);
+      }
+      participants.forEach((p: any) => {
+        if (p.assignedTo?.email && !recipients.includes(p.assignedTo.email)) {
+          recipients.push(p.assignedTo.email);
+        }
+      });
+
+      // Process template
+      const variables = {
+        workflowName: workflowInstance.workflowDefinition?.name || 'Workflow',
+        entityType: workflowInstance.entityType,
+        entityId: workflowInstance.entityId
+      };
+
+      const subject = template?.subject || 'Workflow Notification';
+      const htmlContent = template?.htmlContent || '<p>Workflow has been completed</p>';
+      const textContent = template?.textContent || 'Workflow has been completed';
+
+      const emails = recipients.map(email => ({
+        to: email,
+        subject: this.processTemplate(subject, variables),
+        html: this.processTemplate(htmlContent, variables),
+        text: this.processTemplate(textContent, variables)
+      }));
+
+      // Send emails
+      if (this.emailService) {
+        try {
+          await this.emailService.sendBatchEmails(emails);
+        } catch (error) {
+          logger.error('Email service error:', error);
+        }
+      }
+
+      logger.info(`Workflow completed notification sent for: ${workflowInstanceId}`);
+    } catch (error: any) {
+      logger.error('Failed to send workflow completed notification:', error);
+    }
+  }
+
+  /**
+   * Send deadline reminder notifications
+   */
+  async sendDeadlineReminder(workflowInstanceId: string): Promise<void> {
+    try {
+      logger.info(`Sending deadline reminders for workflow: ${workflowInstanceId}`);
+
+      const pendingAssignments = await this.prisma.workflowAssignment.findMany({
+        where: {
+          stageInstance: {
+            workflowInstanceId,
+            status: 'IN_PROGRESS'
+          },
+          action: null
+        },
+        include: {
+          assignedTo: true,
+          stageInstance: {
+            include: {
+              workflowInstance: {
+                include: {
+                  workflowDefinition: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (pendingAssignments.length === 0) {
+        logger.info('No pending assignments found');
+        return;
+      }
+
+      // Get email template
+      const template = await this.prisma.notificationTemplate.findFirst({
+        where: {
+          eventType: 'DEADLINE_APPROACHING',
+          isActive: true
+        }
+      });
+
+      const emails = pendingAssignments.map((assignment: any) => {
+        const variables = {
+          stageName: assignment.stageInstance.stageName,
+          workflowName: assignment.stageInstance.workflowInstance.workflowDefinition?.name || 'Workflow',
+          firstName: assignment.assignedTo.firstName
+        };
+
+        const subject = template?.subject || 'Deadline Reminder';
+        const htmlContent = template?.htmlContent || '<p>Reminder: deadline approaching</p>';
+        const textContent = template?.textContent || 'Reminder: deadline approaching';
+
+        return {
+          to: assignment.assignedTo.email,
+          subject: this.processTemplate(subject, variables),
+          html: this.processTemplate(htmlContent, variables),
+          text: this.processTemplate(textContent, variables)
+        };
+      });
+
+      // Send emails
+      if (this.emailService) {
+        await this.emailService.sendBatchEmails(emails);
+      }
+
+      logger.info(`Sent ${emails.length} deadline reminder(s)`);
+    } catch (error: any) {
+      logger.error('Failed to send deadline reminders:', error);
+    }
+  }
+
+  /**
+   * Send escalation notification to supervisors
+   */
+  async sendEscalationNotification(assignmentId: string, escalationLevel: number): Promise<void> {
+    try {
+      logger.info(`Sending escalation notification for assignment: ${assignmentId}`);
+
+      const assignments = await this.prisma.workflowAssignment.findMany({
+        where: { id: assignmentId },
+        include: {
+          assignedTo: true,
+          stageInstance: {
+            include: {
+              workflowInstance: {
+                include: {
+                  workflowDefinition: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (assignments.length === 0) {
+        throw new Error('Assignment not found');
+      }
+
+      const assignment = assignments[0];
+
+      // Get supervisor
+      const supervisor = await this.prisma.user.findUnique({
+        where: { id: assignment.assignedTo.supervisorId }
+      });
+
+      if (!supervisor) {
+        throw new Error('Supervisor not found');
+      }
+
+      // Get email template
+      const template = await this.prisma.notificationTemplate.findFirst({
+        where: {
+          eventType: 'WORKFLOW_ESCALATED',
+          isActive: true
+        }
+      });
+
+      const variables = {
+        stageName: assignment.stageInstance.stageName,
+        workflowName: assignment.stageInstance.workflowInstance.workflowDefinition?.name || 'Workflow'
+      };
+
+      const subject = template?.subject || 'Escalation Notification';
+      const htmlContent = template?.htmlContent || '<p>Assignment has been escalated</p>';
+      const textContent = template?.textContent || 'Assignment has been escalated';
+
+      const email = {
+        to: supervisor.email,
+        subject: this.processTemplate(subject, variables),
+        html: this.processTemplate(htmlContent, variables),
+        text: this.processTemplate(textContent, variables)
+      };
+
+      // Send email
+      if (this.emailService) {
+        await this.emailService.sendEmail(email);
+      }
+
+      logger.info(`Escalation notification sent for assignment: ${assignmentId}`);
+    } catch (error: any) {
+      logger.error('Failed to send escalation notification:', error);
+      throw new Error('Failed to send escalation notification');
+    }
+  }
+
+  /**
+   * Send bulk notifications efficiently
+   */
+  async sendBulkNotifications(notificationInputs: Array<{
+    workflowInstanceId: string;
+    eventType: string;
+    recipients: string[];
+    metadata: Record<string, any>;
+  }>): Promise<void> {
+    try {
+      logger.info(`Sending ${notificationInputs.length} bulk notifications`);
+
+      const allEmails: any[] = [];
+
+      for (const input of notificationInputs) {
+        // Get template for this event type
+        const template = await this.prisma.notificationTemplate.findFirst({
+          where: {
+            eventType: input.eventType as any,
+            isActive: true
+          }
+        });
+
+        const subject = template?.subject || 'Notification';
+        const htmlContent = template?.htmlContent || '<p>Notification</p>';
+        const textContent = template?.textContent || 'Notification';
+
+        // Process for each recipient
+        input.recipients.forEach(recipient => {
+          allEmails.push({
+            to: recipient,
+            subject: this.processTemplate(subject, input.metadata),
+            html: this.processTemplate(htmlContent, input.metadata),
+            text: this.processTemplate(textContent, input.metadata)
+          });
+        });
+      }
+
+      // Send all emails in batch
+      if (this.emailService && allEmails.length > 0) {
+        await this.emailService.sendBatchEmails(allEmails);
+      }
+
+      logger.info(`Sent ${allEmails.length} bulk notification(s)`);
+    } catch (error: any) {
+      logger.error('Failed to send bulk notifications:', error);
+    }
+  }
+
+  /**
+   * Log notification event to database
+   */
+  async logNotificationEvent(eventData: {
+    workflowInstanceId: string;
+    eventType: string;
+    recipientId: string;
+    notificationChannel: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    try {
+      await this.prisma.workflowHistory.create({
+        data: {
+          workflowInstanceId: eventData.workflowInstanceId,
+          eventType: eventData.eventType as any,
+          performedById: eventData.recipientId,
+          metadata: {
+            notificationChannel: eventData.notificationChannel,
+            ...eventData.metadata
+          },
+          timestamp: new Date()
+        }
+      });
+    } catch (error: any) {
+      logger.error('Failed to log notification event:', error);
+    }
   }
 
   // ============================================================================
@@ -95,77 +498,62 @@ export class WorkflowNotificationService {
     try {
       logger.info(`Sending assignment notification for assignment: ${assignmentId}`);
 
-      const assignment = await this.prisma.workflowAssignment.findUnique({
+      const assignments = await this.prisma.workflowAssignment.findMany({
         where: { id: assignmentId },
         include: {
+          assignedTo: true,
           stageInstance: {
             include: {
               workflowInstance: {
-                include: { workflow: true }
+                include: {
+                  workflowDefinition: true
+                }
               }
             }
           }
         }
       });
 
-      if (!assignment) {
-        throw new WorkflowEngineError('Assignment not found', 'ASSIGNMENT_NOT_FOUND');
+      if (assignments.length === 0) {
+        throw new Error('Assignment not found');
       }
 
-      const { stageInstance } = assignment;
-      const { workflowInstance } = stageInstance;
+      const assignment = assignments[0];
 
-      // Get user email (would integrate with user service)
-      const userEmail = await this.getUserEmail(assignment.assignedToId);
-      if (!userEmail) {
-        logger.warn(`No email found for user: ${assignment.assignedToId}`);
-        return;
-      }
+      // Get email template
+      const template = await this.prisma.notificationTemplate.findFirst({
+        where: {
+          eventType: 'ASSIGNMENT_CREATED',
+          isActive: true
+        }
+      });
 
-      const notificationData: NotificationData = {
-        to: [userEmail],
-        subject: `New Approval Task: ${workflowInstance.entityType} ${workflowInstance.entityId}`,
-        htmlContent: this.generateAssignmentEmailHTML({
-          assigneeName: await this.getUserName(assignment.assignedToId),
-          stageName: stageInstance.stageName,
-          entityType: workflowInstance.entityType,
-          entityId: workflowInstance.entityId,
-          workflowName: workflowInstance.workflow.name,
-          dueDate: assignment.dueDate,
-          priority: workflowInstance.priority,
-          actionUrl: this.generateActionUrl(assignmentId)
-        }),
-        textContent: this.generateAssignmentEmailText({
-          assigneeName: await this.getUserName(assignment.assignedToId),
-          stageName: stageInstance.stageName,
-          entityType: workflowInstance.entityType,
-          entityId: workflowInstance.entityId,
-          workflowName: workflowInstance.workflow.name,
-          dueDate: assignment.dueDate,
-          priority: workflowInstance.priority
-        }),
-        priority: this.mapPriorityToNotification(workflowInstance.priority)
+      const variables = {
+        stageName: assignment.stageInstance.stageName,
+        firstName: assignment.assignedTo.firstName,
+        workflowName: assignment.stageInstance.workflowInstance.workflowDefinition?.name || 'Workflow'
       };
 
-      await this.sendNotification(notificationData);
+      const subject = template?.subject || 'New Assignment';
+      const htmlContent = template?.htmlContent || '<p>You have been assigned a new task</p>';
+      const textContent = template?.textContent || 'You have been assigned a new task';
 
-      // Create notification history
-      await this.createNotificationHistory({
-        workflowInstanceId: workflowInstance.id,
-        eventType: 'ASSIGNMENT_NOTIFICATION',
-        recipientId: assignment.assignedToId,
-        notificationData
-      });
+      const email = {
+        to: assignment.assignedTo.email,
+        subject: this.processTemplate(subject, variables),
+        html: this.processTemplate(htmlContent, variables),
+        text: this.processTemplate(textContent, variables)
+      };
+
+      // Send email
+      if (this.emailService) {
+        await this.emailService.sendEmail(email);
+      }
 
       logger.info(`Assignment notification sent successfully for assignment: ${assignmentId}`);
     } catch (error: any) {
-      logger.error('Failed to send assignment notification:', {
-        error: error?.message || 'Unknown error',
-        assignmentId
-      });
-      throw error instanceof WorkflowEngineError
-        ? error
-        : new WorkflowEngineError('Failed to send assignment notification', 'NOTIFICATION_ERROR', error);
+      logger.error('Failed to send assignment notification:', error);
+      throw new Error('Failed to send assignment notification');
     }
   }
 
@@ -273,107 +661,6 @@ export class WorkflowNotificationService {
     }
   }
 
-  /**
-   * Send escalation notification
-   */
-  async sendEscalationNotification(context: EscalationContext): Promise<void> {
-    try {
-      logger.info(`Sending escalation notification`, {
-        assignmentId: context.assignmentId,
-        escalationLevel: context.escalationLevel
-      });
-
-      const assignment = await this.prisma.workflowAssignment.findUnique({
-        where: { id: context.assignmentId },
-        include: {
-          stageInstance: {
-            include: {
-              workflowInstance: {
-                include: { workflow: true }
-              }
-            }
-          }
-        }
-      });
-
-      if (!assignment) {
-        throw new WorkflowEngineError('Assignment not found', 'ASSIGNMENT_NOT_FOUND');
-      }
-
-      const { stageInstance } = assignment;
-      const { workflowInstance } = stageInstance;
-
-      // Update assignment with escalation info
-      await this.prisma.workflowAssignment.update({
-        where: { id: context.assignmentId },
-        data: {
-          escalationLevel: context.escalationLevel,
-          escalatedAt: new Date(),
-          escalatedToId: context.escalatedToId
-        }
-      });
-
-      // Send notification to escalated user
-      const escalatedUserEmail = await this.getUserEmail(context.escalatedToId);
-      const originalUserEmail = await this.getUserEmail(context.assignedToId);
-
-      if (!escalatedUserEmail) {
-        logger.warn(`No email found for escalated user: ${context.escalatedToId}`);
-        return;
-      }
-
-      const notificationData: NotificationData = {
-        to: [escalatedUserEmail],
-        cc: originalUserEmail ? [originalUserEmail] : [],
-        subject: `🚨 ESCALATED: Overdue Approval Task - ${context.entityType} ${context.entityId}`,
-        htmlContent: this.generateEscalationEmailHTML({
-          escalatedUserName: await this.getUserName(context.escalatedToId),
-          originalUserName: await this.getUserName(context.assignedToId),
-          stageName: stageInstance.stageName,
-          entityType: context.entityType,
-          entityId: context.entityId,
-          workflowName: workflowInstance.workflow.name,
-          daysPending: context.daysPending,
-          escalationLevel: context.escalationLevel,
-          priority: workflowInstance.priority,
-          actionUrl: this.generateActionUrl(context.assignmentId)
-        }),
-        textContent: this.generateEscalationEmailText({
-          escalatedUserName: await this.getUserName(context.escalatedToId),
-          originalUserName: await this.getUserName(context.assignedToId),
-          stageName: stageInstance.stageName,
-          entityType: context.entityType,
-          entityId: context.entityId,
-          daysPending: context.daysPending,
-          escalationLevel: context.escalationLevel
-        }),
-        priority: 'HIGH'
-      };
-
-      await this.sendNotification(notificationData);
-
-      // Create notification history
-      await this.createNotificationHistory({
-        workflowInstanceId: context.workflowInstanceId,
-        eventType: 'ESCALATED',
-        recipientId: context.escalatedToId,
-        notificationData
-      });
-
-      logger.info(`Escalation notification sent successfully`, {
-        assignmentId: context.assignmentId,
-        escalatedToId: context.escalatedToId
-      });
-    } catch (error: any) {
-      logger.error('Failed to send escalation notification:', {
-        error: error?.message || 'Unknown error',
-        context
-      });
-      throw error instanceof WorkflowEngineError
-        ? error
-        : new WorkflowEngineError('Failed to send escalation notification', 'ESCALATION_ERROR', error);
-    }
-  }
 
   // ============================================================================
   // Workflow Completion Notifications
@@ -688,6 +975,92 @@ export class WorkflowNotificationService {
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
+
+  /**
+   * Process template variables in a string
+   * Supports both simple {{variable}} and nested {{object.property}} syntax
+   */
+  private processTemplate(template: string, variables: Record<string, any>): string {
+    if (!template) return '';
+
+    let result = template;
+
+    // Replace all {{variable}} or {{object.property}} patterns
+    const regex = /\{\{([^}]+)\}\}/g;
+    result = result.replace(regex, (match, key) => {
+      const trimmedKey = key.trim();
+
+      // Handle nested properties (e.g., user.firstName)
+      if (trimmedKey.includes('.')) {
+        const parts = trimmedKey.split('.');
+        let value: any = variables;
+
+        for (const part of parts) {
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            // Property not found, return original placeholder
+            return match;
+          }
+        }
+
+        return value !== null && value !== undefined ? String(value) : match;
+      }
+
+      // Handle simple properties
+      if (trimmedKey in variables) {
+        const value = variables[trimmedKey];
+        return value !== null && value !== undefined ? String(value) : match;
+      }
+
+      // Variable not found, return original placeholder
+      return match;
+    });
+
+    return result;
+  }
+
+  /**
+   * Check if notification should be sent based on user preferences
+   */
+  private async shouldSendNotification(
+    userId: string,
+    eventType: string,
+    channel: string
+  ): Promise<boolean> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return false;
+      }
+
+      // If no preferences set, default to sending
+      if (!user.notificationPreferences) {
+        return true;
+      }
+
+      const prefs = user.notificationPreferences as any;
+
+      // Check channel-specific preferences
+      if (channel === 'EMAIL' && prefs.email) {
+        return prefs.email[eventType] !== false;
+      }
+
+      if (channel === 'SMS' && prefs.sms) {
+        return prefs.sms[eventType] !== false;
+      }
+
+      // Default to sending if preference not explicitly set
+      return true;
+    } catch (error) {
+      logger.error('Error checking notification preferences:', error);
+      // Default to sending on error
+      return true;
+    }
+  }
 
   private async sendNotification(data: NotificationData): Promise<void> {
     try {

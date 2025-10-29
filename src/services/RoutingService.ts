@@ -1628,7 +1628,7 @@ export class RoutingService {
       visualData: template.visualData as VisualRoutingData,
       isFavorite: template.isFavorite,
       usageCount: template.usageCount,
-      createdBy: template.createdBy,
+      createdBy: template.createdById,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt
     };

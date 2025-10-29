@@ -4,6 +4,7 @@ import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { cloudStorageService } from './CloudStorageService';
 import { storageConfig, StoragePathBuilder } from '../config/storage';
+import { prisma } from '../lib/prisma';
 
 /**
  * TypeScript interfaces for File Versioning Operations
@@ -88,8 +89,8 @@ export interface VersionPolicy {
 class FileVersioningService {
   private prisma: PrismaClient;
 
-  constructor() {
-    this.prisma = new PrismaClient();
+  constructor(prismaClient?: PrismaClient) {
+    this.prisma = prismaClient || prisma;
   }
 
   /**

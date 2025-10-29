@@ -267,6 +267,18 @@ issues:
     blocks: [166, 167]
     notes: "Foundation for comprehensive database documentation - tooling and framework setup"
 
+  # --- Production Alerts & Andon ---
+  - number: 171
+    title: "Production Alerts & Andon: Core Andon Infrastructure & Configuration Framework"
+    category: production_alerts
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: [172, 173]
+    notes: "Foundation for shop floor issue escalation - configurable at global/site levels, data models, UI for raising alerts"
+
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
   # ============================================================================
@@ -623,9 +635,33 @@ issues:
     blocks: [167]
     notes: "Comprehensive documentation of all database schemas, tables, columns, and relationships"
 
+  # --- Production Alerts & Andon ---
+  - number: 172
+    title: "Production Alerts & Andon: Multi-Channel Escalation Engine"
+    category: production_alerts
+    foundation_level: 1
+    dependencies: [171]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 8
+    blocks: []
+    notes: "Multi-channel escalation (email, SMS, internal notifications) with recipient management (lists, AD/LDAP groups)"
+
   # ============================================================================
   # L2: ENHANCED FEATURES
   # ============================================================================
+
+  # --- Production Alerts & Andon ---
+  - number: 173
+    title: "Production Alerts & Andon: External eAndon System Integration"
+    category: production_alerts
+    foundation_level: 2
+    dependencies: [171]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 5
+    blocks: []
+    notes: "Integration with third-party eAndon systems - use MES UI for raising alerts, delegate escalation to external platforms"
 
   # --- AI/ML Advanced Features ---
   - number: 146
@@ -1314,3 +1350,7 @@ categories:
   serialization:
     name: "Advanced Serialization"
     description: "Configurable serial number formats and advanced assignment workflows for vendor, late, and propagation scenarios"
+
+  production_alerts:
+    name: "Production Alerts & Andon"
+    description: "Shop floor issue escalation and Andon system with multi-channel notifications and external system integration"

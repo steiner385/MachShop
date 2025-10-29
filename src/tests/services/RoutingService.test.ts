@@ -410,7 +410,7 @@ describe('RoutingService', () => {
         siteId: 'site-1',
         version: '1.0',
         updatedAt: new Date(),
-        createdById: 'user-1',
+        createdBy: 'user-1',
       };
 
       const updatedRouting = {
@@ -438,7 +438,7 @@ describe('RoutingService', () => {
         siteId: 'site-1',
         version: '2.0', // Version has changed
         updatedAt: new Date('2024-01-15T10:00:00Z'),
-        createdById: 'user-2',
+        createdBy: 'user-2',
       };
 
       vi.mocked(mockPrisma.routing.findUnique).mockResolvedValue(existingRouting as any);
@@ -998,7 +998,8 @@ describe('RoutingService', () => {
         },
       ];
 
-      vi.mocked(mockPrisma.routingStep.findMany).mockResolvedValue(mockSteps as any);
+      // Mock the getRoutingSteps service method instead of the Prisma call directly
+      vi.spyOn(routingService, 'getRoutingSteps').mockResolvedValue(mockSteps as any);
 
       const result = await routingService.calculateRoutingTiming('routing-1');
 
@@ -1143,7 +1144,8 @@ describe('RoutingService', () => {
   describe('createRoutingTemplate', () => {
     it('should create a new routing template', async () => {
       const now = new Date();
-      const mockTemplate = {
+      // Mock Prisma response (uses database field names)
+      const mockPrismaResponse = {
         id: 'template-1',
         name: 'Standard Assembly',
         description: 'Standard assembly process template',
@@ -1155,13 +1157,31 @@ describe('RoutingService', () => {
         },
         isFavorite: false,
         usageCount: 0,
-        createdById: 'user-1',
+        createdById: 'user-1', // Database field name
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Expected result after mapping (uses API field names)
+      const expectedResult = {
+        id: 'template-1',
+        name: 'Standard Assembly',
+        description: 'Standard assembly process template',
+        category: 'ASSEMBLY',
+        tags: ['standard', 'assembly'],
+        visualData: {
+          nodes: [{ id: 'node-1', type: 'START', position: { x: 0, y: 0 } }],
+          edges: [],
+        },
+        isFavorite: false,
+        usageCount: 0,
+        createdBy: 'user-1', // API field name (mapped from createdById)
         createdAt: now,
         updatedAt: now,
       };
 
       vi.mocked(mockPrisma.routingTemplate.findFirst).mockResolvedValue(null);
-      vi.mocked(mockPrisma.routingTemplate.create).mockResolvedValue(mockTemplate as any);
+      vi.mocked(mockPrisma.routingTemplate.create).mockResolvedValue(mockPrismaResponse as any);
 
       const result = await routingService.createRoutingTemplate({
         name: 'Standard Assembly',
@@ -1172,10 +1192,10 @@ describe('RoutingService', () => {
           nodes: [{ id: 'node-1', type: 'START', position: { x: 0, y: 0 } }],
           edges: [],
         },
-        createdById: 'user-1',
+        createdBy: 'user-1',
       });
 
-      expect(result).toEqual(mockTemplate);
+      expect(result).toEqual(expectedResult);
       expect(mockPrisma.routingTemplate.create).toHaveBeenCalled();
     });
 
@@ -1183,7 +1203,7 @@ describe('RoutingService', () => {
       const existingTemplate = {
         id: 'template-1',
         name: 'Standard Assembly',
-        createdById: 'user-1',
+        createdBy: 'user-1',
       };
 
       vi.mocked(mockPrisma.routingTemplate.findFirst).mockResolvedValue(existingTemplate as any);
@@ -1193,7 +1213,7 @@ describe('RoutingService', () => {
           name: 'Standard Assembly',
           description: 'Test',
           category: 'ASSEMBLY',
-          createdById: 'user-1',
+          createdBy: 'user-1',
         })
       ).rejects.toThrow('Template with name "Standard Assembly" already exists for this user');
     });
@@ -1204,7 +1224,7 @@ describe('RoutingService', () => {
         name: 'Test Template',
         isFavorite: false,
         usageCount: 0,
-        createdById: 'user-1',
+        createdBy: 'user-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1215,7 +1235,7 @@ describe('RoutingService', () => {
       const result = await routingService.createRoutingTemplate({
         name: 'Test Template',
         category: 'OTHER',
-        createdById: 'user-1',
+        createdBy: 'user-1',
       });
 
       expect(result.isFavorite).toBe(false);
@@ -1306,7 +1326,7 @@ describe('RoutingService', () => {
         {
           id: 'template-1',
           name: 'User Template',
-          createdById: 'user-1',
+          createdBy: 'user-1',
           createdAt: new Date(),
         },
       ];
@@ -1377,7 +1397,7 @@ describe('RoutingService', () => {
           name: 'Filtered Template',
           category: 'MACHINING',
           isFavorite: true,
-          createdById: 'user-1',
+          createdBy: 'user-1',
           createdAt: new Date(),
         },
       ];
@@ -1395,7 +1415,7 @@ describe('RoutingService', () => {
         where: {
           category: 'MACHINING',
           isFavorite: true,
-          createdById: 'user-1',
+          createdById: 'user-1', // Database field name
         },
         orderBy: expect.any(Array),
       });
@@ -1437,7 +1457,7 @@ describe('RoutingService', () => {
         id: 'template-1',
         name: 'Updated Name',
         description: 'Updated description',
-        createdById: 'user-1',
+        createdBy: 'user-1',
         category: 'ASSEMBLY',
         isFavorite: false,
         usageCount: 0,
@@ -1598,7 +1618,7 @@ describe('RoutingService', () => {
         },
         isFavorite: false,
         usageCount: 5,
-        createdById: 'user-1',
+        createdBy: 'user-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

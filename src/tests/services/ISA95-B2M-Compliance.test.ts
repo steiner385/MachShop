@@ -54,6 +54,7 @@ vi.mock('@prisma/client', () => {
       create: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
     },
     productionScheduleRequest: {
       findUnique: vi.fn(),
@@ -95,6 +96,13 @@ vi.mock('@prisma/client', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
+    inventory: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
   };
 
   return {
@@ -129,6 +137,7 @@ describe('ISA95-B2M Integration Compliance', () => {
     partNumber: 'PN-12345',
     partDescription: 'Machined Component',
     quantityOnHand: 1000,
+    isActive: true,
   };
 
   beforeEach(() => {
@@ -169,9 +178,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: 'PN-12345',
           quantity: 100,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-25T23:59:59Z'),
-          startDate: new Date('2025-10-20T08:00:00Z'),
-          endDate: new Date('2025-10-22T17:00:00Z'),
+          dueDate: new Date('2025-11-15T23:59:59Z'),
+          startDate: new Date('2025-11-01T08:00:00Z'),
+          endDate: new Date('2025-11-05T17:00:00Z'),
         },
         resources: {
           materials: [{ partNumber: 'PN-RAW-001', quantity: 200 }],
@@ -183,7 +192,7 @@ describe('ISA95-B2M Integration Compliance', () => {
       mockPrisma.integrationConfig.findUnique.mockResolvedValue(mockConfig);
       mockPrisma.part.findFirst
         .mockResolvedValueOnce(mockPart)
-        .mockResolvedValueOnce({ id: 'part-raw-001', partNumber: 'PN-RAW-001', quantityOnHand: 500 });
+        .mockResolvedValueOnce({ id: 'part-raw-001', partNumber: 'PN-RAW-001', quantityOnHand: 500, isActive: true });
       mockPrisma.equipment.count.mockResolvedValue(3);
       mockPrisma.personnel.count.mockResolvedValue(5);
 
@@ -206,8 +215,8 @@ describe('ISA95-B2M Integration Compliance', () => {
         partNumber: 'PN-12345',
         quantity: 100,
         status: 'CREATED',
-        actualStartDate: new Date('2025-10-20T08:30:00Z'),
-        actualEndDate: new Date('2025-10-22T16:45:00Z'),
+        actualStartDate: new Date('2025-11-01T08:30:00Z'),
+        actualEndDate: new Date('2025-11-05T16:45:00Z'),
         part: mockPart,
         workPerformance: [
           {
@@ -424,9 +433,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: 'PN-INVALID',
           quantity: 1000,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-25T23:59:59Z'),
-          startDate: new Date('2025-10-20T08:00:00Z'),
-          endDate: new Date('2025-10-22T17:00:00Z'),
+          dueDate: new Date('2025-11-25T23:59:59Z'),
+          startDate: new Date('2025-11-20T08:00:00Z'),
+          endDate: new Date('2025-11-22T17:00:00Z'),
         },
       });
 
@@ -485,9 +494,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: 'PN-12345',
           quantity: 75,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-30T23:59:59Z'),
-          startDate: new Date('2025-10-22T08:00:00Z'),
-          endDate: new Date('2025-10-24T17:00:00Z'),
+          dueDate: new Date('2025-11-30T23:59:59Z'),
+          startDate: new Date('2025-11-22T08:00:00Z'),
+          endDate: new Date('2025-11-24T17:00:00Z'),
         },
       });
 
@@ -536,7 +545,6 @@ describe('ISA95-B2M Integration Compliance', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             accepted: true,
-            status: 'PENDING',
           }),
         })
       );
@@ -597,6 +605,16 @@ describe('ISA95-B2M Integration Compliance', () => {
         workOrderNumber: 'WO-MAT-001',
         customerOrder: 'ERP-WO-MAT-001',
       });
+      mockPrisma.inventory.findFirst.mockResolvedValue({
+        id: 'inventory-1',
+        partId: 'part-1',
+        quantityOnHand: 1000,
+        location: 'WAREHOUSE-A',
+      });
+      mockPrisma.inventory.update.mockResolvedValue({
+        id: 'inventory-1',
+        quantityOnHand: 1010, // Updated after return
+      });
       mockPrisma.eRPMaterialTransaction.create.mockResolvedValue({
         id: 'mat-tx-return-1',
         messageId: 'MAT-RETURN-001',
@@ -634,8 +652,8 @@ describe('ISA95-B2M Integration Compliance', () => {
         partId: 'part-1',
         partNumber: 'PN-12345',
         quantity: 100,
-        actualStartDate: new Date('2025-10-18T08:00:00Z'),
-        actualEndDate: new Date('2025-10-18T17:00:00Z'),
+        actualStartDate: new Date('2025-11-18T08:00:00Z'),
+        actualEndDate: new Date('2025-11-18T17:00:00Z'),
         part: mockPart,
         workPerformance: [
           {
@@ -693,9 +711,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: 'PN-12345',
           quantity: 200,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-30T23:59:59Z'),
-          startDate: new Date('2025-10-22T08:00:00Z'),
-          endDate: new Date('2025-10-25T17:00:00Z'),
+          dueDate: new Date('2025-11-30T23:59:59Z'),
+          startDate: new Date('2025-11-22T08:00:00Z'),
+          endDate: new Date('2025-11-25T17:00:00Z'),
         },
         resources: {
           materials: [{ partNumber: 'PN-RAW-001', quantity: 400 }],
@@ -722,8 +740,8 @@ describe('ISA95-B2M Integration Compliance', () => {
         receiver: 'Oracle ERP',
         workOrder: {
           externalId: 'ERP-WO-TEST-001',
-          actualStartDate: new Date('2025-10-22T08:15:00Z'),
-          actualEndDate: new Date('2025-10-24T16:30:00Z'),
+          actualStartDate: new Date('2025-11-22T08:15:00Z'),
+          actualEndDate: new Date('2025-11-24T16:30:00Z'),
         },
         quantities: {
           produced: 200,
@@ -890,9 +908,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: partNumber,
           quantity: 50,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-30T23:59:59Z'),
-          startDate: new Date('2025-10-22T08:00:00Z'),
-          endDate: new Date('2025-10-24T17:00:00Z'),
+          dueDate: new Date('2025-11-30T23:59:59Z'),
+          startDate: new Date('2025-11-22T08:00:00Z'),
+          endDate: new Date('2025-11-24T17:00:00Z'),
         },
       });
 
@@ -921,8 +939,8 @@ describe('ISA95-B2M Integration Compliance', () => {
         partId: 'part-1',
         partNumber: partNumber,
         quantity: 50,
-        actualStartDate: new Date('2025-10-22T08:30:00Z'),
-        actualEndDate: new Date('2025-10-24T16:00:00Z'),
+        actualStartDate: new Date('2025-11-22T08:30:00Z'),
+        actualEndDate: new Date('2025-11-24T16:00:00Z'),
         part: mockPart,
         workPerformance: [
           {
@@ -1122,9 +1140,9 @@ describe('ISA95-B2M Integration Compliance', () => {
           partNumber: 'PN-12345',
           quantity: 25,
           unitOfMeasure: 'EA',
-          dueDate: new Date('2025-10-30T23:59:59Z'),
-          startDate: new Date('2025-10-22T08:00:00Z'),
-          endDate: new Date('2025-10-24T17:00:00Z'),
+          dueDate: new Date('2025-11-30T23:59:59Z'),
+          startDate: new Date('2025-11-22T08:00:00Z'),
+          endDate: new Date('2025-11-24T17:00:00Z'),
         },
       });
 

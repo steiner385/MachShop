@@ -604,8 +604,8 @@ export class MaterialService {
     }
 
     // ✅ PHASE 8B FIX: Validate material lot state and status enum values
-    const validStates = Object.values(MaterialLotState) as string[];
-    const validStatuses = Object.values(MaterialLotStatus) as string[];
+    const validStates = ['RECEIVED', 'INSPECTED', 'APPROVED', 'ISSUED', 'IN_PROCESS', 'CONSUMED', 'RETURNED', 'DISPOSED'];
+    const validStatuses = ['AVAILABLE', 'RESERVED', 'IN_USE', 'DEPLETED', 'QUARANTINED', 'EXPIRED', 'REJECTED', 'SCRAPPED'];
 
     if (!validStates.includes(newState as string)) {
       throw new Error(`Invalid material lot state: ${newState}. Valid states are: ${validStates.join(', ')}`);

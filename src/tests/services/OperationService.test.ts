@@ -263,7 +263,6 @@ describe('OperationService', () => {
       expect(mockPrisma.operation.update).toHaveBeenCalledWith({
         where: { id: 'seg-1' },
         data: expect.any(Object),
-        include: expect.any(Object),
       });
     });
 
@@ -273,9 +272,11 @@ describe('OperationService', () => {
       // Mock findUnique for parent check in updateOperation
       vi.mocked(mockPrisma.operation.findUnique)
         .mockResolvedValueOnce(mockParent as any)
-        // Mock for getAncestorChain called by isDescendant
-        .mockResolvedValueOnce({ id: 'seg-1', parentOperationId: 'parent-1' } as any)
-        .mockResolvedValueOnce({ id: 'parent-1', parentOperationId: null } as any);
+        // Mock for getAncestorChain called by isDescendant - checking if parent-1 is descendant of seg-1
+        // This simulates: seg-1 -> parent-1 (parent-1 is a child of seg-1)
+        // Now trying to make parent-1 the parent of seg-1 would create a circle
+        .mockResolvedValueOnce({ id: 'parent-1', parentOperationId: 'seg-1' } as any)
+        .mockResolvedValueOnce({ id: 'seg-1', parentOperationId: null } as any);
 
       await expect(
         operationService.updateOperation('seg-1', {
@@ -443,11 +444,8 @@ describe('OperationService', () => {
 
   describe('isDescendant', () => {
     it('should return true if operation is descendant', async () => {
-      const mockAncestors = [
-        { id: 'seg-1' },
-        { id: 'seg-2' },
-        { id: 'seg-3' },
-      ];
+      // Hierarchy: seg-1 (root) -> seg-2 -> seg-3
+      // isDescendant('seg-3', 'seg-1') should return true (seg-3 is a descendant of seg-1)
 
       vi.mocked(mockPrisma.operation.findUnique)
         .mockResolvedValueOnce({ id: 'seg-3', parentOperationId: 'seg-2' } as any)

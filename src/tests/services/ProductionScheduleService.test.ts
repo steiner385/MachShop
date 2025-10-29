@@ -38,6 +38,9 @@ vi.mock('@prisma/client', async () => {
     workOrder: {
       create: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
   };
 
   return {
@@ -82,6 +85,9 @@ describe('ProductionScheduleService', () => {
       },
       workOrder: {
         create: vi.fn(),
+      },
+      user: {
+        findUnique: vi.fn(),
       },
     };
 
@@ -1240,7 +1246,7 @@ describe('ProductionScheduleService', () => {
 
       expect(mockPrisma.workOrder.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          orderNumber: 'WO-SCH-2025-001-1',
+          workOrderNumber: 'WO-SCH-2025-001-1',
           partId: 'part-1',
           quantity: 100,
           priority: 'NORMAL',

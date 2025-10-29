@@ -519,7 +519,7 @@ describe('ProductionScheduleSyncService', () => {
         status: 'ACCEPTED',
         requestedDate: new Date(),
         workOrder: {
-          orderNumber: 'WO-ERP-ERP-WO-12345',
+          workOrderNumber: 'WO-ERP-ERP-WO-12345',
           status: 'CREATED',
           quantity: 100,
         },
