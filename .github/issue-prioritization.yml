@@ -173,7 +173,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: []
-    notes: "Database operations and connection handling need comprehensive testing"
+    notes: "COMPLETED - Comprehensive database testing infrastructure with Prisma model tests, transaction handling, repository patterns, performance testing, and error handling"
 
   - number: 158
     title: "Testing Infrastructure: Error Handling & Middleware Testing"
@@ -254,6 +254,18 @@ issues:
     effort_estimate: 8
     blocks: []
     notes: "Flexible serial number formats for diverse requirements across sites and parts"
+
+  # --- SDK & Extensibility Infrastructure ---
+  - number: 165
+    title: "SDK & Extensibility: Data Dictionary Infrastructure & Tooling"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: [166, 167]
+    notes: "Foundation for comprehensive database documentation - tooling and framework setup"
 
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
@@ -598,6 +610,18 @@ issues:
     effort_estimate: 8
     blocks: []
     notes: "Migrate routes, work instructions, quality, ECO, and document approvals to unified engine"
+
+  # --- SDK & Extensibility ---
+  - number: 166
+    title: "SDK & Extensibility: Initial Database Documentation"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: [167]
+    notes: "Comprehensive documentation of all database schemas, tables, columns, and relationships"
 
   # ============================================================================
   # L2: ENHANCED FEATURES
@@ -1112,6 +1136,17 @@ issues:
     effort_estimate: 4
     blocks: []
     notes: "SDK usage guidelines and governance"
+
+  - number: 167
+    title: "SDK & Extensibility: Automated Data Dictionary & CI/CD Integration"
+    category: sdk_extensibility
+    foundation_level: 3
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "Automated schema extraction and documentation generation in CI/CD pipeline"
 
   # --- Data Migration Tools ---
   - number: 31
