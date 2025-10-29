@@ -1776,9 +1776,7 @@ export class WorkflowEngineService {
           assignmentType: 'PARALLEL_REQUIRED',
           assignedAt: new Date(),
           dueDate: this.calculateStageDeadline(stage.deadlineHours),
-          escalationLevel: 0,
-          parallelGroup: 'PRIMARY',
-          parallelPriority: 1
+          escalationLevel: 0
         }
       });
     }
@@ -1794,9 +1792,7 @@ export class WorkflowEngineService {
           assignmentType: 'PARALLEL_OPTIONAL',
           assignedAt: new Date(),
           dueDate: this.calculateStageDeadline(stage.deadlineHours),
-          escalationLevel: 0,
-          parallelGroup: 'OPTIONAL',
-          parallelPriority: 2
+          escalationLevel: 0
         }
       });
     }
@@ -1824,9 +1820,7 @@ export class WorkflowEngineService {
             assignmentType: 'PARALLEL_ROLE_GROUP',
             assignedAt: new Date(),
             dueDate: this.calculateStageDeadline(stage.deadlineHours),
-            escalationLevel: 0,
-            parallelGroup: `ROLE_${role}`,
-            parallelPriority: groupIndex
+            escalationLevel: 0
           }
         });
       }
@@ -1858,9 +1852,7 @@ export class WorkflowEngineService {
           assignmentType: 'ROUND_ROBIN',
           assignedAt: new Date(),
           dueDate: this.calculateStageDeadline(stage.deadlineHours),
-          escalationLevel: 0,
-          parallelGroup: 'ROUND_ROBIN',
-          parallelPriority: 1
+          escalationLevel: 0
         }
       });
     }
@@ -1893,8 +1885,6 @@ export class WorkflowEngineService {
           assignedAt: new Date(),
           dueDate: this.calculateStageDeadline(stage.deadlineHours),
           escalationLevel: 0,
-          parallelGroup: 'LOAD_BALANCED',
-          parallelPriority: assignment.priority,
           loadBalanceWeight: assignment.weight
         }
       });
@@ -1921,9 +1911,7 @@ export class WorkflowEngineService {
             assignmentType: 'REQUIRED',
             assignedAt: new Date(),
             dueDate: this.calculateStageDeadline(stage.deadlineHours),
-            escalationLevel: 0,
-            parallelGroup: `ROLE_${role}`,
-            parallelPriority: 1
+            escalationLevel: 0
           }
         });
       }
@@ -1941,9 +1929,7 @@ export class WorkflowEngineService {
             assignmentType: 'OPTIONAL',
             assignedAt: new Date(),
             dueDate: this.calculateStageDeadline(stage.deadlineHours),
-            escalationLevel: 0,
-            parallelGroup: `ROLE_${role}`,
-            parallelPriority: 2
+            escalationLevel: 0
           }
         });
       }
@@ -1952,8 +1938,11 @@ export class WorkflowEngineService {
 
   /**
    * ✅ PHASE 5B: Initialize parallel coordination metadata
+   * TODO: Commented out because workflowParallelCoordination table doesn't exist in schema
    */
   private async initializeParallelCoordination(stageInstanceId: string, tx: any): Promise<void> {
+    // TODO: Re-enable this when workflowParallelCoordination table is added to schema
+    /*
     const assignments = await tx.workflowAssignment.findMany({
       where: { stageInstanceId }
     });
@@ -1987,6 +1976,10 @@ export class WorkflowEngineService {
         }
       });
     }
+    */
+
+    // For now, just return without doing anything
+    return Promise.resolve();
   }
 
   /**

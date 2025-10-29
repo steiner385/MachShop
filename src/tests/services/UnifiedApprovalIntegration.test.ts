@@ -22,13 +22,17 @@ describe('UnifiedApprovalIntegration', () => {
     // Clean up any existing test data
     await prisma.workflowInstance.deleteMany();
     await prisma.workflowDefinition.deleteMany();
+    await prisma.workInstruction.deleteMany();
+    await prisma.fAIReport.deleteMany();
+    await prisma.user.deleteMany();
 
     // Create test user
     const testUser = await prisma.user.create({
       data: {
+        username: 'test.approver',
         email: 'test.approver@example.com',
-        name: 'Test Approver',
-        badgeNumber: 'TEST001',
+        firstName: 'Test',
+        lastName: 'Approver',
         passwordHash: 'test-hash',
         roles: ['quality_manager'],
         isActive: true
@@ -41,7 +45,6 @@ describe('UnifiedApprovalIntegration', () => {
       data: {
         title: 'Test Work Instruction',
         description: 'Test work instruction for approval testing',
-        content: { steps: ['Test step 1', 'Test step 2'] },
         status: 'DRAFT',
         version: '1.0.0',
         createdById: testUserId,
@@ -50,14 +53,12 @@ describe('UnifiedApprovalIntegration', () => {
     });
     testWorkInstructionId = testWorkInstruction.id;
 
-    const testFAI = await prisma.fAI.create({
+    const testFAI = await prisma.fAIReport.create({
       data: {
-        partNumber: 'TEST-PART-001',
-        revision: 'A',
+        faiNumber: 'FAI-TEST-001',
+        partId: 'test-part-id',
         status: 'IN_PROGRESS',
-        inspectionData: { measurements: [] },
-        createdById: testUserId,
-        updatedById: testUserId
+        createdById: testUserId
       }
     });
     testFAIId = testFAI.id;
@@ -75,7 +76,7 @@ describe('UnifiedApprovalIntegration', () => {
     await prisma.workflowInstance.deleteMany();
     await prisma.workflowDefinition.deleteMany();
     await prisma.workInstruction.deleteMany();
-    await prisma.fAI.deleteMany();
+    await prisma.fAIReport.deleteMany();
     await prisma.user.deleteMany();
     await prisma.$disconnect();
   });
@@ -108,7 +109,7 @@ describe('UnifiedApprovalIntegration', () => {
           entityId: testWorkInstructionId,
           currentStatus: 'DRAFT',
           requiredApproverRoles: ['quality_manager'],
-          priority: 'MEDIUM',
+          priority: 'NORMAL',
           metadata: { testCase: 'work_instruction_approval' }
         },
         testUserId
@@ -125,7 +126,7 @@ describe('UnifiedApprovalIntegration', () => {
         {
           entityType: 'FAI_REPORT',
           entityId: testFAIId,
-          currentStatus: 'IN_REVIEW',
+          currentStatus: 'REVIEW',
           requiredApproverRoles: ['quality_manager', 'customer_representative'],
           priority: 'HIGH',
           metadata: {
@@ -152,7 +153,7 @@ describe('UnifiedApprovalIntegration', () => {
             entityId: testWorkInstructionId,
             currentStatus: 'DRAFT',
             requiredApproverRoles: ['quality_manager'],
-            priority: 'MEDIUM'
+            priority: 'NORMAL'
           },
           testUserId
         )
@@ -219,7 +220,6 @@ describe('UnifiedApprovalIntegration', () => {
         data: {
           title: 'Test Work Instruction for Rejection',
           description: 'Test work instruction for rejection testing',
-          content: { steps: ['Incomplete step'] },
           status: 'DRAFT',
           version: '1.0.0',
           createdById: testUserId,
@@ -234,7 +234,7 @@ describe('UnifiedApprovalIntegration', () => {
           entityId: rejectionWorkInstruction.id,
           currentStatus: 'DRAFT',
           requiredApproverRoles: ['quality_manager'],
-          priority: 'MEDIUM'
+          priority: 'NORMAL'
         },
         testUserId
       );
@@ -283,7 +283,6 @@ describe('UnifiedApprovalIntegration', () => {
         data: {
           title: 'No Workflow Work Instruction',
           description: 'Test work instruction without workflow',
-          content: { steps: ['Test step'] },
           status: 'DRAFT',
           version: '1.0.0',
           createdById: testUserId,
@@ -324,7 +323,6 @@ describe('UnifiedApprovalIntegration', () => {
         data: {
           title: 'Convenience Method Work Instruction',
           description: 'Test for convenience method',
-          content: { steps: ['Test step'] },
           status: 'DRAFT',
           version: '1.0.0',
           createdById: testUserId,
@@ -339,7 +337,7 @@ describe('UnifiedApprovalIntegration', () => {
           entityId: newWorkInstruction.id,
           currentStatus: 'DRAFT',
           requiredApproverRoles: ['quality_manager'],
-          priority: 'MEDIUM'
+          priority: 'NORMAL'
         },
         testUserId
       );
@@ -356,14 +354,12 @@ describe('UnifiedApprovalIntegration', () => {
     });
 
     test('should approve FAI report using convenience method with signature', async () => {
-      const newFAI = await prisma.fAI.create({
+      const newFAI = await prisma.fAIReport.create({
         data: {
-          partNumber: 'CONVENIENCE-TEST-001',
-          revision: 'A',
+          faiNumber: 'FAI-CONVENIENCE-TEST-001',
+          partId: 'convenience-test-part-id',
           status: 'IN_PROGRESS',
-          inspectionData: { measurements: [] },
-          createdById: testUserId,
-          updatedById: testUserId
+          createdById: testUserId
         }
       });
 
@@ -372,7 +368,7 @@ describe('UnifiedApprovalIntegration', () => {
         {
           entityType: 'FAI_REPORT',
           entityId: newFAI.id,
-          currentStatus: 'IN_REVIEW',
+          currentStatus: 'REVIEW',
           requiredApproverRoles: ['quality_manager'],
           priority: 'HIGH'
         },
@@ -410,7 +406,7 @@ describe('UnifiedApprovalIntegration', () => {
           entityId: newQualityInspection.id,
           currentStatus: 'PENDING_APPROVAL',
           requiredApproverRoles: ['quality_manager'],
-          priority: 'MEDIUM'
+          priority: 'NORMAL'
         },
         testUserId
       );
@@ -448,7 +444,7 @@ describe('UnifiedApprovalIntegration', () => {
             entityId: 'test-id',
             currentStatus: 'DRAFT',
             requiredApproverRoles: ['manager'],
-            priority: 'MEDIUM'
+            priority: 'NORMAL'
           },
           '' // Empty user ID
         )
@@ -466,7 +462,7 @@ describe('UnifiedApprovalIntegration', () => {
             entityId: 'test-id',
             currentStatus: 'DRAFT',
             requiredApproverRoles: ['manager'],
-            priority: 'MEDIUM'
+            priority: 'NORMAL'
           },
           testUserId
         )
@@ -484,7 +480,6 @@ describe('UnifiedApprovalIntegration', () => {
           data: {
             title: `Concurrent Test Work Instruction ${i}`,
             description: `Test work instruction ${i} for concurrent testing`,
-            content: { steps: [`Test step ${i}`] },
             status: 'DRAFT',
             version: '1.0.0',
             createdById: testUserId,
@@ -499,7 +494,7 @@ describe('UnifiedApprovalIntegration', () => {
               entityId: workInstruction.id,
               currentStatus: 'DRAFT',
               requiredApproverRoles: ['quality_manager'],
-              priority: 'MEDIUM',
+              priority: 'NORMAL',
               metadata: { concurrentTest: true, index: i }
             },
             testUserId
