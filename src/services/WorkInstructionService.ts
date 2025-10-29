@@ -494,7 +494,7 @@ export class WorkInstructionService {
         comments: comments?.substring(0, 100)
       });
 
-      // Use unified approval service
+      // Use unified approval service (handles all status updates internally)
       const approvalResult = await this.unifiedApprovalService.approveWorkInstruction(
         id,
         userId,
@@ -505,15 +505,9 @@ export class WorkInstructionService {
         throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
       }
 
-      // Update the work instruction status after workflow approval
-      const workInstruction = await prisma.workInstruction.update({
+      // Fetch the updated work instruction (already updated by unified approval service)
+      const workInstruction = await prisma.workInstruction.findUnique({
         where: { id },
-        data: {
-          status: WorkInstructionStatus.APPROVED,
-          approvedById: userId,
-          approvedAt: new Date(),
-          updatedById: userId,
-        },
         include: {
           createdBy: {
             select: {
@@ -546,6 +540,10 @@ export class WorkInstructionService {
           },
         },
       });
+
+      if (!workInstruction) {
+        throw new Error(`Work instruction not found after approval: ${id}`);
+      }
 
       logger.info(`Work instruction approved successfully through unified workflow: ${id}`, {
         workInstructionId: id,
@@ -702,12 +700,11 @@ export class WorkInstructionService {
         workflowInstanceId: rejectionResult.workflowInstanceId,
       };
 
-      // Update work instruction with rejection
+      // Fetch the updated work instruction (already updated by unified approval service)
+      // and manually update approval history for backward compatibility
       const workInstruction = await prisma.workInstruction.update({
         where: { id },
         data: {
-          status: 'REJECTED' as WorkInstructionStatus,
-          updatedById: userId,
           approvalHistory: [...approvalHistory, rejectionEntry] as any,
         },
         include: {

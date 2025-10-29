@@ -422,6 +422,39 @@ In case of issues during migration:
 - **Role-based access control** (RBAC)
 - **Document version control** integration
 
+## Legacy Route Handlers Status
+
+### Core Routes Updated ✅
+- **Work Instructions** (`/api/v1/work-instructions/:id/approve`, `/api/v1/work-instructions/:id/reject`) - Updated to use unified approval service
+- **FAI Reports** (`/api/v1/fai/:id/approve`) - Updated to use unified approval service with signature requirements
+
+### Remaining Legacy Routes (Planned for Future Migration) 📋
+The following routes still use direct service calls and should be migrated to the unified approval system in a future iteration:
+
+- **SOPs** (`src/routes/sops.ts:556`) - `sopService.approveSOP()`
+- **Tool Drawings** (`src/routes/toolDrawings.ts:601`) - `toolDrawingService.approveToolDrawing()`
+- **Setup Sheets** (`src/routes/setupSheets.ts:525`) - `setupSheetService.approveSetupSheet()`
+- **Inspection Plans** (`src/routes/inspectionPlans.ts:555`) - `inspectionPlanService.approveInspectionPlan()`
+- **Routing Service** (`src/routes/routings.ts:817`) - `routingService.approveRouting()`
+- **Material Service** (`src/routes/materials.ts:715`) - `MaterialService.rejectLot()`
+
+**Migration Pattern for Legacy Routes:**
+```typescript
+// Replace this pattern:
+const entity = await entityService.approveEntity(id, userId);
+
+// With this pattern:
+const unifiedApprovalService = new UnifiedApprovalIntegration(prisma);
+await unifiedApprovalService.initialize(userId);
+const result = await unifiedApprovalService.processApprovalAction(
+  'ENTITY_TYPE',
+  id,
+  'APPROVE',
+  userId,
+  comments
+);
+```
+
 ## Post-Migration Validation
 
 ### 1. Functional Validation

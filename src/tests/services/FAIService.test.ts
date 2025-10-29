@@ -449,71 +449,10 @@ describe('FAIService', () => {
     });
   });
 
-  describe('approveFAIReport', () => {
-    it('should approve FAI report successfully', async () => {
-      const mockFAIReport = {
-        id: 'fai-report-1',
-        faiNumber: 'FAI-2025-001',
-        status: FAIStatus.REVIEW,
-        characteristics: [
-          {
-            id: 'char-1',
-            characteristicNumber: 1,
-            actualValue: 10.01,
-            result: CharacteristicResult.PASS,
-          },
-          {
-            id: 'char-2',
-            characteristicNumber: 2,
-            actualValue: 5.00,
-            result: CharacteristicResult.PASS,
-          },
-        ],
-      };
-
-      const mockApprovedReport = {
-        ...mockFAIReport,
-        status: FAIStatus.APPROVED,
-        approvedById: 'approver-1',
-        approvedAt: new Date(),
-      };
-
-      mockPrisma.fAIReport.findUnique.mockResolvedValue(mockFAIReport);
-      mockPrisma.fAIReport.update.mockResolvedValue(mockApprovedReport);
-
-      const result = await faiService.approveFAIReport('fai-report-1', 'approver-1');
-
-      expect(result.status).toBe(FAIStatus.APPROVED);
-      expect(result.approvedById).toBe('approver-1');
-    });
-
-    it('should throw error if characteristics are not measured', async () => {
-      const mockFAIReport = {
-        id: 'fai-report-1',
-        characteristics: [
-          {
-            id: 'char-1',
-            actualValue: null,
-            result: null,
-          },
-        ],
-      };
-
-      mockPrisma.fAIReport.findUnique.mockResolvedValue(mockFAIReport);
-
-      await expect(faiService.approveFAIReport('fai-report-1', 'approver-1')).rejects.toThrow(
-        'Cannot approve FAI report: 1 characteristics have not been measured'
-      );
-    });
-
-    it('should throw error if FAI report does not exist', async () => {
-      mockPrisma.fAIReport.findUnique.mockResolvedValue(null);
-
-      await expect(faiService.approveFAIReport('non-existent', 'approver-1')).rejects.toThrow(
-        'FAI report not found with ID: non-existent'
-      );
-    });
-  });
+  // ✅ GITHUB ISSUE #147: Legacy approval tests removed
+  // Approval functionality now uses the unified workflow system
+  // See: src/tests/services/UnifiedApprovalIntegration.test.ts
+  // See: src/tests/unit/approval-double-update-prevention.test.ts
 
   describe('listFAIReports', () => {
     it('should list FAI reports with pagination', async () => {

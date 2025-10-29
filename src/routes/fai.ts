@@ -250,10 +250,27 @@ router.post('/:id/approve', async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    // TODO: Check if user has approval permission
+    // ✅ GITHUB ISSUE #147: Redirect to unified approval endpoint
+    // This route now forwards to the unified approval system for consistency
+    const unifiedApprovalService = new (require('../services/UnifiedApprovalIntegration').UnifiedApprovalIntegration)(
+      (faiService as any).prisma
+    );
 
-    const faiReport = await faiService.approveFAIReport(id, userId);
+    await unifiedApprovalService.initialize(userId);
+    const result = await unifiedApprovalService.approveFAIReport(
+      id,
+      userId,
+      req.body.comments,
+      true // FAI always requires signature for regulatory compliance
+    );
 
+    if (!result.success) {
+      res.status(400).json({ error: result.error || 'Approval failed' });
+      return;
+    }
+
+    // Fetch the updated FAI report
+    const faiReport = await faiService.getFAIReportById(id);
     res.json(faiReport);
   } catch (error) {
     next(error);

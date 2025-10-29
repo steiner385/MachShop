@@ -646,7 +646,7 @@ export class FAIService {
         });
       }
 
-      // Use unified approval service (FAI always requires signature)
+      // Use unified approval service (FAI always requires signature for regulatory compliance)
       const approvalResult = await this.unifiedApprovalService.approveFAIReport(
         faiReportId,
         approvedById,
@@ -658,20 +658,19 @@ export class FAIService {
         throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
       }
 
-      // Update the FAI report status after workflow approval
-      const updated = await this.prisma.fAIReport.update({
+      // Fetch the updated FAI report (already updated by unified approval service)
+      const updated = await this.prisma.fAIReport.findUnique({
         where: { id: faiReportId },
-        data: {
-          status: FAIStatus.APPROVED,
-          approvedById,
-          approvedAt: new Date(),
-        },
         include: {
           characteristics: {
             orderBy: { characteristicNumber: 'asc' },
           },
         },
       });
+
+      if (!updated) {
+        throw new Error(`FAI report not found after approval: ${faiReportId}`);
+      }
 
       logger.info(`FAI report approved successfully through unified workflow`, {
         faiId: faiReportId,
@@ -720,20 +719,19 @@ export class FAIService {
         throw new Error(`Rejection failed: ${rejectionResult.error || 'Unknown error'}`);
       }
 
-      // Update FAI report status
-      const updated = await this.prisma.fAIReport.update({
+      // Fetch the updated FAI report (already updated by unified approval service)
+      const updated = await this.prisma.fAIReport.findUnique({
         where: { id: faiReportId },
-        data: {
-          status: 'REJECTED' as FAIStatus,
-          reviewedById: userId,
-          reviewedAt: new Date(),
-        },
         include: {
           characteristics: {
             orderBy: { characteristicNumber: 'asc' },
           },
         },
       });
+
+      if (!updated) {
+        throw new Error(`FAI report not found after rejection: ${faiReportId}`);
+      }
 
       logger.info(`FAI report rejected successfully through unified workflow: ${faiReportId}`, {
         faiReportId,
