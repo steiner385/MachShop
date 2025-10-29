@@ -370,6 +370,51 @@ issues:
     blocks: []
     notes: "Complete traceability for recalls and compliance"
 
+  # --- Help Documentation & User Guidance ---
+  - number: 139
+    title: "Help Documentation: Core Help Infrastructure with Context-Sensitive Guidance"
+    category: help_documentation
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: [140, 141, 142]
+    notes: "Foundation for integrated help system - all other help features depend on this"
+
+  - number: 140
+    title: "Help Documentation: Knowledge Base & Content Management System"
+    category: help_documentation
+    foundation_level: 1
+    dependencies: [139]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "Comprehensive knowledge base with search and content organization"
+
+  - number: 141
+    title: "Help Documentation: CI/CD Auto-Documentation Integration"
+    category: help_documentation
+    foundation_level: 1
+    dependencies: [139]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "Automated help content generation - ensures documentation stays current"
+
+  - number: 142
+    title: "Help Documentation: Advanced Interactive Help Features"
+    category: help_documentation
+    foundation_level: 1
+    dependencies: [139]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "World-class interactive help with guided tours, tooltips, and smart suggestions"
+
   # ============================================================================
   # L2: ENHANCED FEATURES
   # ============================================================================
@@ -1022,3 +1067,7 @@ categories:
   testing_infrastructure:
     name: "Testing Infrastructure & CI/CD"
     description: "Unit testing, test coverage, CI/CD pipelines, and code quality automation"
+
+  help_documentation:
+    name: "Help Documentation & User Guidance"
+    description: "Integrated help system, context-sensitive guidance, knowledge base, and self-documenting features"
