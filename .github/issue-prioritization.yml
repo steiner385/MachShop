@@ -118,6 +118,40 @@ issues:
     blocks: []
     notes: "Makes RBAC easier to deploy for customers"
 
+  # --- Testing Infrastructure ---
+  - number: 136
+    title: "Testing Infrastructure: Achieve 50% Unit Test Coverage Across Application"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 10
+    blocks: []
+    notes: "Foundation for code quality and confidence in refactoring"
+
+  - number: 137
+    title: "Testing Infrastructure: Fix All Failing Unit Tests"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: [138]
+    notes: "Must fix all tests before enforcing them in CI/CD"
+
+  - number: 138
+    title: "Testing Infrastructure: Enforce Passing Unit Tests as PR Merge Requirement"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [137]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 4
+    blocks: []
+    notes: "Gates all future code quality - depends on fixing failing tests first"
+
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
   # ============================================================================
@@ -984,3 +1018,7 @@ categories:
   data_migration:
     name: "Data Migration Tools"
     description: "Customer onboarding and data migration utilities"
+
+  testing_infrastructure:
+    name: "Testing Infrastructure & CI/CD"
+    description: "Unit testing, test coverage, CI/CD pipelines, and code quality automation"
