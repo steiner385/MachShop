@@ -73,6 +73,12 @@ import notificationRoutes from './routes/notifications';
 import activityRoutes from './routes/activities';
 import collaborationRoutes from './routes/collaboration';
 
+// GitHub Issue #29: Dynamic Role and Permission System Routes
+import adminRolesRoutes from './routes/admin/roles';
+import adminPermissionsRoutes from './routes/admin/permissions';
+import adminRolePermissionsRoutes from './routes/admin/role-permissions';
+import adminUserRolesRoutes from './routes/admin/user-roles';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -238,6 +244,12 @@ apiRouter.use('/formulas', authMiddleware, parameterFormulasRoutes);
 
 // SPC routes (Variable System - Phase 2)
 apiRouter.use('/spc', authMiddleware, spcRoutes);
+
+// GitHub Issue #29: Dynamic Role and Permission System API Routes
+apiRouter.use('/admin/roles', authMiddleware, adminRolesRoutes);
+apiRouter.use('/admin/permissions', authMiddleware, adminPermissionsRoutes);
+apiRouter.use('/admin/role-permissions', authMiddleware, adminRolePermissionsRoutes);
+apiRouter.use('/admin/user-roles', authMiddleware, adminUserRolesRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
