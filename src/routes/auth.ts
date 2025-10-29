@@ -9,6 +9,7 @@ import { securityLogger } from '../middleware/requestLogger';
 import { logger } from '../utils/logger';
 import prisma from '../lib/database';
 import AuthenticationManager from '../services/AuthenticationManager';
+import { resolveUserPermissions } from '../services/permissionService';
 
 const router = express.Router();
 
@@ -38,15 +39,61 @@ const refreshTokenSchema = z.object({
 // Note: Users are now stored in the database and loaded via Prisma
 // Token storage is now handled by AuthenticationManager (thread-safe)
 
-// Generate JWT tokens
-const generateTokens = (user: any) => {
+// Generate JWT tokens with database-driven RBAC support
+const generateTokens = async (user: any, siteId?: string) => {
+  // Resolve user permissions from database using new RBAC system
+  let resolvedPermissions;
+  let effectiveRoles: string[] = [];
+  let effectivePermissions: string[] = [];
+
+  try {
+    // Try to get permissions from new RBAC system
+    resolvedPermissions = await resolveUserPermissions(user.id, siteId);
+    effectiveRoles = [...resolvedPermissions.globalRoles];
+    effectivePermissions = resolvedPermissions.permissions;
+
+    // If user has site-specific roles for the current site, include them
+    if (siteId) {
+      const siteRoleData = resolvedPermissions.siteRoles.find(sr => sr.siteId === siteId);
+      if (siteRoleData) {
+        effectiveRoles.push(...siteRoleData.roles);
+      }
+    }
+
+    logger.debug('JWT token generation using database RBAC', {
+      userId: user.id,
+      username: user.username,
+      siteId,
+      globalRoles: resolvedPermissions.globalRoles.length,
+      siteRoles: resolvedPermissions.siteRoles.length,
+      permissions: effectivePermissions.length,
+      isSystemAdmin: resolvedPermissions.isSystemAdmin
+    });
+
+  } catch (error: any) {
+    // Fallback to legacy role/permission arrays for backward compatibility
+    logger.warn('Database RBAC resolution failed, falling back to legacy arrays', {
+      userId: user.id,
+      username: user.username,
+      error: error.message,
+      hasLegacyRoles: Array.isArray(user.roles),
+      hasLegacyPermissions: Array.isArray(user.permissions)
+    });
+
+    effectiveRoles = user.roles || [];
+    effectivePermissions = user.permissions || [];
+  }
+
   const payload = {
     userId: user.id,
     username: user.username,
     email: user.email,
-    roles: user.roles,
-    permissions: user.permissions,
-    siteId: user.siteId
+    roles: effectiveRoles,
+    permissions: effectivePermissions,
+    siteId: siteId || user.siteId,
+    // Enhanced RBAC metadata for advanced authorization
+    rbacEnabled: !!resolvedPermissions,
+    isSystemAdmin: resolvedPermissions?.isSystemAdmin || false
   };
 
   // ✅ PHASE 6D FIX: Use environment variable directly in test mode to avoid config timing issues
@@ -282,7 +329,7 @@ router.post('/refresh',
     }
 
     // Generate new access token and refresh token
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+    const { accessToken, refreshToken: newRefreshToken } = await generateTokens(user);
 
     // Remove old refresh token and add new one
     refreshTokens.delete(refreshToken);

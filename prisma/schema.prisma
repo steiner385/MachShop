@@ -61,6 +61,9 @@ model Site {
   productionSchedules ProductionSchedule[] // Production schedules for this site
   routingTemplates    RoutingTemplate[] // Routing templates defined for this site
 
+  // ✅ GITHUB ISSUE #29: Site-specific role assignments
+  userSiteRoles       UserSiteRole[]  // Users with site-specific roles
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -181,6 +184,15 @@ model User {
 
   // Routing Template ownership
   routingTemplates RoutingTemplate[]
+
+  // ✅ GITHUB ISSUE #29: Dynamic RBAC Relations
+  // DEPRECATED: Keep for backward compatibility during migration
+  // roles        String[]  @default([])  // Already exists at line 97
+  // permissions  String[]  @default([])  // Already exists at line 98
+
+  // NEW: Relations to dynamic role system
+  userRoles     UserRole[]      // Global role assignments
+  userSiteRoles UserSiteRole[]  // Site-specific role assignments
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -7640,4 +7652,116 @@ enum UploadStatus {
   FAILED
   CANCELLED
   EXPIRED
+}
+// =============================================================================
+// ENHANCED ROLE-BASED ACCESS CONTROL (RBAC) SYSTEM
+// GitHub Issue #29: Dynamic Role and Permission System with Site-Level Configuration
+// =============================================================================
+
+/// Enhanced Role model - Replaces placeholder in auth service
+/// Supports both global and site-specific roles with flexible permission assignment
+model Role {
+  id          String   @id @default(cuid())
+  roleCode    String   @unique  // e.g., "mfg_engineer", "quality_inspector"
+  roleName    String              // e.g., "Manufacturing Engineer", "Quality Inspector"
+  description String?
+  isActive    Boolean  @default(true)
+  isGlobal    Boolean  @default(true)  // true = available globally, false = site-specific only
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+
+  // Relations
+  userRoles     UserRole[]        // Users with this role globally
+  userSiteRoles UserSiteRole[]    // Users with this role at specific sites
+  permissions   RolePermission[]  // Permissions assigned to this role
+
+  @@index([roleCode])
+  @@index([isActive])
+  @@index([isGlobal])
+  @@map("roles")
+}
+
+/// Enhanced Permission model - Replaces placeholder in auth service
+/// Granular permissions with wildcard support and categorization
+model Permission {
+  id              String   @id @default(cuid())
+  permissionCode  String   @unique  // e.g., "workorders.read", "quality.*", "*"
+  permissionName  String              // e.g., "View Work Orders", "All Quality Permissions"
+  description     String?
+  category        String?             // e.g., "workorders", "quality", "routings", "admin"
+  isActive        Boolean  @default(true)
+  isWildcard      Boolean  @default(false)  // true for permissions like "workorders.*" or "*"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  roles           RolePermission[]
+
+  @@index([permissionCode])
+  @@index([category])
+  @@index([isActive])
+  @@index([isWildcard])
+  @@map("permissions")
+}
+
+/// Junction table: Role ↔ Permission (many-to-many)
+/// Defines which permissions are assigned to each role
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  grantedAt    DateTime @default(now())
+  grantedBy    String?  // User ID who granted this permission
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Junction table: User ↔ Role (many-to-many, global)
+/// Assigns global roles to users that apply across all sites
+model UserRole {
+  id         String   @id @default(cuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?  // User ID who assigned this role
+  expiresAt  DateTime?  // Optional expiration for time-limited assignments
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([expiresAt])
+  @@map("user_roles")
+}
+
+/// Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
+/// Assigns site-specific roles to users for enhanced granular control
+model UserSiteRole {
+  id         String   @id @default(cuid())
+  userId     String
+  roleId     String
+  siteId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?  // User ID who assigned this role
+  expiresAt  DateTime?  // Optional expiration for time-limited assignments
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site       Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, siteId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([expiresAt])
+  @@map("user_site_roles")
 }

@@ -3,6 +3,13 @@ import * as jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { AuthenticationError, AuthorizationError } from './errorHandler';
 import { logger } from '../utils/logger';
+import {
+  hasPermission,
+  hasRole,
+  hasAllPermissions,
+  resolveUserPermissions,
+  ResolvedPermissions
+} from '../services/permissionService';
 
 // Extend Request interface to include user
 declare global {
@@ -15,6 +22,9 @@ declare global {
         roles: string[];
         permissions: string[];
         siteId?: string;
+        // Enhanced RBAC fields
+        resolvedPermissions?: ResolvedPermissions;
+        isUsingDatabaseRBAC?: boolean;
       };
     }
   }
@@ -549,6 +559,385 @@ export const optionalAuth = async (
     // For optional auth, we don't throw errors, just continue without user
     next();
   }
+};
+
+// ======================================
+// DATABASE-DRIVEN RBAC AUTHORIZATION
+// GitHub Issue #29: Dynamic Role and Permission System
+// ======================================
+
+/**
+ * Enhanced permission-based authorization using database-driven RBAC
+ * Supports wildcard permissions and site-specific access
+ */
+export const requirePermissionDB = (permission: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+
+    try {
+      const siteId = req.params.siteId || req.query.siteId as string || req.user.siteId;
+      const hasAccess = await hasPermission(req.user.id, permission, siteId);
+
+      if (!hasAccess) {
+        logger.warn('Database permission authorization failed', {
+          userId: req.user.id,
+          username: req.user.username,
+          requiredPermission: permission,
+          siteId,
+          path: req.path,
+          method: req.method
+        });
+
+        return next(new AuthorizationError(`Permission required: ${permission}`));
+      }
+
+      // Pre-resolve permissions for potential future use in the request
+      if (!req.user.resolvedPermissions) {
+        req.user.resolvedPermissions = await resolveUserPermissions(req.user.id, siteId);
+        req.user.isUsingDatabaseRBAC = true;
+      }
+
+      logger.debug('Database permission authorization granted', {
+        userId: req.user.id,
+        username: req.user.username,
+        permission,
+        siteId,
+        path: req.path,
+        method: req.method
+      });
+
+      next();
+    } catch (error: any) {
+      logger.error('Database permission check failed', {
+        userId: req.user.id,
+        permission,
+        error: error.message,
+        stack: error.stack
+      });
+
+      return next(new AuthorizationError('Permission check failed'));
+    }
+  };
+};
+
+/**
+ * Enhanced role-based authorization using database-driven RBAC
+ * Supports both global and site-specific roles
+ */
+export const requireRoleDB = (role: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+
+    try {
+      const siteId = req.params.siteId || req.query.siteId as string || req.user.siteId;
+      const hasAccess = await hasRole(req.user.id, role, siteId);
+
+      if (!hasAccess) {
+        logger.warn('Database role authorization failed', {
+          userId: req.user.id,
+          username: req.user.username,
+          requiredRole: role,
+          siteId,
+          path: req.path,
+          method: req.method
+        });
+
+        return next(new AuthorizationError(`Role required: ${role}`));
+      }
+
+      // Pre-resolve permissions for potential future use in the request
+      if (!req.user.resolvedPermissions) {
+        req.user.resolvedPermissions = await resolveUserPermissions(req.user.id, siteId);
+        req.user.isUsingDatabaseRBAC = true;
+      }
+
+      logger.debug('Database role authorization granted', {
+        userId: req.user.id,
+        username: req.user.username,
+        role,
+        siteId,
+        path: req.path,
+        method: req.method
+      });
+
+      next();
+    } catch (error: any) {
+      logger.error('Database role check failed', {
+        userId: req.user.id,
+        role,
+        error: error.message,
+        stack: error.stack
+      });
+
+      return next(new AuthorizationError('Role check failed'));
+    }
+  };
+};
+
+/**
+ * Enhanced multiple roles authorization using database-driven RBAC
+ * User must have at least one of the specified roles
+ */
+export const requireAnyRoleDB = (roles: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+
+    try {
+      const siteId = req.params.siteId || req.query.siteId as string || req.user.siteId;
+
+      // Check each role until we find one the user has
+      let hasAccess = false;
+      for (const role of roles) {
+        if (await hasRole(req.user.id, role, siteId)) {
+          hasAccess = true;
+          break;
+        }
+      }
+
+      if (!hasAccess) {
+        logger.warn('Database multiple role authorization failed', {
+          userId: req.user.id,
+          username: req.user.username,
+          requiredRoles: roles,
+          siteId,
+          path: req.path,
+          method: req.method
+        });
+
+        return next(new AuthorizationError(`One of these roles required: ${roles.join(', ')}`));
+      }
+
+      // Pre-resolve permissions for potential future use in the request
+      if (!req.user.resolvedPermissions) {
+        req.user.resolvedPermissions = await resolveUserPermissions(req.user.id, siteId);
+        req.user.isUsingDatabaseRBAC = true;
+      }
+
+      logger.debug('Database multiple role authorization granted', {
+        userId: req.user.id,
+        username: req.user.username,
+        roles,
+        siteId,
+        path: req.path,
+        method: req.method
+      });
+
+      next();
+    } catch (error: any) {
+      logger.error('Database multiple role check failed', {
+        userId: req.user.id,
+        roles,
+        error: error.message,
+        stack: error.stack
+      });
+
+      return next(new AuthorizationError('Role check failed'));
+    }
+  };
+};
+
+/**
+ * Enhanced permission authorization for multiple permissions
+ * User must have ALL specified permissions
+ */
+export const requireAllPermissionsDB = (permissions: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+
+    try {
+      const siteId = req.params.siteId || req.query.siteId as string || req.user.siteId;
+      const hasAccess = await hasAllPermissions(req.user.id, permissions, siteId);
+
+      if (!hasAccess) {
+        logger.warn('Database multiple permission authorization failed', {
+          userId: req.user.id,
+          username: req.user.username,
+          requiredPermissions: permissions,
+          siteId,
+          path: req.path,
+          method: req.method
+        });
+
+        return next(new AuthorizationError(`All permissions required: ${permissions.join(', ')}`));
+      }
+
+      // Pre-resolve permissions for potential future use in the request
+      if (!req.user.resolvedPermissions) {
+        req.user.resolvedPermissions = await resolveUserPermissions(req.user.id, siteId);
+        req.user.isUsingDatabaseRBAC = true;
+      }
+
+      logger.debug('Database multiple permission authorization granted', {
+        userId: req.user.id,
+        username: req.user.username,
+        permissions,
+        siteId,
+        path: req.path,
+        method: req.method
+      });
+
+      next();
+    } catch (error: any) {
+      logger.error('Database multiple permission check failed', {
+        userId: req.user.id,
+        permissions,
+        error: error.message,
+        stack: error.stack
+      });
+
+      return next(new AuthorizationError('Permission check failed'));
+    }
+  };
+};
+
+/**
+ * Enhanced site-based authorization using database-driven RBAC
+ * Checks if user has access to specific site through role assignments
+ */
+export const requireSiteAccessDB = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  try {
+    // Extract site ID from request parameters or query
+    const requestedSiteId = req.params.siteId || req.query.siteId as string;
+
+    if (!requestedSiteId) {
+      return next(); // No site restriction needed
+    }
+
+    // Resolve user permissions for the specific site
+    const resolved = await resolveUserPermissions(req.user.id, requestedSiteId);
+
+    // System administrators can access all sites
+    if (resolved.isSystemAdmin) {
+      req.user.resolvedPermissions = resolved;
+      req.user.isUsingDatabaseRBAC = true;
+      return next();
+    }
+
+    // Check if user has any roles for this site
+    const siteRoleData = resolved.siteRoles.find(sr => sr.siteId === requestedSiteId);
+    const hasGlobalRoles = resolved.globalRoles.length > 0;
+
+    if (!siteRoleData && !hasGlobalRoles) {
+      logger.warn('Database site access denied', {
+        userId: req.user.id,
+        username: req.user.username,
+        requestedSiteId,
+        globalRoleCount: resolved.globalRoles.length,
+        siteRoleCount: resolved.siteRoles.length,
+        path: req.path,
+        method: req.method
+      });
+
+      return next(new AuthorizationError('Access denied to this site'));
+    }
+
+    req.user.resolvedPermissions = resolved;
+    req.user.isUsingDatabaseRBAC = true;
+
+    logger.debug('Database site access granted', {
+      userId: req.user.id,
+      username: req.user.username,
+      requestedSiteId,
+      globalRoleCount: resolved.globalRoles.length,
+      siteRoleCount: siteRoleData?.roles.length || 0,
+      path: req.path,
+      method: req.method
+    });
+
+    next();
+  } catch (error: any) {
+    logger.error('Database site access check failed', {
+      userId: req.user.id,
+      requestedSiteId: req.params.siteId || req.query.siteId,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return next(new AuthorizationError('Site access check failed'));
+  }
+};
+
+/**
+ * Hybrid authorization middleware that tries database first, falls back to JWT
+ * This enables gradual migration from hard-coded to database-driven RBAC
+ */
+export const requirePermissionHybrid = (permission: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AuthenticationError('Authentication required'));
+    }
+
+    try {
+      // Try database-driven permission check first
+      const siteId = req.params.siteId || req.query.siteId as string || req.user.siteId;
+      const hasDBPermission = await hasPermission(req.user.id, permission, siteId);
+
+      if (hasDBPermission) {
+        logger.debug('Hybrid authorization: Database permission granted', {
+          userId: req.user.id,
+          permission,
+          method: 'database'
+        });
+
+        if (!req.user.resolvedPermissions) {
+          req.user.resolvedPermissions = await resolveUserPermissions(req.user.id, siteId);
+          req.user.isUsingDatabaseRBAC = true;
+        }
+
+        return next();
+      }
+
+      // Fall back to JWT-based permission check
+      if (req.user.permissions.includes(permission) || req.user.permissions.includes('*')) {
+        logger.debug('Hybrid authorization: JWT permission granted', {
+          userId: req.user.id,
+          permission,
+          method: 'jwt'
+        });
+
+        return next();
+      }
+
+      // Neither method granted access
+      logger.warn('Hybrid authorization failed', {
+        userId: req.user.id,
+        username: req.user.username,
+        requiredPermission: permission,
+        jwtPermissions: req.user.permissions,
+        siteId,
+        path: req.path,
+        method: req.method
+      });
+
+      return next(new AuthorizationError(`Permission required: ${permission}`));
+
+    } catch (error: any) {
+      logger.error('Hybrid permission check failed, falling back to JWT', {
+        userId: req.user.id,
+        permission,
+        error: error.message
+      });
+
+      // If database check fails, fall back to JWT
+      if (req.user.permissions.includes(permission) || req.user.permissions.includes('*')) {
+        return next();
+      }
+
+      return next(new AuthorizationError(`Permission required: ${permission}`));
+    }
+  };
 };
 
 export default authMiddleware;
