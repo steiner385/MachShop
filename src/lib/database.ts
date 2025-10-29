@@ -37,19 +37,22 @@ function getDatabaseUrl(): string {
     // Production: Enterprise-scale deployment (5000-6000 concurrent users)
     // Each backend pod should handle 150-200 connections
     // Use PgBouncer for connection pooling at database level
-    connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '150', 10);
+    const parsedLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '150', 10);
+    connectionLimit = isNaN(parsedLimit) ? 150 : parsedLimit;
     poolTimeout = 30;  // Longer timeout for high-load scenarios
     connectTimeout = 10;
   } else if (isTest) {
     // Test: Higher limits to handle concurrent E2E test load with multiple test groups
     // With ~25 concurrent test processes + pre-auth for 22 users + browser requests
     // we need significant headroom to prevent connection pool exhaustion
-    connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '100', 10);
+    const parsedLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '100', 10);
+    connectionLimit = isNaN(parsedLimit) ? 100 : parsedLimit;
     poolTimeout = 30;  // Extended timeout for high-concurrency test scenarios
     connectTimeout = 15;
   } else if (isDevelopment) {
     // Development: Lower limits for local development
-    connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '15', 10);
+    const parsedLimit = parseInt(process.env.DB_CONNECTION_LIMIT || '15', 10);
+    connectionLimit = isNaN(parsedLimit) ? 15 : parsedLimit;
     poolTimeout = 10;
     connectTimeout = 5;
   }
