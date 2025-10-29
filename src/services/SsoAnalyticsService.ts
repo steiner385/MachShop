@@ -610,13 +610,12 @@ export class SsoAnalyticsService extends EventEmitter {
   }
 
   private analyzeLocations(events: any[]): Array<{ location: string; count: number }> {
-    // Simplified location analysis - would use IP geolocation in production
+    // Real IP geolocation analysis using geoip-lite
     const locationCounts = new Map<string, number>();
 
     events.forEach(event => {
       if (event.ipAddress) {
-        // Mock location based on IP ranges
-        const location = this.mockLocationFromIp(event.ipAddress);
+        const location = this.getLocationFromIp(event.ipAddress);
         locationCounts.set(location, (locationCounts.get(location) || 0) + 1);
       }
     });
@@ -626,11 +625,44 @@ export class SsoAnalyticsService extends EventEmitter {
       .sort((a, b) => b.count - a.count);
   }
 
-  private mockLocationFromIp(ipAddress: string): string {
-    // Mock implementation - would use actual geolocation service
-    const hash = ipAddress.split('.').reduce((acc, part) => acc + parseInt(part, 10), 0);
-    const locations = ['New York', 'California', 'London', 'Tokyo', 'Sydney'];
-    return locations[hash % locations.length];
+  private getLocationFromIp(ipAddress: string): string {
+    try {
+      const geoip = require('geoip-lite');
+      const geo = geoip.lookup(ipAddress);
+
+      if (geo) {
+        // Return city, region, country format
+        const parts = [geo.city, geo.region, geo.country].filter(Boolean);
+        return parts.length > 0 ? parts.join(', ') : 'Unknown Location';
+      }
+
+      // Handle private/local IP addresses
+      if (this.isPrivateIp(ipAddress)) {
+        return 'Private Network';
+      }
+
+      return 'Unknown Location';
+    } catch (error) {
+      logger.warn('Failed to get location from IP', { ipAddress, error });
+      return 'Unknown Location';
+    }
+  }
+
+  private isPrivateIp(ipAddress: string): boolean {
+    // Check for private IP ranges
+    const privateRanges = [
+      /^10\./,                    // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+      /^192\.168\./,              // 192.168.0.0/16
+      /^127\./,                   // 127.0.0.0/8 (localhost)
+      /^169\.254\./,              // 169.254.0.0/16 (link-local)
+      /^::1$/,                    // IPv6 localhost
+      /^fe80:/,                   // IPv6 link-local
+      /^fc00:/,                   // IPv6 unique local
+      /^fd00:/                    // IPv6 unique local
+    ];
+
+    return privateRanges.some(range => range.test(ipAddress));
   }
 }
 
