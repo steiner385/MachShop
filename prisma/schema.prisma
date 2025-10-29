@@ -201,6 +201,10 @@ model User {
   // ✅ GITHUB ISSUE #46: Time Tracking Relations
   laborTimeEntries LaborTimeEntry[] // Time entries for this user
 
+  // ✅ GITHUB ISSUE #134: SSO Management Relations
+  ssoSessions          SsoSession[]          // SSO sessions for this user
+  authenticationEvents AuthenticationEvent[] // Authentication events for this user
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -8086,4 +8090,129 @@ enum TimeValidationRuleType {
   CONCURRENT_ENTRIES // Detect overlapping time entries
   OVERTIME_THRESHOLD // Overtime warning threshold
   INVALID_TIME_RANGE // Clock in/out time validation
+}
+
+// ============================================================================
+// Unified SSO Management System (Issue #134)
+// Multi-provider SSO orchestration, monitoring, and administration
+// ============================================================================
+
+/// SSO Provider Registry
+/// Centralized registry of all configured SSO providers
+model SsoProvider {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  type                SsoProviderType
+  configId            String   // Reference to provider-specific config
+  priority            Int      @default(0)
+  isActive            Boolean  @default(true)
+  isDefault           Boolean  @default(false)
+  domainRestrictions  String[] // Email domains that should use this provider
+  groupRestrictions   String[] // User groups that should use this provider
+  metadata            Json?    // Provider-specific configuration
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  ssoSessions         SsoSession[]
+  authenticationEvents AuthenticationEvent[]
+  homeRealmRules      HomeRealmDiscovery[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([priority])
+  @@map("sso_providers")
+}
+
+/// SSO Session Management
+/// Unified session handling across multiple providers
+model SsoSession {
+  id               String   @id @default(cuid())
+  userId           String
+  primaryProviderId String
+  activeProviders  String[] // List of provider IDs in this session
+  sessionData      Json?    // Provider-specific session data
+  expiresAt        DateTime?
+  lastActivityAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  // Relations
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primaryProvider SsoProvider @relation(fields: [primaryProviderId], references: [id])
+
+  @@index([userId])
+  @@index([primaryProviderId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+  @@map("sso_sessions")
+}
+
+/// Authentication Analytics
+/// Comprehensive tracking of authentication events and metrics
+model AuthenticationEvent {
+  id           String                   @id @default(cuid())
+  userId       String?
+  providerId   String
+  eventType    AuthenticationEventType
+  userAgent    String?
+  ipAddress    String?
+  location     String?
+  responseTime Int?                     // Response time in milliseconds
+  errorCode    String?
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime                 @default(now())
+
+  // Relations
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  provider SsoProvider @relation(fields: [providerId], references: [id])
+
+  @@index([userId])
+  @@index([providerId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([ipAddress])
+  @@map("authentication_events")
+}
+
+/// Home Realm Discovery Rules
+/// Automatic provider selection based on user attributes
+model HomeRealmDiscovery {
+  id         String      @id @default(cuid())
+  name       String
+  pattern    String      // Email domain pattern or rule
+  providerId String
+  priority   Int         @default(0)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+
+  // Relations
+  provider SsoProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([pattern])
+  @@index([providerId])
+  @@index([priority])
+  @@index([isActive])
+  @@map("home_realm_discovery")
+}
+
+// SSO Provider Types
+enum SsoProviderType {
+  SAML      // SAML 2.0 providers
+  OIDC      // OpenID Connect / OAuth 2.0
+  AZURE_AD  // Azure AD / Entra ID (specialized OIDC)
+  LDAP      // LDAP/Active Directory
+  INTERNAL  // Internal username/password authentication
+}
+
+// Authentication Event Types
+enum AuthenticationEventType {
+  LOGIN          // Successful login
+  LOGOUT         // User logout
+  REFRESH        // Token refresh
+  FAILURE        // Authentication failure
+  PROVIDER_ERROR // Provider-specific error
+  SESSION_TIMEOUT // Session timeout
+  FORCED_LOGOUT  // Administrative logout
 }
