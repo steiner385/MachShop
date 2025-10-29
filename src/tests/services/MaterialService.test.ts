@@ -425,7 +425,9 @@ describe('MaterialService', () => {
       expect(result).toEqual(mockProperty);
       expect(mockPrisma.materialProperty.create).toHaveBeenCalledWith({
         data: {
-          materialId: 'mat-1',
+          material: {
+            connect: { id: 'mat-1' }
+          },
           propertyName: 'Hardness',
           propertyType: MaterialPropertyType.MECHANICAL,
           propertyValue: 'HRC 60',

@@ -118,6 +118,7 @@ describe('ProductionScheduleService', () => {
       };
 
       mockPrisma.productionSchedule.create.mockResolvedValue(mockSchedule);
+      mockPrisma.productionSchedule.findUnique.mockResolvedValue(mockSchedule);
       mockPrisma.scheduleStateHistory.create.mockResolvedValue({
         id: 'history-1',
         scheduleId: 'schedule-1',
@@ -182,6 +183,7 @@ describe('ProductionScheduleService', () => {
       };
 
       mockPrisma.productionSchedule.create.mockResolvedValue(mockSchedule);
+      mockPrisma.productionSchedule.findUnique.mockResolvedValue(mockSchedule);
       mockPrisma.scheduleStateHistory.create.mockResolvedValue({});
 
       const result = await scheduleService.createSchedule({
@@ -1223,6 +1225,11 @@ describe('ProductionScheduleService', () => {
       };
 
       mockPrisma.scheduleEntry.findUnique.mockResolvedValue(mockEntry);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        username: 'operator@example.com',
+        email: 'operator@example.com',
+      });
       mockPrisma.workOrder.create.mockResolvedValue(mockWorkOrder);
       mockPrisma.scheduleEntry.update.mockResolvedValue({ ...mockEntry, isDispatched: true });
       mockPrisma.productionSchedule.update.mockResolvedValue({});
@@ -1332,6 +1339,11 @@ describe('ProductionScheduleService', () => {
           routing: null,
         });
 
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        username: 'operator@example.com',
+        email: 'operator@example.com',
+      });
       mockPrisma.workOrder.create.mockResolvedValue({ id: 'wo-1' });
       mockPrisma.scheduleEntry.update.mockResolvedValue({ isDispatched: true });
       mockPrisma.productionSchedule.update.mockResolvedValue({});
@@ -1553,6 +1565,7 @@ describe('ProductionScheduleService', () => {
       };
 
       mockPrisma.productionSchedule.create.mockResolvedValue(mockSchedule);
+      mockPrisma.productionSchedule.findUnique.mockResolvedValue(mockSchedule);
       mockPrisma.scheduleStateHistory.create.mockResolvedValue({});
 
       const schedule = await scheduleService.createSchedule({

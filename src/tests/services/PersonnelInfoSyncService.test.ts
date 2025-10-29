@@ -60,8 +60,11 @@ describe('PersonnelInfoSyncService', () => {
     const mockUser = {
       id: 'user-1',
       employeeId: 'EMP-001',
+      employeeNumber: 'EMP-001',
       username: 'jsmith',
       name: 'John Smith',
+      firstName: 'John',
+      lastName: 'Smith',
       email: 'jsmith@example.com',
       role: 'OPERATOR',
       department: 'PRODUCTION',
@@ -258,9 +261,12 @@ describe('PersonnelInfoSyncService', () => {
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            employeeId: 'EMP-002',
             username: 'mjones',
+            firstName: 'Mary',
+            lastName: 'Jones',
             email: 'mjones@example.com',
+            roles: ['OPERATOR'],
+            isActive: true,
           }),
         })
       );
@@ -686,8 +692,11 @@ describe('PersonnelInfoSyncService', () => {
       const mockUser = {
         id: 'user-1',
         employeeId: 'EMP-001',
+        employeeNumber: 'EMP-001',
         username: 'jsmith',
         name: 'John Smith',
+        firstName: 'John',
+        lastName: 'Smith',
         email: 'jsmith@example.com',
         isActive: true,
       };

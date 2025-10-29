@@ -1475,8 +1475,11 @@ describe('WorkOrderExecutionService', () => {
       ];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(15);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(10);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 500 } });
 
@@ -1501,8 +1504,11 @@ describe('WorkOrderExecutionService', () => {
       ];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(0);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(0);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 0 } });
 
@@ -1525,8 +1531,11 @@ describe('WorkOrderExecutionService', () => {
       ];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(0);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(0);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 0 } });
 
@@ -1539,12 +1548,15 @@ describe('WorkOrderExecutionService', () => {
       const mockWorkOrders = [];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(25);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([
         { performanceType: 'LABOR', _count: 10 },
         { performanceType: 'MATERIAL', _count: 8 },
         { performanceType: 'QUALITY', _count: 7 },
       ]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(0);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 0 } });
 
@@ -1562,8 +1574,11 @@ describe('WorkOrderExecutionService', () => {
       const mockWorkOrders = [];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(0);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count
         .mockResolvedValueOnce(20) // total
         .mockResolvedValueOnce(12) // favorable
@@ -1581,8 +1596,11 @@ describe('WorkOrderExecutionService', () => {
       const mockWorkOrders = [];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(0);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(10);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 1250.75 } });
 
@@ -1595,8 +1613,11 @@ describe('WorkOrderExecutionService', () => {
       const mockWorkOrders = [];
 
       mockPrisma.workOrder.findMany.mockResolvedValue(mockWorkOrders);
+      mockPrisma.workOrder.count.mockResolvedValue(0);
+      mockPrisma.dispatchLog.count.mockResolvedValue(0);
       mockPrisma.workPerformance.count.mockResolvedValue(0);
       mockPrisma.workPerformance.groupBy.mockResolvedValue([]);
+      mockPrisma.workPerformance.aggregate.mockResolvedValue({ _sum: { laborHours: 0, downtimeMinutes: 0 } });
       mockPrisma.productionVariance.count.mockResolvedValue(0);
       mockPrisma.productionVariance.aggregate.mockResolvedValue({ _sum: { costImpact: 0 } });
 

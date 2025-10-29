@@ -71,6 +71,7 @@ describe('MaterialTransactionService', () => {
       description: 'Test Part',
       unitOfMeasure: 'EA',
       quantityOnHand: 500,
+      isActive: true,
     };
 
     const mockConfig = {
@@ -273,6 +274,7 @@ describe('MaterialTransactionService', () => {
       id: 'part-1',
       partNumber: 'PN-123',
       quantityOnHand: 100,
+      isActive: true,
     };
 
     it('should process inbound ISSUE transaction successfully', async () => {
@@ -641,6 +643,7 @@ describe('MaterialTransactionService', () => {
         partNumber: 'PN-123',
         unitOfMeasure: 'EA',
         quantityOnHand: 100,
+        isActive: true,
       };
 
       const mockConfig = {
@@ -891,6 +894,7 @@ describe('MaterialTransactionService', () => {
         id: 'part-1',
         partNumber: 'PN-123',
         quantityOnHand: 100,
+        isActive: true,
       };
 
       mockPrisma.integrationConfig.findUnique.mockResolvedValue(mockConfig);
