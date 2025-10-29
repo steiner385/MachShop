@@ -503,18 +503,26 @@ describe('Error Handler Middleware', () => {
     });
 
     describe('Environment-specific Behavior', () => {
-      it('should include stack trace in development', async () => {
-        // Mock config for development
-        vi.doMock('../config/config', () => ({
-          config: { env: 'development' }
-        }));
+      let originalEnv: string | undefined;
 
-        // Re-import errorHandler with mocked config
-        const { errorHandler: devErrorHandler } = await import('../../middleware/errorHandler');
+      beforeEach(() => {
+        originalEnv = process.env.NODE_ENV;
+      });
+
+      afterEach(() => {
+        if (originalEnv !== undefined) {
+          process.env.NODE_ENV = originalEnv;
+        } else {
+          delete process.env.NODE_ENV;
+        }
+      });
+
+      it('should include stack trace in development', () => {
+        process.env.NODE_ENV = 'development';
 
         const error = new AppError('Test error', 500, 'TEST_ERROR');
 
-        devErrorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+        errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
         expect(mockJson).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -523,18 +531,12 @@ describe('Error Handler Middleware', () => {
         );
       });
 
-      it('should mask error messages in production', async () => {
-        // Mock config for production
-        vi.doMock('../config/config', () => ({
-          config: { env: 'production' }
-        }));
-
-        // Re-import errorHandler with mocked config
-        const { errorHandler: prodErrorHandler } = await import('../../middleware/errorHandler');
+      it('should mask error messages in production', () => {
+        process.env.NODE_ENV = 'production';
 
         const error = new Error('Sensitive internal error');
 
-        prodErrorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+        errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
         expect(mockJson).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -550,13 +552,19 @@ describe('Error Handler Middleware', () => {
       const asyncFn = vi.fn().mockRejectedValue(new Error('Async error'));
       const wrappedFn = asyncHandler(asyncFn);
 
-      await wrappedFn(mockReq as Request, mockRes as Response, mockNext);
+      // Wait for async handler to complete
+      await new Promise<void>((resolve) => {
+        const mockNextWithCheck = vi.fn((error) => {
+          expect(error).toEqual(
+            expect.objectContaining({
+              message: 'Async error'
+            })
+          );
+          resolve();
+        });
 
-      expect(mockNext).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Async error'
-        })
-      );
+        wrappedFn(mockReq as Request, mockRes as Response, mockNextWithCheck);
+      });
     });
 
     it('should not call next when promise resolves', async () => {
@@ -630,6 +638,8 @@ describe('Error Handler Middleware', () => {
       it('should log unhandled rejection and exit process', () => {
         const reason = new Error('Unhandled rejection');
         const promise = Promise.reject(reason);
+        // Handle the promise to prevent unhandled rejection
+        promise.catch(() => {});
 
         expect(() => handleUnhandledRejection(reason, promise)).toThrow('process.exit called');
 
@@ -646,6 +656,8 @@ describe('Error Handler Middleware', () => {
       it('should handle non-error rejection reasons', () => {
         const reason = 'string rejection reason';
         const promise = Promise.reject(reason);
+        // Handle the promise to prevent unhandled rejection
+        promise.catch(() => {});
 
         expect(() => handleUnhandledRejection(reason, promise)).toThrow('process.exit called');
 

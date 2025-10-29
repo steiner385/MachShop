@@ -202,7 +202,12 @@ export const errorHandler = (
     appError = error;
   } else if (error instanceof ZodError) {
     appError = handleZodError(error);
-  } else if (error?.name && error.name.includes('JWT')) {
+  } else if (error?.name && (
+    error.name === 'JsonWebTokenError' ||
+    error.name === 'TokenExpiredError' ||
+    error.name === 'NotBeforeError' ||
+    error.name.includes('JWT')
+  )) {
     appError = handleJWTError(error);
   } else if ((error?.code && typeof error.code === 'string') ||
              (error?.name && (error.name.includes('Prisma') || error.name.includes('Client')))) {
@@ -227,7 +232,7 @@ export const errorHandler = (
     });
 
     appError = new AppError(
-      config.env === 'production' ? 'Internal server error' : safeErrorMessage,
+      process.env.NODE_ENV === 'production' ? 'Internal server error' : safeErrorMessage,
       500,
       'INTERNAL_ERROR',
       false
@@ -277,7 +282,7 @@ export const errorHandler = (
   }
 
   // Add stack trace in development
-  if (config.env === 'development') {
+  if (process.env.NODE_ENV === 'development') {
     errorResponse.stack = appError.stack;
   }
 

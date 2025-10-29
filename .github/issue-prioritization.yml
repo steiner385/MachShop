@@ -186,6 +186,17 @@ issues:
     blocks: []
     notes: "COMPLETED - 37/37 tests passing, robust error handling middleware with JWT/async/environment-specific testing complete"
 
+  - number: 162
+    title: "Testing Infrastructure: Comprehensive Development Environment Seed Data Enhancement"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Robust seed data for testing all MES capabilities across manufacturing modalities (Additive, Composites, Turbine Airfoils, Rotating Parts, Tubes & Ducts, Combustors & Structures, Engine Assembly)"
+
   - number: 137
     title: "Testing Infrastructure: Fix All Failing Unit Tests"
     category: testing_infrastructure
