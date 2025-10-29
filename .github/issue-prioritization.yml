@@ -152,6 +152,18 @@ issues:
     blocks: []
     notes: "Gates all future code quality - depends on fixing failing tests first"
 
+  # --- AI/ML Platform Infrastructure ---
+  - number: 143
+    title: "AI/ML: Core AI Platform Infrastructure with MLOps"
+    category: ai_ml_capabilities
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 10
+    blocks: [144, 145, 146]
+    notes: "Foundation for all AI/ML capabilities - model management, training, inference"
+
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
   # ============================================================================
@@ -415,9 +427,44 @@ issues:
     blocks: []
     notes: "World-class interactive help with guided tours, tooltips, and smart suggestions"
 
+  # --- AI/ML Capabilities ---
+  - number: 144
+    title: "AI/ML: Predictive Analytics Foundation (Quality, Maintenance, Anomaly Detection)"
+    category: ai_ml_capabilities
+    foundation_level: 1
+    dependencies: [143]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 10
+    blocks: []
+    notes: "Predictive quality, predictive maintenance, real-time anomaly detection"
+
+  - number: 145
+    title: "AI/ML: AI-Driven Process Optimization (Scheduling, Forecasting, Optimization)"
+    category: ai_ml_capabilities
+    foundation_level: 1
+    dependencies: [143]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 10
+    blocks: []
+    notes: "Smart scheduling, demand forecasting, process parameter optimization"
+
   # ============================================================================
   # L2: ENHANCED FEATURES
   # ============================================================================
+
+  # --- AI/ML Advanced Features ---
+  - number: 146
+    title: "AI/ML: AI User Interfaces (Computer Vision, NLU Chatbot, Voice, AI-RCA)"
+    category: ai_ml_capabilities
+    foundation_level: 2
+    dependencies: [143]
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 10
+    blocks: []
+    notes: "Computer vision, NLU chatbot, voice commands, AI-assisted root cause analysis"
 
   # --- Advanced Quality Management ---
   - number: 58
@@ -1071,3 +1118,7 @@ categories:
   help_documentation:
     name: "Help Documentation & User Guidance"
     description: "Integrated help system, context-sensitive guidance, knowledge base, and self-documenting features"
+
+  ai_ml_capabilities:
+    name: "AI/ML Capabilities"
+    description: "Artificial intelligence and machine learning features including predictive analytics, process optimization, computer vision, and NLU"
