@@ -62,7 +62,7 @@ describe('Database Test Utilities', () => {
       expect(enterpriseData.enterpriseName).toBe('test-custom-enterprise');
       expect(enterpriseData.enterpriseCode).toBe('CUSTOM');
       expect(enterpriseData.isActive).toBe(true);
-      expect(enterpriseData.address).toBeDefined();
+      expect(enterpriseData.description).toBeDefined();
     });
 
     test('should create consistent data with seed', async () => {
@@ -75,27 +75,27 @@ describe('Database Test Utilities', () => {
     });
 
     test('should create related data with BatchFactory', async () => {
-      const { enterpriseData, sitesData } = await BatchFactory.createEnterpriseWithSites(2);
+      const { enterprise, sites } = await BatchFactory.createEnterpriseWithSites(2);
 
-      expect(enterpriseData.enterpriseName).toContain('test-enterprise');
-      expect(sitesData).toHaveLength(2);
-      expect(sitesData[0].siteName).toContain('test-site');
+      expect(enterprise.enterpriseName).toContain('test-enterprise');
+      expect(sites).toHaveLength(2);
+      expect(sites[0].siteName).toContain('test-site');
     });
 
     test('should create complete work order setup', async () => {
       const { enterprise, site } = await QuickSetup.minimal();
 
-      const { workOrderData, equipmentData, partsData } =
+      const { workOrder, equipment, parts } =
         await BatchFactory.createWorkOrderWithDependencies(site.id, {
           workOrder: { overrides: { title: 'test-batch-work-order' } },
           parts: [{ overrides: { partName: 'test-batch-part' } }],
         });
 
-      expect(workOrderData.title).toBe('test-batch-work-order');
-      expect(workOrderData.siteId).toBe(site.id);
-      expect(equipmentData.siteId).toBe(site.id);
-      expect(partsData).toHaveLength(1);
-      expect(partsData[0].partName).toBe('test-batch-part');
+      expect(workOrder.title).toBe('test-batch-work-order');
+      expect(workOrder.siteId).toBe(site.id);
+      expect(equipment.siteId).toBe(site.id);
+      expect(parts).toHaveLength(1);
+      expect(parts[0].partName).toBe('test-batch-part');
     });
   });
 
