@@ -5797,6 +5797,8 @@ enum WorkflowType {
   CAPA
   CHANGE_REQUEST
   DOCUMENT_APPROVAL
+  FAI_REPORT
+  QUALITY_PROCESS
 }
 
 enum ApprovalType {

@@ -1,6 +1,8 @@
 import { PrismaClient, ReviewAssignment, ReviewType, ReviewStatus, ReviewRecommendation } from '@prisma/client';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+// ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+import { UnifiedApprovalIntegration } from './UnifiedApprovalIntegration';
 
 /**
  * TypeScript interfaces for Review Operations
@@ -66,9 +68,12 @@ export interface ReviewProgress {
  */
 class ReviewService {
   private prisma: PrismaClient;
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+  private unifiedApprovalService: UnifiedApprovalIntegration;
 
-  constructor() {
-    this.prisma = new PrismaClient({
+  constructor(prisma?: PrismaClient) {
+    // Use provided prisma instance or create a new one
+    this.prisma = prisma || new PrismaClient({
       log: [
         { emit: 'event', level: 'query' },
         { emit: 'event', level: 'error' },
@@ -76,6 +81,7 @@ class ReviewService {
         { emit: 'event', level: 'warn' },
       ],
     });
+    this.unifiedApprovalService = new UnifiedApprovalIntegration(this.prisma);
 
     // Log Prisma events
     this.prisma.$on('query', (e) => {
@@ -639,6 +645,205 @@ class ReviewService {
             isCompleted: false
           }
         ];
+    }
+  }
+
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration - Document Approval Process
+
+  /**
+   * Submit document for approval using unified workflow engine
+   */
+  async submitDocumentForApproval(
+    documentId: string,
+    documentType: string,
+    userId: string,
+    requiredApproverRoles: string[] = ['quality_manager', 'document_approver'],
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'MEDIUM'
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    nextApprovers?: string[];
+    error?: string;
+  }> {
+    try {
+      // Initialize the unified approval service if needed
+      await this.unifiedApprovalService.initialize(userId);
+
+      // Initiate approval workflow for document
+      const result = await this.unifiedApprovalService.initiateApproval(
+        {
+          entityType: 'DOCUMENT',
+          entityId: documentId,
+          currentStatus: 'PENDING_APPROVAL',
+          requiredApproverRoles,
+          priority,
+          metadata: {
+            submittedAt: new Date().toISOString(),
+            submittedBy: userId,
+            documentType,
+            processType: 'document_review'
+          }
+        },
+        userId
+      );
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Approve document using unified workflow engine
+   */
+  async approveDocument(
+    documentId: string,
+    userId: string,
+    comments?: string,
+    requiresSignature: boolean = false
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    error?: string;
+  }> {
+    try {
+      let signatureData = null;
+      if (requiresSignature) {
+        signatureData = {
+          userId,
+          reason: 'Document approval signature',
+          timestamp: new Date(),
+          ipAddress: '127.0.0.1', // This would come from the request context
+          userAgent: 'ReviewService'
+        };
+      }
+
+      // Use unified approval service
+      const approvalResult = await this.unifiedApprovalService.processApprovalAction(
+        'DOCUMENT',
+        documentId,
+        'APPROVE',
+        userId,
+        comments,
+        signatureData
+      );
+
+      if (!approvalResult.success) {
+        throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
+      }
+
+      return approvalResult;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Reject document using unified workflow engine
+   */
+  async rejectDocument(
+    documentId: string,
+    userId: string,
+    rejectionReason: string,
+    comments: string
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    error?: string;
+  }> {
+    try {
+      // Use unified approval service for rejection
+      const rejectionResult = await this.unifiedApprovalService.processApprovalAction(
+        'DOCUMENT',
+        documentId,
+        'REJECT',
+        userId,
+        `${rejectionReason}: ${comments}`
+      );
+
+      if (!rejectionResult.success) {
+        throw new Error(`Rejection failed: ${rejectionResult.error || 'Unknown error'}`);
+      }
+
+      return rejectionResult;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get approval status for document from unified workflow engine
+   */
+  async getDocumentApprovalStatus(documentId: string): Promise<{
+    hasActiveWorkflow: boolean;
+    workflowStatus?: string;
+    currentStage?: string;
+    completionPercentage?: number;
+    nextApprovers?: string[];
+    approvalHistory?: any[];
+  }> {
+    try {
+      const status = await this.unifiedApprovalService.getApprovalStatus(
+        'DOCUMENT',
+        documentId
+      );
+
+      return status;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending document approvals for user
+   */
+  async getPendingDocumentApprovals(userId: string): Promise<any[]> {
+    try {
+      const allTasks = await this.unifiedApprovalService.getPendingApprovalsForUser(userId);
+
+      // Filter for document approval tasks only
+      return allTasks.filter(task => task.entityType === 'DOCUMENT');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Complete review and trigger workflow approval if needed
+   */
+  async completeReviewWithWorkflow(
+    assignmentId: string,
+    outcome: ReviewOutcome,
+    userId: string,
+    triggerApproval: boolean = false
+  ): Promise<ReviewAssignment> {
+    try {
+      // Complete the review assignment first
+      const completedReview = await this.completeReview(assignmentId, outcome, userId);
+
+      // If approval is needed and review recommendation is positive, initiate workflow
+      if (triggerApproval && outcome.recommendation === ReviewRecommendation.APPROVE) {
+        await this.submitDocumentForApproval(
+          completedReview.documentId,
+          completedReview.documentType,
+          userId,
+          ['quality_manager', 'document_approver'],
+          'MEDIUM'
+        );
+
+        logger.info('Document approval workflow initiated after review completion', {
+          assignmentId,
+          documentId: completedReview.documentId,
+          documentType: completedReview.documentType
+        });
+      }
+
+      return completedReview;
+    } catch (error) {
+      logger.error('Failed to complete review with workflow', { error: error.message, assignmentId });
+      throw new AppError('Failed to complete review with workflow', 500, 'REVIEW_WORKFLOW_FAILED', error);
     }
   }
 

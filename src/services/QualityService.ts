@@ -11,13 +11,23 @@ import {
   CharacteristicType
 } from '@/types/quality';
 import { v4 as uuidv4 } from 'uuid';
+// ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+import { UnifiedApprovalIntegration } from './UnifiedApprovalIntegration';
+import { PrismaClient } from '@prisma/client';
 
 // Static counters for unique number generation
 let inspectionCounter = 0;
 let ncrCounter = 0;
 
 export class QualityService {
-  constructor() {}
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+  private unifiedApprovalService: UnifiedApprovalIntegration;
+
+  constructor(private prisma?: PrismaClient) {
+    // Use provided prisma instance or create a new one
+    this.prisma = prisma || new PrismaClient();
+    this.unifiedApprovalService = new UnifiedApprovalIntegration(this.prisma);
+  }
 
   /**
    * Validates a measurement against specification limits
@@ -285,6 +295,137 @@ export class QualityService {
     const year = new Date().getFullYear();
     const timestamp = Date.now().toString().slice(-4);
     return `NCR-${year}-${timestamp}${ncrCounter.toString().padStart(3, '0')}`;
+  }
+
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration - Quality Process Approvals
+
+  /**
+   * Submit quality process for approval using unified workflow engine
+   */
+  async submitQualityProcessForApproval(
+    qualityProcessId: string,
+    userId: string,
+    requiredApproverRoles: string[] = ['quality_manager'],
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'MEDIUM'
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    nextApprovers?: string[];
+    error?: string;
+  }> {
+    try {
+      // Initialize the unified approval service if needed
+      await this.unifiedApprovalService.initialize(userId);
+
+      // Initiate approval workflow for quality process
+      const result = await this.unifiedApprovalService.initiateApproval(
+        {
+          entityType: 'QUALITY_PROCESS',
+          entityId: qualityProcessId,
+          currentStatus: 'PENDING_APPROVAL',
+          requiredApproverRoles,
+          priority,
+          metadata: {
+            submittedAt: new Date().toISOString(),
+            submittedBy: userId,
+            processType: 'quality_inspection'
+          }
+        },
+        userId
+      );
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Approve quality process using unified workflow engine
+   */
+  async approveQualityProcess(
+    qualityProcessId: string,
+    userId: string,
+    comments?: string
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    error?: string;
+  }> {
+    try {
+      // Use unified approval service
+      const approvalResult = await this.unifiedApprovalService.approveQualityProcess(
+        qualityProcessId,
+        userId,
+        comments
+      );
+
+      if (!approvalResult.success) {
+        throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
+      }
+
+      return approvalResult;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Reject quality process using unified workflow engine
+   */
+  async rejectQualityProcess(
+    qualityProcessId: string,
+    userId: string,
+    rejectionReason: string,
+    comments: string
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    error?: string;
+  }> {
+    try {
+      // Use unified approval service for rejection
+      const rejectionResult = await this.unifiedApprovalService.processApprovalAction(
+        'QUALITY_PROCESS',
+        qualityProcessId,
+        'REJECT',
+        userId,
+        `${rejectionReason}: ${comments}`
+      );
+
+      if (!rejectionResult.success) {
+        throw new Error(`Rejection failed: ${rejectionResult.error || 'Unknown error'}`);
+      }
+
+      return rejectionResult;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get approval status for quality process from unified workflow engine
+   */
+  async getQualityProcessApprovalStatus(qualityProcessId: string): Promise<{
+    hasActiveWorkflow: boolean;
+    workflowStatus?: string;
+    currentStage?: string;
+    completionPercentage?: number;
+    nextApprovers?: string[];
+    approvalHistory?: any[];
+  }> {
+    try {
+      const status = await this.unifiedApprovalService.getApprovalStatus(
+        'QUALITY_PROCESS',
+        qualityProcessId
+      );
+
+      return status;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**

@@ -12,6 +12,8 @@ import {
 // ✅ GITHUB ISSUE #18 - Phase 3: Enhanced relations management
 import ExportTemplateService from './ExportTemplateService';
 import DataCollectionFieldTemplateService, { DataCollectionFieldTemplate } from './DataCollectionFieldTemplateService';
+// ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+import { UnifiedApprovalIntegration } from './UnifiedApprovalIntegration';
 
 const prisma = new PrismaClient();
 
@@ -19,10 +21,13 @@ export class WorkInstructionService {
   // ✅ GITHUB ISSUE #18 - Phase 3: Enhanced relations management
   private exportTemplateService: ExportTemplateService;
   private fieldTemplateService: DataCollectionFieldTemplateService;
+  // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+  private unifiedApprovalService: UnifiedApprovalIntegration;
 
   constructor() {
     this.exportTemplateService = new ExportTemplateService(prisma);
     this.fieldTemplateService = new DataCollectionFieldTemplateService(prisma);
+    this.unifiedApprovalService = new UnifiedApprovalIntegration(prisma);
   }
 
   /**
@@ -409,13 +414,98 @@ export class WorkInstructionService {
   }
 
   /**
-   * Approve work instruction
+   * Submit work instruction for approval using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+   */
+  async submitWorkInstructionForApproval(
+    id: string,
+    userId: string,
+    requiredApproverRoles: string[] = ['quality_manager', 'process_engineer'],
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'MEDIUM'
+  ): Promise<{
+    success: boolean;
+    workflowInstanceId?: string;
+    currentStage?: string;
+    nextApprovers?: string[];
+    error?: string;
+  }> {
+    try {
+      logger.info(`Submitting work instruction for approval through unified workflow: ${id}`, {
+        workInstructionId: id,
+        submittedBy: userId,
+        requiredApproverRoles,
+        priority
+      });
+
+      // Initialize the unified approval service if needed
+      await this.unifiedApprovalService.initialize(userId);
+
+      // Initiate approval workflow
+      const result = await this.unifiedApprovalService.initiateApproval(
+        {
+          entityType: 'WORK_INSTRUCTION',
+          entityId: id,
+          currentStatus: 'PENDING_APPROVAL',
+          requiredApproverRoles,
+          priority,
+          metadata: {
+            submittedAt: new Date().toISOString(),
+            submittedBy: userId
+          }
+        },
+        userId
+      );
+
+      // Update work instruction status to pending approval
+      await prisma.workInstruction.update({
+        where: { id },
+        data: {
+          status: 'PENDING_APPROVAL' as WorkInstructionStatus,
+          updatedById: userId,
+        },
+      });
+
+      logger.info(`Work instruction submitted for approval successfully: ${id}`, {
+        workInstructionId: id,
+        workflowInstanceId: result.workflowInstanceId,
+        currentStage: result.currentStage
+      });
+
+      return result;
+    } catch (error) {
+      logger.error(`Error submitting work instruction ${id} for approval:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve work instruction using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
    */
   async approveWorkInstruction(
     id: string,
-    userId: string
+    userId: string,
+    comments?: string
   ): Promise<WorkInstructionResponse> {
     try {
+      logger.info(`Approving work instruction through unified workflow: ${id}`, {
+        workInstructionId: id,
+        approvedBy: userId,
+        comments: comments?.substring(0, 100)
+      });
+
+      // Use unified approval service
+      const approvalResult = await this.unifiedApprovalService.approveWorkInstruction(
+        id,
+        userId,
+        comments
+      );
+
+      if (!approvalResult.success) {
+        throw new Error(`Approval failed: ${approvalResult.error || 'Unknown error'}`);
+      }
+
+      // Update the work instruction status after workflow approval
       const workInstruction = await prisma.workInstruction.update({
         where: { id },
         data: {
@@ -457,14 +547,15 @@ export class WorkInstructionService {
         },
       });
 
-      logger.info(`Work instruction approved: ${id}`, {
+      logger.info(`Work instruction approved successfully through unified workflow: ${id}`, {
         workInstructionId: id,
         approvedBy: userId,
+        workflowInstanceId: approvalResult.workflowInstanceId
       });
 
       return workInstruction as WorkInstructionResponse;
     } catch (error) {
-      logger.error(`Error approving work instruction ${id}:`, error);
+      logger.error(`Error approving work instruction ${id} through unified workflow:`, error);
       throw error;
     }
   }
@@ -539,7 +630,8 @@ export class WorkInstructionService {
   }
 
   /**
-   * Reject work instruction
+   * Reject work instruction using unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
    */
   async rejectWorkInstruction(
     id: string,
@@ -548,6 +640,26 @@ export class WorkInstructionService {
     comments: string
   ): Promise<WorkInstructionResponse> {
     try {
+      logger.info(`Rejecting work instruction through unified workflow: ${id}`, {
+        workInstructionId: id,
+        rejectedBy: userId,
+        rejectionReason: rejectionReason.substring(0, 100),
+        comments: comments.substring(0, 100)
+      });
+
+      // Use unified approval service for rejection
+      const rejectionResult = await this.unifiedApprovalService.processApprovalAction(
+        'WORK_INSTRUCTION',
+        id,
+        'REJECT',
+        userId,
+        `${rejectionReason}: ${comments}`
+      );
+
+      if (!rejectionResult.success) {
+        throw new Error(`Rejection failed: ${rejectionResult.error || 'Unknown error'}`);
+      }
+
       // Get user details for rejection record
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -576,7 +688,7 @@ export class WorkInstructionService {
       const rejectionEntry = {
         id: Date.now().toString(),
         title: 'Review',
-        description: 'Technical review',
+        description: 'Technical review via unified workflow',
         status: 'error',
         approver: {
           id: user.id,
@@ -587,6 +699,7 @@ export class WorkInstructionService {
         rejectedAt: new Date().toISOString(),
         rejectionReason,
         comments,
+        workflowInstanceId: rejectionResult.workflowInstanceId,
       };
 
       // Update work instruction with rejection
@@ -631,10 +744,11 @@ export class WorkInstructionService {
         },
       });
 
-      logger.info(`Work instruction rejected: ${id}`, {
+      logger.info(`Work instruction rejected successfully through unified workflow: ${id}`, {
         workInstructionId: id,
         rejectedBy: userId,
         rejectionReason,
+        workflowInstanceId: rejectionResult.workflowInstanceId
       });
 
       // TODO: Send email notification to author
@@ -643,7 +757,40 @@ export class WorkInstructionService {
 
       return workInstruction as WorkInstructionResponse;
     } catch (error) {
-      logger.error(`Error rejecting work instruction ${id}:`, error);
+      logger.error(`Error rejecting work instruction ${id} through unified workflow:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get approval status for work instruction from unified workflow engine
+   * ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
+   */
+  async getWorkInstructionApprovalStatus(id: string): Promise<{
+    hasActiveWorkflow: boolean;
+    workflowStatus?: string;
+    currentStage?: string;
+    completionPercentage?: number;
+    nextApprovers?: string[];
+    approvalHistory?: any[];
+  }> {
+    try {
+      logger.debug(`Getting approval status for work instruction: ${id}`);
+
+      const status = await this.unifiedApprovalService.getApprovalStatus(
+        'WORK_INSTRUCTION',
+        id
+      );
+
+      logger.debug(`Retrieved approval status for work instruction ${id}`, {
+        hasActiveWorkflow: status.hasActiveWorkflow,
+        workflowStatus: status.workflowStatus,
+        currentStage: status.currentStage
+      });
+
+      return status;
+    } catch (error) {
+      logger.error(`Error getting approval status for work instruction ${id}:`, error);
       throw error;
     }
   }
