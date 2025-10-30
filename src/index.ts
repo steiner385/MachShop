@@ -84,6 +84,9 @@ import adminUserRolesRoutes from './routes/admin/user-roles';
 import ssoRoutes from './routes/sso';
 import ssoAdminRoutes from './routes/ssoAdmin';
 
+// GitHub Issue #133: Azure AD/Entra ID Native Integration Routes
+import azureAdGraphRoutes from './routes/azureAdGraph';
+
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval Routes
 import unifiedApprovalRoutes from './routes/unifiedApprovals';
 
@@ -266,6 +269,9 @@ apiRouter.use('/admin/user-roles', authMiddleware, adminUserRolesRoutes);
 
 // GitHub Issue #134: Unified SSO Management System Admin Routes
 apiRouter.use('/admin/sso', authMiddleware, ssoAdminRoutes);
+
+// GitHub Issue #133: Azure AD/Entra ID Native Integration Admin Routes
+apiRouter.use('/admin/azure-ad', authMiddleware, azureAdGraphRoutes);
 
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval API Routes
 apiRouter.use('/approvals', authMiddleware, unifiedApprovalRoutes);
