@@ -1,0 +1,533 @@
+{
+  "executedAt": "2025-10-30T19:45:44.986Z",
+  "totalTablesAnalyzed": 22,
+  "totalRecordsAnalyzed": 112,
+  "totalUniqueValues": 29,
+  "mappingStats": {
+    "highConfidence": 16,
+    "mediumConfidence": 0,
+    "lowConfidence": 0,
+    "unmapped": 0
+  },
+  "tableResults": [
+    {
+      "tableName": "material_definitions",
+      "fieldName": "baseUnitOfMeasure",
+      "totalRecords": 4,
+      "recordsWithUOM": 4,
+      "uniqueValues": [
+        {
+          "value": "LB",
+          "count": 2,
+          "percentage": 50,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "GAL",
+          "count": 1,
+          "percentage": 25,
+          "suggestedMapping": "GAL",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "SHEET",
+          "count": 1,
+          "percentage": 25,
+          "suggestedMapping": "T",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"t\""
+        }
+      ]
+    },
+    {
+      "tableName": "material_definitions",
+      "fieldName": "alternateUnitOfMeasure",
+      "totalRecords": 4,
+      "recordsWithUOM": 4,
+      "uniqueValues": [
+        {
+          "value": "KG",
+          "count": 2,
+          "percentage": 50,
+          "suggestedMapping": "KG",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "L",
+          "count": 1,
+          "percentage": 25,
+          "suggestedMapping": "L",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "LB",
+          "count": 1,
+          "percentage": 25,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_properties",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_lots",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 5,
+      "recordsWithUOM": 5,
+      "uniqueValues": [
+        {
+          "value": "GAL",
+          "count": 2,
+          "percentage": 40,
+          "suggestedMapping": "GAL",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "LB",
+          "count": 2,
+          "percentage": 40,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "EA",
+          "count": 1,
+          "percentage": 20,
+          "suggestedMapping": "EA",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_sublots",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 2,
+      "recordsWithUOM": 2,
+      "uniqueValues": [
+        {
+          "value": "LB",
+          "count": 2,
+          "percentage": 100,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_lot_genealogy",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 1,
+      "recordsWithUOM": 1,
+      "uniqueValues": [
+        {
+          "value": "LB",
+          "count": 1,
+          "percentage": 100,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_state_history",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 20,
+      "recordsWithUOM": 20,
+      "uniqueValues": [
+        {
+          "value": "LB",
+          "count": 20,
+          "percentage": 100,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "operation_parameters",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 31,
+      "recordsWithUOM": 31,
+      "uniqueValues": [
+        {
+          "value": "°C",
+          "count": 24,
+          "percentage": 77.42,
+          "suggestedMapping": "C",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"c\""
+        },
+        {
+          "value": "L/min",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "M",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"m\""
+        },
+        {
+          "value": "mm",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "MM",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "IPM",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "M",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"m\""
+        },
+        {
+          "value": "PSI",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "PSI",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "°F",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "F",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"f\""
+        },
+        {
+          "value": "count",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "EA",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"count\""
+        },
+        {
+          "value": "RPM",
+          "count": 1,
+          "percentage": 3.23,
+          "suggestedMapping": "RPM",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_operation_specifications",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 8,
+      "recordsWithUOM": 8,
+      "uniqueValues": [
+        {
+          "value": "GAL",
+          "count": 4,
+          "percentage": 50,
+          "suggestedMapping": "GAL",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "LB",
+          "count": 4,
+          "percentage": 50,
+          "suggestedMapping": "LB",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "routing_step_parameters",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "schedule_entries",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 6,
+      "recordsWithUOM": 6,
+      "uniqueValues": [
+        {
+          "value": "EA",
+          "count": 6,
+          "percentage": 100,
+          "suggestedMapping": "EA",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "schedule_constraints",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 16,
+      "recordsWithUOM": 12,
+      "uniqueValues": [
+        {
+          "value": "HOURS",
+          "count": 8,
+          "percentage": 66.67,
+          "suggestedMapping": "SEC",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"s\""
+        },
+        {
+          "value": "KG",
+          "count": 4,
+          "percentage": 33.33,
+          "suggestedMapping": "KG",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "production_schedule_requests",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "parts",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 4,
+      "recordsWithUOM": 4,
+      "uniqueValues": [
+        {
+          "value": "EA",
+          "count": 4,
+          "percentage": 100,
+          "suggestedMapping": "EA",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "parts",
+      "fieldName": "weightUnit",
+      "totalRecords": 4,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "bom_items",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "product_specifications",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "quality_characteristics",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 3,
+      "recordsWithUOM": 3,
+      "uniqueValues": [
+        {
+          "value": "mm",
+          "count": 2,
+          "percentage": 66.67,
+          "suggestedMapping": "MM",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        },
+        {
+          "value": "μm",
+          "count": 1,
+          "percentage": 33.33,
+          "suggestedMapping": "M",
+          "mappingConfidence": "HIGH",
+          "notes": "Pattern match: \"m\""
+        }
+      ]
+    },
+    {
+      "tableName": "inventory",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 4,
+      "recordsWithUOM": 4,
+      "uniqueValues": [
+        {
+          "value": "EA",
+          "count": 4,
+          "percentage": 100,
+          "suggestedMapping": "EA",
+          "mappingConfidence": "HIGH",
+          "notes": "Direct code match"
+        }
+      ]
+    },
+    {
+      "tableName": "material_transactions",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "erp_material_transactions",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "equipment_material_movements",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    }
+  ],
+  "migrationMappings": [
+    {
+      "originalValue": "°C",
+      "standardUnitCode": "C",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"c\""
+    },
+    {
+      "originalValue": "°F",
+      "standardUnitCode": "F",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"f\""
+    },
+    {
+      "originalValue": "count",
+      "standardUnitCode": "EA",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"count\""
+    },
+    {
+      "originalValue": "EA",
+      "standardUnitCode": "EA",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "GAL",
+      "standardUnitCode": "GAL",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "HOURS",
+      "standardUnitCode": "SEC",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"s\""
+    },
+    {
+      "originalValue": "IPM",
+      "standardUnitCode": "M",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"m\""
+    },
+    {
+      "originalValue": "KG",
+      "standardUnitCode": "KG",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "L",
+      "standardUnitCode": "L",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "L/min",
+      "standardUnitCode": "M",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"m\""
+    },
+    {
+      "originalValue": "LB",
+      "standardUnitCode": "LB",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "mm",
+      "standardUnitCode": "MM",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "PSI",
+      "standardUnitCode": "PSI",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "RPM",
+      "standardUnitCode": "RPM",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "SHEET",
+      "standardUnitCode": "T",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"t\""
+    },
+    {
+      "originalValue": "μm",
+      "standardUnitCode": "M",
+      "confidence": "HIGH",
+      "requiresReview": false,
+      "notes": "Pattern match: \"m\""
+    }
+  ],
+  "recommendations": [
+    "🎯 Migration Planning Recommendations:",
+    "   • 16 values have high-confidence mappings - ready for automated migration",
+    "   • 13 values require manual mapping or new standard units"
+  ],
+  "dataQualityIssues": []
+}
