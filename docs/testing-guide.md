@@ -533,30 +533,158 @@ it('should handle component errors', () => {
 
 ## Test File Organization
 
+We follow a **hybrid approach** to test organization, optimized for different types of code and development workflows. This approach balances maintainability, discoverability, and developer productivity.
+
+### Organization Standards
+
+Our test organization follows established patterns documented in [`TEST_ORGANIZATION_STANDARDS.md`](./TEST_ORGANIZATION_STANDARDS.md):
+
+- **Backend Services**: Centralized in `src/tests/` directory
+- **Frontend Components**: Co-located with source code using `__tests__` directories
+- **Integration Tests**: Dedicated directories for cross-system testing
+- **E2E Tests**: Separate Playwright structure in `src/tests/e2e/`
+
+### Backend Test Organization
+
+**Pattern**: Centralized structure in `src/tests/`
+
 ```
 src/
-├── tests/
-│   ├── services/           # Backend service tests
-│   │   ├── RoutingService.test.ts
-│   │   └── QualityService.test.ts
-│   ├── utils/              # Utility function tests
-│   │   └── validation.test.ts
-│   └── setup.ts            # Test setup configuration
-│
+├── services/
+│   ├── RoutingService.ts
+│   ├── QualityService.ts
+│   └── AuthenticationManager.ts
+└── tests/
+    ├── services/           # Service tests
+    │   ├── RoutingService.test.ts
+    │   ├── QualityService.test.ts
+    │   └── AuthenticationManager.test.ts
+    ├── routes/             # Route tests
+    │   ├── userRoutes.test.ts
+    │   └── workOrderRoutes.test.ts
+    ├── middleware/         # Middleware tests
+    │   └── authMiddleware.test.ts
+    ├── utils/              # Utility tests
+    │   └── validation.test.ts
+    ├── integration/        # Integration tests
+    │   └── userWorkflow.test.ts
+    └── setup.ts            # Test setup configuration
+```
+
+**Rationale**:
+- Clear separation between production and test code
+- Supports complex mocking strategies for services
+- Easy to find all backend tests in one location
+- Maintains clean production builds
+
+### Frontend Test Organization
+
+**Pattern**: Co-located with source code
+
+```
 frontend/src/
 ├── components/
-│   └── Dashboard/
-│       ├── Dashboard.tsx
+│   ├── Dashboard/
+│   │   ├── Dashboard.tsx
+│   │   ├── DashboardCard.tsx
+│   │   └── __tests__/
+│   │       ├── Dashboard.test.tsx
+│   │       └── DashboardCard.test.tsx
+│   ├── WorkOrders/
+│   │   ├── WorkOrderList.tsx
+│   │   ├── WorkOrderForm.tsx
+│   │   └── __tests__/
+│   │       ├── WorkOrderList.test.tsx
+│   │       └── WorkOrderForm.test.tsx
+│   └── Navigation/
+│       ├── Breadcrumbs.tsx
 │       └── __tests__/
-│           └── Dashboard.test.tsx
-├── stores/
+│           └── Breadcrumbs.test.tsx
+├── hooks/
+│   ├── useAuth.ts
+│   ├── usePresence.ts
 │   └── __tests__/
-│       └── authStore.test.ts
+│       ├── useAuth.test.ts
+│       └── usePresence.test.ts
+├── stores/
+│   ├── authStore.ts
+│   └── __tests__/
+│       └── authStore.test.tsx
+├── pages/
+│   ├── Dashboard/
+│   │   ├── Dashboard.tsx
+│   │   └── __tests__/
+│   │       └── Dashboard.test.tsx
+│   └── Auth/
+│       ├── LoginPage.tsx
+│       └── __tests__/
+│           └── LoginPage.test.tsx
+├── tests/
+│   └── integration/        # Integration tests (keep separate)
+│       └── workInstructionFlow.test.tsx
 └── test-utils/             # Testing utilities
     ├── index.ts
     ├── server.ts           # MSW server setup
     └── factories.ts        # Test data factories
 ```
+
+**Rationale**:
+- Tests are immediately visible next to source code
+- IDE autocomplete includes test files in navigation
+- Easier maintenance - no need to navigate to separate directories
+- Standard practice in modern React/TypeScript projects
+- Encourages writing tests (lower friction)
+
+### Integration Test Organization
+
+**Pattern**: Dedicated integration directories
+
+```
+# Backend Integration Tests
+src/tests/integration/
+├── userAuthenticationFlow.test.ts
+├── workOrderProcessing.test.ts
+└── equipmentDataSync.test.ts
+
+# Frontend Integration Tests
+frontend/src/tests/integration/
+├── dashboardWorkflow.test.tsx
+├── workInstructionFlow.test.tsx
+└── approvalProcess.test.tsx
+```
+
+**Rationale**:
+- Integration tests span multiple modules/components
+- Different execution context and setup requirements
+- Clear distinction from unit tests
+
+### File Naming Conventions
+
+- **Unit/Integration Tests**: `*.test.{ts,tsx}`
+- **E2E Tests**: `*.spec.{ts}` (Playwright only)
+- **Test Directories**: `__tests__/` for co-located, subdirectories for centralized
+
+### Migration Guidelines
+
+For migrating existing tests to the new organization:
+
+1. **Frontend Tests**: Move from `frontend/src/tests/components/` to co-located `__tests__/` directories
+2. **Backend Tests**: Keep in current `src/tests/` structure (already optimal)
+3. **Integration Tests**: Keep in dedicated integration directories
+
+See [`FRONTEND_TEST_MIGRATION_GUIDE.md`](./FRONTEND_TEST_MIGRATION_GUIDE.md) for detailed migration instructions.
+
+### Benefits of This Organization
+
+**For Developers**:
+- **Predictable**: Clear rules for where to put tests and where to find them
+- **IDE-Friendly**: Navigation and autocomplete work optimally
+- **Low Friction**: Easy to create tests (especially frontend co-location)
+
+**For the Codebase**:
+- **Maintainable**: Tests are easy to find and update when source changes
+- **Scalable**: Structure works for both small and large feature sets
+- **Standard**: Follows industry best practices for each stack
 
 ## Running Tests
 

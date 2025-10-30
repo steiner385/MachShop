@@ -41,7 +41,7 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { rbacAPI } from '@/api/rbac';
+import { rbacAPI } from '../../api/rbac';
 import {
   Permission,
   CreatePermissionRequest,
