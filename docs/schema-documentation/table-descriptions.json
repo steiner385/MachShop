@@ -1,0 +1,158 @@
+{
+  "User": {
+    "description": "System users with authentication credentials and role-based access permissions",
+    "businessPurpose": "Manages personnel access to the MES system, tracks user activities, and enforces security policies across manufacturing operations",
+    "dataOwner": "IT Security Team",
+    "updateFrequency": "Real-time for status changes, daily batch for HR integration",
+    "complianceNotes": "Contains PII - subject to data privacy regulations. Electronic signatures require 21 CFR Part 11 compliance",
+    "integrations": ["HR Management System", "Active Directory", "Badge Access System", "Electronic Signature System"],
+    "dataRetention": "7 years after employment termination for audit purposes",
+    "securityClassification": "Confidential - Contains PII and access control data",
+    "examples": [
+      {
+        "scenario": "Production operator with shop floor access",
+        "sampleData": {
+          "username": "jdoe_op",
+          "employeeNumber": "EMP-001234",
+          "firstName": "John",
+          "lastName": "Doe",
+          "roles": ["PRODUCTION_OPERATOR"],
+          "isActive": true
+        },
+        "explanation": "Typical production worker with basic manufacturing access"
+      },
+      {
+        "scenario": "Quality engineer with inspection authority",
+        "sampleData": {
+          "username": "msmith_qe",
+          "employeeNumber": "EMP-005678",
+          "roles": ["QUALITY_ENGINEER", "INSPECTOR"],
+          "isActive": true
+        },
+        "explanation": "Quality professional with inspection and approval permissions"
+      }
+    ],
+    "relatedTables": ["UserSiteRole", "PersonnelClass", "ElectronicSignature", "SecurityEvent"],
+    "commonQueries": [
+      "Find all active users by role for access reviews",
+      "Generate user activity reports for compliance audits",
+      "List users requiring certification renewal"
+    ]
+  },
+  "WorkOrder": {
+    "description": "Production work orders defining specific manufacturing jobs with materials, operations, and quality requirements",
+    "businessPurpose": "Core production planning entity that drives manufacturing execution, resource allocation, and progress tracking through the shop floor",
+    "dataOwner": "Production Planning Team",
+    "updateFrequency": "Real-time updates as work progresses through manufacturing operations",
+    "complianceNotes": "Critical for traceability - changes must be logged for regulatory compliance (AS9100, ISO 9001)",
+    "integrations": ["ERP System", "Production Scheduling", "Quality Management", "Material Management", "Shop Floor Equipment"],
+    "dataRetention": "Permanent retention for traceability and warranty support",
+    "securityClassification": "Internal - Production data with competitive sensitivity",
+    "examples": [
+      {
+        "scenario": "Turbine blade manufacturing work order",
+        "sampleData": {
+          "workOrderNumber": "WO-2024-001234",
+          "partNumber": "TB-A380-001",
+          "quantity": 10,
+          "priority": "HIGH",
+          "status": "IN_PROGRESS"
+        },
+        "explanation": "High-priority aerospace component with strict quality requirements"
+      }
+    ],
+    "relatedTables": ["WorkOrderOperation", "Part", "Material", "QualityPlan", "ProductionSchedule"],
+    "commonQueries": [
+      "Find all work orders for a specific part number",
+      "Generate production status reports for customer delivery",
+      "Track work order completion metrics by time period"
+    ]
+  },
+  "QualityPlan": {
+    "description": "Quality control plans defining inspection requirements, measurement criteria, and acceptance standards for manufacturing operations",
+    "businessPurpose": "Ensures product quality by specifying what to inspect, how to measure, and what constitutes acceptable results during manufacturing",
+    "dataOwner": "Quality Assurance Team",
+    "updateFrequency": "Updated when engineering changes occur or quality issues are identified",
+    "complianceNotes": "Critical for AS9100 and ISO 9001 compliance - must be approved and controlled",
+    "integrations": ["Quality Management System", "Measurement Equipment", "Work Instructions", "Engineering Change System"],
+    "dataRetention": "Permanent retention for regulatory compliance and continuous improvement",
+    "securityClassification": "Internal - Contains proprietary quality specifications",
+    "examples": [
+      {
+        "scenario": "Dimensional inspection plan for precision part",
+        "sampleData": {
+          "planName": "TB-A380-001 Dimensional Check",
+          "partNumber": "TB-A380-001",
+          "inspectionType": "DIMENSIONAL",
+          "frequency": "EVERY_PART",
+          "approvalRequired": true
+        },
+        "explanation": "Critical dimension checks required for aerospace component"
+      }
+    ],
+    "relatedTables": ["QualityMeasurement", "InspectionPlan", "QualityInspection", "Part"],
+    "commonQueries": [
+      "Find quality plans requiring measurement equipment calibration",
+      "Generate inspection schedules for upcoming production",
+      "Track quality plan compliance rates by part family"
+    ]
+  },
+  "Equipment": {
+    "description": "Manufacturing equipment and machinery used in production operations with capability and status tracking",
+    "businessPurpose": "Manages shop floor assets including machines, tools, and measurement devices to optimize utilization and ensure capability",
+    "dataOwner": "Manufacturing Engineering Team",
+    "updateFrequency": "Real-time for status updates, periodic for capability assessments",
+    "complianceNotes": "Calibration records required for measurement equipment (ISO 17025). Maintenance logs for safety compliance",
+    "integrations": ["Equipment Controllers", "Maintenance Management", "Calibration System", "Production Scheduling"],
+    "dataRetention": "Equipment lifetime plus 10 years for warranty and safety records",
+    "securityClassification": "Internal - Contains equipment capabilities and performance data",
+    "examples": [
+      {
+        "scenario": "CNC machining center for precision parts",
+        "sampleData": {
+          "equipmentCode": "CNC-001",
+          "equipmentName": "Haas VF-3 Machining Center",
+          "equipmentType": "CNC_MILL",
+          "status": "AVAILABLE",
+          "location": "Cell A-01"
+        },
+        "explanation": "Primary machining equipment for aerospace components"
+      }
+    ],
+    "relatedTables": ["EquipmentCapability", "EquipmentLog", "WorkCenter", "Operation"],
+    "commonQueries": [
+      "Find available equipment for specific operation types",
+      "Generate equipment utilization reports",
+      "Track equipment maintenance schedules and compliance"
+    ]
+  },
+  "Material": {
+    "description": "Raw materials, components, and supplies used in manufacturing with specifications and traceability information",
+    "businessPurpose": "Manages material inventory, specifications, and traceability to ensure proper materials are used and quality can be tracked",
+    "dataOwner": "Materials Management Team",
+    "updateFrequency": "Real-time for transactions, periodic for specification updates",
+    "complianceNotes": "Material certificates and traceability required for aerospace and medical applications",
+    "integrations": ["ERP System", "Supplier Management", "Quality Management", "Inventory Control"],
+    "dataRetention": "Permanent for traceability, certificates kept per regulatory requirements",
+    "securityClassification": "Internal - Contains supplier and cost information",
+    "examples": [
+      {
+        "scenario": "Aerospace-grade titanium alloy",
+        "sampleData": {
+          "materialCode": "TI-6AL-4V-001",
+          "materialName": "Titanium 6Al-4V Bar Stock",
+          "materialType": "RAW_MATERIAL",
+          "specification": "AMS 4928",
+          "supplier": "ACME Metals Inc"
+        },
+        "explanation": "High-grade titanium for critical aerospace components"
+      }
+    ],
+    "relatedTables": ["MaterialLot", "BOMItem", "MaterialTransaction", "Part"],
+    "commonQueries": [
+      "Find materials requiring certificate updates",
+      "Track material usage by work order for costing",
+      "Generate material traceability reports for customer deliveries"
+    ]
+  }
+}

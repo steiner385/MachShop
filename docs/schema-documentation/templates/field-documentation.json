@@ -1,0 +1,31 @@
+{
+  "TableName": {
+    "fieldName": {
+      "description": "Clear explanation of what this field represents in business terms",
+      "businessRule": "Any business logic, constraints, or rules that apply to this field",
+      "dataSource": "Where this data originates (e.g., 'User input', 'ERP system', 'Calculated', 'Equipment sensor')",
+      "format": "Expected format, pattern, or structure (e.g., 'WO-YYYY-NNNNNN', 'ISO 8601 datetime', 'Decimal(10,2)')",
+      "examples": [
+        "example1 - description of when this value would occur",
+        "example2 - description of another scenario",
+        "example3 - edge case or special value"
+      ],
+      "validation": "Validation rules beyond database constraints (e.g., 'Must be future date', 'Must exist in ERP system')",
+      "calculations": "If calculated field, explain the formula or logic",
+      "privacy": "Privacy classification if contains PII or sensitive data (e.g., 'PII - Name', 'Confidential - Salary')",
+      "retention": "Specific retention requirements if different from table default",
+      "auditTrail": "Whether changes to this field are tracked and why",
+      "integrationMapping": {
+        "erpSystem": "ERPFieldName or mapping rule",
+        "qualitySystem": "QualitySystemFieldName or mapping rule"
+      },
+      "businessImpact": "What happens if this field is incorrect or missing",
+      "validValues": [
+        "For enum-like fields, list valid values with explanations",
+        "ACTIVE - Work order is in progress",
+        "COMPLETED - Work order finished successfully",
+        "CANCELLED - Work order was cancelled before completion"
+      ]
+    }
+  }
+}
