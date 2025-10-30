@@ -127,8 +127,75 @@ issues:
     strategic_focus: null
     business_value: 10
     effort_estimate: 10
-    blocks: [152, 153, 154, 155, 156, 157, 158, 159]
+    blocks: [152, 153, 154, 155, 156, 157, 158, 159, 175, 176, 177, 178, 179, 180]
     notes: "COMPLETED - Foundation for code quality and confidence in refactoring - SUBSTANTIAL PROGRESS made with comprehensive infrastructure testing"
+
+  # --- 50% Coverage Initiative Epic Issues ---
+  - number: 175
+    title: "Epic 1: Backend Service Testing - Phase 1 (Simple Services)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 6
+    blocks: [181, 182, 183, 184, 185, 186, 187, 188]
+    notes: "Organized workflow for testing 8 simple backend services - establishes testing patterns and quick wins for 10% coverage milestone"
+
+  - number: 176
+    title: "Epic 2: Backend Service Testing - Phase 2 (Business Critical)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [175]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 10
+    blocks: []
+    notes: "Testing 9 mission-critical business services for 20-40% coverage milestones - includes TraceabilityService, SPCService, EquipmentService"
+
+  - number: 177
+    title: "Epic 3: Backend Service Testing - Phase 3 (Infrastructure)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [175]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 9
+    blocks: []
+    notes: "Testing 27 infrastructure and integration services for 30-50% coverage milestones - includes document management, auth, and adapters"
+
+  - number: 178
+    title: "Epic 4: Frontend Component Testing - Phase 1 (Core)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [136]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: [189, 190, 191, 192, 193, 194, 195, 196, 197, 198]
+    notes: "Testing 25 core frontend components for 20-30% coverage milestones - establishes React Testing Library patterns"
+
+  - number: 179
+    title: "Epic 5: Frontend Component Testing - Phase 2 (Features)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [178]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "Testing 30 feature-specific components for 30-40% coverage milestones - includes WorkOrder execution, Routing editor, Quality details"
+
+  - number: 180
+    title: "Epic 6: Frontend Testing - Phase 3 (Stores & Utils)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [178]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Testing 35 stores, hooks, and utilities for 40-50% coverage milestones - includes Zustand stores, API clients, custom hooks"
 
   # --- Frontend Testing Infrastructure ---
   - number: 152

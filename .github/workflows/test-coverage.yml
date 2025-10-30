@@ -1,0 +1,108 @@
+name: Test Coverage CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: mes_user
+          POSTGRES_PASSWORD: mes_password
+          POSTGRES_DB: mes_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test database
+        run: |
+          DATABASE_URL=postgresql://mes_user:mes_password@localhost:5432/mes_test npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_test
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          DATABASE_URL: postgresql://mes_user:mes_password@localhost:5432/mes_test
+          NODE_ENV: test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/coverage-final.json,./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: ./coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: 'Test Coverage Report'
+
+      - name: Check coverage thresholds
+        run: |
+          node -e "
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+            const { statements, branches, functions, lines } = coverage.total;
+
+            console.log('Coverage Summary:');
+            console.log('Statements: ' + statements.pct + '%');
+            console.log('Branches: ' + branches.pct + '%');
+            console.log('Functions: ' + functions.pct + '%');
+            console.log('Lines: ' + lines.pct + '%');
+
+            const threshold = 1; // Start low, increase as we progress
+            const failing = [];
+
+            if (statements.pct < threshold) failing.push('statements');
+            if (branches.pct < threshold) failing.push('branches');
+            if (functions.pct < threshold) failing.push('functions');
+            if (lines.pct < threshold) failing.push('lines');
+
+            if (failing.length > 0) {
+              console.log('⚠️  Coverage below threshold for: ' + failing.join(', '));
+              console.log('Current threshold: ' + threshold + '%');
+            } else {
+              console.log('✅ All coverage metrics meet threshold');
+            }
+          "
+
+      - name: Store coverage artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            !coverage/.tmp/
+          retention-days: 30

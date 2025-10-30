@@ -1608,7 +1608,10 @@ export class RoutingService {
       try {
         return JSON.parse(match[1]);
       } catch (e) {
-        console.error('Failed to parse visual data:', e);
+        // Only log in non-test environments to avoid noise in test output
+        if (process.env.NODE_ENV !== 'test') {
+          console.error('Failed to parse visual data:', e);
+        }
         return null;
       }
     }

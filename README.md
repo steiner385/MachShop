@@ -1,9 +1,29 @@
 # Manufacturing Execution System (MES)
 ## Jet Engine Component Manufacturing
 
+[![Test Coverage](https://codecov.io/gh/steiner385/MachShop/branch/main/graph/badge.svg)](https://codecov.io/gh/steiner385/MachShop)
+[![CI](https://github.com/steiner385/MachShop/workflows/Test%20Coverage%20CI/badge.svg)](https://github.com/steiner385/MachShop/actions)
+[![Coverage Goal](https://img.shields.io/badge/Coverage%20Goal-50%25-blue)](https://github.com/steiner385/MachShop/issues?q=label%3A%22type%3A+test-coverage%22)
+
 A comprehensive Manufacturing Execution System designed for aerospace manufacturing, providing production management, quality control, and traceability for jet engine components.
 
 **Current Status:** Active Development - Core features implemented with ongoing sprint-based enhancements.
+
+## 🧪 Test Coverage Initiative
+
+We are systematically achieving **50% test coverage** across the entire application through a structured 6-epic approach:
+
+- **Current Coverage**: [View Latest Report](https://codecov.io/gh/steiner385/MachShop)
+- **Progress Tracking**: [Epic Issues](https://github.com/steiner385/MachShop/issues?q=label%3Aepic)
+- **Implementation Issues**: [Test Coverage Tasks](https://github.com/steiner385/MachShop/issues?q=label%3A%22type%3A+test-coverage%22)
+
+### Coverage Milestones
+- **Milestone 1 (10%)**: Simple services & core components
+- **Milestone 2 (20%)**: Critical business services
+- **Milestone 3 (30%)**: Infrastructure & feature components
+- **Milestone 4 (40%)**: Complex business logic
+- **Milestone 5 (50%)**: Complete coverage target
+- **Milestone 6**: Polish & optimization
 
 ## 🚀 Features
 
