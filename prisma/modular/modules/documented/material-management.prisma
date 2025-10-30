@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// MATERIAL MANAGEMENT MODULE
+// Materials, inventory, and supply chain
+// ====================================================================
+
+model MaterialClass {
+  id                     String               @id @default(cuid())
+  classCode              String               @unique
+  className              String
+  description            String?
+  level                  Int
+  parentClassId          String?
+  requiresLotTracking    Boolean              @default(true)
+  requiresSerialTracking Boolean              @default(false)
+  requiresExpirationDate Boolean              @default(false)
+  shelfLifeDays          Int?
+  storageRequirements    String?
+  handlingInstructions   String?
+  isActive               Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  parentClass            MaterialClass?       @relation("MaterialClassHierarchy", fields: [parentClassId], references: [id])
+  childClasses           MaterialClass[]      @relation("MaterialClassHierarchy")
+  materials              MaterialDefinition[]
+
+  @@index([parentClassId])
+  @@index([level])
+  @@map("material_classes")
+}
+model MaterialDefinition {
+  id                     String               @id @default(cuid())
+  materialNumber         String               @unique
+  materialName           String
+  description            String?
+  materialClassId        String
+  baseUnitOfMeasure      String
+  alternateUnitOfMeasure String?
+  conversionFactor       Float?
+  materialType           MaterialType
+  materialGrade          String?
+  specification          String?
+  minimumStock           Float?
+  reorderPoint           Float?
+  reorderQuantity        Float?
+  leadTimeDays           Int?
+  requiresLotTracking    Boolean              @default(true)
+  lotNumberFormat        String?
+  defaultShelfLifeDays   Int?
+  standardCost           Float?
+  currency               String?              @default("USD")
+  requiresInspection     Boolean              @default(false)
+  inspectionFrequency    String?
+  primarySupplierId      String?
+  supplierPartNumber     String?
+  drawingNumber          String?
+  revision               String?
+  msdsUrl                String?
+  imageUrl               String?
+  isActive               Boolean              @default(true)
+  isPhantom              Boolean              @default(false)
+  isObsolete             Boolean              @default(false)
+  obsoleteDate           DateTime?
+  replacementMaterialId  String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  materialClass          MaterialClass        @relation(fields: [materialClassId], references: [id])
+  replacementMaterial    MaterialDefinition?  @relation("MaterialReplacement", fields: [replacementMaterialId], references: [id])
+  replacedMaterials      MaterialDefinition[] @relation("MaterialReplacement")
+  lots                   MaterialLot[]
+  properties             MaterialProperty[]
+
+  @@index([materialClassId])
+  @@index([materialType])
+  @@index([isActive])
+  @@index([materialNumber])
+  @@map("material_definitions")
+}
+model MaterialProperty {
+  id            String               @id @default(cuid())
+  materialId    String
+  propertyName  String
+  propertyType  MaterialPropertyType
+  propertyValue String
+  propertyUnit  String?
+  testMethod    String?
+  nominalValue  Float?
+  minValue      Float?
+  maxValue      Float?
+  isRequired    Boolean              @default(false)
+  isCritical    Boolean              @default(false)
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  material      MaterialDefinition   @relation(fields: [materialId], references: [id])
+
+  @@unique([materialId, propertyName])
+  @@index([materialId])
+  @@index([propertyType])
+  @@map("material_properties")
+}
+model MaterialLot {
+  id                  String                 @id @default(cuid())
+  lotNumber           String                 @unique
+  materialId          String
+  supplierLotNumber   String?
+  purchaseOrderNumber String?
+  heatNumber          String?
+  serialNumber        String?
+  originalQuantity    Float
+  currentQuantity     Float
+  unitOfMeasure       String
+  location            String?
+  warehouseId         String?
+  manufactureDate     DateTime?
+  receivedDate        DateTime
+  expirationDate      DateTime?
+  shelfLifeDays       Int?
+  firstUsedDate       DateTime?
+  lastUsedDate        DateTime?
+  status              MaterialLotStatus      @default(AVAILABLE)
+  state               MaterialLotState       @default(RECEIVED)
+  isQuarantined       Boolean                @default(false)
+  quarantineReason    String?
+  quarantinedAt       DateTime?
+  qualityStatus       QualityLotStatus       @default(PENDING)
+  inspectionId        String?
+  certificationUrls   String[]
+  supplierId          String?
+  supplierName        String?
+  manufacturerId      String?
+  manufacturerName    String?
+  countryOfOrigin     String?
+  unitCost            Float?
+  totalCost           Float?
+  currency            String?                @default("USD")
+  parentLotId         String?
+  isSplit             Boolean                @default(false)
+  isMerged            Boolean                @default(false)
+  notes               String?
+  customAttributes    Json?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  genealogyAsChild    MaterialLotGenealogy[] @relation("ChildLot")
+  genealogyAsParent   MaterialLotGenealogy[] @relation("ParentLot")
+  material            MaterialDefinition     @relation(fields: [materialId], references: [id])
+  parentLot           MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
+  childLots           MaterialLot[]          @relation("LotGenealogy")
+  stateHistory        MaterialStateHistory[]
+  sublots             MaterialSublot[]
+
+  @@index([materialId])
+  @@index([lotNumber])
+  @@index([status])
+  @@index([state])
+  @@index([expirationDate])
+  @@index([qualityStatus])
+  @@index([parentLotId])
+  @@map("material_lots")
+}
+model MaterialSublot {
+  id            String              @id @default(cuid())
+  sublotNumber  String              @unique
+  parentLotId   String
+  operationType SublotOperationType
+  quantity      Float
+  unitOfMeasure String
+  workOrderId   String?
+  operationId   String?
+  reservedFor   String?
+  location      String?
+  status        MaterialLotStatus   @default(AVAILABLE)
+  isActive      Boolean             @default(true)
+  splitReason   String?
+  createdById   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  parentLot     MaterialLot         @relation(fields: [parentLotId], references: [id])
+
+  @@index([parentLotId])
+  @@index([sublotNumber])
+  @@index([workOrderId])
+  @@map("material_sublots")
+}
+model MaterialLotGenealogy {
+  id               String                @id @default(cuid())
+  parentLotId      String
+  childLotId       String
+  relationshipType GenealogyRelationType
+  quantityConsumed Float
+  quantityProduced Float?
+  unitOfMeasure    String
+  workOrderId      String?
+  operationId      String?
+  processDate      DateTime
+  operatorId       String?
+  notes            String?
+  createdAt        DateTime              @default(now())
+  childLot         MaterialLot           @relation("ChildLot", fields: [childLotId], references: [id])
+  parentLot        MaterialLot           @relation("ParentLot", fields: [parentLotId], references: [id])
+
+  @@unique([parentLotId, childLotId, processDate])
+  @@index([parentLotId])
+  @@index([childLotId])
+  @@index([workOrderId])
+  @@index([processDate])
+  @@map("material_lot_genealogy")
+}
+model MaterialStateHistory {
+  id             String              @id @default(cuid())
+  lotId          String
+  previousState  MaterialLotState?
+  newState       MaterialLotState
+  previousStatus MaterialLotStatus?
+  newStatus      MaterialLotStatus?
+  reason         String?
+  transitionType StateTransitionType
+  quantity       Float?
+  unitOfMeasure  String?
+  workOrderId    String?
+  operationId    String?
+  inspectionId   String?
+  changedById    String?
+  changedAt      DateTime            @default(now())
+  fromLocation   String?
+  toLocation     String?
+  qualityNotes   String?
+  notes          String?
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  lot            MaterialLot         @relation(fields: [lotId], references: [id])
+
+  @@index([lotId])
+  @@index([changedAt])
+  @@index([newState])
+  @@index([newStatus])
+  @@map("material_state_history")
+}
+model Inventory {
+  id            String                @id @default(cuid())
+  partId        String
+  location      String
+  lotNumber     String?
+  quantity      Float
+  unitOfMeasure String
+  unitCost      Float?
+  receivedDate  DateTime?
+  expiryDate    DateTime?
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  part          Part                  @relation(fields: [partId], references: [id])
+  transactions  MaterialTransaction[]
+
+  @@map("inventory")
+}
+model MaterialTransaction {
+  id              String                  @id @default(cuid())
+  inventoryId     String
+  workOrderId     String?
+  transactionType MaterialTransactionType
+  quantity        Float
+  unitOfMeasure   String
+  reference       String?
+  transactionDate DateTime                @default(now())
+  createdAt       DateTime                @default(now())
+  inventory       Inventory               @relation(fields: [inventoryId], references: [id])
+  workOrder       WorkOrder?              @relation(fields: [workOrderId], references: [id])
+
+  @@map("material_transactions")
+}

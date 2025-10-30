@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// CORE FOUNDATION MODULE
+// Core foundational models for enterprise structure
+// ====================================================================
+
+model Enterprise {
+  id             String   @id @default(cuid())
+  enterpriseCode String   @unique
+  enterpriseName String
+  description    String?
+  headquarters   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  sites          Site[]
+
+  @@map("enterprises")
+}
+model Site {
+  id                        String                     @id @default(cuid())
+  siteCode                  String                     @unique
+  siteName                  String
+  location                  String?
+  enterpriseId              String?
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  areas                     Area[]
+  auditReports              AuditReport[]
+  equipment                 Equipment[]
+  indirectCostCodes         IndirectCostCode[]
+  ncrs                      NCR[]
+  operations                Operation[]
+  partAvailability          PartSiteAvailability[]
+  permissionChangeLogs      PermissionChangeLog[]
+  permissionUsageLogs       PermissionUsageLog[]
+  productionSchedules       ProductionSchedule[]
+  routingTemplates          RoutingTemplate[]
+  routings                  Routing[]
+  securityEvents            SecurityEvent[]
+  enterprise                Enterprise?                @relation(fields: [enterpriseId], references: [id])
+  timeTrackingConfiguration TimeTrackingConfiguration?
+  userSiteRoles             UserSiteRole[]
+  workOrders                WorkOrder[]
+
+  // Role Template relationships
+  roleTemplateInstances     RoleTemplateInstance[]
+  roleTemplateUsageLogs     RoleTemplateUsageLog[]
+
+  @@index([enterpriseId])
+  @@map("sites")
+}
+model Area {
+  id          String       @id @default(cuid())
+  areaCode    String       @unique
+  areaName    String
+  description String?
+  siteId      String
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  site        Site         @relation(fields: [siteId], references: [id])
+  equipment   Equipment[]
+  workCenters WorkCenter[]
+
+  @@index([siteId])
+  @@map("areas")
+}

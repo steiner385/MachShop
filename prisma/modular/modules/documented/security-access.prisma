@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// SECURITY ACCESS MODULE
+// Security, permissions, and access control
+// ====================================================================
+
+model ElectronicSignature {
+  id                 String                   @id @default(cuid())
+  signatureType      ElectronicSignatureType
+  signatureLevel     ElectronicSignatureLevel
+  userId             String
+  signedEntityType   String
+  signedEntityId     String
+  signatureReason    String?
+  signatureData      Json
+  ipAddress          String
+  userAgent          String
+  timestamp          DateTime                 @default(now())
+  biometricType      BiometricType?
+  biometricTemplate  String?
+  biometricScore     Float?
+  signatureHash      String
+  isValid            Boolean                  @default(true)
+  invalidatedAt      DateTime?
+  invalidatedById    String?
+  invalidationReason String?
+  signedDocument     Json?
+  certificateId      String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  invalidatedBy      User?                    @relation("ElectronicSignatureInvalidatedBy", fields: [invalidatedById], references: [id])
+  user               User                     @relation("ElectronicSignatureUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([signedEntityType, signedEntityId])
+  @@index([timestamp])
+  @@map("electronic_signatures")
+}
+model Role {
+  id            String           @id @default(cuid())
+  roleCode      String           @unique
+  roleName      String
+  description   String?
+  isActive      Boolean          @default(true)
+  isGlobal      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  createdBy     String?
+  permissions   RolePermission[]
+  userRoles     UserRole[]
+  userSiteRoles UserSiteRole[]
+
+  // Role Template relationship
+  templateInstance RoleTemplateInstance?
+
+  @@index([roleCode])
+  @@index([isActive])
+  @@index([isGlobal])
+  @@map("roles")
+}
+model Permission {
+  id             String           @id @default(cuid())
+  permissionCode String           @unique
+  permissionName String
+  description    String?
+  category       String?
+  isActive       Boolean          @default(true)
+  isWildcard     Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  roles          RolePermission[]
+
+  // Role Template relationship
+  templatePermissions RoleTemplatePermission[]
+
+  @@index([permissionCode])
+  @@index([category])
+  @@index([isActive])
+  @@index([isWildcard])
+  @@map("permissions")
+}
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  grantedAt    DateTime   @default(now())
+  grantedBy    String?
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+model UserSiteRole {
+  id         String    @id @default(cuid())
+  userId     String
+  roleId     String
+  siteId     String
+  assignedAt DateTime  @default(now())
+  assignedBy String?
+  expiresAt  DateTime?
+  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, siteId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([expiresAt])
+  @@map("user_site_roles")
+}
+model PermissionUsageLog {
+  id         String   @id @default(cuid())
+  userId     String
+  permission String
+  endpoint   String?
+  method     String?
+  success    Boolean
+  timestamp  DateTime @default(now())
+  ip         String?
+  userAgent  String?
+  siteId     String?
+  duration   Int?
+  context    Json?
+  site       Site?    @relation(fields: [siteId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([permission, timestamp])
+  @@index([success, timestamp])
+  @@index([siteId, timestamp])
+  @@index([endpoint, method])
+  @@map("permission_usage_logs")
+}
+model SecurityEvent {
+  id             String            @id @default(cuid())
+  eventType      SecurityEventType
+  severity       SecuritySeverity
+  userId         String?
+  ip             String?
+  userAgent      String?
+  description    String
+  metadata       Json?
+  timestamp      DateTime          @default(now())
+  resolved       Boolean           @default(false)
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  siteId         String?
+  resolvedByUser User?             @relation("SecurityEventResolvedBy", fields: [resolvedBy], references: [id])
+  site           Site?             @relation(fields: [siteId], references: [id])
+  user           User?             @relation(fields: [userId], references: [id])
+
+  @@index([eventType, timestamp])
+  @@index([severity, resolved])
+  @@index([userId, timestamp])
+  @@index([ip, timestamp])
+  @@index([siteId, timestamp])
+  @@map("security_events")
+}
+model PermissionChangeLog {
+  id            String               @id @default(cuid())
+  changeType    PermissionChangeType
+  targetUserId  String
+  targetRole    String?
+  permission    String?
+  oldValue      Json?
+  newValue      Json?
+  changedBy     String
+  reason        String?
+  timestamp     DateTime             @default(now())
+  siteId        String?
+  changedByUser User                 @relation("PermissionChangeChanger", fields: [changedBy], references: [id], onDelete: Cascade)
+  site          Site?                @relation(fields: [siteId], references: [id])
+  targetUser    User                 @relation("PermissionChangeTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId, timestamp])
+  @@index([changedBy, timestamp])
+  @@index([changeType, timestamp])
+  @@index([siteId, timestamp])
+  @@map("permission_change_logs")
+}
+model RoleTemplate {
+  id              String                    @id @default(cuid())
+  templateCode    String                    @unique
+  templateName    String
+  description     String?
+  category        RoleTemplateCategory
+  isActive        Boolean                   @default(true)
+  isGlobal        Boolean                   @default(true)
+  version         String                    @default("1.0.0")
+  metadata        Json?                     // Manufacturing-specific configuration
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  createdBy       String
+  updatedBy       String?
+
+  // Relationships
+  permissions     RoleTemplatePermission[]
+  instances       RoleTemplateInstance[]
+  usageLogs       RoleTemplateUsageLog[]
+  creator         User                      @relation("RoleTemplateCreator", fields: [createdBy], references: [id])
+  updater         User?                     @relation("RoleTemplateUpdater", fields: [updatedBy], references: [id])
+
+  @@index([templateCode])
+  @@index([category])
+  @@index([isActive])
+  @@index([isGlobal])
+  @@map("role_templates")
+}
+model RoleTemplatePermission {
+  id           String       @id @default(cuid())
+  templateId   String
+  permissionId String
+  isRequired   Boolean      @default(true)
+  isOptional   Boolean      @default(false)
+  metadata     Json?        // Additional permission context
+  createdAt    DateTime     @default(now())
+
+  // Relationships
+  template     RoleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  permission   Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, permissionId])
+  @@index([templateId])
+  @@index([permissionId])
+  @@map("role_template_permissions")
+}
+model RoleTemplateInstance {
+  id                String              @id @default(cuid())
+  templateId        String
+  roleId            String              @unique
+  instanceName      String?
+  siteId            String?
+  customPermissions Json?               // Site-specific permission adjustments
+  isActive          Boolean             @default(true)
+  instantiatedAt    DateTime            @default(now())
+  instantiatedBy    String
+  metadata          Json?               // Instance-specific metadata
+
+  // Relationships
+  template          RoleTemplate        @relation(fields: [templateId], references: [id])
+  role              Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site              Site?               @relation(fields: [siteId], references: [id])
+  instantiator      User                @relation(fields: [instantiatedBy], references: [id])
+  usageLogs         RoleTemplateUsageLog[]
+
+  @@index([templateId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([instantiatedBy])
+  @@map("role_template_instances")
+}
+model RoleTemplateUsageLog {
+  id            String                    @id @default(cuid())
+  templateId    String?
+  instanceId    String?
+  action        RoleTemplateAction
+  performedBy   String
+  targetUserId  String?
+  siteId        String?
+  details       Json?
+  timestamp     DateTime                  @default(now())
+
+  // Relationships
+  template      RoleTemplate?             @relation(fields: [templateId], references: [id])
+  instance      RoleTemplateInstance?     @relation(fields: [instanceId], references: [id])
+  performer     User                      @relation("RoleTemplateLogPerformer", fields: [performedBy], references: [id])
+  targetUser    User?                     @relation("RoleTemplateLogTarget", fields: [targetUserId], references: [id])
+  site          Site?                     @relation(fields: [siteId], references: [id])
+
+  @@index([templateId])
+  @@index([instanceId])
+  @@index([performedBy])
+  @@index([targetUserId])
+  @@index([timestamp])
+  @@map("role_template_usage_logs")
+}

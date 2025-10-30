@@ -1,0 +1,1373 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// MISCELLANEOUS MODULE
+// Miscellaneous models
+// ====================================================================
+
+model ConfigurationOption {
+  id              String               @id @default(cuid())
+  configurationId String
+  optionName      String
+  optionCode      String?
+  description     String?
+  optionCategory  String?
+  optionValue     String?
+  isRequired      Boolean              @default(false)
+  isDefault       Boolean              @default(false)
+  addedPartIds    String[]
+  removedPartIds  String[]
+  priceModifier   Float?               @default(0)
+  costModifier    Float?               @default(0)
+  displayOrder    Int?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  configuration   ProductConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([configurationId])
+  @@map("configuration_options")
+}
+model DispatchLog {
+  id                 String             @id @default(cuid())
+  workOrderId        String
+  dispatchedAt       DateTime           @default(now())
+  dispatchedBy       String?
+  dispatchedFrom     String?
+  assignedToId       String?
+  workCenterId       String?
+  priorityOverride   WorkOrderPriority?
+  expectedStartDate  DateTime?
+  expectedEndDate    DateTime?
+  quantityDispatched Int
+  materialReserved   Boolean            @default(false)
+  toolingReserved    Boolean            @default(false)
+  dispatchNotes      String?
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  assignedTo         User?              @relation("DispatchAssignedTo", fields: [assignedToId], references: [id])
+  workCenter         WorkCenter?        @relation("DispatchWorkCenter", fields: [workCenterId], references: [id])
+  workOrder          WorkOrder          @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([dispatchedAt])
+  @@index([assignedToId])
+  @@index([workCenterId])
+  @@map("dispatch_logs")
+}
+model SerializedPart {
+  id                    String                 @id @default(cuid())
+  serialNumber          String                 @unique
+  partId                String
+  workOrderId           String?
+  lotNumber             String?
+  status                String
+  currentLocation       String?
+  manufactureDate       DateTime?
+  shipDate              DateTime?
+  customerInfo          String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  inspectionRecords     InspectionRecord[]
+  components            PartGenealogy[]        @relation("ComponentPart")
+  genealogy             PartGenealogy[]        @relation("ParentPart")
+  qifMeasurementResults QIFMeasurementResult[]
+  part                  Part                   @relation(fields: [partId], references: [id])
+
+  @@map("serialized_parts")
+}
+model FAIReport {
+  id                    String                 @id @default(cuid())
+  faiNumber             String                 @unique
+  partId                String
+  workOrderId           String?
+  inspectionId          String?
+  status                FAIStatus              @default(IN_PROGRESS)
+  revisionLevel         String?
+  form1Data             Json?
+  form2Data             Json?
+  createdById           String?
+  reviewedById          String?
+  approvedById          String?
+  reviewedAt            DateTime?
+  approvedAt            DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  characteristics       FAICharacteristic[]
+  qifMeasurementPlans   QIFMeasurementPlan[]
+  qifMeasurementResults QIFMeasurementResult[]
+
+  @@index([partId])
+  @@index([status])
+  @@map("fai_reports")
+}
+model FAICharacteristic {
+  id                   String    @id @default(cuid())
+  faiReportId          String
+  characteristicNumber Int
+  characteristic       String
+  specification        String
+  requirement          String?
+  toleranceType        String?
+  nominalValue         Float?
+  upperLimit           Float?
+  lowerLimit           Float?
+  unitOfMeasure        String?
+  inspectionMethod     String?
+  inspectionFrequency  String?
+  measuredValues       Json
+  actualValue          Float?
+  deviation            Float?
+  result               String?
+  notes                String?
+  verifiedById         String?
+  verifiedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  faiReport            FAIReport @relation(fields: [faiReportId], references: [id], onDelete: Cascade)
+
+  @@unique([faiReportId, characteristicNumber])
+  @@index([faiReportId])
+  @@map("fai_characteristics")
+}
+model MaintenanceWorkOrder {
+  id                      String     @id @default(cuid())
+  externalWorkOrderNumber String     @unique
+  description             String
+  workType                String
+  status                  String
+  equipmentId             String?
+  scheduledStart          DateTime?
+  scheduledFinish         DateTime?
+  actualStart             DateTime?
+  actualFinish            DateTime?
+  priority                Int        @default(3)
+  failureCode             String?
+  problemCode             String?
+  causeCode               String?
+  remedyCode              String?
+  lastSyncedAt            DateTime?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+  equipment               Equipment? @relation(fields: [equipmentId], references: [id])
+
+  @@index([externalWorkOrderNumber])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("maintenance_work_orders")
+}
+model CNCProgram {
+  id                  String               @id @default(cuid())
+  externalProgramId   String?              @unique
+  programName         String
+  partNumber          String
+  operationCode       String
+  revision            String
+  revisionDate        DateTime
+  status              String
+  machineType         String?
+  postProcessor       String?
+  toolList            String?
+  setupSheetUrl       String?
+  approvedBy          String?
+  approvalDate        DateTime?
+  ecoNumber           String?
+  effectiveDate       DateTime?
+  firstPieceRequired  Boolean              @default(false)
+  firstPieceApproved  Boolean              @default(false)
+  firstPieceDate      DateTime?
+  programUrl          String?
+  stepAP242Url        String?
+  pmiDataUrl          String?
+  teamcenterItemId    String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  programDownloadLogs ProgramDownloadLog[]
+
+  @@index([programName])
+  @@index([partNumber])
+  @@index([status])
+  @@index([revision])
+  @@map("cnc_programs")
+}
+model ProgramDownloadLog {
+  id                  String      @id @default(cuid())
+  programId           String?
+  programName         String
+  revision            String
+  machineId           String
+  operatorBadgeNumber String
+  workOrderNumber     String?
+  downloadDate        DateTime    @default(now())
+  authorized          Boolean
+  authorizationMethod String
+  createdAt           DateTime    @default(now())
+  cncProgram          CNCProgram? @relation(fields: [programId], references: [id])
+
+  @@index([programName])
+  @@index([machineId])
+  @@index([operatorBadgeNumber])
+  @@index([downloadDate])
+  @@map("program_download_logs")
+}
+model ProgramLoadAuthorization {
+  id                    String   @id @default(cuid())
+  authorizationId       String   @unique
+  operatorBadgeNumber   String
+  machineId             String
+  programName           String
+  programRevision       String
+  partNumber            String
+  workOrderNumber       String?
+  authorized            Boolean
+  authorizationDate     DateTime @default(now())
+  operatorAuthenticated Boolean
+  workOrderValid        Boolean
+  certificationValid    Boolean
+  programVersionValid   Boolean
+  gaugeCalibrationValid Boolean
+  failureReasons        String?
+  validationDetails     Json?
+  supervisorNotified    Boolean  @default(false)
+  overrideReason        String?
+  electronicSignature   String?
+  createdAt             DateTime @default(now())
+
+  @@index([authorizationId])
+  @@index([operatorBadgeNumber])
+  @@index([machineId])
+  @@index([authorized])
+  @@index([authorizationDate])
+  @@map("program_load_authorizations")
+}
+model Alert {
+  id         String    @id @default(cuid())
+  alertType  String
+  severity   String
+  message    String
+  details    Json?
+  resolved   Boolean   @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([alertType])
+  @@index([severity])
+  @@index([resolved])
+  @@index([createdAt])
+  @@map("alerts")
+}
+model ERPMaterialTransaction {
+  id                  String               @id @default(cuid())
+  messageId           String               @unique
+  configId            String
+  transactionType     ERPTransactionType
+  direction           IntegrationDirection
+  transactionDate     DateTime             @default(now())
+  partId              String?
+  externalPartId      String
+  fromLocation        String?
+  toLocation          String?
+  workOrderId         String?
+  externalWorkOrderId String?
+  quantity            Float
+  unitOfMeasure       String
+  lotNumber           String?
+  serialNumber        String?
+  unitCost            Float?
+  totalCost           Float?
+  currency            String?              @default("USD")
+  movementType        String
+  reasonCode          String?
+  status              B2MMessageStatus
+  processedAt         DateTime?
+  erpTransactionId    String?
+  errorMessage        String?
+  messagePayload      Json
+  createdBy           String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
+  part                Part?                @relation(fields: [partId], references: [id])
+  workOrder           WorkOrder?           @relation(fields: [workOrderId], references: [id])
+
+  @@index([configId])
+  @@index([transactionType])
+  @@index([status])
+  @@index([externalPartId])
+  @@index([transactionDate])
+  @@map("erp_material_transactions")
+}
+model ProcessDataCollection {
+  id                 String     @id @default(cuid())
+  equipmentId        String
+  processName        String
+  processStepNumber  Int?
+  startTimestamp     DateTime
+  endTimestamp       DateTime?
+  duration           Float?
+  workOrderId        String?
+  operationId        String?
+  partNumber         String?
+  lotNumber          String?
+  serialNumber       String?
+  parameters         Json
+  quantityProduced   Float?
+  quantityGood       Float?
+  quantityScrap      Float?
+  inSpecCount        Int?
+  outOfSpecCount     Int?
+  averageUtilization Float?
+  peakUtilization    Float?
+  alarmCount         Int        @default(0)
+  criticalAlarmCount Int        @default(0)
+  operatorId         String?
+  supervisorId       String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  equipment          Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder          WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([processName])
+  @@index([workOrderId])
+  @@index([startTimestamp])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@map("process_data_collections")
+}
+model QIFMeasurementPlan {
+  id                  String                 @id @default(cuid())
+  qifPlanId           String                 @unique
+  partNumber          String
+  partRevision        String
+  planVersion         String
+  planName            String?
+  description         String?
+  createdDate         DateTime               @default(now())
+  createdBy           String?
+  qifXmlContent       String
+  qifVersion          String                 @default("3.0.0")
+  characteristicCount Int                    @default(0)
+  workOrderId         String?
+  faiReportId         String?
+  status              String                 @default("ACTIVE")
+  supersededBy        String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  characteristics     QIFCharacteristic[]
+  faiReport           FAIReport?             @relation(fields: [faiReportId], references: [id])
+  workOrder           WorkOrder?             @relation(fields: [workOrderId], references: [id])
+  measurementResults  QIFMeasurementResult[]
+
+  @@index([partNumber])
+  @@index([partRevision])
+  @@index([qifPlanId])
+  @@index([workOrderId])
+  @@index([faiReportId])
+  @@index([status])
+  @@map("qif_measurement_plans")
+}
+model QIFCharacteristic {
+  id                   String             @id @default(cuid())
+  qifMeasurementPlanId String
+  characteristicId     String
+  balloonNumber        String?
+  characteristicName   String?
+  description          String?
+  nominalValue         Float?
+  upperTolerance       Float?
+  lowerTolerance       Float?
+  toleranceType        String?
+  gdtType              String?
+  datumReferenceFrame  String?
+  materialCondition    String?
+  measurementMethod    String?
+  samplingRequired     Boolean            @default(false)
+  sampleSize           Int?
+  sequenceNumber       Int?
+  createdAt            DateTime           @default(now())
+  qifMeasurementPlan   QIFMeasurementPlan @relation(fields: [qifMeasurementPlanId], references: [id], onDelete: Cascade)
+  measurements         QIFMeasurement[]
+
+  @@index([qifMeasurementPlanId])
+  @@index([characteristicId])
+  @@index([balloonNumber])
+  @@map("qif_characteristics")
+}
+model QIFMeasurementResult {
+  id                   String                @id @default(cuid())
+  qifResultsId         String                @unique
+  qifMeasurementPlanId String?
+  partNumber           String
+  serialNumber         String?
+  lotNumber            String?
+  inspectionDate       DateTime
+  inspectedBy          String
+  inspectionType       String?
+  overallStatus        String
+  totalMeasurements    Int                   @default(0)
+  passedMeasurements   Int                   @default(0)
+  failedMeasurements   Int                   @default(0)
+  qifXmlContent        String
+  qifVersion           String                @default("3.0.0")
+  workOrderId          String?
+  serializedPartId     String?
+  faiReportId          String?
+  measurementDeviceId  String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  faiReport            FAIReport?            @relation(fields: [faiReportId], references: [id])
+  measurementDevice    MeasurementEquipment? @relation(fields: [measurementDeviceId], references: [id])
+  qifMeasurementPlan   QIFMeasurementPlan?   @relation(fields: [qifMeasurementPlanId], references: [id])
+  serializedPart       SerializedPart?       @relation(fields: [serializedPartId], references: [id])
+  workOrder            WorkOrder?            @relation(fields: [workOrderId], references: [id])
+  measurements         QIFMeasurement[]
+
+  @@index([qifResultsId])
+  @@index([qifMeasurementPlanId])
+  @@index([partNumber])
+  @@index([serialNumber])
+  @@index([inspectionDate])
+  @@index([overallStatus])
+  @@index([workOrderId])
+  @@index([faiReportId])
+  @@map("qif_measurement_results")
+}
+model QIFMeasurement {
+  id                     String               @id @default(cuid())
+  qifMeasurementResultId String
+  qifCharacteristicId    String?
+  characteristicId       String
+  balloonNumber          String?
+  measuredValue          Float
+  deviation              Float?
+  status                 String
+  measurementDate        DateTime?
+  measuredBy             String?
+  measurementDevice      String?
+  uncertainty            Float?
+  uncertaintyK           Float?
+  notes                  String?
+  createdAt              DateTime             @default(now())
+  qifCharacteristic      QIFCharacteristic?   @relation(fields: [qifCharacteristicId], references: [id])
+  qifMeasurementResult   QIFMeasurementResult @relation(fields: [qifMeasurementResultId], references: [id], onDelete: Cascade)
+
+  @@index([qifMeasurementResultId])
+  @@index([qifCharacteristicId])
+  @@index([characteristicId])
+  @@index([status])
+  @@map("qif_measurements")
+}
+model SPCConfiguration {
+  id                 String                 @id @default(cuid())
+  parameterId        String                 @unique
+  chartType          SPCChartType
+  subgroupSize       Int?
+  UCL                Float?
+  centerLine         Float?
+  LCL                Float?
+  rangeUCL           Float?
+  rangeCL            Float?
+  rangeLCL           Float?
+  USL                Float?
+  LSL                Float?
+  targetValue        Float?
+  limitsBasedOn      LimitCalculationMethod
+  historicalDataDays Int?
+  lastCalculatedAt   DateTime?
+  enabledRules       Json
+  ruleSensitivity    String                 @default("NORMAL")
+  enableCapability   Boolean                @default(true)
+  confidenceLevel    Float                  @default(0.95)
+  isActive           Boolean                @default(true)
+  createdBy          String
+  lastModifiedBy     String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  parameter          OperationParameter     @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+  violations         SPCRuleViolation[]
+
+  @@map("spc_configurations")
+}
+model SPCRuleViolation {
+  id              String           @id @default(cuid())
+  configurationId String
+  ruleNumber      Int
+  ruleName        String
+  severity        String
+  dataPointId     String?
+  value           Float
+  timestamp       DateTime
+  subgroupNumber  Int?
+  UCL             Float?
+  LCL             Float?
+  centerLine      Float?
+  deviationSigma  Float?
+  acknowledged    Boolean          @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  resolution      String?
+  createdAt       DateTime         @default(now())
+  configuration   SPCConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([configurationId, timestamp])
+  @@index([acknowledged])
+  @@map("spc_rule_violations")
+}
+model SamplingPlan {
+  id                        String                     @id @default(cuid())
+  planName                  String
+  planType                  SamplingPlanType
+  parameterId               String?
+  operationId               String?
+  inspectionLevel           String
+  AQL                       Float
+  lotSizeMin                Int?
+  lotSizeMax                Int?
+  sampleSizeNormal          Int
+  acceptanceNumber          Int
+  rejectionNumber           Int
+  sampleSizeTightened       Int?
+  acceptanceNumberTightened Int?
+  sampleSizeReduced         Int?
+  acceptanceNumberReduced   Int?
+  sampleSize2               Int?
+  acceptanceNumber2         Int?
+  rejectionNumber2          Int?
+  currentInspectionLevel    String                     @default("NORMAL")
+  consecutiveAccepted       Int                        @default(0)
+  consecutiveRejected       Int                        @default(0)
+  isActive                  Boolean                    @default(true)
+  createdBy                 String
+  lastModifiedBy            String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  inspectionResults         SamplingInspectionResult[]
+  operation                 Operation?                 @relation(fields: [operationId], references: [id])
+  parameter                 OperationParameter?        @relation(fields: [parameterId], references: [id])
+
+  @@map("sampling_plans")
+}
+model SamplingInspectionResult {
+  id              String       @id @default(cuid())
+  planId          String
+  lotNumber       String
+  lotSize         Int
+  inspectionDate  DateTime
+  sampleSize      Int
+  defectsFound    Int
+  decision        String
+  inspectionLevel String
+  inspectorId     String
+  notes           String?
+  createdAt       DateTime     @default(now())
+  plan            SamplingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, inspectionDate])
+  @@map("sampling_inspection_results")
+}
+model ExportTemplate {
+  id             String             @id @default(cuid())
+  name           String
+  description    String?
+  templateType   ExportTemplateType
+  templateFormat ExportFormat
+  headerTemplate String?
+  footerTemplate String?
+  styles         Json?
+  layout         Json?
+  isDefault      Boolean            @default(false)
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  createdById    String
+  updatedById    String
+  instructions   WorkInstruction[]
+
+  @@index([templateType])
+  @@index([templateFormat])
+  @@map("export_templates")
+}
+model SetupSheet {
+  id                 String                @id @default(cuid())
+  documentNumber     String                @unique
+  title              String
+  description        String?
+  version            String                @default("1.0.0")
+  status             WorkInstructionStatus @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+  equipmentId        String?
+  operationId        String?
+  partId             String?
+  workCenterId       String?
+  estimatedSetupTime Int?
+  safetyChecklist    Json?
+  requiredPPE        String[]
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+  parentVersionId    String?
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+  isActive           Boolean               @default(true)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdById        String
+  updatedById        String
+  executions         SetupExecution[]
+  parameters         SetupParameter[]
+  approvedBy         User?                 @relation("SetupSheetApprovedBy", fields: [approvedById], references: [id])
+  createdBy          User                  @relation("SetupSheetCreatedBy", fields: [createdById], references: [id])
+  parentVersion      SetupSheet?           @relation("SetupSheetVersionHistory", fields: [parentVersionId], references: [id])
+  childVersions      SetupSheet[]          @relation("SetupSheetVersionHistory")
+  updatedBy          User                  @relation("SetupSheetUpdatedBy", fields: [updatedById], references: [id])
+  steps              SetupStep[]
+  toolList           SetupTool[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([equipmentId])
+  @@index([operationId])
+  @@index([partId])
+  @@map("setup_sheets")
+}
+model SetupStep {
+  id                   String     @id @default(cuid())
+  setupSheetId         String
+  stepNumber           Int
+  title                String
+  instructions         String
+  imageUrls            String[]
+  videoUrls            String[]
+  estimatedDuration    Int?
+  isCritical           Boolean    @default(false)
+  requiresVerification Boolean    @default(false)
+  setupSheet           SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  @@unique([setupSheetId, stepNumber])
+  @@index([setupSheetId])
+  @@map("setup_steps")
+}
+model SetupParameter {
+  id                 String     @id @default(cuid())
+  setupSheetId       String
+  parameterName      String
+  targetValue        String
+  tolerance          String?
+  unit               String?
+  equipmentSetting   String?
+  verificationMethod String?
+  setupSheet         SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  @@index([setupSheetId])
+  @@map("setup_parameters")
+}
+model SetupTool {
+  id           String     @id @default(cuid())
+  setupSheetId String
+  toolId       String?
+  toolName     String
+  toolNumber   String?
+  quantity     Int        @default(1)
+  toolOffset   String?
+  notes        String?
+  setupSheet   SetupSheet @relation(fields: [setupSheetId], references: [id], onDelete: Cascade)
+
+  @@index([setupSheetId])
+  @@index([toolId])
+  @@map("setup_tools")
+}
+model SetupExecution {
+  id                String                         @id @default(cuid())
+  setupSheetId      String
+  workOrderId       String?
+  operationId       String?
+  startedById       String
+  startedAt         DateTime                       @default(now())
+  completedById     String?
+  completedAt       DateTime?
+  actualSetupTime   Int?
+  verificationData  Json?
+  firstPieceResults Json?
+  status            WorkInstructionExecutionStatus @default(IN_PROGRESS)
+  completedBy       User?                          @relation("SetupExecutionCompletedBy", fields: [completedById], references: [id])
+  setupSheet        SetupSheet                     @relation(fields: [setupSheetId], references: [id])
+  startedBy         User                           @relation("SetupExecutionStartedBy", fields: [startedById], references: [id])
+
+  @@index([setupSheetId])
+  @@index([workOrderId])
+  @@map("setup_executions")
+}
+model StandardOperatingProcedure {
+  id                 String                       @id @default(cuid())
+  documentNumber     String                       @unique
+  title              String
+  description        String?
+  version            String                       @default("1.0.0")
+  status             WorkInstructionStatus        @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+  sopType            SOPType
+  scope              String
+  applicability      String?
+  responsibleRoles   String[]
+  references         Json?
+  safetyWarnings     String[]
+  requiredPPE        String[]
+  emergencyProcedure String?
+  trainingRequired   Boolean                      @default(false)
+  trainingFrequency  String?
+  reviewFrequency    String?
+  nextReviewDate     DateTime?
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+  parentVersionId    String?
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+  isActive           Boolean                      @default(true)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  createdById        String
+  updatedById        String
+  acknowledgments    SOPAcknowledgment[]
+  audits             SOPAudit[]
+  steps              SOPStep[]
+  approvedBy         User?                        @relation("SOPApprovedBy", fields: [approvedById], references: [id])
+  createdBy          User                         @relation("SOPCreatedBy", fields: [createdById], references: [id])
+  parentVersion      StandardOperatingProcedure?  @relation("SOPVersionHistory", fields: [parentVersionId], references: [id])
+  childVersions      StandardOperatingProcedure[] @relation("SOPVersionHistory")
+  updatedBy          User                         @relation("SOPUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([sopType])
+  @@index([nextReviewDate])
+  @@map("standard_operating_procedures")
+}
+model SOPStep {
+  id           String                     @id @default(cuid())
+  sopId        String
+  stepNumber   Int
+  title        String
+  instructions String
+  isWarning    Boolean                    @default(false)
+  isCritical   Boolean                    @default(false)
+  imageUrls    String[]
+  videoUrls    String[]
+  sop          StandardOperatingProcedure @relation(fields: [sopId], references: [id], onDelete: Cascade)
+
+  @@unique([sopId, stepNumber])
+  @@index([sopId])
+  @@map("sop_steps")
+}
+model SOPAcknowledgment {
+  id                  String                     @id @default(cuid())
+  sopId               String
+  userId              String
+  userName            String
+  acknowledgedAt      DateTime                   @default(now())
+  trainingCompletedAt DateTime?
+  assessmentScore     Float?
+  assessmentPassed    Boolean?
+  signatureId         String?
+  sop                 StandardOperatingProcedure @relation(fields: [sopId], references: [id])
+  user                User                       @relation("SOPAcknowledgmentUser", fields: [userId], references: [id])
+
+  @@unique([sopId, userId])
+  @@index([sopId])
+  @@index([userId])
+  @@map("sop_acknowledgments")
+}
+model SOPAudit {
+  id                String                     @id @default(cuid())
+  sopId             String
+  auditDate         DateTime
+  auditorId         String
+  auditorName       String
+  complianceChecks  Json
+  overallCompliance Boolean
+  findingsCount     Int                        @default(0)
+  findings          String?
+  correctiveActions Json?
+  auditor           User                       @relation("SOPAuditAuditor", fields: [auditorId], references: [id])
+  sop               StandardOperatingProcedure @relation(fields: [sopId], references: [id])
+
+  @@index([sopId])
+  @@index([auditDate])
+  @@map("sop_audits")
+}
+model EngineeringChangeOrder {
+  id                     String                @id @default(cuid())
+  ecoNumber              String                @unique
+  title                  String
+  description            String
+  ecoType                ECOType
+  priority               ECOPriority
+  status                 ECOStatus             @default(REQUESTED)
+  currentState           String
+  proposedChange         String
+  reasonForChange        String
+  benefitsExpected       String?
+  risksIfNotImplemented  String?
+  requestorId            String
+  requestorName          String
+  requestorDept          String?
+  requestDate            DateTime              @default(now())
+  sponsorId              String?
+  sponsorName            String?
+  impactAnalysis         Json?
+  affectedParts          String[]
+  affectedOperations     String[]
+  estimatedCost          Float?
+  actualCost             Float?
+  estimatedSavings       Float?
+  actualSavings          Float?
+  costCurrency           String                @default("USD")
+  requestedEffectiveDate DateTime?
+  plannedEffectiveDate   DateTime?
+  actualEffectiveDate    DateTime?
+  effectivityType        EffectivityType?
+  effectivityValue       String?
+  isInterchangeable      Boolean               @default(false)
+  crbReviewDate          DateTime?
+  crbDecision            CRBDecision?
+  crbNotes               String?
+  completedDate          DateTime?
+  verifiedDate           DateTime?
+  closedDate             DateTime?
+  closedById             String?
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  affectedDocuments      ECOAffectedDocument[]
+  attachments            ECOAttachment[]
+  crbReviews             ECOCRBReview[]
+  history                ECOHistory[]
+  relatedECOs            ECORelation[]         @relation("ParentECO")
+  parentRelations        ECORelation[]         @relation("RelatedECO")
+  tasks                  ECOTask[]
+
+  @@index([ecoNumber])
+  @@index([status])
+  @@index([priority])
+  @@index([requestDate])
+  @@index([requestorId])
+  @@map("engineering_change_orders")
+}
+model ECOAffectedDocument {
+  id                String                 @id @default(cuid())
+  ecoId             String
+  documentType      String
+  documentId        String
+  documentTitle     String
+  currentVersion    String?
+  targetVersion     String?
+  status            DocUpdateStatus        @default(PENDING)
+  assignedToId      String?
+  assignedToName    String?
+  updateStartedAt   DateTime?
+  updateCompletedAt DateTime?
+  approvedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  eco               EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  @@unique([ecoId, documentType, documentId])
+  @@index([ecoId])
+  @@index([status])
+  @@index([assignedToId])
+  @@map("eco_affected_documents")
+}
+model ECOTask {
+  id                String                 @id @default(cuid())
+  ecoId             String
+  taskName          String
+  description       String?
+  taskType          ECOTaskType
+  assignedToId      String?
+  assignedToName    String?
+  assignedToDept    String?
+  status            ECOTaskStatus          @default(PENDING)
+  dueDate           DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  prerequisiteTasks String[]
+  completionNotes   String?
+  verifiedById      String?
+  verifiedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  eco               EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  @@index([ecoId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("eco_tasks")
+}
+model ECOAttachment {
+  id             String                 @id @default(cuid())
+  ecoId          String
+  fileName       String
+  fileUrl        String
+  fileSize       Int
+  mimeType       String
+  attachmentType AttachmentType
+  description    String?
+  uploadedById   String
+  uploadedByName String
+  uploadedAt     DateTime               @default(now())
+  eco            EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  @@index([ecoId])
+  @@index([attachmentType])
+  @@map("eco_attachments")
+}
+model ECOHistory {
+  id               String                 @id @default(cuid())
+  ecoId            String
+  eventType        ECOEventType
+  eventDescription String
+  fromStatus       ECOStatus?
+  toStatus         ECOStatus?
+  details          Json?
+  performedById    String
+  performedByName  String
+  performedByRole  String?
+  occurredAt       DateTime               @default(now())
+  eco              EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  @@index([ecoId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@map("eco_history")
+}
+model ECOCRBReview {
+  id                String                 @id @default(cuid())
+  ecoId             String
+  meetingDate       DateTime
+  meetingAgenda     String?
+  members           Json
+  discussionNotes   String?
+  questionsConcerns String?
+  decision          CRBDecision
+  decisionRationale String?
+  votesFor          Int?
+  votesAgainst      Int?
+  votesAbstain      Int?
+  conditions        String?
+  actionItems       Json?
+  nextReviewDate    DateTime?
+  createdById       String
+  createdAt         DateTime               @default(now())
+  eco               EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+
+  @@index([ecoId])
+  @@index([meetingDate])
+  @@map("eco_crb_reviews")
+}
+model ECORelation {
+  id           String                 @id @default(cuid())
+  parentEcoId  String
+  relatedEcoId String
+  relationType ECORelationType
+  description  String?
+  createdAt    DateTime               @default(now())
+  parentEco    EngineeringChangeOrder @relation("ParentECO", fields: [parentEcoId], references: [id], onDelete: Cascade)
+  relatedEco   EngineeringChangeOrder @relation("RelatedECO", fields: [relatedEcoId], references: [id], onDelete: Cascade)
+
+  @@unique([parentEcoId, relatedEcoId])
+  @@index([parentEcoId])
+  @@index([relatedEcoId])
+  @@map("eco_relations")
+}
+model CRBConfiguration {
+  id               String     @id @default(cuid())
+  boardMembers     Json
+  meetingFrequency String?
+  meetingDay       String?
+  meetingTime      String?
+  votingRule       VotingRule @default(MAJORITY)
+  quorumRequired   Int?
+  preReviewDays    Int        @default(3)
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([isActive])
+  @@map("crb_configurations")
+}
+model CommentReaction {
+  id           String          @id @default(cuid())
+  commentId    String
+  userId       String
+  userName     String
+  reactionType ReactionType
+  createdAt    DateTime        @default(now())
+  comment      DocumentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, reactionType])
+  @@index([commentId])
+  @@map("comment_reactions")
+}
+model ReviewAssignment {
+  id              String                @id @default(cuid())
+  documentType    String
+  documentId      String
+  documentVersion String
+  reviewerId      String
+  reviewerName    String
+  assignedById    String
+  assignedByName  String
+  assignedAt      DateTime              @default(now())
+  reviewType      ReviewType
+  instructions    String?
+  focusAreas      String[]
+  isRequired      Boolean               @default(true)
+  deadline        DateTime?
+  checklistItems  Json?
+  status          ReviewStatus          @default(NOT_STARTED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  recommendation  ReviewRecommendation?
+  summary         String?
+  timeSpent       Int?
+  signatureId     String?
+  signedOffAt     DateTime?
+
+  @@unique([documentType, documentId, reviewerId])
+  @@index([reviewerId])
+  @@index([status])
+  @@index([deadline])
+  @@map("review_assignments")
+}
+model ConflictResolution {
+  id             String         @id @default(cuid())
+  documentType   String
+  documentId     String
+  conflictPath   String
+  baseVersion    String
+  yourVersion    Json
+  theirVersion   Json
+  theirUserId    String
+  resolution     ResolutionType
+  mergedVersion  Json
+  resolvedById   String
+  resolvedByName String
+  resolvedAt     DateTime       @default(now())
+
+  @@index([documentType, documentId])
+  @@index([resolvedById])
+  @@map("conflict_resolutions")
+}
+model StoredFile {
+  id                  String              @id @default(uuid())
+  storagePath         String              @unique
+  storageProvider     String
+  bucket              String
+  fileName            String
+  originalFileName    String
+  fileSize            Int
+  mimeType            String
+  fileHash            String
+  versionId           String?
+  isLatestVersion     Boolean             @default(true)
+  versionNumber       Int                 @default(1)
+  storageClass        StorageClass        @default(HOT)
+  transitionedAt      DateTime?
+  metadata            Json?
+  tags                String[]
+  cdnUrl              String?
+  cacheStatus         CacheStatus?
+  lastCacheUpdate     DateTime?
+  accessCount         Int                 @default(0)
+  lastAccessedAt      DateTime?
+  downloadCount       Int                 @default(0)
+  documentType        String?
+  documentId          String?
+  attachmentType      FileAttachmentType?
+  deduplicationRefs   Int                 @default(1)
+  originalFileId      String?
+  retentionPolicy     String?
+  expiresAt           DateTime?
+  autoDeleteAt        DateTime?
+  isEncrypted         Boolean             @default(false)
+  encryptionKeyId     String?
+  encryptionAlgorithm String?
+  uploadedById        String
+  uploadedByName      String
+  uploadedAt          DateTime            @default(now())
+  uploadMethod        UploadMethod        @default(DIRECT)
+  uploadSessionId     String?
+  processingStatus    ProcessingStatus    @default(COMPLETED)
+  processingError     String?
+  thumbnailGenerated  Boolean             @default(false)
+  thumbnailPath       String?
+  backupEntries       BackupEntry[]
+  accessLogs          FileAccessLog[]
+  versions            FileVersion[]
+  originalFile        StoredFile?         @relation("FileDuplicates", fields: [originalFileId], references: [id])
+  duplicateFiles      StoredFile[]        @relation("FileDuplicates")
+
+  @@index([storagePath])
+  @@index([fileHash])
+  @@index([documentType, documentId])
+  @@index([storageClass])
+  @@index([uploadedAt])
+  @@index([isLatestVersion])
+  @@index([originalFileId])
+  @@map("stored_files")
+}
+model BackupSchedule {
+  id                     String          @id @default(uuid())
+  name                   String
+  description            String?
+  bucketName             String
+  backupBucket           String?
+  includePattern         String?
+  excludePattern         String?
+  frequency              BackupFrequency
+  cronExpression         String?
+  timezone               String          @default("UTC")
+  retentionDays          Int             @default(30)
+  maxBackups             Int?
+  enableCompression      Boolean         @default(true)
+  enableEncryption       Boolean         @default(true)
+  crossRegionReplication Boolean         @default(false)
+  isActive               Boolean         @default(true)
+  lastBackupAt           DateTime?
+  nextBackupAt           DateTime?
+  lastSuccessAt          DateTime?
+  lastFailureAt          DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  createdById            String
+  updatedById            String?
+  backupHistory          BackupHistory[]
+
+  @@index([isActive])
+  @@index([nextBackupAt])
+  @@map("backup_schedules")
+}
+model BackupHistory {
+  id               String          @id @default(uuid())
+  scheduleId       String?
+  backupType       BackupType
+  status           BackupStatus
+  sourceBucket     String
+  destBucket       String
+  backupLocation   String
+  fileCount        Int?
+  totalSize        Int?
+  compressedSize   Int?
+  compressionRatio Float?
+  startedAt        DateTime
+  completedAt      DateTime?
+  duration         Int?
+  errorMessage     String?
+  errorCode        String?
+  checksumVerified Boolean         @default(false)
+  verificationDate DateTime?
+  metadata         Json?
+  backupEntries    BackupEntry[]
+  schedule         BackupSchedule? @relation(fields: [scheduleId], references: [id])
+
+  @@index([scheduleId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([backupType])
+  @@map("backup_history")
+}
+model BackupEntry {
+  id               String        @id @default(uuid())
+  backupId         String
+  fileId           String
+  backupPath       String
+  originalPath     String
+  checksum         String
+  checksumVerified Boolean       @default(false)
+  metadata         Json?
+  backup           BackupHistory @relation(fields: [backupId], references: [id], onDelete: Cascade)
+  file             StoredFile    @relation(fields: [fileId], references: [id])
+
+  @@unique([backupId, fileId])
+  @@index([backupId])
+  @@index([fileId])
+  @@map("backup_entries")
+}
+model StorageMetrics {
+  id               String   @id @default(uuid())
+  date             DateTime @unique
+  hour             Int?
+  totalFiles       Int      @default(0)
+  totalSize        Int      @default(0)
+  hotStorageFiles  Int      @default(0)
+  hotStorageSize   Int      @default(0)
+  warmStorageFiles Int      @default(0)
+  warmStorageSize  Int      @default(0)
+  coldStorageFiles Int      @default(0)
+  coldStorageSize  Int      @default(0)
+  archiveFiles     Int      @default(0)
+  archiveSize      Int      @default(0)
+  imageFiles       Int      @default(0)
+  imageSize        Int      @default(0)
+  videoFiles       Int      @default(0)
+  videoSize        Int      @default(0)
+  documentFiles    Int      @default(0)
+  documentSize     Int      @default(0)
+  cadFiles         Int      @default(0)
+  cadSize          Int      @default(0)
+  uploads          Int      @default(0)
+  downloads        Int      @default(0)
+  deletes          Int      @default(0)
+  totalRequests    Int      @default(0)
+  totalBandwidth   Int      @default(0)
+  cdnHits          Int      @default(0)
+  cdnMisses        Int      @default(0)
+  duplicateFiles   Int      @default(0)
+  spaceSaved       Int      @default(0)
+  estimatedCost    Decimal? @db.Decimal(10, 2)
+
+  @@index([date])
+  @@index([hour])
+  @@map("storage_metrics")
+}
+model MultipartUpload {
+  id             String       @id @default(uuid())
+  uploadId       String       @unique
+  fileName       String
+  storagePath    String
+  totalSize      Int
+  chunkSize      Int
+  totalChunks    Int
+  uploadedChunks Int          @default(0)
+  status         UploadStatus @default(IN_PROGRESS)
+  parts          Json[]
+  uploadedById   String
+  uploadedByName String
+  startedAt      DateTime     @default(now())
+  lastActivityAt DateTime     @default(now())
+  completedAt    DateTime?
+  expiresAt      DateTime
+  errorMessage   String?
+  retryCount     Int          @default(0)
+  metadata       Json?
+
+  @@index([uploadId])
+  @@index([status])
+  @@index([uploadedById])
+  @@index([expiresAt])
+  @@map("multipart_uploads")
+}
+model SsoProvider {
+  id                   String                @id @default(cuid())
+  name                 String                @unique
+  type                 SsoProviderType
+  configId             String
+  priority             Int                   @default(0)
+  isActive             Boolean               @default(true)
+  isDefault            Boolean               @default(false)
+  domainRestrictions   String[]
+  groupRestrictions    String[]
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  authenticationEvents AuthenticationEvent[]
+  homeRealmRules       HomeRealmDiscovery[]
+  ssoSessions          SsoSession[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([priority])
+  @@map("sso_providers")
+}
+model SsoSession {
+  id                String      @id @default(cuid())
+  userId            String
+  primaryProviderId String
+  activeProviders   String[]
+  sessionData       Json?
+  expiresAt         DateTime?
+  lastActivityAt    DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+  primaryProvider   SsoProvider @relation(fields: [primaryProviderId], references: [id])
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([primaryProviderId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+  @@map("sso_sessions")
+}
+model AuthenticationEvent {
+  id           String                  @id @default(cuid())
+  userId       String?
+  providerId   String
+  eventType    AuthenticationEventType
+  userAgent    String?
+  ipAddress    String?
+  location     String?
+  responseTime Int?
+  errorCode    String?
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime                @default(now())
+  provider     SsoProvider             @relation(fields: [providerId], references: [id])
+  user         User?                   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([providerId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([ipAddress])
+  @@map("authentication_events")
+}
+model HomeRealmDiscovery {
+  id         String      @id @default(cuid())
+  name       String
+  pattern    String
+  providerId String
+  priority   Int         @default(0)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  provider   SsoProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([pattern])
+  @@index([providerId])
+  @@index([priority])
+  @@index([isActive])
+  @@map("home_realm_discovery")
+}

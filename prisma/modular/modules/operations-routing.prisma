@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// OPERATIONS ROUTING MODULE
+// Manufacturing operations and routing definitions
+// ====================================================================
+
+model Operation {
+  id                        String                                @id @default(cuid())
+  description               String?
+  siteId                    String?
+  isStandardOperation       Boolean                               @default(false)
+  operationCode             String                                @unique
+  operationName             String
+  operationClassification   OperationClassification?
+  standardWorkInstructionId String?
+  level                     Int                                   @default(1)
+  parentOperationId         String?
+  operationType             OperationType
+  category                  String?
+  duration                  Int?
+  setupTime                 Int?
+  teardownTime              Int?
+  minCycleTime              Int?
+  maxCycleTime              Int?
+  version                   String                                @default("1.0")
+  effectiveDate             DateTime?
+  expirationDate            DateTime?
+  isActive                  Boolean                               @default(true)
+  requiresApproval          Boolean                               @default(false)
+  approvedBy                String?
+  approvedAt                DateTime?
+  createdAt                 DateTime                              @default(now())
+  updatedAt                 DateTime                              @updatedAt
+  bomItems                  BOMItem[]
+  equipmentSpecs            EquipmentOperationSpecification[]
+  materialSpecs             MaterialOperationSpecification[]
+  dependencies              OperationDependency[]                 @relation("DependentOperation")
+  prerequisiteFor           OperationDependency[]                 @relation("PrerequisiteOperation")
+  parameters                OperationParameter[]
+  parentOperation           Operation?                            @relation("OperationHierarchy", fields: [parentOperationId], references: [id])
+  childOperations           Operation[]                           @relation("OperationHierarchy")
+  site                      Site?                                 @relation(fields: [siteId], references: [id])
+  standardWorkInstruction   WorkInstruction?                      @relation("OperationStandardWI", fields: [standardWorkInstructionId], references: [id])
+  personnelSpecs            PersonnelOperationSpecification[]
+  assetSpecs                PhysicalAssetOperationSpecification[]
+  routingSteps              RoutingStep[]
+  samplingPlans             SamplingPlan[]
+
+  @@index([parentOperationId])
+  @@index([operationType])
+  @@index([level])
+  @@index([isActive])
+  @@index([siteId])
+  @@index([isStandardOperation])
+  @@map("operations")
+}
+model OperationParameter {
+  id                   String            @id @default(cuid())
+  operationId          String
+  parameterName        String
+  parameterType        ParameterType
+  dataType             ParameterDataType
+  defaultValue         String?
+  unitOfMeasure        String?
+  minValue             Float?
+  maxValue             Float?
+  allowedValues        String[]
+  isRequired           Boolean           @default(false)
+  isCritical           Boolean           @default(false)
+  requiresVerification Boolean           @default(false)
+  displayOrder         Int?
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  parameterGroupId     String?
+  operation            Operation         @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  parameterGroup       ParameterGroup?   @relation("ParameterGrouping", fields: [parameterGroupId], references: [id])
+  formula              ParameterFormula? @relation("FormulaOutput")
+  limits               ParameterLimits?
+  samplingPlans        SamplingPlan[]
+  spcConfiguration     SPCConfiguration?
+
+  @@unique([operationId, parameterName])
+  @@index([operationId])
+  @@index([parameterType])
+  @@map("operation_parameters")
+}
+model ParameterLimits {
+  id             String             @id @default(cuid())
+  parameterId    String             @unique
+  engineeringMin Float?
+  engineeringMax Float?
+  operatingMin   Float?
+  operatingMax   Float?
+  LSL            Float?
+  USL            Float?
+  nominalValue   Float?
+  highHighAlarm  Float?
+  highAlarm      Float?
+  lowAlarm       Float?
+  lowLowAlarm    Float?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  parameter      OperationParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+
+  @@map("parameter_limits")
+}
+model ParameterGroup {
+  id            String               @id @default(cuid())
+  groupName     String
+  parentGroupId String?
+  groupType     ParameterGroupType
+  description   String?
+  tags          String[]
+  displayOrder  Int?
+  icon          String?
+  color         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  parameters    OperationParameter[] @relation("ParameterGrouping")
+  parentGroup   ParameterGroup?      @relation("GroupHierarchy", fields: [parentGroupId], references: [id], onDelete: Cascade)
+  childGroups   ParameterGroup[]     @relation("GroupHierarchy")
+
+  @@index([parentGroupId])
+  @@index([groupType])
+  @@map("parameter_groups")
+}
+model ParameterFormula {
+  id                 String             @id @default(cuid())
+  formulaName        String
+  outputParameterId  String             @unique
+  formulaExpression  String
+  formulaLanguage    FormulaLanguage    @default(JAVASCRIPT)
+  inputParameterIds  String[]
+  evaluationTrigger  EvaluationTrigger  @default(ON_CHANGE)
+  evaluationSchedule String?
+  testCases          Json?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  createdBy          String
+  lastModifiedBy     String?
+  outputParameter    OperationParameter @relation("FormulaOutput", fields: [outputParameterId], references: [id], onDelete: Cascade)
+
+  @@index([outputParameterId])
+  @@map("parameter_formulas")
+}
+model OperationDependency {
+  id                      String               @id @default(cuid())
+  dependentOperationId    String
+  prerequisiteOperationId String
+  dependencyType          DependencyType
+  timingType              DependencyTimingType
+  lagTime                 Int?
+  leadTime                Int?
+  condition               String?
+  isOptional              Boolean              @default(false)
+  notes                   String?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  dependentOperation      Operation            @relation("DependentOperation", fields: [dependentOperationId], references: [id], onDelete: Cascade)
+  prerequisiteOperation   Operation            @relation("PrerequisiteOperation", fields: [prerequisiteOperationId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentOperationId, prerequisiteOperationId])
+  @@index([dependentOperationId])
+  @@index([prerequisiteOperationId])
+  @@map("operation_dependencies")
+}
+model PersonnelOperationSpecification {
+  id                     String           @id @default(cuid())
+  operationId            String
+  personnelClassId       String?
+  skillId                String?
+  minimumCompetency      CompetencyLevel?
+  requiredCertifications String[]
+  quantity               Int              @default(1)
+  isOptional             Boolean          @default(false)
+  roleName               String?
+  roleDescription        String?
+  notes                  String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  operation              Operation        @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@index([personnelClassId])
+  @@map("personnel_operation_specifications")
+}
+model EquipmentOperationSpecification {
+  id                   String          @id @default(cuid())
+  operationId          String
+  equipmentClass       EquipmentClass?
+  equipmentType        String?
+  specificEquipmentId  String?
+  requiredCapabilities String[]
+  minimumCapacity      Float?
+  quantity             Int             @default(1)
+  isOptional           Boolean         @default(false)
+  setupRequired        Boolean         @default(false)
+  setupTime            Int?
+  notes                String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  operation            Operation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@index([equipmentClass])
+  @@map("equipment_operation_specifications")
+}
+model MaterialOperationSpecification {
+  id                   String          @id @default(cuid())
+  operationId          String
+  materialDefinitionId String?
+  materialClassId      String?
+  materialType         MaterialType?
+  quantity             Float
+  unitOfMeasure        String
+  consumptionType      ConsumptionType
+  requiredProperties   String[]
+  qualityRequirements  String?
+  isOptional           Boolean         @default(false)
+  allowSubstitutes     Boolean         @default(false)
+  notes                String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  operation            Operation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@index([materialDefinitionId])
+  @@map("material_operation_specifications")
+}
+model PhysicalAssetOperationSpecification {
+  id                  String            @id @default(cuid())
+  operationId         String
+  assetType           PhysicalAssetType
+  assetCode           String?
+  assetName           String
+  specifications      Json?
+  quantity            Int               @default(1)
+  isOptional          Boolean           @default(false)
+  requiresCalibration Boolean           @default(false)
+  calibrationInterval Int?
+  estimatedLifeCycles Int?
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  operation           Operation         @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@index([assetType])
+  @@map("physical_asset_operation_specifications")
+}
+model RoutingStep {
+  id                   String                  @id @default(cuid())
+  routingId            String
+  stepNumber           Int
+  operationId          String
+  workCenterId         String?
+  stepType             StepType                @default(PROCESS)
+  controlType          ControlType?
+  setupTimeOverride    Int?
+  cycleTimeOverride    Int?
+  teardownTimeOverride Int?
+  isOptional           Boolean                 @default(false)
+  isQualityInspection  Boolean                 @default(false)
+  isCriticalPath       Boolean                 @default(false)
+  workInstructionId    String?
+  stepInstructions     String?
+  notes                String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  dependencies         RoutingStepDependency[] @relation("DependentStep")
+  prerequisites        RoutingStepDependency[] @relation("PrerequisiteStep")
+  parameterOverrides   RoutingStepParameter[]
+  operation            Operation               @relation(fields: [operationId], references: [id])
+  routing              Routing                 @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  workCenter           WorkCenter?             @relation(fields: [workCenterId], references: [id])
+  workInstruction      WorkInstruction?        @relation("RoutingStepWorkInstruction", fields: [workInstructionId], references: [id])
+  workOrderOperations  WorkOrderOperation[]
+
+  @@unique([routingId, stepNumber])
+  @@index([routingId])
+  @@index([operationId])
+  @@index([workCenterId])
+  @@map("routing_steps")
+}
+model RoutingStepDependency {
+  id                 String               @id @default(cuid())
+  dependentStepId    String
+  prerequisiteStepId String
+  dependencyType     DependencyType
+  timingType         DependencyTimingType
+  lagTime            Int?
+  leadTime           Int?
+  createdAt          DateTime             @default(now())
+  dependentStep      RoutingStep          @relation("DependentStep", fields: [dependentStepId], references: [id], onDelete: Cascade)
+  prerequisiteStep   RoutingStep          @relation("PrerequisiteStep", fields: [prerequisiteStepId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentStepId, prerequisiteStepId])
+  @@index([dependentStepId])
+  @@index([prerequisiteStepId])
+  @@map("routing_step_dependencies")
+}
+model RoutingStepParameter {
+  id             String      @id @default(cuid())
+  routingStepId  String
+  parameterName  String
+  parameterValue String
+  unitOfMeasure  String?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  routingStep    RoutingStep @relation(fields: [routingStepId], references: [id], onDelete: Cascade)
+
+  @@unique([routingStepId, parameterName])
+  @@index([routingStepId])
+  @@map("routing_step_parameters")
+}
+model OperationGaugeRequirement {
+  id                     String               @id @default(cuid())
+  partNumber             String
+  operationCode          String
+  measurementEquipmentId String
+  required               Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  measurementEquipment   MeasurementEquipment @relation(fields: [measurementEquipmentId], references: [id])
+
+  @@unique([partNumber, operationCode, measurementEquipmentId])
+  @@index([partNumber])
+  @@index([operationCode])
+  @@map("operation_gauge_requirements")
+}
