@@ -492,6 +492,7 @@ model MaterialProperty {
 
 model MaterialLot {
   id                  String                 @id @default(cuid())
+  persistentUuid      String                 @unique @default(uuid()) // Material traceability UUID for supply chain tracking
   lotNumber           String                 @unique
   materialId          String
   supplierLotNumber   String?
@@ -544,6 +545,7 @@ model MaterialLot {
 
   @@index([materialId])
   @@index([lotNumber])
+  @@index([persistentUuid])
   @@index([status])
   @@index([state])
   @@index([expirationDate])
@@ -645,6 +647,7 @@ model MaterialStateHistory {
 
 model Operation {
   id                        String                                @id @default(cuid())
+  persistentUuid            String                                @unique @default(uuid()) // Operation UUID for manufacturing process traceability
   description               String?
   siteId                    String?
   isStandardOperation       Boolean                               @default(false)
@@ -687,6 +690,7 @@ model Operation {
   torqueSpecifications      TorqueSpecification[]
 
   @@index([parentOperationId])
+  @@index([persistentUuid])
   @@index([operationType])
   @@index([level])
   @@index([isActive])
@@ -908,6 +912,7 @@ model PhysicalAssetOperationSpecification {
 
 model Part {
   id                         String                      @id @default(cuid())
+  persistentUuid             String                      @unique @default(uuid()) // MBE/STEP/Traceability UUID for NIST AMS 300-12 compliance
   partNumber                 String                      @unique
   partName                   String
   description                String?
@@ -971,6 +976,7 @@ model Part {
   @@index([lifecycleState])
   @@index([isActive])
   @@index([partNumber])
+  @@index([persistentUuid])
   @@index([unitOfMeasureId])
   @@index([isLifeLimited])
   @@index([llpCriticalityLevel])
@@ -1004,6 +1010,7 @@ model PartSiteAvailability {
 
 model BOMItem {
   id                  String     @id @default(cuid())
+  persistentUuid      String     @unique @default(uuid()) // BOM structure UUID for configuration management
   parentPartId        String
   componentPartId     String
   quantity            Float
@@ -1031,6 +1038,7 @@ model BOMItem {
 
   @@index([parentPartId])
   @@index([componentPartId])
+  @@index([persistentUuid])
   @@index([operationId])
   @@index([unitOfMeasureId])
   @@index([effectiveDate])
@@ -1144,6 +1152,7 @@ model ProductLifecycle {
 
 model WorkOrder {
   id                           String                        @id @default(cuid())
+  persistentUuid               String                        @unique @default(uuid()) // Work order lifecycle UUID for MBE compliance
   workOrderNumber              String                        @unique
   partId                       String
   partNumber                   String?
@@ -1191,11 +1200,13 @@ model WorkOrder {
   workPerformance              WorkPerformance[]
   torqueEvents                 TorqueEvent[]
 
+  @@index([persistentUuid])
   @@map("work_orders")
 }
 
 model Routing {
   id              String                @id @default(cuid())
+  persistentUuid  String                @unique @default(uuid()) // Routing UUID for manufacturing process sequencing
   routingNumber   String                @unique
   partId          String?
   siteId          String?
@@ -1229,6 +1240,7 @@ model Routing {
   @@unique([partId, siteId, version])
   @@index([siteId])
   @@index([partId])
+  @@index([persistentUuid])
   @@index([lifecycleState])
   @@index([isActive])
   @@index([partId, siteId, routingType])
@@ -2009,6 +2021,7 @@ model MaterialTransaction {
 
 model SerializedPart {
   id                    String                 @id @default(cuid())
+  persistentUuid        String                 @unique @default(uuid()) // Aerospace traceability UUID for lifecycle tracking
   serialNumber          String                 @unique
   partId                String
   workOrderId           String?
@@ -2031,11 +2044,13 @@ model SerializedPart {
   llpAlerts             LLPAlert[]
   llpCertifications     LLPCertification[]
 
+  @@index([persistentUuid])
   @@map("serialized_parts")
 }
 
 model PartGenealogy {
   id               String         @id @default(cuid())
+  persistentUuid   String         @unique @default(uuid()) // Part assembly UUID for genealogy traceability
   parentPartId     String
   componentPartId  String
   assemblyDate     DateTime?
@@ -2044,6 +2059,7 @@ model PartGenealogy {
   componentPart    SerializedPart @relation("ComponentPart", fields: [componentPartId], references: [id])
   parentPart       SerializedPart @relation("ParentPart", fields: [parentPartId], references: [id])
 
+  @@index([persistentUuid])
   @@map("part_genealogy")
 }
 
