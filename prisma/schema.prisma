@@ -364,6 +364,10 @@ model UnitOfMeasure {
   routingStepParameters       RoutingStepParameter[]      @relation("RoutingStepParameterUOM")
   scheduleEntries             ScheduleEntry[]             @relation("ScheduleEntryUOM")
   qualityCharacteristics      QualityCharacteristic[]     @relation("QualityCharacteristicUOM")
+  productSpecifications       ProductSpecification[]      @relation("ProductSpecificationUOM")
+  scheduleConstraints         ScheduleConstraint[]        @relation("ScheduleConstraintUOM")
+  inventories                 Inventory[]                 @relation("InventoryUOM")
+  materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
 
   @@index([code])
   @@index([unitType])
@@ -1021,6 +1025,7 @@ model ProductSpecification {
   minValue            Float?
   maxValue            Float?
   unitOfMeasure       String?
+  unitOfMeasureId     String?           // FK to UnitOfMeasure
   testMethod          String?
   inspectionFrequency String?
   isCritical          Boolean           @default(false)
@@ -1031,10 +1036,12 @@ model ProductSpecification {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   part                Part              @relation(fields: [partId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef    UnitOfMeasure?    @relation("ProductSpecificationUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([partId])
   @@index([specificationType])
   @@index([isCritical])
+  @@index([unitOfMeasureId])
   @@map("product_specifications")
 }
 
@@ -1490,6 +1497,7 @@ model ScheduleConstraint {
   requiredQuantity  Float?
   availableQuantity Float?
   unitOfMeasure     String?
+  unitOfMeasureId   String?        // FK to UnitOfMeasure
   constraintDate    DateTime?
   leadTimeDays      Int?
   isViolated        Boolean        @default(false)
@@ -1504,11 +1512,13 @@ model ScheduleConstraint {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   entry             ScheduleEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef  UnitOfMeasure? @relation("ScheduleConstraintUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([entryId])
   @@index([constraintType])
   @@index([isViolated])
   @@index([constraintDate])
+  @@index([unitOfMeasureId])
   @@map("schedule_constraints")
 }
 
@@ -1934,6 +1944,7 @@ model Inventory {
   lotNumber     String?
   quantity      Float
   unitOfMeasure String
+  unitOfMeasureId String?                // FK to UnitOfMeasure
   unitCost      Float?
   receivedDate  DateTime?
   expiryDate    DateTime?
@@ -1942,7 +1953,11 @@ model Inventory {
   updatedAt     DateTime              @updatedAt
   part          Part                  @relation(fields: [partId], references: [id])
   transactions  MaterialTransaction[]
+  unitOfMeasureRef UnitOfMeasure?      @relation("InventoryUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([partId])
+  @@index([location])
+  @@index([unitOfMeasureId])
   @@map("inventory")
 }
 
@@ -1953,12 +1968,18 @@ model MaterialTransaction {
   transactionType MaterialTransactionType
   quantity        Float
   unitOfMeasure   String
+  unitOfMeasureId String?                 // FK to UnitOfMeasure
   reference       String?
   transactionDate DateTime                @default(now())
   createdAt       DateTime                @default(now())
   inventory       Inventory               @relation(fields: [inventoryId], references: [id])
   workOrder       WorkOrder?              @relation(fields: [workOrderId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?         @relation("MaterialTransactionUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([inventoryId])
+  @@index([workOrderId])
+  @@index([transactionType])
+  @@index([unitOfMeasureId])
   @@map("material_transactions")
 }
 
@@ -2484,6 +2505,7 @@ model ProductionScheduleRequest {
   partNumber            String?
   quantity              Float
   unitOfMeasure         String
+  unitOfMeasureId       String?             // FK to UnitOfMeasure
   dueDate               DateTime
   workCenterId          String?
   equipmentRequirements Json?
@@ -2602,6 +2624,7 @@ model ERPMaterialTransaction {
   externalWorkOrderId String?
   quantity            Float
   unitOfMeasure       String
+  unitOfMeasureId     String?              // FK to UnitOfMeasure
   lotNumber           String?
   serialNumber        String?
   unitCost            Float?
@@ -2744,6 +2767,7 @@ model EquipmentMaterialMovement {
   movementType      String
   quantity          Float
   unitOfMeasure     String
+  unitOfMeasureId   String?    // FK to UnitOfMeasure
   movementTimestamp DateTime   @default(now())
   workOrderId       String?
   operationId       String?
