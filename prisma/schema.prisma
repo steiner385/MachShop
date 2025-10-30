@@ -54,6 +54,10 @@ model Site {
   userSiteRoles             UserSiteRole[]
   workOrders                WorkOrder[]
 
+  // Role Template relationships
+  roleTemplateInstances     RoleTemplateInstance[]
+  roleTemplateUsageLogs     RoleTemplateUsageLog[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -101,6 +105,13 @@ model User {
   laborRate                 Float?
   auditLogs                 AuditLog[]
   generatedAuditReports     AuditReport[]
+
+  // Role Template relationships
+  createdRoleTemplates      RoleTemplate[]              @relation("RoleTemplateCreator")
+  updatedRoleTemplates      RoleTemplate[]              @relation("RoleTemplateUpdater")
+  instantiatedTemplates     RoleTemplateInstance[]
+  templateUsageLogsAsPerformer RoleTemplateUsageLog[]   @relation("RoleTemplateLogPerformer")
+  templateUsageLogsAsTarget    RoleTemplateUsageLog[]   @relation("RoleTemplateLogTarget")
   authenticationEvents      AuthenticationEvent[]
   dispatchedWorkOrders      DispatchLog[]                   @relation("DispatchAssignedTo")
   createdDocumentTemplates  DocumentTemplate[]              @relation("DocumentTemplateCreatedBy")
@@ -4563,6 +4574,9 @@ model Role {
   userRoles     UserRole[]
   userSiteRoles UserSiteRole[]
 
+  // Role Template relationship
+  templateInstance RoleTemplateInstance?
+
   @@index([roleCode])
   @@index([isActive])
   @@index([isGlobal])
@@ -4582,6 +4596,9 @@ model Permission {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   roles          RolePermission[]
+
+  // Role Template relationship
+  templatePermissions RoleTemplatePermission[]
 
   @@index([permissionCode])
   @@index([category])
@@ -6412,4 +6429,139 @@ enum AuthenticationEventType {
   PROVIDER_ERROR
   SESSION_TIMEOUT
   FORCED_LOGOUT
+}
+
+// ============================================================================
+// ROLE TEMPLATE SYSTEM - GitHub Issue #125
+// ============================================================================
+
+/// Role Template Categories for Manufacturing
+enum RoleTemplateCategory {
+  PRODUCTION
+  QUALITY
+  MAINTENANCE
+  MANAGEMENT
+  ADMINISTRATION
+  ENGINEERING
+  SAFETY
+  COMPLIANCE
+  CUSTOM
+}
+
+/// Role Template Actions for Audit Trail
+enum RoleTemplateAction {
+  TEMPLATE_CREATED
+  TEMPLATE_UPDATED
+  TEMPLATE_DELETED
+  TEMPLATE_ACTIVATED
+  TEMPLATE_DEACTIVATED
+  ROLE_INSTANTIATED
+  ROLE_CUSTOMIZED
+  PERMISSIONS_MODIFIED
+  USER_ASSIGNED
+  USER_REMOVED
+}
+
+/// Role Template - Master template definition for role configurations
+model RoleTemplate {
+  id              String                    @id @default(cuid())
+  templateCode    String                    @unique
+  templateName    String
+  description     String?
+  category        RoleTemplateCategory
+  isActive        Boolean                   @default(true)
+  isGlobal        Boolean                   @default(true)
+  version         String                    @default("1.0.0")
+  metadata        Json?                     // Manufacturing-specific configuration
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  createdBy       String
+  updatedBy       String?
+
+  // Relationships
+  permissions     RoleTemplatePermission[]
+  instances       RoleTemplateInstance[]
+  usageLogs       RoleTemplateUsageLog[]
+  creator         User                      @relation("RoleTemplateCreator", fields: [createdBy], references: [id])
+  updater         User?                     @relation("RoleTemplateUpdater", fields: [updatedBy], references: [id])
+
+  @@index([templateCode])
+  @@index([category])
+  @@index([isActive])
+  @@index([isGlobal])
+  @@map("role_templates")
+}
+
+/// Role Template Permissions - Defines permissions included in each template
+model RoleTemplatePermission {
+  id           String       @id @default(cuid())
+  templateId   String
+  permissionId String
+  isRequired   Boolean      @default(true)
+  isOptional   Boolean      @default(false)
+  metadata     Json?        // Additional permission context
+  createdAt    DateTime     @default(now())
+
+  // Relationships
+  template     RoleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  permission   Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, permissionId])
+  @@index([templateId])
+  @@index([permissionId])
+  @@map("role_template_permissions")
+}
+
+/// Role Template Instance - Tracks when templates are instantiated into actual roles
+model RoleTemplateInstance {
+  id                String              @id @default(cuid())
+  templateId        String
+  roleId            String              @unique
+  instanceName      String?
+  siteId            String?
+  customPermissions Json?               // Site-specific permission adjustments
+  isActive          Boolean             @default(true)
+  instantiatedAt    DateTime            @default(now())
+  instantiatedBy    String
+  metadata          Json?               // Instance-specific metadata
+
+  // Relationships
+  template          RoleTemplate        @relation(fields: [templateId], references: [id])
+  role              Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site              Site?               @relation(fields: [siteId], references: [id])
+  instantiator      User                @relation(fields: [instantiatedBy], references: [id])
+  usageLogs         RoleTemplateUsageLog[]
+
+  @@index([templateId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([instantiatedBy])
+  @@map("role_template_instances")
+}
+
+/// Role Template Usage Log - Audit trail for template operations
+model RoleTemplateUsageLog {
+  id            String                    @id @default(cuid())
+  templateId    String?
+  instanceId    String?
+  action        RoleTemplateAction
+  performedBy   String
+  targetUserId  String?
+  siteId        String?
+  details       Json?
+  timestamp     DateTime                  @default(now())
+
+  // Relationships
+  template      RoleTemplate?             @relation(fields: [templateId], references: [id])
+  instance      RoleTemplateInstance?     @relation(fields: [instanceId], references: [id])
+  performer     User                      @relation("RoleTemplateLogPerformer", fields: [performedBy], references: [id])
+  targetUser    User?                     @relation("RoleTemplateLogTarget", fields: [targetUserId], references: [id])
+  site          Site?                     @relation(fields: [siteId], references: [id])
+
+  @@index([templateId])
+  @@index([instanceId])
+  @@index([performedBy])
+  @@index([targetUserId])
+  @@index([timestamp])
+  @@map("role_template_usage_logs")
 }
