@@ -65,11 +65,17 @@ router.post('/qif/plan/import', async (req: Request, res: Response): Promise<any
 
 /**
  * GET /api/v1/cmm/qif/plan/:qifPlanId
- * Export QIF Measurement Plan XML
+ * Export QIF Measurement Plan XML (UUID-enhanced)
  */
 router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifPlanId } = req.params;
+    const {
+      format = 'xml',
+      includeUuids = 'true',
+      nistCompliance = 'true',
+      validateUuid = 'true'
+    } = req.query;
 
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('CMM') as CMMAdapter | undefined;
@@ -78,15 +84,35 @@ router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response): Promise<
       return res.status(400).json({ error: 'CMM adapter not configured' });
     }
 
-    const qifXml = await adapter.exportQIFPlan(qifPlanId);
+    // Enhanced export with UUID options
+    const exportOptions = {
+      format: format as string,
+      includeUuids: includeUuids === 'true',
+      nistCompliance: nistCompliance === 'true',
+      validateUuid: validateUuid === 'true',
+      supportLegacyIds: true,
+    };
 
-    res.set('Content-Type', 'application/xml');
-    res.send(qifXml);
+    const result = await adapter.exportQIFPlan(qifPlanId, exportOptions);
+
+    // Add NIST compliance headers
+    res.set('Content-Type', format === 'json' ? 'application/json' : 'application/xml');
+    res.set('X-QIF-Version', '3.0.0');
+    res.set('X-NIST-Compliance', nistCompliance === 'true' ? 'AMS-300-12' : 'false');
+    res.set('X-UUID-Support', includeUuids);
+
+    if (format === 'json') {
+      res.json(result);
+    } else {
+      res.send(result);
+    }
   } catch (error: any) {
-    console.error('Error exporting QIF plan:', error);
+    console.error('Error exporting QIF plan (UUID-enhanced):', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to export QIF plan',
+      supportedFormats: ['xml', 'json'],
+      nistCompliance: 'AMS-300-12'
     });
   }
 });
@@ -128,11 +154,18 @@ router.post('/qif/results/import', async (req: Request, res: Response): Promise<
 
 /**
  * GET /api/v1/cmm/qif/results/:qifResultsId
- * Export QIF Measurement Results XML
+ * Export QIF Measurement Results XML (UUID-enhanced)
  */
 router.get('/qif/results/:qifResultsId', async (req: Request, res: Response): Promise<any> => {
   try {
     const { qifResultsId } = req.params;
+    const {
+      format = 'xml',
+      includeUuids = 'true',
+      nistCompliance = 'true',
+      validateUuid = 'true',
+      includeStatistics = 'false'
+    } = req.query;
 
     const manager = getIntegrationManager();
     const adapter = await manager.getAdapterByType('CMM') as CMMAdapter | undefined;
@@ -141,15 +174,37 @@ router.get('/qif/results/:qifResultsId', async (req: Request, res: Response): Pr
       return res.status(400).json({ error: 'CMM adapter not configured' });
     }
 
-    const qifXml = await adapter.exportQIFResults(qifResultsId);
+    // Enhanced export with UUID options
+    const exportOptions = {
+      format: format as string,
+      includeUuids: includeUuids === 'true',
+      nistCompliance: nistCompliance === 'true',
+      validateUuid: validateUuid === 'true',
+      supportLegacyIds: true,
+      includeStatistics: includeStatistics === 'true',
+    };
 
-    res.set('Content-Type', 'application/xml');
-    res.send(qifXml);
+    const result = await adapter.exportQIFResults(qifResultsId, exportOptions);
+
+    // Add NIST compliance headers
+    res.set('Content-Type', format === 'json' ? 'application/json' : 'application/xml');
+    res.set('X-QIF-Version', '3.0.0');
+    res.set('X-NIST-Compliance', nistCompliance === 'true' ? 'AMS-300-12' : 'false');
+    res.set('X-UUID-Support', includeUuids);
+    res.set('X-Statistics-Included', includeStatistics);
+
+    if (format === 'json') {
+      res.json(result);
+    } else {
+      res.send(result);
+    }
   } catch (error: any) {
-    console.error('Error exporting QIF results:', error);
+    console.error('Error exporting QIF results (UUID-enhanced):', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to export QIF results',
+      supportedFormats: ['xml', 'json'],
+      nistCompliance: 'AMS-300-12'
     });
   }
 });

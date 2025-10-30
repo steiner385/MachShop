@@ -1814,7 +1814,8 @@ erDiagram
 }
 "qif_measurement_plans" {
   String id PK
-  String qifPlanId UK
+  String qifPlanUuid UK
+  String qifPlanId UK "nullable"
   String partNumber
   String partRevision
   String planVersion
@@ -1836,7 +1837,8 @@ erDiagram
 "qif_characteristics" {
   String id PK
   String qifMeasurementPlanId FK
-  String characteristicId
+  String characteristicUuid UK
+  String characteristicId "nullable"
   String balloonNumber "nullable"
   String characteristicName "nullable"
   String description "nullable"
@@ -1855,7 +1857,8 @@ erDiagram
 }
 "qif_measurement_results" {
   String id PK
-  String qifResultsId UK
+  String qifResultsUuid UK
+  String qifResultsId UK "nullable"
   String qifMeasurementPlanId FK "nullable"
   String partNumber
   String serialNumber "nullable"
@@ -1880,7 +1883,8 @@ erDiagram
   String id PK
   String qifMeasurementResultId FK
   String qifCharacteristicId FK "nullable"
-  String characteristicId
+  String characteristicUuidRef "nullable"
+  String characteristicId "nullable"
   String balloonNumber "nullable"
   Float measuredValue
   Float deviation "nullable"
@@ -3393,6 +3397,84 @@ erDiagram
   Json details "nullable"
   DateTime timestamp
 }
+"torque_specifications" {
+  String id PK
+  String torqueSpecCode UK
+  String name
+  String description "nullable"
+  Float targetTorque
+  Float tolerancePlus
+  Float toleranceMinus
+  String torqueUnit
+  String fastenerType
+  String fastenerGrade "nullable"
+  Int fastenerCount
+  TorqueMethod tighteningMethod
+  Int numberOfPasses
+  Json passPercentages "nullable"
+  TorquePattern sequencePattern
+  Json customSequence "nullable"
+  String partId FK "nullable"
+  String operationId FK "nullable"
+  String routingOperationId FK "nullable"
+  String workCenter "nullable"
+  String engineerApprovedBy FK "nullable"
+  DateTime engineerApprovedAt "nullable"
+  String revision
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy FK
+}
+"torque_sequences" {
+  String id PK
+  String torqueSpecId FK
+  String sequenceName
+  Json boltPositions
+  Json sequenceOrder
+  Int passNumber
+  Float passPercentage
+  Json visualPattern "nullable"
+  String instructions "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"torque_events" {
+  String id PK
+  String workOrderId FK
+  String torqueSpecId FK
+  String sequenceId FK "nullable"
+  String serialNumber "nullable"
+  Float actualTorque
+  Float targetTorque
+  Float tolerancePlus
+  Float toleranceMinus
+  String torqueUnit
+  Int boltPosition
+  Int passNumber
+  Float passPercentage
+  Boolean isInSpec
+  Float deviationPercent "nullable"
+  Boolean requiresRework
+  String digitalWrenchId "nullable"
+  String wrenchSerialNumber "nullable"
+  DateTime wrenchCalibrationDate "nullable"
+  String operatorId FK
+  DateTime timestamp
+  Int duration "nullable"
+  String supervisorReviewId FK "nullable"
+  DateTime supervisorReviewAt "nullable"
+  String reviewComments "nullable"
+  Boolean reworkRequired
+  Boolean reworkCompleted
+  String reworkBy FK "nullable"
+  DateTime reworkAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "users" }o--o| "personnel_classes" : personnelClass
@@ -3691,6 +3773,18 @@ erDiagram
 "role_template_usage_logs" }o--|| "users" : performer
 "role_template_usage_logs" }o--o| "users" : targetUser
 "role_template_usage_logs" }o--o| "sites" : site
+"torque_specifications" }o--o| "parts" : part
+"torque_specifications" }o--o| "operations" : operation
+"torque_specifications" }o--o| "routing_operations" : routingOperation
+"torque_specifications" }o--|| "users" : creator
+"torque_specifications" }o--o| "users" : approver
+"torque_sequences" }o--|| "torque_specifications" : torqueSpec
+"torque_events" }o--|| "work_orders" : workOrder
+"torque_events" }o--|| "torque_specifications" : torqueSpec
+"torque_events" }o--o| "torque_sequences" : sequence
+"torque_events" }o--|| "users" : operator
+"torque_events" }o--o| "users" : supervisorReviewer
+"torque_events" }o--o| "users" : reworkUser
 ```
 
 ### `enterprises`
@@ -5694,7 +5788,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
-  - `qifPlanId`: 
+  - `qifPlanUuid`: QIF plan UUID per NIST AMS 300-12 standards
+  - `qifPlanId`: Legacy QIF plan ID (deprecated, use qifPlanUuid)
   - `partNumber`: 
   - `partRevision`: 
   - `planVersion`: 
@@ -5718,7 +5813,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 **Properties**
   - `id`: 
   - `qifMeasurementPlanId`: 
-  - `characteristicId`: 
+  - `characteristicUuid`: QIF characteristic UUID per NIST AMS 300-12 standards
+  - `characteristicId`: Legacy characteristic ID (deprecated, use characteristicUuid)
   - `balloonNumber`: 
   - `characteristicName`: 
   - `description`: 
@@ -5739,7 +5835,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
-  - `qifResultsId`: 
+  - `qifResultsUuid`: QIF measurement results UUID per NIST AMS 300-12 standards
+  - `qifResultsId`: Legacy QIF results ID (deprecated, use qifResultsUuid)
   - `qifMeasurementPlanId`: 
   - `partNumber`: 
   - `serialNumber`: 
@@ -5766,7 +5863,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `id`: 
   - `qifMeasurementResultId`: 
   - `qifCharacteristicId`: 
-  - `characteristicId`: 
+  - `characteristicUuidRef`: QIF characteristic UUID reference per NIST AMS 300-12 standards
+  - `characteristicId`: Legacy characteristic ID (deprecated, use characteristicUuidRef)
   - `balloonNumber`: 
   - `measuredValue`: 
   - `deviation`: 
@@ -7528,3 +7626,90 @@ Role Template Usage Log - Audit trail for template operations
   - `siteId`: 
   - `details`: 
   - `timestamp`: 
+
+### `torque_specifications`
+Torque Specification - defines torque requirements for specific parts/operations
+
+**Properties**
+  - `id`: 
+  - `torqueSpecCode`: Unique identifier for this torque spec
+  - `name`: Human-readable name (e.g., "Turbine Disk TD-9876 Bolts")
+  - `description`: Detailed description of the torque specification
+  - `targetTorque`: Target torque value (e.g., 175.0)
+  - `tolerancePlus`: Positive tolerance (e.g., 2.0 for +2 Nm)
+  - `toleranceMinus`: Negative tolerance (e.g., 2.0 for -2 Nm)
+  - `torqueUnit`: Units: Nm, ft-lbs, in-lbs
+  - `fastenerType`: M12x1.5, 1/4-20, etc.
+  - `fastenerGrade`: Grade 12.9, Grade 8, etc.
+  - `fastenerCount`: Number of fasteners (e.g., 48 bolts)
+  - `tighteningMethod`: 
+  - `numberOfPasses`: Number of tightening passes
+  - `passPercentages`: [30, 70, 100] for 3-pass tightening
+  - `sequencePattern`: 
+  - `customSequence`: Custom sequence array [1,5,3,7,2,6,4,8]
+  - `partId`: Associated part (optional)
+  - `operationId`: Associated operation (optional)
+  - `routingOperationId`: Associated routing operation (optional)
+  - `workCenter`: Work center where performed
+  - `engineerApprovedBy`: Engineer who approved this spec
+  - `engineerApprovedAt`: When it was approved
+  - `revision`: Revision level
+  - `effectiveDate`: When this spec becomes effective
+  - `expirationDate`: When this spec expires
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: User who created this spec
+
+### `torque_sequences`
+Torque Sequence - defines the specific bolt tightening sequence and pattern
+
+**Properties**
+  - `id`: 
+  - `torqueSpecId`: Reference to parent torque specification
+  - `sequenceName`: Name like "Star Pattern" or "Linear Sequence"
+  - `boltPositions`: Array of bolt position definitions
+  - `sequenceOrder`: Order array [1,5,3,7,2,6,4,8]
+  - `passNumber`: Which pass this sequence applies to (1, 2, 3)
+  - `passPercentage`: Percentage of target torque (30, 70, 100)
+  - `visualPattern`: Coordinates/visual representation data
+  - `instructions`: Human-readable instructions
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `torque_events`
+Torque Event - captured actual torque values from digital torque wrenches
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: Work order being executed
+  - `torqueSpecId`: Torque specification being followed
+  - `sequenceId`: Specific sequence step
+  - `serialNumber`: Serial number being assembled
+  - `actualTorque`: Actual measured torque value
+  - `targetTorque`: Target torque for this measurement
+  - `tolerancePlus`: Upper tolerance limit
+  - `toleranceMinus`: Lower tolerance limit
+  - `torqueUnit`: 
+  - `boltPosition`: Which bolt/fastener (1-48)
+  - `passNumber`: Which tightening pass (1, 2, 3)
+  - `passPercentage`: Target percentage for this pass
+  - `isInSpec`: Whether torque is within specification
+  - `deviationPercent`: Percentage deviation from target
+  - `requiresRework`: 
+  - `digitalWrenchId`: ID of the digital torque wrench used
+  - `wrenchSerialNumber`: Serial number of the torque wrench
+  - `wrenchCalibrationDate`: Last calibration date of the wrench
+  - `operatorId`: User who performed the torque
+  - `timestamp`: When the torque was applied
+  - `duration`: How long the operation took (seconds)
+  - `supervisorReviewId`: Supervisor who reviewed (for out-of-spec)
+  - `supervisorReviewAt`: When supervisor reviewed
+  - `reviewComments`: Comments from supervisor review
+  - `reworkRequired`: 
+  - `reworkCompleted`: 
+  - `reworkBy`: User who performed rework
+  - `reworkAt`: When rework was completed
+  - `createdAt`: 
+  - `updatedAt`: 

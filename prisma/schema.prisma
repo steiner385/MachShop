@@ -175,6 +175,13 @@ model User {
   createdWorkOrders         WorkOrder[]                     @relation("CreatedBy")
   workPerformanceRecords    WorkPerformance[]               @relation("WorkPerformancePersonnel")
 
+  // Torque Management relationships
+  createdTorqueSpecs        TorqueSpecification[]           @relation("TorqueSpecCreator")
+  approvedTorqueSpecs       TorqueSpecification[]           @relation("TorqueSpecApprover")
+  torqueEventOperations     TorqueEvent[]                   @relation("TorqueEventOperator")
+  torqueEventSupervisions   TorqueEvent[]                   @relation("TorqueEventSupervisor")
+  torqueEventReworks        TorqueEvent[]                   @relation("TorqueEventRework")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -677,6 +684,7 @@ model Operation {
   assetSpecs                PhysicalAssetOperationSpecification[]
   routingSteps              RoutingStep[]
   samplingPlans             SamplingPlan[]
+  torqueSpecifications      TorqueSpecification[]
 
   @@index([parentOperationId])
   @@index([operationType])
@@ -946,6 +954,7 @@ model Part {
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
   unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
+  torqueSpecifications       TorqueSpecification[]
 
   @@index([productType])
   @@index([lifecycleState])
@@ -1167,6 +1176,7 @@ model WorkOrder {
   routing                      Routing?                      @relation(fields: [routingId], references: [id])
   site                         Site?                         @relation(fields: [siteId], references: [id])
   workPerformance              WorkPerformance[]
+  torqueEvents                 TorqueEvent[]
 
   @@map("work_orders")
 }
@@ -1228,6 +1238,7 @@ model RoutingOperation {
   routing         Routing              @relation(fields: [routingId], references: [id])
   workCenter      WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrderOps    WorkOrderOperation[]
+  torqueSpecifications TorqueSpecification[]
 
   @@map("routing_operations")
 }
@@ -2835,7 +2846,8 @@ model ProcessDataCollection {
 
 model QIFMeasurementPlan {
   id                  String                 @id @default(cuid())
-  qifPlanId           String                 @unique
+  qifPlanUuid         String                 @unique @default(uuid()) /// QIF plan UUID per NIST AMS 300-12 standards
+  qifPlanId           String?                @unique /// Legacy QIF plan ID (deprecated, use qifPlanUuid)
   partNumber          String
   partRevision        String
   planVersion         String
@@ -2860,6 +2872,7 @@ model QIFMeasurementPlan {
 
   @@index([partNumber])
   @@index([partRevision])
+  @@index([qifPlanUuid])
   @@index([qifPlanId])
   @@index([workOrderId])
   @@index([faiReportId])
@@ -2870,7 +2883,8 @@ model QIFMeasurementPlan {
 model QIFCharacteristic {
   id                   String             @id @default(cuid())
   qifMeasurementPlanId String
-  characteristicId     String
+  characteristicUuid   String             @unique @default(uuid()) /// QIF characteristic UUID per NIST AMS 300-12 standards
+  characteristicId     String?            /// Legacy characteristic ID (deprecated, use characteristicUuid)
   balloonNumber        String?
   characteristicName   String?
   description          String?
@@ -2890,6 +2904,7 @@ model QIFCharacteristic {
   measurements         QIFMeasurement[]
 
   @@index([qifMeasurementPlanId])
+  @@index([characteristicUuid])
   @@index([characteristicId])
   @@index([balloonNumber])
   @@map("qif_characteristics")
@@ -2897,7 +2912,8 @@ model QIFCharacteristic {
 
 model QIFMeasurementResult {
   id                   String                @id @default(cuid())
-  qifResultsId         String                @unique
+  qifResultsUuid       String                @unique @default(uuid()) /// QIF measurement results UUID per NIST AMS 300-12 standards
+  qifResultsId         String?               @unique /// Legacy QIF results ID (deprecated, use qifResultsUuid)
   qifMeasurementPlanId String?
   partNumber           String
   serialNumber         String?
@@ -2924,6 +2940,7 @@ model QIFMeasurementResult {
   workOrder            WorkOrder?            @relation(fields: [workOrderId], references: [id])
   measurements         QIFMeasurement[]
 
+  @@index([qifResultsUuid])
   @@index([qifResultsId])
   @@index([qifMeasurementPlanId])
   @@index([partNumber])
@@ -2939,7 +2956,8 @@ model QIFMeasurement {
   id                     String               @id @default(cuid())
   qifMeasurementResultId String
   qifCharacteristicId    String?
-  characteristicId       String
+  characteristicUuidRef  String?              /// QIF characteristic UUID reference per NIST AMS 300-12 standards
+  characteristicId       String?              /// Legacy characteristic ID (deprecated, use characteristicUuidRef)
   balloonNumber          String?
   measuredValue          Float
   deviation              Float?
@@ -2956,6 +2974,7 @@ model QIFMeasurement {
 
   @@index([qifMeasurementResultId])
   @@index([qifCharacteristicId])
+  @@index([characteristicUuidRef])
   @@index([characteristicId])
   @@index([status])
   @@map("qif_measurements")
@@ -6681,6 +6700,191 @@ model RoleTemplateUsageLog {
   @@index([targetUserId])
   @@index([timestamp])
   @@map("role_template_usage_logs")
+}
+
+// ==============================================================================
+// TORQUE MANAGEMENT SYSTEM
+// Digital torque management for engine assembly operations
+// ==============================================================================
+
+/// Torque Specification - defines torque requirements for specific parts/operations
+model TorqueSpecification {
+  id                    String              @id @default(cuid())
+  torqueSpecCode        String              @unique   /// Unique identifier for this torque spec
+  name                  String                        /// Human-readable name (e.g., "Turbine Disk TD-9876 Bolts")
+  description           String?                       /// Detailed description of the torque specification
+
+  // Torque Requirements
+  targetTorque          Float                         /// Target torque value (e.g., 175.0)
+  tolerancePlus         Float                         /// Positive tolerance (e.g., 2.0 for +2 Nm)
+  toleranceMinus        Float                         /// Negative tolerance (e.g., 2.0 for -2 Nm)
+  torqueUnit            String              @default("Nm") /// Units: Nm, ft-lbs, in-lbs
+
+  // Fastener Information
+  fastenerType          String                        /// M12x1.5, 1/4-20, etc.
+  fastenerGrade         String?                       /// Grade 12.9, Grade 8, etc.
+  fastenerCount         Int                           /// Number of fasteners (e.g., 48 bolts)
+
+  // Tightening Method
+  tighteningMethod      TorqueMethod        @default(TORQUE_ONLY)
+  numberOfPasses        Int                 @default(1)    /// Number of tightening passes
+  passPercentages       Json?                         /// [30, 70, 100] for 3-pass tightening
+
+  // Pattern and Sequence
+  sequencePattern       TorquePattern       @default(LINEAR)
+  customSequence        Json?                         /// Custom sequence array [1,5,3,7,2,6,4,8]
+
+  // Part/Operation Associations
+  partId                String?                       /// Associated part (optional)
+  operationId           String?                       /// Associated operation (optional)
+  routingOperationId    String?                       /// Associated routing operation (optional)
+  workCenter            String?                       /// Work center where performed
+
+  // Engineering and Approval
+  engineerApprovedBy    String?                       /// Engineer who approved this spec
+  engineerApprovedAt    DateTime?                     /// When it was approved
+  revision              String              @default("A")  /// Revision level
+  effectiveDate         DateTime?                     /// When this spec becomes effective
+  expirationDate        DateTime?                     /// When this spec expires
+
+  // Metadata
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String                        /// User who created this spec
+
+  // Relationships
+  part                  Part?               @relation(fields: [partId], references: [id])
+  operation             Operation?          @relation(fields: [operationId], references: [id])
+  routingOperation      RoutingOperation?   @relation(fields: [routingOperationId], references: [id])
+  creator               User                @relation("TorqueSpecCreator", fields: [createdBy], references: [id])
+  approver              User?               @relation("TorqueSpecApprover", fields: [engineerApprovedBy], references: [id])
+
+  // Related entities
+  sequences             TorqueSequence[]
+  events                TorqueEvent[]
+
+  @@index([partId])
+  @@index([operationId])
+  @@index([routingOperationId])
+  @@index([isActive])
+  @@index([effectiveDate])
+  @@map("torque_specifications")
+}
+
+/// Torque Sequence - defines the specific bolt tightening sequence and pattern
+model TorqueSequence {
+  id                    String              @id @default(cuid())
+  torqueSpecId          String                        /// Reference to parent torque specification
+  sequenceName          String                        /// Name like "Star Pattern" or "Linear Sequence"
+
+  // Sequence Definition
+  boltPositions         Json                          /// Array of bolt position definitions
+  sequenceOrder         Json                          /// Order array [1,5,3,7,2,6,4,8]
+  passNumber            Int                           /// Which pass this sequence applies to (1, 2, 3)
+  passPercentage        Float                         /// Percentage of target torque (30, 70, 100)
+
+  // Visual Guidance Data
+  visualPattern         Json?                         /// Coordinates/visual representation data
+  instructions          String?                       /// Human-readable instructions
+
+  // Metadata
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relationships
+  torqueSpec            TorqueSpecification @relation(fields: [torqueSpecId], references: [id], onDelete: Cascade)
+  events                TorqueEvent[]
+
+  @@index([torqueSpecId])
+  @@index([passNumber])
+  @@map("torque_sequences")
+}
+
+/// Torque Event - captured actual torque values from digital torque wrenches
+model TorqueEvent {
+  id                    String              @id @default(cuid())
+
+  // Work Context
+  workOrderId           String                        /// Work order being executed
+  torqueSpecId          String                        /// Torque specification being followed
+  sequenceId            String?                       /// Specific sequence step
+  serialNumber          String?                       /// Serial number being assembled
+
+  // Torque Measurement
+  actualTorque          Float                         /// Actual measured torque value
+  targetTorque          Float                         /// Target torque for this measurement
+  tolerancePlus         Float                         /// Upper tolerance limit
+  toleranceMinus        Float                         /// Lower tolerance limit
+  torqueUnit            String              @default("Nm")
+
+  // Position and Pass Info
+  boltPosition          Int                           /// Which bolt/fastener (1-48)
+  passNumber            Int                           /// Which tightening pass (1, 2, 3)
+  passPercentage        Float                         /// Target percentage for this pass
+
+  // Validation Results
+  isInSpec              Boolean                       /// Whether torque is within specification
+  deviationPercent      Float?                        /// Percentage deviation from target
+  requiresRework        Boolean             @default(false)
+
+  // Digital Tool Information
+  digitalWrenchId       String?                       /// ID of the digital torque wrench used
+  wrenchSerialNumber    String?                       /// Serial number of the torque wrench
+  wrenchCalibrationDate DateTime?                     /// Last calibration date of the wrench
+
+  // Operator and Timing
+  operatorId            String                        /// User who performed the torque
+  timestamp             DateTime            @default(now()) /// When the torque was applied
+  duration              Int?                          /// How long the operation took (seconds)
+
+  // Quality and Approval
+  supervisorReviewId    String?                       /// Supervisor who reviewed (for out-of-spec)
+  supervisorReviewAt    DateTime?                     /// When supervisor reviewed
+  reviewComments        String?                       /// Comments from supervisor review
+  reworkRequired        Boolean             @default(false)
+  reworkCompleted       Boolean             @default(false)
+  reworkBy              String?                       /// User who performed rework
+  reworkAt              DateTime?                     /// When rework was completed
+
+  // Metadata
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relationships
+  workOrder             WorkOrder           @relation(fields: [workOrderId], references: [id])
+  torqueSpec            TorqueSpecification @relation(fields: [torqueSpecId], references: [id])
+  sequence              TorqueSequence?     @relation(fields: [sequenceId], references: [id])
+  operator              User                @relation("TorqueEventOperator", fields: [operatorId], references: [id])
+  supervisorReviewer    User?               @relation("TorqueEventSupervisor", fields: [supervisorReviewId], references: [id])
+  reworkUser            User?               @relation("TorqueEventRework", fields: [reworkBy], references: [id])
+
+  @@index([workOrderId])
+  @@index([torqueSpecId])
+  @@index([operatorId])
+  @@index([timestamp])
+  @@index([isInSpec])
+  @@index([serialNumber])
+  @@index([boltPosition, passNumber])
+  @@map("torque_events")
+}
+
+/// Torque Method - how torque is applied
+enum TorqueMethod {
+  TORQUE_ONLY       /// Standard torque-only method
+  TORQUE_ANGLE      /// Torque plus angle method
+  TORQUE_TO_YIELD   /// Torque-to-yield method
+  ANGLE_ONLY        /// Angle-only method (after snug tight)
+}
+
+/// Torque Pattern - bolt tightening sequence pattern
+enum TorquePattern {
+  LINEAR            /// Sequential: 1, 2, 3, 4, 5, 6, 7, 8
+  STAR              /// Star pattern: 1, 5, 3, 7, 2, 6, 4, 8 (opposing bolts)
+  SPIRAL            /// Spiral pattern: outward spiral from center
+  CROSS             /// Cross pattern: cross-wise tightening
+  CUSTOM            /// Custom sequence defined in customSequence field
 }
 
 /// Unit types for different measurement categories

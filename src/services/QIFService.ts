@@ -1,4 +1,5 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import { v4 as uuidv4, validate as validateUUID } from 'uuid';
 import type {
   QIFDocument,
   QIFHeader,
@@ -15,6 +16,12 @@ import type {
   MeasurementResult,
   MeasurementDevice,
   InspectionStep,
+  QIFServiceConfig,
+  QIFIdentifier,
+  QIFUUIDValidationResult,
+  QIFMigrationStatus,
+  ExtendedMESQIFPlan,
+  ExtendedMESQIFResults,
 } from '../types/qif';
 
 /**
@@ -22,6 +29,7 @@ import type {
  *
  * Core service for Quality Information Framework (QIF) 3.0 operations
  * Handles parsing, generation, and validation of QIF XML documents
+ * Updated to support NIST AMS 300-12 UUID standards
  *
  * QIF Applications:
  * - CMM measurement plan import/export
@@ -29,15 +37,30 @@ import type {
  * - Measurement results exchange with suppliers
  * - Digital thread quality data integration
  * - Gauge calibration data (QIF Resources)
+ * - NIST AMS 300-12 compliant UUID-based identification
  *
  * ANSI/DMSC QIF 3.0 Standard:
  * https://qifstandards.org/
+ *
+ * NIST AMS 300-12 Standard:
+ * https://nvlpubs.nist.gov/nistpubs/ams/NIST.AMS.300-12.pdf
  */
 export class QIFService {
   private xmlParser: XMLParser;
   private xmlBuilder: XMLBuilder;
+  private config: QIFServiceConfig;
 
-  constructor() {
+  constructor(config?: Partial<QIFServiceConfig>) {
+    // Default configuration
+    this.config = {
+      preferUuids: true,
+      requireUuids: false,
+      allowLegacyIds: true,
+      validateUuidFormat: true,
+      migrationMode: true,
+      nistCompliance: true,
+      ...config,
+    };
     // Configure XML parser for QIF documents
     this.xmlParser = new XMLParser({
       ignoreAttributes: false,
@@ -65,8 +88,190 @@ export class QIFService {
       commentPropName: '__comment',
     });
 
-    console.log('QIF Service initialized (QIF 3.0 support)');
+    console.log(`QIF Service initialized (QIF 3.0 + NIST AMS 300-12 UUID support, mode: ${this.config.migrationMode ? 'migration' : 'production'})`);
   }
+
+  // =======================
+  // UUID Support Methods
+  // =======================
+
+  /**
+   * Validate QIF identifier format (UUID or legacy string)
+   */
+  validateIdentifier(identifier: string): QIFUUIDValidationResult {
+    if (!identifier || identifier.trim() === '') {
+      return {
+        isValid: false,
+        format: 'INVALID',
+        errors: ['Identifier cannot be empty'],
+      };
+    }
+
+    const trimmedId = identifier.trim();
+
+    // Check if it's a valid UUID
+    if (validateUUID(trimmedId)) {
+      return {
+        isValid: true,
+        format: 'UUID',
+        normalizedValue: trimmedId.toLowerCase(),
+      };
+    }
+
+    // Check if it's clearly an invalid UUID format (contains uuid-like structure but invalid)
+    if (trimmedId.toLowerCase().includes('uuid') ||
+        (trimmedId.includes('-') && trimmedId.length > 20 && trimmedId.split('-').length >= 4)) {
+      return {
+        isValid: false,
+        format: 'INVALID',
+        errors: ['Invalid UUID format'],
+      };
+    }
+
+    // Check if it's a legacy string ID (non-empty, reasonable length, alphanumeric with limited special chars)
+    if (trimmedId.length > 0 && trimmedId.length <= 100) {
+      // Legacy IDs should be alphanumeric with limited special characters (letters, numbers, dashes, underscores)
+      const legacyIdPattern = /^[a-zA-Z0-9\-_]+$/;
+      if (!legacyIdPattern.test(trimmedId)) {
+        return {
+          isValid: false,
+          format: 'INVALID',
+          errors: ['Invalid identifier format'],
+        };
+      }
+
+      if (this.config.requireUuids) {
+        return {
+          isValid: false,
+          format: 'LEGACY',
+          errors: ['UUID required in current configuration, legacy IDs not allowed'],
+        };
+      }
+
+      return {
+        isValid: this.config.allowLegacyIds,
+        format: 'LEGACY',
+        normalizedValue: trimmedId,
+        errors: this.config.allowLegacyIds ? [] : ['Legacy IDs not allowed in current configuration'],
+      };
+    }
+
+    return {
+      isValid: false,
+      format: 'INVALID',
+      errors: ['Invalid identifier format'],
+    };
+  }
+
+  /**
+   * Generate NIST AMS 300-12 compliant UUID
+   */
+  generateQIFUUID(): string {
+    return uuidv4();
+  }
+
+  /**
+   * Resolve QIF identifier from legacy ID or UUID
+   */
+  resolveQIFIdentifier(uuidField?: string, legacyField?: string): QIFIdentifier {
+    // Validate UUID field if provided
+    if (uuidField) {
+      const uuidValidation = this.validateIdentifier(uuidField);
+      if (!uuidValidation.isValid) {
+        throw new Error(`Invalid UUID: ${uuidValidation.errors?.join(', ')}`);
+      }
+    }
+
+    // Validate legacy field if provided
+    if (legacyField && !this.config.allowLegacyIds) {
+      throw new Error('Legacy IDs not allowed in current configuration');
+    }
+
+    if (this.config.requireUuids && !uuidField) {
+      throw new Error('UUID is required but not provided');
+    }
+
+    const hasUuid = uuidField && this.validateIdentifier(uuidField).format === 'UUID';
+    const hasLegacy = legacyField && this.validateIdentifier(legacyField).format === 'LEGACY';
+
+    let primary: string;
+
+    if (this.config.preferUuids && hasUuid) {
+      primary = uuidField!;
+    } else if (hasLegacy && this.config.allowLegacyIds) {
+      primary = legacyField!;
+    } else if (hasUuid) {
+      primary = uuidField!;
+    } else if (hasLegacy) {
+      primary = legacyField!;
+    } else {
+      throw new Error('No valid identifier found');
+    }
+
+    return {
+      uuid: hasUuid ? uuidField : undefined,
+      legacyId: hasLegacy ? legacyField : undefined,
+      primary,
+    };
+  }
+
+  /**
+   * Analyze migration status of QIF entity
+   */
+  analyzeQIFMigrationStatus(uuidField?: string, legacyField?: string): QIFMigrationStatus {
+    const hasUuid = Boolean(uuidField && this.validateIdentifier(uuidField).format === 'UUID');
+    const hasLegacyId = Boolean(legacyField && this.validateIdentifier(legacyField).format === 'LEGACY');
+
+    let identifierType: 'UUID_ONLY' | 'LEGACY_ONLY' | 'HYBRID';
+    if (hasUuid && hasLegacyId) {
+      identifierType = 'HYBRID';
+    } else if (hasUuid) {
+      identifierType = 'UUID_ONLY';
+    } else {
+      identifierType = 'LEGACY_ONLY';
+    }
+
+    return {
+      hasUuid,
+      hasLegacyId,
+      migrationComplete: hasUuid,
+      identifierType,
+    };
+  }
+
+  /**
+   * Convert legacy MES QIF Plan to UUID-enhanced format
+   */
+  enhanceMESQIFPlan(plan: MESQIFPlan): ExtendedMESQIFPlan {
+    const identifiers = this.resolveQIFIdentifier(plan.qifPlanUuid, plan.qifPlanId);
+    const migrationStatus = this.analyzeQIFMigrationStatus(plan.qifPlanUuid, plan.qifPlanId);
+
+    return {
+      ...plan,
+      identifiers,
+      migrationStatus,
+    };
+  }
+
+  /**
+   * Convert legacy MES QIF Results to UUID-enhanced format
+   */
+  enhanceMESQIFResults(results: MESQIFResults): ExtendedMESQIFResults {
+    const identifiers = this.resolveQIFIdentifier(results.qifResultsUuid, results.qifResultsId);
+    const planIdentifiers = this.resolveQIFIdentifier(results.qifPlanUuid, results.qifPlanId);
+    const migrationStatus = this.analyzeQIFMigrationStatus(results.qifResultsUuid, results.qifResultsId);
+
+    return {
+      ...results,
+      identifiers,
+      planIdentifiers,
+      migrationStatus,
+    };
+  }
+
+  // =======================
+  // Enhanced QIF Methods
+  // =======================
 
   /**
    * Parse QIF XML string into QIF Document object
@@ -235,6 +440,7 @@ export class QIFService {
 
   /**
    * Create QIF Measurement Plan from MES data
+   * Enhanced to support NIST AMS 300-12 UUID standards
    */
   createMeasurementPlan(params: {
     partNumber: string;
@@ -246,34 +452,69 @@ export class QIFService {
       upperTolerance: number;
       lowerTolerance: number;
       characteristicType: string;
+      characteristicUuid?: string;  // NIST AMS 300-12 compliant UUID
+      characteristicId?: string;    // Legacy ID for backward compatibility
     }[];
     author?: string;
     organization?: string;
+    planUuid?: string;              // NIST AMS 300-12 compliant plan UUID
+    planId?: string;                // Legacy plan ID for backward compatibility
   }): QIFDocument {
     const now = new Date().toISOString();
 
-    // Create characteristics
-    const characteristics: Characteristic[] = params.characteristics.map((char, index) => ({
-      id: `CHAR_${index + 1}`,
-      CharacteristicNominal: {
-        CharacteristicDesignator: char.balloonNumber,
-        Name: char.description,
-        Description: char.description,
-        TargetValue: char.nominalValue,
-        PlusTolerance: char.upperTolerance,
-        MinusTolerance: char.lowerTolerance,
-      },
-      CharacteristicItem: this.createCharacteristicItem(char.characteristicType, char.nominalValue),
-    }));
+    // Create characteristics with UUID support
+    const characteristics: Characteristic[] = params.characteristics.map((char, index) => {
+      // Use provided UUID or generate new one, fallback to legacy format
+      let characteristicId: string;
 
-    // Create inspection steps
-    const inspectionSteps: InspectionStep[] = characteristics.map((char, index) => ({
-      id: `STEP_${index + 1}`,
-      StepNumber: index + 1,
-      StepName: char.CharacteristicNominal.Name || `Step ${index + 1}`,
-      CharacteristicId: char.id,
-      SampleSize: 1,
-    }));
+      if (char.characteristicUuid && this.validateIdentifier(char.characteristicUuid).format === 'UUID') {
+        characteristicId = char.characteristicUuid;
+      } else if (char.characteristicId && this.config.allowLegacyIds) {
+        characteristicId = char.characteristicId;
+      } else if (this.config.preferUuids || this.config.requireUuids) {
+        characteristicId = this.generateQIFUUID();
+      } else {
+        characteristicId = `CHAR_${index + 1}`;
+      }
+
+      return {
+        id: characteristicId,
+        CharacteristicNominal: {
+          CharacteristicDesignator: char.balloonNumber,
+          Name: char.description,
+          Description: char.description,
+          TargetValue: char.nominalValue,
+          PlusTolerance: char.upperTolerance,
+          MinusTolerance: char.lowerTolerance,
+        },
+        CharacteristicItem: this.createCharacteristicItem(char.characteristicType, char.nominalValue),
+      };
+    });
+
+    // Create inspection steps with UUID support
+    const inspectionSteps: InspectionStep[] = characteristics.map((char, index) => {
+      const stepId = this.config.preferUuids ? this.generateQIFUUID() : `STEP_${index + 1}`;
+
+      return {
+        id: stepId,
+        StepNumber: index + 1,
+        StepName: char.CharacteristicNominal.Name || `Step ${index + 1}`,
+        CharacteristicId: char.id,
+        SampleSize: 1,
+      };
+    });
+
+    // Generate plan ID with UUID support
+    let measurementPlanId: string;
+    if (params.planUuid && this.validateIdentifier(params.planUuid).format === 'UUID') {
+      measurementPlanId = params.planUuid;
+    } else if (params.planId && this.config.allowLegacyIds) {
+      measurementPlanId = params.planId;
+    } else if (this.config.preferUuids || this.config.requireUuids) {
+      measurementPlanId = this.generateQIFUUID();
+    } else {
+      measurementPlanId = 'PLAN_1';
+    }
 
     const qifDoc: QIFDocument = {
       QIFDocument: {
@@ -304,7 +545,7 @@ export class QIFService {
           },
         ],
         MeasurementPlan: {
-          id: 'PLAN_1',
+          id: measurementPlanId,
           Version: '1.0',
           CreationDate: now,
           Author: params.author || 'MES System',

@@ -445,7 +445,7 @@ issues:
     strategic_focus: null
     business_value: 9
     effort_estimate: 7
-    blocks: [225, 226]
+    blocks: [225, 226, 236]
     notes: "Foundation for hybrid configuration management - enables both full propagation and interface abstraction strategies. Two-way/one-way interchangeability, substitution groups, engineering approval workflow. Critical for AS9100 compliance and operational flexibility"
 
   - number: 224
@@ -456,8 +456,120 @@ issues:
     strategic_focus: null
     business_value: 8
     effort_estimate: 8
-    blocks: [225, 226]
+    blocks: [225, 226, 238]
     notes: "Foundation for modular design - ICD specifications enable change isolation at interface boundaries. Mechanical/electrical/fluid/data interfaces. Supports SAE AIR6181A, ASME Y14.24 standards. Reduces cascading part number changes"
+
+  # --- Engine Assembly Infrastructure ---
+  - number: 229
+    title: "Inventory & Material Management: Kitting & Material Staging System for Engine Assembly"
+    category: inventory_material
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 9
+    blocks: [236]
+    notes: "Foundation for engine assembly - auto-generate kits from BOM, staging locations, kit status tracking, vendor kitting support. Critical for managing 25,000+ parts in engine assembly. Cannot do engine assembly without this capability."
+
+  - number: 230
+    title: "Quality Management: Digital Torque Management & Sequence Control for Engine Assembly"
+    category: quality_management
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: quality_management
+    business_value: 10
+    effort_estimate: 7
+    blocks: []
+    notes: "Safety/quality critical - TorqueSpecification model, sequence tracking, digital torque wrench integration, real-time capture, visual guidance. AS9100 requirement for engine assembly. Improper torque can cause catastrophic failures."
+
+  - number: 231
+    title: "Regulatory Compliance: Life-Limited Parts (LLP) Back-to-Birth Traceability"
+    category: regulatory_compliance
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 6
+    blocks: []
+    notes: "Safety-critical regulatory requirement - LLP designation, time/cycles tracking, back-to-birth traceability, retirement tracking, expiration alerts. IATA/FAA requirement for engine components. Prevents catastrophic failures."
+
+  - number: 232
+    title: "Regulatory Compliance: Electronic Build Book & Assembly Build Record System"
+    category: regulatory_compliance
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: [233]
+    notes: "AS9100 compliance requirement - BuildRecord model, as-built configuration, deviation tracking, integrated sign-offs, photo/video capture, automated build book generation. FAA Part 43 requirement. Engines cannot be delivered without complete build records."
+
+  # --- External System Integration Surrogates ---
+  - number: 240
+    title: "Testing Infrastructure: ERP System Surrogates (Oracle EBS)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [243]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 10
+    blocks: []
+    notes: "Mock Oracle EBS APIs for orders, inventory, financials. Receives equipment/gauge data from asset management systems. Enables integration testing without live ERP access. Critical for CI/CD pipeline."
+
+  - number: 241
+    title: "Testing Infrastructure: PLM System Surrogates (Teamcenter PLM)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 10
+    blocks: []
+    notes: "Mock Teamcenter PLM APIs for product data, BOMs, CAD integration. Source of truth for characteristics and BOM. Multi-level BOM support (10+ levels). Enables PLM integration testing without live system."
+
+  - number: 242
+    title: "Testing Infrastructure: Data Historian Surrogates (GE Proficy Historian)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "Mock GE Proficy Historian APIs for time-series process data, real-time data collection, aggregations. Enables SPC and quality analytics testing. Realistic data pattern generation."
+
+  - number: 243
+    title: "Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 9
+    blocks: [240]
+    notes: "Mock Maximo and IndySoft APIs for equipment, gauges, calibration records. Source of truth for equipment/gauge data flowing to ERP. Enables asset management testing and data flow to ERP surrogate."
+
+  - number: 244
+    title: "Testing Infrastructure: Training & Certification Management Surrogates (Covalent)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 9
+    blocks: []
+    notes: "Mock Covalent APIs for personnel training, skills management, certifications, compliance tracking. Critical for AS9100 competence requirements and operator qualification validation."
+
+  - number: 245
+    title: "Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 5
+    blocks: []
+    notes: "Mock Saviynt IDM APIs for user provisioning, access governance, authentication, role management. Foundational for SSO and user provisioning workflows. OAuth/SAML simulation."
 
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
@@ -519,6 +631,51 @@ issues:
     effort_estimate: 8
     blocks: []
     notes: "Intelligent ECO workflow with automatic routing, cascade when needed, containment when appropriate. Implements hybrid configuration management strategy. AS9100 Section 8.3.6 compliance"
+
+  # --- Engine Assembly Operations ---
+  - number: 233
+    title: "Quality Management: Test Cell Integration & Engine Acceptance Testing"
+    category: quality_management
+    foundation_level: 1
+    dependencies: [232]
+    strategic_focus: quality_management
+    business_value: 9
+    effort_estimate: 9
+    blocks: []
+    notes: "Engine performance validation - TestRun and TestCell models, performance data capture, acceptance criteria validation, correlation with build records. FAA AC 43-207 compliance for engine testing. Critical for engine delivery."
+
+  - number: 234
+    title: "Equipment & Maintenance: Assembly Tooling & Fixture Management Enhancement"
+    category: equipment_maintenance
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Operational efficiency - Fixture and AssemblyCell models, tooling assignment to operations, fixture calibration, work cell layout management, determinate assembly tooling support. AS9100 calibration compliance."
+
+  - number: 235
+    title: "Inventory & Material Management: Serialized Sub-Assembly & Module Management"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Configuration control for major modules - Independent serialization for major modules (fan, compressor, turbine), module interchange tracking, module-level build records. FAA/EASA requirement for serviceable modules."
+
+  - number: 236
+    title: "Inventory & Material Management: Kit Shortage Resolution & Expedite Workflow"
+    category: inventory_material
+    foundation_level: 1
+    dependencies: [229, 223]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "Reduces assembly delays - Automated shortage identification, notification workflow, alternate part suggestions, expedite/rush orders, partial kit release, supplier coordination. Integrates with kitting system and interchangeability framework."
 
   # --- Quality Management Foundation ---
   - number: 54
@@ -945,6 +1102,18 @@ issues:
     blocks: []
     notes: "Enhanced categorization - create lookup tables for Equipment Type, Part Type, Manufacturer, and Model. Affects ~10+ fields. Enables structured filtering, manufacturer/model hierarchies, improved equipment/material management"
 
+  # --- Engine Assembly Optimization ---
+  - number: 237
+    title: "Production Planning & Scheduling: Assembly Sequence Constraints & Validation"
+    category: production_planning
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 8
+    blocks: []
+    notes: "Optimization and error prevention - Spatial constraint modeling, tooling access constraints, assembly sequence validation, work cell capacity modeling, takt time balancing, parallel assembly stream management. Improves throughput 30-40%."
+
   # --- AI/ML Advanced Features ---
   - number: 146
     title: "AI/ML: AI User Interfaces (Computer Vision, NLU Chatbot, Voice, AI-RCA)"
@@ -1258,6 +1427,17 @@ issues:
     notes: "Advanced warehouse operations (putaway, picking, etc.)"
 
   # --- Analytics & Reporting ---
+  - number: 238
+    title: "Analytics & Reporting: Multi-Level BOM Visualization & Explosion Tools"
+    category: analytics_reporting
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 6
+    blocks: []
+    notes: "User experience enhancement - Graphical BOM tree visualization, BOM explosion/implosion queries, where-used across multiple levels, BOM comparison (as-designed vs as-built), effectivity visualization, phantom part support. Makes complex BOMs accessible."
+
   - number: 106
     title: "Executive Dashboards & KPI Framework"
     category: analytics_reporting
