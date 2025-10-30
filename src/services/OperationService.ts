@@ -71,6 +71,44 @@ export class OperationService {
     this.prisma = prisma || new PrismaClient();
   }
 
+  // ==================== UOM HELPER METHODS ====================
+
+  /**
+   * Resolve UnitOfMeasure ID from string code
+   * Supports both direct ID (if already a CUID) and code lookup
+   */
+  private async resolveUomId(uomCode: string): Promise<string | null> {
+    // If it's already a CUID (starts with 'c'), assume it's an ID
+    if (uomCode.startsWith('c') && uomCode.length > 20) {
+      return uomCode;
+    }
+
+    // Look up by code (case-insensitive)
+    const uom = await this.prisma.unitOfMeasure.findFirst({
+      where: {
+        code: { equals: uomCode.toUpperCase(), mode: 'insensitive' },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    return uom?.id || null;
+  }
+
+  /**
+   * Enhanced UOM data preparation for database operations
+   * Returns both string and FK for dual-field support
+   */
+  private async prepareUomData(uomCode?: string) {
+    if (!uomCode) return { unitOfMeasure: null, unitOfMeasureId: null };
+
+    const unitOfMeasureId = await this.resolveUomId(uomCode);
+    return {
+      unitOfMeasure: uomCode.toUpperCase(), // Normalize to uppercase
+      unitOfMeasureId
+    };
+  }
+
   /**
    * Create a new operation
    */
@@ -443,6 +481,9 @@ export class OperationService {
     // Verify operation exists
     await this.getOperationById(operationId, false);
 
+    // Prepare UOM data (both string and FK) if provided
+    const uomData = parameterData.unitOfMeasure ? await this.prepareUomData(parameterData.unitOfMeasure) : { unitOfMeasure: null, unitOfMeasureId: null };
+
     const parameter = await this.prisma.operationParameter.create({
       data: {
         operationId,
@@ -450,7 +491,8 @@ export class OperationService {
         parameterType: parameterData.parameterType,
         dataType: parameterData.dataType,
         defaultValue: parameterData.defaultValue,
-        unitOfMeasure: parameterData.unitOfMeasure,
+        unitOfMeasure: uomData.unitOfMeasure || parameterData.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         minValue: parameterData.minValue,
         maxValue: parameterData.maxValue,
         allowedValues: parameterData.allowedValues ?? [],
@@ -634,6 +676,9 @@ export class OperationService {
   async addMaterialSpec(operationId: string, specData: any) {
     await this.getOperationById(operationId, false);
 
+    // Prepare UOM data (both string and FK)
+    const uomData = await this.prepareUomData(specData.unitOfMeasure);
+
     const spec = await this.prisma.materialOperationSpecification.create({
       data: {
         operationId,
@@ -641,7 +686,8 @@ export class OperationService {
         materialClassId: specData.materialClassId,
         materialType: specData.materialType,
         quantity: specData.quantity,
-        unitOfMeasure: specData.unitOfMeasure,
+        unitOfMeasure: uomData.unitOfMeasure || specData.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         consumptionType: specData.consumptionType,
         requiredProperties: specData.requiredProperties ?? [],
         qualityRequirements: specData.qualityRequirements,

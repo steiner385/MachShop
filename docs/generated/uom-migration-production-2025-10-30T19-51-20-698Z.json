@@ -1,0 +1,389 @@
+{
+  "executedAt": "2025-10-30T19:51:20.564Z",
+  "dryRun": false,
+  "totalTables": 21,
+  "totalRecordsProcessed": 88,
+  "totalRecordsUpdated": 86,
+  "totalRecordsSkipped": 2,
+  "totalErrors": 8,
+  "tableResults": [
+    {
+      "tableName": "material_definitions",
+      "fieldName": "baseUnitOfMeasure",
+      "totalRecords": 4,
+      "recordsProcessed": 4,
+      "recordsUpdated": 4,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_definitions",
+      "fieldName": "alternateUnitOfMeasure",
+      "totalRecords": 4,
+      "recordsProcessed": 4,
+      "recordsUpdated": 4,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_properties",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasure\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_lots",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 5,
+      "recordsProcessed": 5,
+      "recordsUpdated": 5,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_sublots",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 2,
+      "recordsProcessed": 2,
+      "recordsUpdated": 2,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_lot_genealogy",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 1,
+      "recordsProcessed": 1,
+      "recordsUpdated": 1,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_state_history",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 20,
+      "recordsProcessed": 20,
+      "recordsUpdated": 20,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "operation_parameters",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 31,
+      "recordsProcessed": 31,
+      "recordsUpdated": 29,
+      "recordsSkipped": 2,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_operation_specifications",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 8,
+      "recordsProcessed": 8,
+      "recordsUpdated": 8,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "routing_step_parameters",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "schedule_entries",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 6,
+      "recordsProcessed": 6,
+      "recordsUpdated": 6,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "schedule_constraints",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "production_schedule_requests",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "parts",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 4,
+      "recordsProcessed": 4,
+      "recordsUpdated": 4,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "bom_items",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "product_specifications",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "quality_characteristics",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 3,
+      "recordsProcessed": 3,
+      "recordsUpdated": 3,
+      "recordsSkipped": 0,
+      "errors": [],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "inventory",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "material_transactions",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "erp_material_transactions",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    },
+    {
+      "tableName": "equipment_material_movements",
+      "fieldName": "unitOfMeasure",
+      "totalRecords": 0,
+      "recordsProcessed": 0,
+      "recordsUpdated": 0,
+      "recordsSkipped": 0,
+      "errors": [
+        {
+          "recordId": "TABLE_LEVEL",
+          "originalValue": "N/A",
+          "error": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `42703`. Message: `column \"unitOfMeasureId\" does not exist`"
+        }
+      ],
+      "unmappedValues": []
+    }
+  ],
+  "mappingsUsed": [
+    {
+      "originalValue": "EA",
+      "standardUnitCode": "EA",
+      "unitId": "cmhdtm3xk0000p63x2cdu6b1b",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "GAL",
+      "standardUnitCode": "GAL",
+      "unitId": "cmhdtm3xz0006p63x7ck24msn",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "KG",
+      "standardUnitCode": "KG",
+      "unitId": "cmhdtm3xq0001p63xicoqhuse",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "L",
+      "standardUnitCode": "L",
+      "unitId": "cmhdtm3xy0005p63xcg0eqv4t",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "LB",
+      "standardUnitCode": "LB",
+      "unitId": "cmhdtm3xs0002p63x6ogv8kze",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "mm",
+      "standardUnitCode": "MM",
+      "unitId": "cmhdtm3z30010p63xxocrntxq",
+      "confidence": "HIGH",
+      "notes": "Direct code match (lowercase to uppercase)"
+    },
+    {
+      "originalValue": "PSI",
+      "standardUnitCode": "PSI",
+      "unitId": "cmhdtm4050026p63xrgdr6jkz",
+      "confidence": "HIGH",
+      "notes": "Direct code match"
+    },
+    {
+      "originalValue": "°C",
+      "standardUnitCode": "C",
+      "unitId": "cmhdtm3y7000ap63xr18i3tz7",
+      "confidence": "HIGH",
+      "notes": "Celsius temperature"
+    },
+    {
+      "originalValue": "°F",
+      "standardUnitCode": "F",
+      "unitId": "cmhdtm4000020p63xk6tuotmi",
+      "confidence": "HIGH",
+      "notes": "Fahrenheit temperature"
+    },
+    {
+      "originalValue": "HOURS",
+      "standardUnitCode": "HR",
+      "unitId": "cmhdtm3zv001up63xi6b2jlsk",
+      "confidence": "HIGH",
+      "notes": "Hours duration"
+    },
+    {
+      "originalValue": "count",
+      "standardUnitCode": "EA",
+      "unitId": "cmhdtm3xk0000p63x2cdu6b1b",
+      "confidence": "HIGH",
+      "notes": "Count/quantity mapping to Each"
+    },
+    {
+      "originalValue": "SHEET",
+      "standardUnitCode": "EA",
+      "unitId": "cmhdtm3xk0000p63x2cdu6b1b",
+      "confidence": "HIGH",
+      "notes": "Sheet count mapping to Each"
+    },
+    {
+      "originalValue": "μm",
+      "standardUnitCode": "MM",
+      "unitId": "cmhdtm3z30010p63xxocrntxq",
+      "confidence": "MEDIUM",
+      "notes": "Micrometer to millimeter (needs conversion factor)"
+    },
+    {
+      "originalValue": "IPM",
+      "standardUnitCode": "EA",
+      "unitId": "cmhdtm3xk0000p63x2cdu6b1b",
+      "confidence": "LOW",
+      "notes": "Inches Per Minute - velocity unit, temporarily mapped to EA"
+    },
+    {
+      "originalValue": "L/min",
+      "standardUnitCode": "L",
+      "unitId": "cmhdtm3xy0005p63xcg0eqv4t",
+      "confidence": "LOW",
+      "notes": "Liters per minute - flow rate, temporarily mapped to L base unit"
+    },
+    {
+      "originalValue": "RPM",
+      "standardUnitCode": "RPM",
+      "unitId": "cmhdtm3yi000gp63xv7w6h8oc",
+      "confidence": "HIGH",
+      "notes": "Revolutions per minute"
+    }
+  ],
+  "unmappedValues": [],
+  "warnings": [],
+  "recommendations": [
+    "Monitor application functionality after migration completion",
+    "Review and improve 2 low-confidence mappings for better coverage"
+  ]
+}

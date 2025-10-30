@@ -34,6 +34,44 @@ export class MaterialService {
     this.prisma = prisma || new PrismaClient();
   }
 
+  // ==================== UOM HELPER METHODS ====================
+
+  /**
+   * Resolve UnitOfMeasure ID from string code
+   * Supports both direct ID (if already a CUID) and code lookup
+   */
+  private async resolveUomId(uomCode: string): Promise<string | null> {
+    // If it's already a CUID (starts with 'c'), assume it's an ID
+    if (uomCode.startsWith('c') && uomCode.length > 20) {
+      return uomCode;
+    }
+
+    // Look up by code (case-insensitive)
+    const uom = await this.prisma.unitOfMeasure.findFirst({
+      where: {
+        code: { equals: uomCode.toUpperCase(), mode: 'insensitive' },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    return uom?.id || null;
+  }
+
+  /**
+   * Enhanced UOM data preparation for database operations
+   * Returns both string and FK for dual-field support
+   */
+  private async prepareUomData(uomCode?: string) {
+    if (!uomCode) return { unitOfMeasure: null, unitOfMeasureId: null };
+
+    const unitOfMeasureId = await this.resolveUomId(uomCode);
+    return {
+      unitOfMeasure: uomCode.toUpperCase(), // Normalize to uppercase
+      unitOfMeasureId
+    };
+  }
+
   // ==================== MATERIAL CLASSES ====================
 
   /**
@@ -397,6 +435,9 @@ export class MaterialService {
       );
     }
 
+    // Prepare UOM data (both string and FK)
+    const uomData = await this.prepareUomData(parentLot.unitOfMeasure);
+
     // Create sublot
     const sublot = await this.prisma.materialSublot.create({
       data: {
@@ -404,7 +445,8 @@ export class MaterialService {
         parentLotId: data.parentLotId,
         operationType: 'SPLIT',
         quantity: data.quantity,
-        unitOfMeasure: parentLot.unitOfMeasure,
+        unitOfMeasure: uomData.unitOfMeasure || parentLot.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         workOrderId: data.workOrderId,
         operationId: data.operationId,
         location: data.location || parentLot.location,
@@ -460,9 +502,14 @@ export class MaterialService {
     processDate?: Date;
     notes?: string;
   }): Promise<MaterialLotGenealogy> {
+    // Prepare UOM data (both string and FK)
+    const uomData = await this.prepareUomData(data.unitOfMeasure);
+
     return this.prisma.materialLotGenealogy.create({
       data: {
         ...data,
+        unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         processDate: data.processDate || new Date(),
       },
       include: {
@@ -560,9 +607,14 @@ export class MaterialService {
     qualityNotes?: string;
     notes?: string;
   }): Promise<MaterialStateHistory> {
+    // Prepare UOM data (both string and FK) if UOM is provided
+    const uomData = data.unitOfMeasure ? await this.prepareUomData(data.unitOfMeasure) : { unitOfMeasure: null, unitOfMeasureId: null };
+
     return this.prisma.materialStateHistory.create({
       data: {
         ...data,
+        unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         changedAt: data.changedAt || new Date(),
       },
       include: {

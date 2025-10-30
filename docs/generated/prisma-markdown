@@ -600,6 +600,7 @@ erDiagram
   Float minValue "nullable"
   Float maxValue "nullable"
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   String testMethod "nullable"
   String inspectionFrequency "nullable"
   Boolean isCritical
@@ -891,6 +892,7 @@ erDiagram
   Float requiredQuantity "nullable"
   Float availableQuantity "nullable"
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   DateTime constraintDate "nullable"
   Int leadTimeDays "nullable"
   Boolean isViolated
@@ -1193,6 +1195,7 @@ erDiagram
   String lotNumber "nullable"
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   Float unitCost "nullable"
   DateTime receivedDate "nullable"
   DateTime expiryDate "nullable"
@@ -1207,6 +1210,7 @@ erDiagram
   MaterialTransactionType transactionType
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   String reference "nullable"
   DateTime transactionDate
   DateTime createdAt
@@ -1576,6 +1580,7 @@ erDiagram
   String partNumber "nullable"
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId "nullable"
   DateTime dueDate
   String workCenterId FK "nullable"
   Json equipmentRequirements "nullable"
@@ -1665,6 +1670,7 @@ erDiagram
   String externalWorkOrderId "nullable"
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId "nullable"
   String lotNumber "nullable"
   String serialNumber "nullable"
   Float unitCost "nullable"
@@ -1766,6 +1772,7 @@ erDiagram
   String movementType
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId "nullable"
   DateTime movementTimestamp
   String workOrderId FK "nullable"
   String operationId "nullable"
@@ -3442,6 +3449,7 @@ erDiagram
 "bom_items" }o--|| "parts" : parentPart
 "bom_items" }o--o| "units_of_measure" : unitOfMeasureRef
 "product_specifications" }o--|| "parts" : part
+"product_specifications" }o--o| "units_of_measure" : unitOfMeasureRef
 "product_configurations" }o--|| "parts" : part
 "configuration_options" }o--|| "product_configurations" : configuration
 "product_lifecycle" }o--|| "parts" : part
@@ -3479,6 +3487,7 @@ erDiagram
 "schedule_entries" |o--o| "work_orders" : workOrder
 "schedule_entries" }o--o| "units_of_measure" : unitOfMeasureRef
 "schedule_constraints" }o--|| "schedule_entries" : entry
+"schedule_constraints" }o--o| "units_of_measure" : unitOfMeasureRef
 "schedule_state_history" }o--|| "production_schedules" : schedule
 "work_order_status_history" }o--|| "work_orders" : workOrder
 "dispatch_logs" }o--o| "users" : assignedTo
@@ -3513,8 +3522,10 @@ erDiagram
 "equipment_state_history" }o--|| "equipment" : equipment
 "equipment_performance_logs" }o--|| "equipment" : equipment
 "inventory" }o--|| "parts" : part
+"inventory" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_transactions" }o--|| "inventory" : inventory
 "material_transactions" }o--o| "work_orders" : workOrder
+"material_transactions" }o--o| "units_of_measure" : unitOfMeasureRef
 "serialized_parts" }o--|| "parts" : part
 "part_genealogy" }o--|| "serialized_parts" : componentPart
 "part_genealogy" }o--|| "serialized_parts" : parentPart
@@ -4343,6 +4354,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `minValue`: 
   - `maxValue`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `testMethod`: 
   - `inspectionFrequency`: 
   - `isCritical`: 
@@ -4666,6 +4678,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `requiredQuantity`: 
   - `availableQuantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `constraintDate`: 
   - `leadTimeDays`: 
   - `isViolated`: 
@@ -5000,6 +5013,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `lotNumber`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `unitCost`: 
   - `receivedDate`: 
   - `expiryDate`: 
@@ -5016,6 +5030,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `transactionType`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `reference`: 
   - `transactionDate`: 
   - `createdAt`: 
@@ -5427,6 +5442,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `partNumber`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `dueDate`: 
   - `workCenterId`: 
   - `equipmentRequirements`: 
@@ -5522,6 +5538,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `externalWorkOrderId`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `lotNumber`: 
   - `serialNumber`: 
   - `unitCost`: 
@@ -5631,6 +5648,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `movementType`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `movementTimestamp`: 
   - `workOrderId`: 
   - `operationId`: 

@@ -31,6 +31,7 @@ We are systematically achieving **50% test coverage** across the entire applicat
 - **Work Order Management**: Production lifecycle management and execution tracking
 - **Quality Control**: Inspection plans, FAI reports, measurements, and NCR management
 - **Material Traceability**: Genealogy tracking and material transaction management
+- **Unit of Measure System**: Standardized UOM lookup table with 53 manufacturing units (EA, KG, LB, GAL, etc.) and automatic FK resolution across 21+ tables
 - **Routing Management**: Multi-site routing with dependencies and lifecycle management (Sprint 4)
 - **Electronic Signatures**: 21 CFR Part 11 compliant signature capture
 - **Digital Work Instructions**: Versioned work instructions with rich-text editing
