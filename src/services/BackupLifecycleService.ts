@@ -116,20 +116,20 @@ export class BackupLifecycleService {
       const schedule = await this.prisma.backupSchedule.create({
         data: {
           name,
+          bucketName: config.backupBucket,
           cronExpression: config.schedule,
-          enabled: config.enabled,
+          isActive: config.enabled,
           retentionDays: config.retentionDays,
-          compression: config.compression,
-          encryption: config.encryption,
-          incrementalBackup: config.incrementalBackup,
+          enableCompression: config.compression,
+          enableEncryption: config.encryption,
           crossRegionReplication: config.crossRegionReplication,
           backupBucket: config.backupBucket,
-          configuration: config,
+          frequency: 'CUSTOM', // Default frequency since it's required
           createdById: userId,
         },
       });
 
-      if (schedule.enabled) {
+      if (schedule.isActive) {
         await this.scheduleBackupJob(schedule);
       }
 
@@ -434,7 +434,7 @@ export class BackupLifecycleService {
   }> {
     try {
       const schedules = await this.prisma.backupSchedule.findMany({
-        where: { enabled: true },
+        where: { isActive: true },
       });
 
       let deletedBackups = 0;
@@ -545,7 +545,7 @@ export class BackupLifecycleService {
 
   private async loadScheduledBackups(): Promise<void> {
     const schedules = await this.prisma.backupSchedule.findMany({
-      where: { enabled: true },
+      where: { isActive: true },
     });
 
     for (const schedule of schedules) {
