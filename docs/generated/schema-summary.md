@@ -9,9 +9,9 @@
 ## Model Distribution by Category
 - **Core Infrastructure:** 17 models
 - **Personnel Management:** 6 models
-- **Other:** 100 models
+- **Other:** 94 models
 - **Material Management:** 10 models
-- **Production Management:** 20 models
+- **Production Management:** 26 models
 - **Quality Management:** 5 models
 - **Document Management:** 13 models
 - **Security & Access:** 10 models
@@ -374,4 +374,4 @@
 - **ToolDrawing:** 8 relationships
 
 ---
-Generated: 10/30/2025, 7:03:13 AM
+Generated: 10/30/2025, 9:59:11 AM

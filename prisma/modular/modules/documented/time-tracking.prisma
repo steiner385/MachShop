@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// TIME TRACKING MODULE
+// Time tracking and labor management
+// ====================================================================
+
+model TimeTrackingConfiguration {
+  id                     String                  @id @default(cuid())
+  siteId                 String                  @unique
+  timeTrackingEnabled    Boolean                 @default(true)
+  trackingGranularity    TimeTrackingGranularity @default(OPERATION)
+  costingModel           CostingModel            @default(LABOR_HOURS)
+  allowMultiTasking      Boolean                 @default(false)
+  multiTaskingMode       MultiTaskingMode?
+  autoSubtractBreaks     Boolean                 @default(false)
+  standardBreakMinutes   Int?
+  requireBreakClockOut   Boolean                 @default(false)
+  overtimeThresholdHours Float?                  @default(8.0)
+  warnOnOvertime         Boolean                 @default(true)
+  enableMachineTracking  Boolean                 @default(false)
+  autoStartFromMachine   Boolean                 @default(false)
+  autoStopFromMachine    Boolean                 @default(false)
+  requireTimeApproval    Boolean                 @default(true)
+  approvalFrequency      ApprovalFrequency       @default(DAILY)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  createdBy              String
+  site                   Site                    @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@map("time_tracking_configurations")
+}
+model LaborTimeEntry {
+  id                   String              @id @default(cuid())
+  userId               String
+  workOrderId          String?
+  operationId          String?
+  indirectCodeId       String?
+  timeType             TimeType
+  clockInTime          DateTime
+  clockOutTime         DateTime?
+  duration             Float?
+  entrySource          TimeEntrySource
+  deviceId             String?
+  location             String?
+  status               TimeEntryStatus     @default(ACTIVE)
+  approvedBy           String?
+  approvedAt           DateTime?
+  rejectionReason      String?
+  costCenter           String?
+  laborRate            Float?
+  laborCost            Float?
+  originalClockInTime  DateTime?
+  originalClockOutTime DateTime?
+  editedBy             String?
+  editedAt             DateTime?
+  editReason           String?
+  exportedToSystem     String?
+  exportedAt           DateTime?
+  externalReferenceId  String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  indirectCode         IndirectCostCode?   @relation(fields: [indirectCodeId], references: [id])
+  operation            WorkOrderOperation? @relation(fields: [operationId], references: [id])
+  user                 User                @relation(fields: [userId], references: [id])
+  workOrder            WorkOrder?          @relation(fields: [workOrderId], references: [id])
+
+  @@index([userId])
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([status])
+  @@index([clockInTime])
+  @@index([timeType])
+  @@map("labor_time_entries")
+}
+model TimeEntryValidationRule {
+  id           String                 @id @default(cuid())
+  ruleName     String
+  ruleType     TimeValidationRuleType
+  condition    String
+  errorMessage String
+  severity     String
+  isActive     Boolean                @default(true)
+  siteId       String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@index([ruleType])
+  @@index([siteId])
+  @@map("time_entry_validation_rules")
+}

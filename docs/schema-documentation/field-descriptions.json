@@ -212,5 +212,806 @@
       "dataSource": "Customer requirements and regulatory needs",
       "businessImpact": "Determines procurement requirements and supplier qualification needs"
     }
+  },
+  "WorkOrderOperation": {
+    "operationNumber": {
+      "description": "Sequential operation identifier within a work order defining the order of manufacturing steps",
+      "businessRule": "Must be unique within work order, typically increments by 10 (010, 020, 030) to allow insertions",
+      "dataSource": "Production engineering routing definition",
+      "format": "NNN format with leading zeros (010, 020, 030)",
+      "examples": [
+        "010 - First operation (often setup or preparation)",
+        "020 - Primary machining operation",
+        "030 - Secondary operation or inspection",
+        "999 - Final operation or completion step"
+      ],
+      "validation": "Must be numeric, unique within work order",
+      "businessImpact": "Defines production sequence and enables proper work flow control"
+    },
+    "operationName": {
+      "description": "Descriptive name of the manufacturing operation for shop floor identification",
+      "businessRule": "Must clearly identify the work to be performed for operator understanding",
+      "dataSource": "Engineering work instructions or standard operation descriptions",
+      "examples": [
+        "Rough Machining - Blade Profile",
+        "Dimensional Inspection - Critical Features",
+        "Heat Treatment - Stress Relief",
+        "Final Assembly - Hardware Installation"
+      ],
+      "businessImpact": "Provides clear operation identification for scheduling and execution"
+    },
+    "estimatedDuration": {
+      "description": "Planned time required to complete the operation including setup and processing",
+      "businessRule": "Based on time studies and includes both setup and run time",
+      "dataSource": "Industrial engineering time standards or historical data",
+      "format": "Decimal hours (e.g., 2.5 hours)",
+      "validation": "Must be positive number, reasonable for operation type",
+      "businessImpact": "Critical for production scheduling and capacity planning"
+    },
+    "actualStartTime": {
+      "description": "Timestamp when operation actually began on the shop floor",
+      "businessRule": "Set when operator starts work, cannot be changed once set",
+      "dataSource": "Shop floor data collection or operator entry",
+      "format": "ISO 8601 timestamp with timezone",
+      "auditTrail": "Tracked for labor efficiency and schedule variance analysis",
+      "businessImpact": "Enables real-time production tracking and performance measurement"
+    },
+    "qualityPlanRequired": {
+      "description": "Indicates whether quality inspection is required for this operation",
+      "businessRule": "Determined by part criticality and customer quality requirements",
+      "dataSource": "Quality engineering assessment and quality plan definition",
+      "businessImpact": "Ensures quality checkpoints are integrated into production flow"
+    }
+  },
+  "ProductionSchedule": {
+    "scheduleName": {
+      "description": "Human-readable identifier for the production schedule",
+      "businessRule": "Should include time period and area/equipment group for clarity",
+      "dataSource": "Production planning system or manual assignment",
+      "format": "Descriptive format including location and time period",
+      "examples": [
+        "Cell A - Week 43 2024",
+        "CNC Department - Daily Schedule 2024-10-21",
+        "Assembly Line 1 - Shift 1 Schedule"
+      ],
+      "businessImpact": "Provides clear identification for schedule communication and management"
+    },
+    "startDate": {
+      "description": "Start date for the scheduled production period",
+      "businessRule": "Must be current or future date, defines schedule validity period",
+      "dataSource": "Production planning system",
+      "format": "ISO 8601 date (YYYY-MM-DD)",
+      "validation": "Must be valid date, typically current or future",
+      "businessImpact": "Defines when scheduled work should begin execution"
+    },
+    "endDate": {
+      "description": "End date for the scheduled production period",
+      "businessRule": "Must be after start date, defines schedule completion target",
+      "dataSource": "Production planning system",
+      "format": "ISO 8601 date (YYYY-MM-DD)",
+      "validation": "Must be after start date",
+      "businessImpact": "Establishes deadline for scheduled work completion"
+    },
+    "utilizationTarget": {
+      "description": "Target equipment and labor utilization percentage for the schedule period",
+      "businessRule": "Typically set between 70-90% to allow for flexibility and maintenance",
+      "dataSource": "Production planning targets and capacity analysis",
+      "format": "Percentage (e.g., 85%)",
+      "validation": "Must be between 0% and 100%, typically 60-95%",
+      "businessImpact": "Balances productivity goals with operational flexibility"
+    },
+    "status": {
+      "description": "Current status of the production schedule in its lifecycle",
+      "businessRule": "Status progression: DRAFT → PUBLISHED → ACTIVE → COMPLETED",
+      "dataSource": "Production planning system workflow",
+      "validValues": [
+        "DRAFT - Schedule being developed, not yet finalized",
+        "PUBLISHED - Schedule finalized and communicated to shop floor",
+        "ACTIVE - Schedule currently being executed",
+        "COMPLETED - All scheduled work finished",
+        "CANCELLED - Schedule cancelled due to changes"
+      ],
+      "businessImpact": "Controls schedule visibility and execution authorization"
+    }
+  },
+  "ScheduleEntry": {
+    "startTime": {
+      "description": "Planned start time for the specific scheduled activity",
+      "businessRule": "Must be within the parent schedule's date range and not overlap with other entries for same resource",
+      "dataSource": "Production scheduling system optimization",
+      "format": "ISO 8601 timestamp with timezone (e.g., 2024-10-21T06:00:00Z)",
+      "validation": "Must be valid timestamp, cannot overlap with other entries for same equipment",
+      "businessImpact": "Defines precise timing for resource allocation and work execution"
+    },
+    "endTime": {
+      "description": "Planned completion time for the specific scheduled activity",
+      "businessRule": "Must be after start time, duration should match operation estimates",
+      "dataSource": "Calculated from start time plus estimated duration",
+      "format": "ISO 8601 timestamp with timezone",
+      "validation": "Must be after start time, reasonable duration",
+      "businessImpact": "Establishes resource availability for subsequent operations"
+    },
+    "setupTime": {
+      "description": "Time allocated for equipment setup and changeover before operation",
+      "businessRule": "Varies by operation type and previous setup, critical for realistic scheduling",
+      "dataSource": "Time standards and setup optimization data",
+      "format": "Decimal hours or minutes",
+      "examples": [
+        "0.5 hours - Simple tool change",
+        "2.0 hours - Complex fixture setup",
+        "0.25 hours - Material loading only"
+      ],
+      "businessImpact": "Ensures adequate time for proper equipment preparation"
+    },
+    "status": {
+      "description": "Current execution status of the scheduled entry",
+      "businessRule": "Status updates track progress from planning through completion",
+      "dataSource": "Shop floor data collection and operator input",
+      "validValues": [
+        "SCHEDULED - Planned but not yet started",
+        "READY - Prerequisites met, ready to start",
+        "IN_PROGRESS - Work currently being performed",
+        "COMPLETED - Work finished successfully",
+        "DELAYED - Behind schedule, needs attention",
+        "CANCELLED - Entry cancelled due to changes"
+      ],
+      "businessImpact": "Enables real-time production tracking and exception management"
+    },
+    "actualDuration": {
+      "description": "Actual time taken to complete the scheduled activity",
+      "businessRule": "Recorded when work is completed, used for schedule optimization",
+      "dataSource": "Time tracking system or operator entry",
+      "format": "Decimal hours",
+      "validation": "Must be positive, reasonable for operation type",
+      "auditTrail": "Critical for continuous improvement and future scheduling accuracy",
+      "businessImpact": "Provides feedback for improving schedule accuracy and identifying bottlenecks"
+    }
+  },
+  "Enterprise": {
+    "enterpriseCode": {
+      "description": "Unique alphanumeric identifier for the enterprise following corporate naming standards",
+      "businessRule": "Must be globally unique across all corporate entities and follow established naming convention",
+      "dataSource": "Corporate IT during enterprise setup or acquisition integration",
+      "format": "COMPANY-DIVISION format (e.g., ACME-AERO, MEDTECH-01)",
+      "examples": [
+        "ACME-AERO - Aerospace division of ACME Corporation",
+        "BOEING-COMM - Commercial aircraft division",
+        "GE-AVIATION - General Electric aviation unit"
+      ],
+      "validation": "Must be uppercase, alphanumeric with hyphens, 6-20 characters",
+      "businessImpact": "Primary reference for all corporate reporting, financial consolidation, and regulatory filings"
+    },
+    "enterpriseName": {
+      "description": "Official legal name of the enterprise as registered with regulatory authorities",
+      "businessRule": "Must match legal corporate registration documents exactly",
+      "dataSource": "Legal department and corporate registration documents",
+      "examples": [
+        "ACME Aerospace Corporation",
+        "Boeing Commercial Airplanes",
+        "General Electric Aviation"
+      ],
+      "validation": "Must match official corporate documents, required for legal compliance",
+      "complianceNotes": "Legal entity name required for contracts, regulatory filings, and financial reporting",
+      "businessImpact": "Used in all legal documents, contracts, and regulatory submissions"
+    },
+    "headquarters": {
+      "description": "Primary corporate headquarters location for legal and administrative purposes",
+      "businessRule": "Must reflect official corporate headquarters as filed with regulatory authorities",
+      "dataSource": "Corporate legal department and SEC filings",
+      "format": "City, State/Province, Country format",
+      "examples": [
+        "Seattle, WA, USA",
+        "Chicago, IL, USA",
+        "Toulouse, France"
+      ],
+      "complianceNotes": "Required for tax jurisdiction determination and regulatory compliance",
+      "businessImpact": "Determines tax obligations, regulatory requirements, and legal jurisdiction"
+    }
+  },
+  "Site": {
+    "siteCode": {
+      "description": "Unique identifier for manufacturing site following corporate site naming standards",
+      "businessRule": "Must be unique globally across all enterprise sites and follow geographic naming convention",
+      "dataSource": "Corporate facilities management and site operations",
+      "format": "LOCATION-NN format where LOCATION is 3-letter city code and NN is sequential number",
+      "examples": [
+        "ATL-01 - First site in Atlanta",
+        "DFW-02 - Second site in Dallas-Fort Worth area",
+        "SEA-03 - Third site in Seattle area"
+      ],
+      "validation": "Must follow corporate naming standard, be unique across enterprise",
+      "integrationMapping": {
+        "erpSystem": "PlantCode",
+        "facilityManagement": "SiteID"
+      },
+      "businessImpact": "Primary reference for all site-specific operations, scheduling, and reporting"
+    },
+    "siteName": {
+      "description": "Descriptive name of the manufacturing facility for operational identification",
+      "businessRule": "Should clearly identify the site's purpose and location for operational clarity",
+      "dataSource": "Site operations management and facilities planning",
+      "examples": [
+        "Atlanta Manufacturing Center",
+        "Dallas Assembly Plant",
+        "Seattle Engine Components Facility"
+      ],
+      "businessImpact": "Used in operational communications, shipping documents, and customer communications"
+    },
+    "location": {
+      "description": "Physical address or geographic location of the manufacturing site",
+      "businessRule": "Must be accurate for shipping, logistics, and emergency response coordination",
+      "dataSource": "Facilities management and logistics planning",
+      "format": "City, State/Province, Country or full street address",
+      "examples": [
+        "Atlanta, GA, USA",
+        "1234 Manufacturing Drive, Dallas, TX 75201, USA",
+        "Toulouse, Haute-Garonne, France"
+      ],
+      "validation": "Must be valid geographic location",
+      "businessImpact": "Critical for logistics, shipping, emergency response, and regulatory compliance"
+    },
+    "enterpriseId": {
+      "description": "Foreign key linking site to its parent enterprise organization",
+      "businessRule": "Must reference valid enterprise, cannot be changed without corporate approval",
+      "dataSource": "Corporate organizational structure and site ownership records",
+      "validation": "Must exist in Enterprise table, required for organizational hierarchy",
+      "businessImpact": "Defines corporate ownership and reporting hierarchy for financial and operational reporting"
+    }
+  },
+  "Area": {
+    "areaCode": {
+      "description": "Unique identifier for work area within the site following site area naming standards",
+      "businessRule": "Must be unique within site and follow functional area naming convention",
+      "dataSource": "Manufacturing engineering and production planning",
+      "format": "SITE-FUNCTION-NN format (e.g., ATL-MACH-01, DFW-ASSY-02)",
+      "examples": [
+        "ATL-MACH-01 - Machining area 1 in Atlanta",
+        "DFW-ASSY-02 - Assembly area 2 in Dallas",
+        "SEA-QC-01 - Quality control area in Seattle"
+      ],
+      "validation": "Must be unique within site, follow naming convention",
+      "businessImpact": "Primary reference for work scheduling, resource allocation, and performance tracking"
+    },
+    "areaName": {
+      "description": "Descriptive name of the work area for operational identification and communication",
+      "businessRule": "Should clearly describe the area's function and purpose for shop floor clarity",
+      "dataSource": "Manufacturing engineering and production supervision",
+      "examples": [
+        "CNC Machining Center A",
+        "Final Assembly Line 1",
+        "Quality Control Laboratory",
+        "Raw Material Storage"
+      ],
+      "businessImpact": "Used in work instructions, scheduling communications, and operator assignments"
+    },
+    "description": {
+      "description": "Detailed description of the area's purpose, capabilities, and operational characteristics",
+      "businessRule": "Should provide sufficient detail for resource planning and capability assessment",
+      "dataSource": "Manufacturing engineering specifications and operational documentation",
+      "examples": [
+        "High-precision CNC machining for aerospace components with 5-axis capability",
+        "Clean room assembly environment for medical device final assembly",
+        "Temperature-controlled measurement lab with calibrated inspection equipment"
+      ],
+      "businessImpact": "Used for capacity planning, capability assessment, and resource allocation decisions"
+    },
+    "siteId": {
+      "description": "Foreign key linking area to its parent site location",
+      "businessRule": "Must reference valid site, cannot be changed without manufacturing engineering approval",
+      "dataSource": "Site layout planning and manufacturing engineering",
+      "validation": "Must exist in Site table, required for site organizational hierarchy",
+      "businessImpact": "Defines site ownership and enables site-level reporting and capacity planning"
+    }
+  },
+  "MaterialLot": {
+    "lotNumber": {
+      "description": "Unique identifier for a specific lot or batch of material with complete traceability",
+      "businessRule": "Must be globally unique across all lots and follow lot numbering convention for traceability",
+      "dataSource": "Generated by materials management system upon receipt or internal lot creation",
+      "format": "MATERIAL-YYMMDD-NNN format (e.g., TI-240325-001)",
+      "examples": [
+        "TI-240325-001 - First titanium lot received March 25, 2024",
+        "SS-240320-005 - Fifth stainless steel lot received March 20, 2024",
+        "PEEK-240315-002 - Second PEEK polymer lot received March 15, 2024"
+      ],
+      "validation": "Must be unique globally, follow format standard, cannot be changed once assigned",
+      "auditTrail": "Critical for product traceability and recall procedures",
+      "businessImpact": "Primary reference for all material traceability, quality control, and regulatory compliance"
+    },
+    "supplierLotNumber": {
+      "description": "Original lot or batch number from the material supplier for upstream traceability",
+      "businessRule": "Must match supplier certification documents exactly for traceability continuity",
+      "dataSource": "Supplier documentation, material certificates, and packing lists",
+      "examples": [
+        "SUPP-TI-789456 - Supplier's internal titanium lot number",
+        "ACME-SS-2024-Q1-123 - Supplier quarterly batch identifier",
+        "MED-CERT-456789 - Medical grade material certificate number"
+      ],
+      "validation": "Must match supplier documentation, required for certified materials",
+      "integrationMapping": {
+        "supplierSystem": "BatchNumber",
+        "certificationSystem": "LotID"
+      },
+      "businessImpact": "Enables upstream traceability to supplier source and original certifications"
+    },
+    "expirationDate": {
+      "description": "Date when material lot expires or becomes unsuitable for use in production",
+      "businessRule": "Materials cannot be used after expiration date, system must enforce this restriction",
+      "dataSource": "Supplier specifications, material certificates, and shelf-life standards",
+      "format": "ISO 8601 date (YYYY-MM-DD)",
+      "validation": "Must be future date at time of receipt, enforced in production planning",
+      "complianceNotes": "Critical for aerospace and medical applications where expired materials are prohibited",
+      "businessImpact": "Prevents use of expired materials that could compromise product quality or safety"
+    },
+    "certificationLevel": {
+      "description": "Level of certification and compliance documentation associated with the material lot",
+      "businessRule": "Certification level must match or exceed requirements for intended use applications",
+      "dataSource": "Supplier certifications, quality management system, and regulatory requirements",
+      "validValues": [
+        "COMMERCIAL - Standard commercial grade material",
+        "AEROSPACE - AS9100 certified for aerospace applications",
+        "MEDICAL - FDA approved for medical device applications",
+        "NUCLEAR - Nuclear grade certified material",
+        "MILITARY - MIL-SPEC certified for defense applications"
+      ],
+      "validation": "Must be valid certification level, affects allowed usage",
+      "complianceNotes": "Certification level determines regulatory compliance and allowed applications",
+      "businessImpact": "Controls material usage based on application requirements and regulatory compliance"
+    }
+  },
+  "MaterialTransaction": {
+    "transactionType": {
+      "description": "Type of material movement or inventory transaction being recorded",
+      "businessRule": "Transaction type determines inventory impact and cost accounting treatment",
+      "dataSource": "Production control system, inventory management, and shop floor transactions",
+      "validValues": [
+        "RECEIPT - Material received into inventory from supplier",
+        "ISSUE - Material issued from inventory to production",
+        "RETURN - Unused material returned to inventory from production",
+        "TRANSFER - Material moved between locations or lots",
+        "ADJUSTMENT - Inventory correction or cycle count adjustment",
+        "SCRAP - Material scrapped or written off as waste"
+      ],
+      "validation": "Must be valid transaction type with proper authorization",
+      "auditTrail": "All transactions logged for financial and regulatory audit compliance",
+      "businessImpact": "Determines inventory valuation, cost allocation, and material availability"
+    },
+    "quantity": {
+      "description": "Amount of material involved in the transaction with appropriate units of measure",
+      "businessRule": "Quantity must be positive for receipts/issues, can be negative for returns/adjustments",
+      "dataSource": "Physical measurement, scale readings, or count verification",
+      "format": "Decimal number with unit of measure (lbs, kg, pieces, etc.)",
+      "examples": [
+        "25.5 lbs - Weight-based materials like metals",
+        "100 pieces - Count-based materials like fasteners",
+        "2.5 m³ - Volume-based materials like composites"
+      ],
+      "validation": "Must be positive for normal transactions, match physical verification",
+      "businessImpact": "Affects inventory levels, cost calculations, and material availability for production"
+    },
+    "unitCost": {
+      "description": "Cost per unit of material for the transaction used in inventory valuation",
+      "businessRule": "Unit cost must reflect actual procurement cost or standard cost as defined by policy",
+      "dataSource": "Purchase orders, supplier invoices, or standard costing system",
+      "format": "Currency amount per unit of measure",
+      "validation": "Must be reasonable for material type, requires approval for large variances",
+      "privacy": "Financial information - restricted to authorized cost accounting personnel",
+      "businessImpact": "Determines inventory valuation, cost of goods sold, and material cost allocation"
+    },
+    "authorizedBy": {
+      "description": "User who authorized the material transaction with appropriate permission level",
+      "businessRule": "Transaction authorization required based on value thresholds and transaction type",
+      "dataSource": "User authentication system and authorization workflow",
+      "validation": "Must be valid user with appropriate authorization level for transaction type",
+      "auditTrail": "Authorization tracked for accountability and audit compliance",
+      "businessImpact": "Ensures proper control over material movements and inventory changes"
+    }
+  },
+  "Role": {
+    "roleName": {
+      "description": "Unique name identifier for the role following corporate role naming standards",
+      "businessRule": "Must be unique across the system and follow role naming convention for clarity",
+      "dataSource": "Security administration and human resources role definitions",
+      "format": "DEPARTMENT_FUNCTION format (e.g., PRODUCTION_OPERATOR, QUALITY_ENGINEER)",
+      "examples": [
+        "PRODUCTION_OPERATOR - Shop floor production worker",
+        "QUALITY_ENGINEER - Quality control and inspection authority",
+        "MAINTENANCE_TECHNICIAN - Equipment maintenance and repair",
+        "PLANT_MANAGER - Site-level management authority"
+      ],
+      "validation": "Must be unique, alphanumeric with underscores, all uppercase",
+      "businessImpact": "Primary identifier for role-based access control and security management"
+    },
+    "description": {
+      "description": "Detailed description of the role's responsibilities and scope of authority",
+      "businessRule": "Should clearly define role responsibilities for security and compliance purposes",
+      "dataSource": "Human resources job descriptions and security policy documentation",
+      "examples": [
+        "Authorized to perform production operations and data entry",
+        "Quality inspection authority with approval permissions",
+        "Equipment maintenance with safety lockout authority"
+      ],
+      "businessImpact": "Provides clear understanding of role scope for access control decisions"
+    },
+    "permissions": {
+      "description": "Array of permission identifiers that define what actions this role can perform",
+      "businessRule": "Permissions must follow principle of least privilege and be regularly reviewed",
+      "dataSource": "Security policy and role-based access control matrix",
+      "examples": [
+        "['READ_WORK_ORDERS', 'UPDATE_PRODUCTION_DATA'] - Production operator permissions",
+        "['READ_QUALITY_PLANS', 'APPROVE_INSPECTIONS'] - Quality engineer permissions",
+        "['READ_ALL_DATA', 'MANAGE_USERS'] - Administrative permissions"
+      ],
+      "validation": "All permissions must exist in Permission table",
+      "complianceNotes": "Permission assignments must be auditable for SOX and security compliance",
+      "businessImpact": "Determines system access levels and operational capabilities"
+    },
+    "isActive": {
+      "description": "Indicates whether the role is currently active and available for assignment",
+      "businessRule": "Inactive roles cannot be assigned to users but existing assignments remain for audit trail",
+      "dataSource": "Security administration and role lifecycle management",
+      "validation": "Boolean field, defaults to true for new roles",
+      "businessImpact": "Controls role availability while maintaining audit history"
+    }
+  },
+  "Permission": {
+    "permissionName": {
+      "description": "Unique identifier for the specific system permission or access right",
+      "businessRule": "Must be unique and follow permission naming convention for consistency",
+      "dataSource": "Security policy definitions and system access control requirements",
+      "format": "ACTION_RESOURCE format (e.g., READ_WORK_ORDERS, APPROVE_QUALITY_PLANS)",
+      "examples": [
+        "READ_WORK_ORDERS - View work order information",
+        "UPDATE_PRODUCTION_DATA - Modify production records",
+        "APPROVE_QUALITY_PLANS - Quality plan approval authority",
+        "MANAGE_USERS - User administration permissions"
+      ],
+      "validation": "Must be unique, alphanumeric with underscores, all uppercase",
+      "businessImpact": "Granular access control for system security and compliance"
+    },
+    "resource": {
+      "description": "System resource or data entity that this permission controls access to",
+      "businessRule": "Must correspond to actual system resources and data models",
+      "dataSource": "System architecture and data model definitions",
+      "examples": [
+        "WORK_ORDERS - Work order data and operations",
+        "QUALITY_PLANS - Quality control plans and inspections",
+        "USER_MANAGEMENT - User accounts and role assignments",
+        "EQUIPMENT - Equipment data and control"
+      ],
+      "businessImpact": "Defines scope of access control for data protection"
+    },
+    "action": {
+      "description": "Specific action or operation that this permission allows on the resource",
+      "businessRule": "Actions must be clearly defined to prevent unauthorized access",
+      "dataSource": "Security policy and functional requirement specifications",
+      "validValues": [
+        "READ - View and retrieve data",
+        "CREATE - Add new records",
+        "UPDATE - Modify existing records",
+        "DELETE - Remove records",
+        "APPROVE - Approval authority",
+        "EXECUTE - Execute operations or processes"
+      ],
+      "businessImpact": "Precise control over what users can do with system resources"
+    },
+    "description": {
+      "description": "Human-readable description of what this permission allows users to do",
+      "businessRule": "Should be clear enough for role administrators to make informed assignment decisions",
+      "dataSource": "Security documentation and user training materials",
+      "examples": [
+        "Allows viewing of all work order details and status information",
+        "Grants authority to approve quality inspection results",
+        "Enables creation and modification of user accounts"
+      ],
+      "businessImpact": "Facilitates proper permission assignment and security training"
+    }
+  },
+  "UserSiteRole": {
+    "userId": {
+      "description": "Foreign key reference to the user being assigned a site-specific role",
+      "businessRule": "Must reference valid active user account",
+      "dataSource": "User management system and role assignment workflow",
+      "validation": "Must exist in User table, user must be active",
+      "businessImpact": "Links users to their site-specific access rights and responsibilities"
+    },
+    "siteId": {
+      "description": "Foreign key reference to the specific site where this role assignment applies",
+      "businessRule": "Role assignment is site-specific to control access by location",
+      "dataSource": "Site organization structure and security policies",
+      "validation": "Must exist in Site table",
+      "businessImpact": "Enables site-specific access control for multi-site operations"
+    },
+    "roleName": {
+      "description": "Name of the role being assigned to the user at this specific site",
+      "businessRule": "Role must be appropriate for the site's operational requirements",
+      "dataSource": "Role definitions and site-specific access requirements",
+      "validation": "Must exist in Role table and be active",
+      "businessImpact": "Determines user's access level and responsibilities at specific site"
+    },
+    "assignedBy": {
+      "description": "User who authorized and created this role assignment",
+      "businessRule": "Assigning user must have role management permissions for the target site",
+      "dataSource": "User management workflow and authorization system",
+      "validation": "Must be valid user with appropriate administrative permissions",
+      "auditTrail": "Critical for security audit and role assignment accountability",
+      "businessImpact": "Provides accountability for role assignment decisions"
+    },
+    "assignedAt": {
+      "description": "Timestamp when the role assignment was created",
+      "businessRule": "Automatically set when assignment is created, cannot be modified",
+      "dataSource": "System timestamp at assignment creation",
+      "format": "ISO 8601 timestamp with timezone",
+      "auditTrail": "Required for security audit and compliance reporting",
+      "businessImpact": "Enables tracking of role assignment timeline for security analysis"
+    },
+    "effectiveFrom": {
+      "description": "Date when this role assignment becomes active and permissions are granted",
+      "businessRule": "Can be future date for planned assignments, cannot be past for new assignments",
+      "dataSource": "Assignment workflow and effective date specification",
+      "format": "ISO 8601 date (YYYY-MM-DD)",
+      "validation": "Cannot be more than 90 days in the future",
+      "businessImpact": "Enables scheduled role assignments and planned access changes"
+    },
+    "effectiveTo": {
+      "description": "Date when this role assignment expires and permissions are revoked",
+      "businessRule": "Optional for permanent assignments, required for temporary access",
+      "dataSource": "Assignment workflow and access duration policies",
+      "format": "ISO 8601 date (YYYY-MM-DD)",
+      "validation": "Must be after effectiveFrom date if specified",
+      "complianceNotes": "Temporary access assignments required for audit compliance",
+      "businessImpact": "Automatically revokes access to prevent unauthorized continued access"
+    }
+  },
+  "PermissionChangeLog": {
+    "userId": {
+      "description": "User whose permissions were modified in this change event",
+      "businessRule": "Must reference valid user account for audit trail integrity",
+      "dataSource": "User management system and permission change workflow",
+      "validation": "Must exist in User table",
+      "auditTrail": "Critical for security audit and permission change tracking",
+      "businessImpact": "Identifies who was affected by permission changes"
+    },
+    "changeType": {
+      "description": "Type of permission change that was performed",
+      "businessRule": "Must accurately reflect the nature of the permission change",
+      "dataSource": "Permission management system and change workflow",
+      "validValues": [
+        "GRANT - Permission was granted to user",
+        "REVOKE - Permission was removed from user",
+        "MODIFY - Permission scope or details were changed",
+        "SUSPEND - Permission temporarily disabled",
+        "RESTORE - Previously suspended permission reactivated"
+      ],
+      "auditTrail": "Required for security compliance and access reviews",
+      "businessImpact": "Enables tracking of permission lifecycle and security posture"
+    },
+    "permissionName": {
+      "description": "Name of the specific permission that was changed",
+      "businessRule": "Must reference valid system permission",
+      "dataSource": "Permission definitions and change management workflow",
+      "validation": "Must correspond to valid permission in system",
+      "businessImpact": "Identifies specific access right that was modified"
+    },
+    "oldValue": {
+      "description": "Previous permission configuration before the change",
+      "businessRule": "Must accurately capture the prior state for change tracking",
+      "dataSource": "Permission management system state before change",
+      "format": "JSON structure containing previous permission details",
+      "auditTrail": "Essential for rollback capabilities and audit compliance",
+      "businessImpact": "Enables understanding of what access was previously available"
+    },
+    "newValue": {
+      "description": "New permission configuration after the change",
+      "businessRule": "Must accurately reflect the updated permission state",
+      "dataSource": "Permission management system state after change",
+      "format": "JSON structure containing updated permission details",
+      "auditTrail": "Required for current state verification and audit compliance",
+      "businessImpact": "Documents what access is now available to the user"
+    },
+    "changedBy": {
+      "description": "User who authorized and performed the permission change",
+      "businessRule": "Must have appropriate administrative permissions to make the change",
+      "dataSource": "User authentication and authorization system",
+      "validation": "Must be valid user with permission management authority",
+      "auditTrail": "Critical for accountability and security investigation",
+      "businessImpact": "Provides responsibility tracking for permission management"
+    },
+    "changeReason": {
+      "description": "Business justification or reason for the permission change",
+      "businessRule": "Required for significant permission changes for audit compliance",
+      "dataSource": "Change request documentation and approval workflow",
+      "examples": [
+        "Role change - promoted to supervisor",
+        "Project assignment - temporary elevated access",
+        "Security incident - access revoked pending investigation",
+        "Compliance review - access aligned with job requirements"
+      ],
+      "complianceNotes": "Required documentation for SOX and security audit compliance",
+      "businessImpact": "Justifies permission changes for compliance and security review"
+    }
+  },
+  "LaborTimeEntry": {
+    "clockInTime": {
+      "description": "Timestamp when the operator clocked in to start work on the assigned task or operation",
+      "businessRule": "Must be valid timestamp, cannot be future time, creates labor time tracking record",
+      "dataSource": "Shop floor terminals, badge scanners, or mobile time tracking applications",
+      "format": "ISO 8601 timestamp with timezone (e.g., 2024-10-30T08:00:00Z)",
+      "validation": "Cannot be future time, must be reasonable for shift timing",
+      "auditTrail": "Critical for labor cost tracking and compliance reporting",
+      "businessImpact": "Determines start of billable labor time for cost accounting and payroll"
+    },
+    "clockOutTime": {
+      "description": "Timestamp when the operator clocked out after completing work on the assigned task",
+      "businessRule": "Must be after clock in time, creates completed labor time record",
+      "dataSource": "Shop floor terminals, badge scanners, or mobile time tracking applications",
+      "format": "ISO 8601 timestamp with timezone",
+      "validation": "Must be after clockInTime, cannot be future time",
+      "businessImpact": "Determines end of billable labor time and calculates total work duration"
+    },
+    "laborCategory": {
+      "description": "Category of labor being performed for cost allocation and reporting purposes",
+      "businessRule": "Must correspond to valid labor categories defined in cost accounting system",
+      "dataSource": "Labor management system and cost accounting category definitions",
+      "validValues": [
+        "DIRECT_LABOR - Direct production labor charged to work orders",
+        "INDIRECT_LABOR - Indirect activities like setup, cleaning, training",
+        "MAINTENANCE - Equipment maintenance and repair activities",
+        "QUALITY - Quality inspection and testing activities",
+        "SETUP - Machine setup and changeover activities",
+        "REWORK - Rework and correction activities"
+      ],
+      "businessImpact": "Determines how labor costs are allocated and reported for financial analysis"
+    },
+    "workOrderId": {
+      "description": "Foreign key reference to the work order this labor time is charged against",
+      "businessRule": "Required for direct labor entries, optional for indirect labor activities",
+      "dataSource": "Production planning system and work order assignment",
+      "validation": "Must exist in WorkOrder table if specified",
+      "businessImpact": "Links labor costs to specific production jobs for accurate costing"
+    },
+    "operationId": {
+      "description": "Foreign key reference to the specific operation within the work order",
+      "businessRule": "Provides granular tracking of labor time by operation step",
+      "dataSource": "Work order operation definitions and routing specifications",
+      "validation": "Must exist in WorkOrderOperation table if specified",
+      "businessImpact": "Enables detailed operation-level labor cost analysis and efficiency tracking"
+    },
+    "userId": {
+      "description": "Foreign key reference to the user/operator who performed the work",
+      "businessRule": "Must reference valid active user account for accountability",
+      "dataSource": "User authentication and badge scanning systems",
+      "validation": "Must exist in User table and user must be active",
+      "businessImpact": "Provides individual productivity tracking and payroll allocation"
+    },
+    "laborRate": {
+      "description": "Hourly labor rate applied to this time entry for cost calculation",
+      "businessRule": "Must reflect current rate structure based on operator skill level and shift",
+      "dataSource": "Human resources rate tables and labor contract specifications",
+      "format": "Currency amount per hour",
+      "validation": "Must be positive value, reasonable for labor category",
+      "privacy": "Confidential payroll information - restricted access",
+      "businessImpact": "Determines labor cost for work order costing and financial reporting"
+    },
+    "actualHours": {
+      "description": "Calculated total hours worked based on clock in/out times",
+      "businessRule": "Automatically calculated from clockInTime and clockOutTime",
+      "dataSource": "System calculation based on time entry timestamps",
+      "format": "Decimal hours (e.g., 8.5 for 8 hours 30 minutes)",
+      "validation": "Must be positive, reasonable for shift length",
+      "businessImpact": "Used for payroll calculation and labor efficiency analysis"
+    }
+  },
+  "TimeTrackingConfiguration": {
+    "siteId": {
+      "description": "Foreign key reference to the site where this time tracking configuration applies",
+      "businessRule": "Each site can have unique time tracking rules and requirements",
+      "dataSource": "Site operations management and time tracking policy",
+      "validation": "Must exist in Site table",
+      "businessImpact": "Enables site-specific time tracking policies for multi-site operations"
+    },
+    "requiresClockIn": {
+      "description": "Boolean flag indicating whether operators must clock in before starting work",
+      "businessRule": "Enforces time tracking compliance based on site policy",
+      "dataSource": "Site time tracking policy and labor management requirements",
+      "validation": "Boolean field, affects time entry validation",
+      "businessImpact": "Controls time tracking enforcement for labor cost accuracy"
+    },
+    "allowsMobileEntry": {
+      "description": "Boolean flag indicating whether time entries can be made from mobile devices",
+      "businessRule": "Controls time entry methods based on site security and policy",
+      "dataSource": "IT security policy and mobile device management",
+      "validation": "Boolean field, affects available time entry methods",
+      "businessImpact": "Enables flexible time tracking while maintaining security compliance"
+    },
+    "gracePeriodMinutes": {
+      "description": "Number of minutes allowed for late clock-in without penalty",
+      "businessRule": "Provides flexibility for normal operational variations",
+      "dataSource": "Human resources policy and labor agreement specifications",
+      "format": "Integer minutes (e.g., 5, 10, 15)",
+      "validation": "Must be non-negative, typically 0-30 minutes",
+      "businessImpact": "Balances operational flexibility with time tracking accuracy"
+    },
+    "overtimeThresholdHours": {
+      "description": "Number of hours per day after which overtime rules apply",
+      "businessRule": "Must comply with labor regulations and union agreements",
+      "dataSource": "Labor law requirements and collective bargaining agreements",
+      "format": "Decimal hours (e.g., 8.0, 10.0, 12.0)",
+      "validation": "Must be positive, typically 8-12 hours",
+      "complianceNotes": "Must comply with Fair Labor Standards Act and local labor laws",
+      "businessImpact": "Determines overtime calculation for payroll and cost management"
+    },
+    "breakRules": {
+      "description": "JSON configuration defining break requirements and policies",
+      "businessRule": "Must comply with labor regulations for mandatory breaks",
+      "dataSource": "Labor law requirements and company break policies",
+      "format": "JSON structure with break timing and duration rules",
+      "examples": [
+        "{'required_breaks': [{'duration': 15, 'after_hours': 4}]} - 15 min break after 4 hours",
+        "{'lunch_break': {'duration': 30, 'required': true}} - Mandatory 30 min lunch"
+      ],
+      "complianceNotes": "Break policies must comply with state and federal labor regulations",
+      "businessImpact": "Ensures compliance with labor laws and maintains operator productivity"
+    }
+  },
+  "MachineTimeEntry": {
+    "equipmentId": {
+      "description": "Foreign key reference to the equipment/machine for which time is being tracked",
+      "businessRule": "Must reference valid equipment that supports time tracking",
+      "dataSource": "Equipment management system and time tracking integration",
+      "validation": "Must exist in Equipment table",
+      "businessImpact": "Links machine utilization to specific equipment for efficiency analysis"
+    },
+    "startTime": {
+      "description": "Timestamp when the machine started operating or processing",
+      "businessRule": "Automatically captured from machine control systems or manually entered",
+      "dataSource": "Machine control systems, PLCs, or operator entry",
+      "format": "ISO 8601 timestamp with timezone",
+      "validation": "Cannot be future time, must be reasonable for operation",
+      "businessImpact": "Tracks machine utilization for capacity planning and OEE calculation"
+    },
+    "endTime": {
+      "description": "Timestamp when the machine stopped operating or completed processing",
+      "businessRule": "Must be after start time, indicates completion of machine cycle",
+      "dataSource": "Machine control systems, PLCs, or operator entry",
+      "format": "ISO 8601 timestamp with timezone",
+      "validation": "Must be after startTime",
+      "businessImpact": "Calculates actual machine run time for efficiency and costing analysis"
+    },
+    "machineState": {
+      "description": "State of the machine during this time period",
+      "businessRule": "Must accurately reflect machine operational status",
+      "dataSource": "Machine control systems and operator status updates",
+      "validValues": [
+        "RUNNING - Machine actively processing parts",
+        "SETUP - Machine being set up or changed over",
+        "IDLE - Machine available but not running",
+        "MAINTENANCE - Machine undergoing maintenance",
+        "DOWN - Machine experiencing unplanned downtime",
+        "QUALITY_HOLD - Machine stopped for quality issues"
+      ],
+      "businessImpact": "Enables OEE calculation and downtime analysis for continuous improvement"
+    },
+    "cycleCount": {
+      "description": "Number of machine cycles or parts processed during this time period",
+      "businessRule": "Must be non-negative integer representing actual production output",
+      "dataSource": "Machine counters, sensors, or operator counting",
+      "format": "Integer count of cycles or parts",
+      "validation": "Must be non-negative, reasonable for time period",
+      "businessImpact": "Measures actual production output for efficiency and capacity analysis"
+    },
+    "downtime_reason": {
+      "description": "Reason code for machine downtime or non-productive time",
+      "businessRule": "Required when machine state indicates downtime or issues",
+      "dataSource": "Operator entry and maintenance management system",
+      "examples": [
+        "TOOL_CHANGE - Scheduled tool replacement",
+        "MATERIAL_SHORTAGE - Waiting for materials",
+        "QUALITY_ISSUE - Product quality problems",
+        "EQUIPMENT_FAILURE - Unplanned equipment failure",
+        "CHANGEOVER - Product or job changeover"
+      ],
+      "businessImpact": "Identifies root causes of production losses for improvement initiatives"
+    }
   }
 }

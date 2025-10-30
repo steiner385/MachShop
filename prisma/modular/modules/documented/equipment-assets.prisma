@@ -1,0 +1,458 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// EQUIPMENT ASSETS MODULE
+// Equipment, tools, and physical assets
+// ====================================================================
+
+model WorkCenter {
+  id                   String                          @id @default(cuid())
+  name                 String                          @unique
+  description          String?
+  capacity             Float?
+  areaId               String?
+  isActive             Boolean                         @default(true)
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  dispatchLogs         DispatchLog[]                   @relation("DispatchWorkCenter")
+  equipment            Equipment[]
+  personnelAssignments PersonnelWorkCenterAssignment[]
+  operations           RoutingOperation[]
+  routingSteps         RoutingStep[]
+  scheduleEntries      ScheduleEntry[]
+  area                 Area?                           @relation(fields: [areaId], references: [id])
+  workUnits            WorkUnit[]
+
+  @@index([areaId])
+  @@map("work_centers")
+}
+/**
+ * Manufacturing equipment and machinery used in production operations with capability and status tracking
+ *
+ * @businessPurpose Manages shop floor assets including machines, tools, and measurement devices to optimize utilization and ensure capability
+ * @dataOwner Manufacturing Engineering Team
+ * @updateFrequency Real-time for status updates, periodic for capability assessments
+ * @complianceNotes Calibration records required for measurement equipment (ISO 17025). Maintenance logs for safety compliance
+ * @dataRetention Equipment lifetime plus 10 years for warranty and safety records
+ * @securityClassification Internal - Contains equipment capabilities and performance data
+ * @integrations Equipment Controllers, Maintenance Management, Calibration System, Production Scheduling
+ * @relatedTables EquipmentCapability, EquipmentLog, WorkCenter, Operation
+ *
+ * @examples
+ * - CNC machining center for precision parts: Primary machining equipment for aerospace components
+ *
+ * @commonQueries
+ * - Find available equipment for specific operation types
+ * - Generate equipment utilization reports
+ * - Track equipment maintenance schedules and compliance
+ */
+model Equipment {
+  id                         String                      @id @default(cuid())
+  equipmentNumber            String                      @unique
+  name                       String
+  description                String?
+  equipmentClass             EquipmentClass
+  equipmentType              String?
+  equipmentLevel             Int                         @default(1)
+  parentEquipmentId          String?
+  manufacturer               String?
+  model                      String?
+  serialNumber               String?
+  installDate                DateTime?
+  commissionDate             DateTime?
+  siteId                     String?
+  areaId                     String?
+  workCenterId               String?
+  workUnitId                 String?
+  status                     EquipmentStatus
+  currentState               EquipmentState              @default(IDLE)
+  stateChangedAt             DateTime                    @default(now())
+  utilizationRate            Float?                      @default(0)
+  availability               Float?                      @default(0)
+  performance                Float?                      @default(0)
+  quality                    Float?                      @default(0)
+  oee                        Float?                      @default(0)
+  ratedCapacity              Float?
+  currentCapacity            Float?
+  isActive                   Boolean                     @default(true)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  area                       Area?                       @relation(fields: [areaId], references: [id])
+  parentEquipment            Equipment?                  @relation("EquipmentHierarchy", fields: [parentEquipmentId], references: [id])
+  childEquipment             Equipment[]                 @relation("EquipmentHierarchy")
+  site                       Site?                       @relation(fields: [siteId], references: [id])
+  workCenter                 WorkCenter?                 @relation(fields: [workCenterId], references: [id])
+  workUnit                   WorkUnit?                   @relation(fields: [workUnitId], references: [id])
+  capabilities               EquipmentCapability[]
+  equipmentCommands          EquipmentCommand[]
+  equipmentDataCollections   EquipmentDataCollection[]
+  logs                       EquipmentLog[]
+  equipmentMaterialMovements EquipmentMaterialMovement[]
+  performanceData            EquipmentPerformanceLog[]
+  stateHistory               EquipmentStateHistory[]
+  machineTimeEntries         MachineTimeEntry[]
+  maintenanceWorkOrders      MaintenanceWorkOrder[]
+  processDataCollections     ProcessDataCollection[]
+  productionScheduleRequests ProductionScheduleRequest[]
+
+  @@index([parentEquipmentId])
+  @@index([workUnitId])
+  @@index([workCenterId])
+  @@index([areaId])
+  @@index([siteId])
+  @@index([currentState])
+  @@index([equipmentClass])
+  @@map("equipment")
+}
+model EquipmentCapability {
+  id             String    @id @default(cuid())
+  equipmentId    String
+  capabilityType String
+  capability     String
+  description    String?
+  parameters     Json?
+  certifiedDate  DateTime?
+  expiryDate     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([capabilityType])
+  @@index([capability])
+  @@map("equipment_capabilities")
+}
+model EquipmentLog {
+  id          String           @id @default(cuid())
+  equipmentId String
+  logType     EquipmentLogType
+  description String
+  userId      String?
+  loggedAt    DateTime         @default(now())
+  equipment   Equipment        @relation(fields: [equipmentId], references: [id])
+  user        User?            @relation(fields: [userId], references: [id])
+
+  @@map("equipment_logs")
+}
+model EquipmentStateHistory {
+  id             String          @id @default(cuid())
+  equipmentId    String
+  previousState  EquipmentState?
+  newState       EquipmentState
+  reason         String?
+  changedBy      String?
+  stateStartTime DateTime        @default(now())
+  stateEndTime   DateTime?
+  duration       Int?
+  workOrderId    String?
+  operationId    String?
+  downtime       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  equipment      Equipment       @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId])
+  @@index([stateStartTime])
+  @@index([newState])
+  @@map("equipment_state_history")
+}
+model EquipmentPerformanceLog {
+  id                    String                @id @default(cuid())
+  equipmentId           String
+  periodStart           DateTime
+  periodEnd             DateTime
+  periodType            PerformancePeriodType @default(SHIFT)
+  plannedProductionTime Int
+  operatingTime         Int
+  downtime              Int
+  availability          Float
+  idealCycleTime        Float?
+  actualCycleTime       Float?
+  totalUnitsProduced    Int
+  targetProduction      Int?
+  performance           Float
+  goodUnits             Int
+  rejectedUnits         Int
+  scrapUnits            Int
+  reworkUnits           Int
+  quality               Float
+  oee                   Float
+  workOrderId           String?
+  partId                String?
+  operatorId            String?
+  teep                  Float?
+  utilizationRate       Float?
+  notes                 String?
+  hasAnomalies          Boolean               @default(false)
+  createdAt             DateTime              @default(now())
+  calculatedAt          DateTime              @default(now())
+  equipment             Equipment             @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId])
+  @@index([periodStart])
+  @@index([periodType])
+  @@index([oee])
+  @@map("equipment_performance_logs")
+}
+model EquipmentDataCollection {
+  id                  String             @id @default(cuid())
+  equipmentId         String
+  dataCollectionType  DataCollectionType
+  collectionTimestamp DateTime           @default(now())
+  dataPointName       String
+  dataPointId         String?
+  numericValue        Float?
+  stringValue         String?
+  booleanValue        Boolean?
+  jsonValue           Json?
+  unitOfMeasure       String?
+  quality             String?
+  workOrderId         String?
+  operationId         String?
+  productionRunId     String?
+  equipmentState      String?
+  protocol            String?
+  sourceAddress       String?
+  createdAt           DateTime           @default(now())
+  equipment           Equipment          @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder           WorkOrder?         @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([dataCollectionType])
+  @@index([collectionTimestamp])
+  @@index([workOrderId])
+  @@index([dataPointName])
+  @@map("equipment_data_collections")
+}
+model EquipmentCommand {
+  id              String        @id @default(cuid())
+  equipmentId     String
+  commandType     CommandType
+  commandStatus   CommandStatus @default(PENDING)
+  commandName     String
+  commandPayload  Json?
+  workOrderId     String?
+  operationId     String?
+  issuedAt        DateTime      @default(now())
+  sentAt          DateTime?
+  acknowledgedAt  DateTime?
+  completedAt     DateTime?
+  responsePayload Json?
+  responseCode    String?
+  responseMessage String?
+  timeoutSeconds  Int           @default(30)
+  retryCount      Int           @default(0)
+  maxRetries      Int           @default(3)
+  priority        Int           @default(5)
+  issuedBy        String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  equipment       Equipment     @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder       WorkOrder?    @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([commandType])
+  @@index([commandStatus])
+  @@index([workOrderId])
+  @@index([issuedAt])
+  @@index([priority])
+  @@map("equipment_commands")
+}
+model EquipmentMaterialMovement {
+  id                String     @id @default(cuid())
+  equipmentId       String
+  partId            String?
+  partNumber        String
+  lotNumber         String?
+  serialNumber      String?
+  movementType      String
+  quantity          Float
+  unitOfMeasure     String
+  movementTimestamp DateTime   @default(now())
+  workOrderId       String?
+  operationId       String?
+  fromLocation      String?
+  toLocation        String?
+  qualityStatus     String?
+  upstreamTraceId   String?
+  downstreamTraceId String?
+  recordedBy        String
+  createdAt         DateTime   @default(now())
+  equipment         Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  part              Part?      @relation(fields: [partId], references: [id])
+  workOrder         WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([partId])
+  @@index([partNumber])
+  @@index([lotNumber])
+  @@index([serialNumber])
+  @@index([workOrderId])
+  @@index([movementTimestamp])
+  @@index([movementType])
+  @@map("equipment_material_movements")
+}
+model ToolDrawing {
+  id                   String                  @id @default(cuid())
+  documentNumber       String                  @unique
+  title                String
+  description          String?
+  version              String                  @default("1.0.0")
+  status               WorkInstructionStatus   @default(DRAFT)
+  effectiveDate        DateTime?
+  supersededDate       DateTime?
+  ecoNumber            String?
+  toolType             ToolType
+  toolSubtype          String?
+  dimensions           Json?
+  material             String?
+  weight               Float?
+  weightUnit           String?
+  vendorId             String?
+  vendorName           String?
+  vendorPartNumber     String?
+  catalogNumber        String?
+  cost                 Float?
+  costCurrency         String?
+  applicablePartIds    String[]
+  applicableOperations String[]
+  usageInstructions    String?
+  maintenanceProcedure String?
+  requiresCalibration  Boolean                 @default(false)
+  calibrationInterval  Int?
+  lastCalibrationDate  DateTime?
+  nextCalibrationDate  DateTime?
+  storageLocation      String?
+  quantityOnHand       Int?
+  minimumQuantity      Int?
+  cadFileUrls          String[]
+  imageUrls            String[]
+  videoUrls            String[]
+  attachmentUrls       String[]
+  tags                 String[]
+  categories           String[]
+  keywords             String[]
+  thumbnailUrl         String?
+  parentVersionId      String?
+  approvalWorkflowId   String?
+  approvedById         String?
+  approvedAt           DateTime?
+  approvalHistory      Json?
+  isActive             Boolean                 @default(true)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  createdById          String
+  updatedById          String
+  calibrationRecords   ToolCalibrationRecord[]
+  approvedBy           User?                   @relation("ToolDrawingApprovedBy", fields: [approvedById], references: [id])
+  createdBy            User                    @relation("ToolDrawingCreatedBy", fields: [createdById], references: [id])
+  parentVersion        ToolDrawing?            @relation("ToolDrawingVersionHistory", fields: [parentVersionId], references: [id])
+  childVersions        ToolDrawing[]           @relation("ToolDrawingVersionHistory")
+  updatedBy            User                    @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
+  maintenanceRecords   ToolMaintenanceRecord[]
+  usageLogs            ToolUsageLog[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([toolType])
+  @@index([vendorId])
+  @@index([nextCalibrationDate])
+  @@map("tool_drawings")
+}
+model ToolMaintenanceRecord {
+  id                  String          @id @default(cuid())
+  toolDrawingId       String
+  maintenanceDate     DateTime
+  performedById       String
+  performedByName     String
+  maintenanceType     MaintenanceType
+  description         String
+  partsReplaced       Json?
+  cost                Float?
+  toolConditionBefore String?
+  toolConditionAfter  String?
+  performedBy         User            @relation("ToolMaintenancePerformedBy", fields: [performedById], references: [id])
+  toolDrawing         ToolDrawing     @relation(fields: [toolDrawingId], references: [id])
+
+  @@index([toolDrawingId])
+  @@index([maintenanceDate])
+  @@map("tool_maintenance_records")
+}
+model ToolCalibrationRecord {
+  id                  String      @id @default(cuid())
+  toolDrawingId       String
+  calibrationDate     DateTime
+  performedById       String
+  performedByName     String
+  calibrationResults  Json
+  passed              Boolean
+  certificationNumber String?
+  certificateUrl      String?
+  nextDueDate         DateTime
+  performedBy         User        @relation("ToolCalibrationPerformedBy", fields: [performedById], references: [id])
+  toolDrawing         ToolDrawing @relation(fields: [toolDrawingId], references: [id])
+
+  @@index([toolDrawingId])
+  @@index([calibrationDate])
+  @@map("tool_calibration_records")
+}
+model ToolUsageLog {
+  id                String      @id @default(cuid())
+  toolDrawingId     String
+  usedAt            DateTime    @default(now())
+  usedById          String
+  usedByName        String
+  workOrderId       String?
+  operationId       String?
+  usageDuration     Int?
+  conditionAfterUse String?
+  toolDrawing       ToolDrawing @relation(fields: [toolDrawingId], references: [id])
+  usedBy            User        @relation("ToolUsageLogUsedBy", fields: [usedById], references: [id])
+
+  @@index([toolDrawingId])
+  @@index([usedAt])
+  @@map("tool_usage_logs")
+}
+model MachineTimeEntry {
+  id                 String              @id @default(cuid())
+  equipmentId        String
+  workOrderId        String?
+  operationId        String?
+  startTime          DateTime
+  endTime            DateTime?
+  duration           Float?
+  entrySource        TimeEntrySource
+  dataSource         String?
+  cycleCount         Int?
+  partCount          Int?
+  machineUtilization Float?
+  status             TimeEntryStatus     @default(ACTIVE)
+  machineRate        Float?
+  machineCost        Float?
+  exportedToSystem   String?
+  exportedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  equipment          Equipment           @relation(fields: [equipmentId], references: [id])
+  operation          WorkOrderOperation? @relation(fields: [operationId], references: [id])
+  workOrder          WorkOrder?          @relation(fields: [workOrderId], references: [id])
+
+  @@index([equipmentId])
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([status])
+  @@index([startTime])
+  @@map("machine_time_entries")
+}

@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// PARTS BOM MODULE
+// Parts, bills of materials, and product structure
+// ====================================================================
+
+model Part {
+  id                         String                      @id @default(cuid())
+  partNumber                 String                      @unique
+  partName                   String
+  description                String?
+  partType                   String
+  productType                ProductType                 @default(MADE_TO_STOCK)
+  lifecycleState             ProductLifecycleState       @default(PRODUCTION)
+  unitOfMeasure              String
+  weight                     Float?
+  weightUnit                 String?
+  drawingNumber              String?
+  revision                   String?
+  cadModelUrl                String?
+  releaseDate                DateTime?
+  obsoleteDate               DateTime?
+  replacementPartId          String?
+  makeOrBuy                  String?                     @default("MAKE")
+  leadTimeDays               Int?
+  lotSizeMin                 Int?
+  lotSizeMultiple            Int?
+  standardCost               Float?
+  targetCost                 Float?
+  currency                   String?                     @default("USD")
+  isActive                   Boolean                     @default(true)
+  isConfigurable             Boolean                     @default(false)
+  requiresFAI                Boolean                     @default(false)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  componentItems             BOMItem[]                   @relation("ComponentPart")
+  bomItems                   BOMItem[]                   @relation("ParentPart")
+  equipmentMaterialMovements EquipmentMaterialMovement[]
+  erpMaterialTransactions    ERPMaterialTransaction[]
+  inventoryItems             Inventory[]
+  siteAvailability           PartSiteAvailability[]
+  replacementPart            Part?                       @relation("PartReplacement", fields: [replacementPartId], references: [id])
+  replacedParts              Part[]                      @relation("PartReplacement")
+  configurations             ProductConfiguration[]
+  lifecycleHistory           ProductLifecycle[]
+  specifications             ProductSpecification[]
+  productionScheduleRequests ProductionScheduleRequest[]
+  qualityPlans               QualityPlan[]
+  routings                   Routing[]
+  scheduleEntries            ScheduleEntry[]
+  serializedParts            SerializedPart[]
+  workOrders                 WorkOrder[]
+
+  @@index([productType])
+  @@index([lifecycleState])
+  @@index([isActive])
+  @@index([partNumber])
+  @@map("parts")
+}
+model PartSiteAvailability {
+  id             String    @id @default(cuid())
+  partId         String
+  siteId         String
+  isPreferred    Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  leadTimeDays   Int?
+  minimumLotSize Int?
+  maximumLotSize Int?
+  standardCost   Float?
+  setupCost      Float?
+  effectiveDate  DateTime?
+  expirationDate DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  part           Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+  site           Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([partId, siteId])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("part_site_availability")
+}
+model BOMItem {
+  id                  String     @id @default(cuid())
+  parentPartId        String
+  componentPartId     String
+  quantity            Float
+  unitOfMeasure       String
+  scrapFactor         Float?     @default(0)
+  sequence            Int?
+  findNumber          String?
+  referenceDesignator String?
+  operationId         String?
+  operationNumber     Int?
+  effectiveDate       DateTime?
+  obsoleteDate        DateTime?
+  ecoNumber           String?
+  isOptional          Boolean    @default(false)
+  isCritical          Boolean    @default(false)
+  notes               String?
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  componentPart       Part       @relation("ComponentPart", fields: [componentPartId], references: [id])
+  operation           Operation? @relation(fields: [operationId], references: [id])
+  parentPart          Part       @relation("ParentPart", fields: [parentPartId], references: [id])
+
+  @@index([parentPartId])
+  @@index([componentPartId])
+  @@index([operationId])
+  @@index([effectiveDate])
+  @@map("bom_items")
+}
+model ProductSpecification {
+  id                  String            @id @default(cuid())
+  partId              String
+  specificationName   String
+  specificationType   SpecificationType
+  specificationValue  String?
+  nominalValue        Float?
+  minValue            Float?
+  maxValue            Float?
+  unitOfMeasure       String?
+  testMethod          String?
+  inspectionFrequency String?
+  isCritical          Boolean           @default(false)
+  isRegulatory        Boolean           @default(false)
+  documentReferences  String[]
+  notes               String?
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  part                Part              @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([specificationType])
+  @@index([isCritical])
+  @@map("product_specifications")
+}
+model ProductConfiguration {
+  id                String                @id @default(cuid())
+  partId            String
+  configurationName String
+  configurationType ConfigurationType
+  description       String?
+  configurationCode String?
+  attributes        Json?
+  priceModifier     Float?                @default(0)
+  costModifier      Float?                @default(0)
+  leadTimeDelta     Int?                  @default(0)
+  isAvailable       Boolean               @default(true)
+  effectiveDate     DateTime?
+  obsoleteDate      DateTime?
+  isDefault         Boolean               @default(false)
+  marketingName     String?
+  imageUrl          String?
+  isActive          Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  options           ConfigurationOption[]
+  part              Part                  @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([configurationType])
+  @@index([isDefault])
+  @@map("product_configurations")
+}
+model ProductLifecycle {
+  id                String                 @id @default(cuid())
+  partId            String
+  previousState     ProductLifecycleState?
+  newState          ProductLifecycleState
+  transitionDate    DateTime               @default(now())
+  reason            String?
+  ecoNumber         String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  notificationsSent Boolean                @default(false)
+  impactAssessment  String?
+  notes             String?
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  part              Part                   @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([newState])
+  @@index([transitionDate])
+  @@map("product_lifecycle")
+}
+model PartGenealogy {
+  id               String         @id @default(cuid())
+  parentPartId     String
+  componentPartId  String
+  assemblyDate     DateTime?
+  assemblyOperator String?
+  createdAt        DateTime       @default(now())
+  componentPart    SerializedPart @relation("ComponentPart", fields: [componentPartId], references: [id])
+  parentPart       SerializedPart @relation("ParentPart", fields: [parentPartId], references: [id])
+
+  @@map("part_genealogy")
+}

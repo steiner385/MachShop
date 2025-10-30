@@ -1,69 +1,40 @@
 # Documentation Coverage Report
 
-Generated: 10/30/2025, 7:17:31 AM
+Generated: 10/30/2025, 9:59:11 AM
 
 ## Summary
 
 | Metric | Value | Coverage |
 |--------|-------|----------|
-| **Tables** | 58 / 186 | 31% |
-| **Fields** | 7 / 3536 | 0% |
+| **Tables** | 186 / 186 | 100% |
+| **Fields** | 50 / 3536 | 1% |
 
 ## Coverage by Category
 
 | Category | Tables | Table Coverage | Fields | Field Coverage |
 |----------|--------|----------------|--------|----------------|
-| Core Infrastructure | 2/17 | 12% | 0/318 | 0% |
-| Personnel Management | 5/6 | 83% | 4/145 | 3% |
-| Other | 25/100 | 25% | 0/1895 | 0% |
-| Material Management | 0/10 | 0% | 0/242 | 0% |
-| Production Management | 1/20 | 5% | 3/416 | 1% |
-| Quality Management | 2/5 | 40% | 0/78 | 0% |
-| Document Management | 8/13 | 62% | 0/210 | 0% |
-| Security & Access | 10/10 | 100% | 0/131 | 0% |
-| Time Tracking | 5/5 | 100% | 0/101 | 0% |
+| Core Infrastructure | 17/17 | 100% | 15/318 | 5% |
+| Personnel Management | 6/6 | 100% | 4/145 | 3% |
+| Other | 94/94 | 100% | 0/1775 | 0% |
+| Material Management | 10/10 | 100% | 5/242 | 2% |
+| Production Management | 26/26 | 100% | 4/536 | 1% |
+| Quality Management | 5/5 | 100% | 0/78 | 0% |
+| Document Management | 13/13 | 100% | 0/210 | 0% |
+| Security & Access | 10/10 | 100% | 10/131 | 8% |
+| Time Tracking | 5/5 | 100% | 12/101 | 12% |
 
 ## Missing Documentation
 
-### Tables Without Documentation (128)
-- Enterprise
-- Site
-- Area
-- PersonnelClass
-- PersonnelQualification
-- PersonnelCertification
-- PersonnelSkill
-- PersonnelSkillAssignment
-- PersonnelWorkCenterAssignment
-- PersonnelAvailability
-- MaterialClass
-- MaterialDefinition
-- MaterialProperty
-- MaterialLot
-- MaterialSublot
-- MaterialLotGenealogy
-- MaterialStateHistory
-- Operation
-- OperationParameter
-- ParameterLimits
+### Tables Without Documentation (0)
 
-... and 108 more tables.
-
-### Fields Without Documentation (3529)
+### Fields Without Documentation (3486)
 - Enterprise.id
-- Enterprise.enterpriseCode
-- Enterprise.enterpriseName
 - Enterprise.description
-- Enterprise.headquarters
 - Enterprise.isActive
 - Enterprise.createdAt
 - Enterprise.updatedAt
 - Enterprise.sites
 - Site.id
-- Site.siteCode
-- Site.siteName
-- Site.location
-- Site.enterpriseId
 - Site.isActive
 - Site.createdAt
 - Site.updatedAt
@@ -80,8 +51,15 @@ Generated: 10/30/2025, 7:17:31 AM
 - Site.routingTemplates
 - Site.routings
 - Site.securityEvents
+- Site.enterprise
+- Site.timeTrackingConfiguration
+- Site.userSiteRoles
+- Site.workOrders
+- Site.roleTemplateInstances
+- Site.roleTemplateUsageLogs
+- Area.id
 
-... and 3499 more fields.
+... and 3456 more fields.
 
 ## Recommendations
 

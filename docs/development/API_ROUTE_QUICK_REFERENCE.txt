@@ -1,0 +1,416 @@
+================================================================================
+  MACHSHOP API ROUTE STRUCTURE - QUICK REFERENCE
+================================================================================
+
+METRICS AT A GLANCE:
+  - Total Route Files: 54
+  - Total API Endpoints: ~854
+  - Existing Route Tests: 4
+  - Test Coverage: <1%
+
+================================================================================
+ROUTE FILE INVENTORY (54 FILES)
+================================================================================
+
+PUBLIC ROUTES (Authentication NOT required):
+  └─ /api/v1/auth           - User authentication (login, refresh, register)
+  └─ /api/v1/sso            - SSO authentication (provider discovery, login)
+
+PROTECTED CORE BUSINESS ROUTES (Authentication required):
+
+  Work Order Management:
+    └─ /api/v1/workorders                - Work order CRUD & filtering
+    └─ /api/v1/work-order-execution      - Work order execution tracking
+
+  Product/Parts Management:
+    └─ /api/v1/products                  - Parts CRUD, BOM, specifications
+
+  Materials Management:
+    └─ /api/v1/materials                 - Material classes, inventory, transactions
+
+  Equipment Management:
+    └─ /api/v1/equipment                 - Equipment CRUD, status, maintenance
+
+  Quality Management:
+    └─ /api/v1/quality                   - Quality plans, inspections
+    └─ /api/v1/traceability              - Traceability tracking
+
+PROTECTED DOCUMENT MANAGEMENT ROUTES:
+
+  Core Documents:
+    └─ /api/v1/documents                 - Unified document operations
+    └─ /api/v1/setup-sheets              - Setup sheet management
+    └─ /api/v1/inspection-plans          - Inspection plan management
+    └─ /api/v1/sops                      - Standard Operating Procedures
+    └─ /api/v1/tool-drawings             - Tool drawing documents
+    └─ /api/v1/work-instructions         - Work instruction management
+
+  Collaboration & Reviews:
+    └─ /api/v1/comments                  - Comment CRUD [TESTED]
+    └─ /api/v1/annotations               - Annotation management
+    └─ /api/v1/reviews                   - Document reviews
+    └─ /api/v1/notifications             - Notification delivery
+    └─ /api/v1/activities                - Activity logging
+    └─ /api/v1/collaboration             - Collaboration features
+
+PROTECTED ADMINISTRATIVE ROUTES:
+
+  RBAC System:
+    └─ /api/v1/admin/roles               - Role management
+    └─ /api/v1/admin/permissions         - Permission management
+    └─ /api/v1/admin/role-permissions    - Role-permission assignment
+    └─ /api/v1/admin/user-roles          - User-role assignment
+
+  SSO Administration:
+    └─ /api/v1/admin/sso                 - Provider management, sessions, rules
+
+PROTECTED MANUFACTURING INTEGRATIONS:
+
+  ERP/PLM Integrations:
+    └─ /api/v1/maximo                    - Maximo integration
+    └─ /api/v1/indysoft                  - Indysoft integration
+    └─ /api/v1/covalent                  - Covalent integration
+    └─ /api/v1/shop-floor-connect        - Shop Floor Connect
+    └─ /api/v1/predator-pdm              - Predator PDM
+    └─ /api/v1/predator-dnc              - Predator DNC
+    └─ /api/v1/cmm                       - CMM integration
+    └─ /api/v1/l2-equipment              - L2 Equipment
+    └─ /api/v1/historian                 - Historian data
+
+  Material Planning & ECO:
+    └─ /api/v1/b2m                       - Material Planning (B2M)
+    └─ /api/v1/eco                       - Engineering Change Orders
+
+PROTECTED ANALYTICS & REPORTING:
+
+  Dashboards & KPIs:
+    └─ /api/v1/dashboard                 - Dashboard KPIs [TESTED]
+
+PROTECTED VARIABLE SYSTEM (Phase 1 & 2):
+
+  Parameter Management:
+    └─ /api/v1/parameters                - Parameter limits
+    └─ /api/v1/parameter-groups          - Parameter groups
+    └─ /api/v1/formulas                  - Formula definitions
+    └─ /api/v1/spc                       - Statistical Process Control
+
+PROTECTED OPERATIONS:
+
+  Production Operations:
+    └─ /api/v1/routings                  - Routing CRUD (41+ endpoints)
+    └─ /api/v1/routing-templates         - Routing templates
+    └─ /api/v1/production-schedules      - Production scheduling
+    └─ /api/v1/process-segments          - Process segment management
+    └─ /api/v1/workflows                 - Workflow management (37+ endpoints)
+
+  Personnel & Time:
+    └─ /api/v1/personnel                 - Personnel management
+    └─ /api/v1/time-tracking             - Time tracking
+
+  Utilities:
+    └─ /api/v1/upload                    - File upload [TESTED]
+    └─ /api/v1/media                     - Media management
+    └─ /api/v1/signatures                - Electronic signatures
+    └─ /api/v1/fai                       - First Article Inspection
+    └─ /api/v1/serialization             - Serialization management
+    └─ /api/v1/search                    - Global search
+    └─ /api/v1/presence                  - User presence tracking
+    └─ /api/v1/sites                     - Site management
+    └─ /api/v1/integrations              - Integration management
+
+================================================================================
+AUTHENTICATION & AUTHORIZATION PATTERNS
+================================================================================
+
+AUTHENTICATION METHOD:
+  - JWT Bearer tokens
+  - Token verification via authMiddleware
+  - Token extraction from "Authorization: Bearer <token>" header
+  - Enhanced debug logging in test environment
+
+AUTHORIZATION PATTERNS:
+  
+  ✓ Single Permission Check:
+    requirePermission('permission.name')
+  
+  ✓ Single Role Check:
+    requireRole('Role Name')
+  
+  ✓ Any Role Check:
+    requireAnyRole(['Role1', 'Role2'])
+  
+  ✓ Domain-Specific Access:
+    requireProductionAccess      (production domain)
+    requireMaintenanceAccess     (maintenance domain)
+    requireQualityAccess         (quality domain)
+    requireDashboardAccess       (dashboard access)
+    requireRoutingAccess         (routing domain)
+    requireManagementAccess      (management functions)
+  
+  ✓ Multi-Tenancy Support:
+    requireSiteAccess            (site-scoped access)
+
+RBAC SYSTEM:
+  - Database-driven roles and permissions
+  - Global roles and site-specific roles
+  - Hybrid support (legacy arrays + DB lookups)
+  - "System Administrator" role for full access
+  - Permission inheritance through roles
+
+================================================================================
+MIDDLEWARE STACK
+================================================================================
+
+GLOBAL MIDDLEWARE (Applied to all routes):
+  1. Helmet                    - Security headers (CSP, etc.)
+  2. CORS                      - Cross-origin request handling
+  3. Compression               - Response compression
+  4. Rate Limiting             - 1000 req/15min (disabled in tests)
+  5. Request Parsing           - JSON/URL-encoded (10MB limit)
+  6. Request Logger            - Audit logging
+  7. Metrics                   - Prometheus metrics collection
+  8. Error Handler             - Global error handling
+
+ROUTE-LEVEL MIDDLEWARE (Examples):
+  
+  /workorders:
+    - authMiddleware
+    - requireProductionAccess
+    - requireSiteAccess
+    - Audit logging
+  
+  /equipment:
+    - authMiddleware
+    - requireMaintenanceAccess
+    - requireSiteAccess
+  
+  /admin/roles:
+    - authMiddleware
+    - requireRole('System Administrator')
+  
+  /dashboard:
+    - authMiddleware
+    - requireDashboardAccess
+    - requireSiteAccess
+
+================================================================================
+ROUTE HANDLER PATTERNS
+================================================================================
+
+STANDARD CRUD ENDPOINTS:
+  GET    /resource             - List with pagination & filtering
+  POST   /resource             - Create
+  GET    /resource/:id         - Get by ID
+  PUT    /resource/:id         - Update
+  DELETE /resource/:id         - Delete
+  PATCH  /resource/:id         - Partial update
+
+COMMON PATTERNS:
+  
+  Filtering:
+    GET /resource?status=ACTIVE&siteId=123&search=term
+  
+  Pagination:
+    GET /resource?page=1&limit=20
+  
+  Nested Resources:
+    GET /document/:id/comments
+    POST /document/:id/comments
+  
+  Hierarchical Resources:
+    GET /material/classes/:id/hierarchy
+
+ERROR HANDLING:
+  - ValidationError            (400 status)
+  - AuthenticationError        (401 status)
+  - AuthorizationError         (403 status)
+  - NotFoundError              (404 status)
+  - BusinessRuleError          (422 status)
+
+INPUT VALIDATION:
+  - Zod schemas for all inputs
+  - Query string validation
+  - Request body validation
+  - Parameter ID validation before use
+
+RESPONSE FORMATS:
+
+  Success (200):
+    { data: {...} }
+    OR
+    { data: [...], pagination: { page, limit, total, pages } }
+  
+  Created (201):
+    { data: {...} }
+  
+  Error (4xx/5xx):
+    { error: 'ERROR_CODE', message: 'Description', details?: {...} }
+
+================================================================================
+EXISTING TEST COVERAGE
+================================================================================
+
+TESTED ROUTES (4 files):
+  ✓ Comments         - CRUD operations, reactions, statistics
+  ✓ Dashboard        - KPI endpoints, metrics
+  ✓ Upload           - File upload, validation, errors
+  ✓ Dashboard Simple - Simplified dashboard tests
+
+UNTESTED ROUTES (50 files):
+  ✗ Admin routes     - Roles, permissions, user-roles, role-permissions
+  ✗ Work Orders      - 54+ endpoints
+  ✗ Equipment        - 30+ endpoints
+  ✗ Materials        - 22+ endpoints
+  ✗ Products         - 19+ endpoints
+  ✗ Routings         - 41+ endpoints
+  ✗ Workflows        - 37+ endpoints
+  ✗ All integrations - B2M, ECO, Maximo, Indysoft, etc.
+  ✗ SSO Admin        - Provider management, sessions, rules
+  ✗ All document routes (except comments)
+  ✗ All collaboration routes (except comments)
+  ✗ All analytical routes (except dashboard)
+  ✗ Personnel, time-tracking, search, presence, etc.
+
+TEST INFRASTRUCTURE:
+  - Framework: Vitest
+  - HTTP Testing: Supertest
+  - Database: Test DB with setup/cleanup helpers
+  - Mocking: vi.mock() for services and dependencies
+  - Patterns: Auth mocking, service stubs, upsert-based fixtures
+
+================================================================================
+TESTING RECOMMENDATIONS FOR ISSUE #154
+================================================================================
+
+PRIORITY 1 - CRITICAL BUSINESS LOGIC:
+  1. Work Orders        (CRUD, filtering, status transitions)
+  2. Equipment          (CRUD, status, hierarchy, maintenance)
+  3. Products/Parts     (CRUD, BOM, specifications)
+  4. Materials          (inventory, classes, transactions)
+  5. Admin RBAC         (roles, permissions, assignments)
+
+PRIORITY 2 - DOCUMENT MANAGEMENT:
+  1. Workflows          (creation, state transitions)
+  2. Work Instructions  (CRUD, lifecycle)
+  3. Setup Sheets       (CRUD)
+  4. Inspection Plans   (CRUD)
+  5. SOPs               (CRUD)
+  6. Tool Drawings      (CRUD)
+
+PRIORITY 3 - COLLABORATION & INTEGRATION:
+  1. Reviews            (creation, approval workflow)
+  2. Annotations        (CRUD)
+  3. Notifications      (delivery, read status)
+  4. Activities         (logging, retrieval)
+  5. Integration routes (B2M, ECO, external systems)
+
+SUGGESTED FOLDER STRUCTURE:
+  src/tests/routes/
+  ├── admin/
+  │   ├── roles.test.ts
+  │   ├── permissions.test.ts
+  │   ├── user-roles.test.ts
+  │   └── role-permissions.test.ts
+  ├── business-domain/
+  │   ├── workOrders.test.ts
+  │   ├── equipment.test.ts
+  │   ├── products.test.ts
+  │   ├── materials.test.ts
+  │   └── routings.test.ts
+  ├── documents/
+  │   ├── workflows.test.ts
+  │   ├── workInstructions.test.ts
+  │   ├── setupSheets.test.ts
+  │   └── inspectionPlans.test.ts
+  ├── collaboration/
+  │   ├── reviews.test.ts
+  │   ├── annotations.test.ts
+  │   └── notifications.test.ts
+  └── helpers/
+      ├── authTestHelper.ts
+      ├── databaseTestHelper.ts
+      └── serviceTestMocks.ts
+
+TESTING BEST PRACTICES:
+  ✓ Test both success and error paths
+  ✓ Validate pagination and filtering
+  ✓ Test authorization at route level
+  ✓ Cover validation error cases
+  ✓ Test multi-tenancy (site scoping)
+  ✓ Verify audit logging
+  ✓ Use setupTestDatabase() for integration tests
+  ✓ Mock services for unit tests
+  ✓ Test each middleware in isolation
+  ✓ Verify JWT token handling
+  ✓ Test database constraint violations
+  ✓ Test concurrent requests
+
+================================================================================
+KEY ARCHITECTURAL FEATURES
+================================================================================
+
+1. SERVICE-BASED ARCHITECTURE
+   - Business logic delegated to services
+   - Services reused across requests
+   - Consistent error handling patterns
+
+2. DATABASE INTEGRATION
+   - Prisma ORM for database access
+   - Singleton database connection
+   - Complex query builders
+   - Transaction support
+
+3. MULTI-TENANCY
+   - Site-scoped access control
+   - Site filtering in queries
+   - Site-specific roles in RBAC
+   - Site context in request lifecycle
+
+4. VALIDATION & SECURITY
+   - Zod schema validation
+   - Parameter validation before use
+   - JWT-based authentication
+   - Rate limiting and CORS
+   - CSP security headers
+
+5. OBSERVABILITY
+   - Request logging and audit trails
+   - Prometheus metrics
+   - Structured logging with context
+   - Error tracking with full context
+
+6. ERROR HANDLING
+   - Custom error classes
+   - Async error wrapper (asyncHandler)
+   - Global error middleware
+   - User-friendly error messages
+
+================================================================================
+FILE PATHS REFERENCE
+================================================================================
+
+Entry Point:
+  /home/tony/GitHub/MachShop/src/index.ts
+
+Middleware:
+  /home/tony/GitHub/MachShop/src/middleware/auth.ts
+  /home/tony/GitHub/MachShop/src/middleware/errorHandler.ts
+  /home/tony/GitHub/MachShop/src/middleware/requestLogger.ts
+
+Routes:
+  /home/tony/GitHub/MachShop/src/routes/ (54 files)
+
+Tests:
+  /home/tony/GitHub/MachShop/src/tests/routes/ (4 files)
+  /home/tony/GitHub/MachShop/src/tests/middleware/auth.test.ts
+
+Services:
+  /home/tony/GitHub/MachShop/src/services/ (100+ service files)
+
+Config:
+  /home/tony/GitHub/MachShop/src/config/config.ts
+
+Database:
+  /home/tony/GitHub/MachShop/src/lib/database.ts
+
+================================================================================

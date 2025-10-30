@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "schema:build": "bash ./prisma/modular/build-schema.sh",
+    "schema:dev": "npm run schema:build && npx prisma generate",
+    "schema:migrate": "npm run schema:build && npx prisma migrate dev",
+    "schema:deploy": "npm run schema:build && npx prisma migrate deploy"
+  }
+}

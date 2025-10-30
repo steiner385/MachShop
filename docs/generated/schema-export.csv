@@ -1,18 +1,18 @@
 Table,Field,Type,Nullable,Default,Description,Category
 Enterprise,id,String,No,cuid(,,Core Infrastructure
-Enterprise,enterpriseCode,String,No,,,Core Infrastructure
-Enterprise,enterpriseName,String,No,,,Core Infrastructure
+Enterprise,enterpriseCode,String,No,,Unique alphanumeric identifier for the enterprise following corporate naming standards,Core Infrastructure
+Enterprise,enterpriseName,String,No,,Official legal name of the enterprise as registered with regulatory authorities,Core Infrastructure
 Enterprise,description,String,Yes,,,Core Infrastructure
-Enterprise,headquarters,String,Yes,,,Core Infrastructure
+Enterprise,headquarters,String,Yes,,Primary corporate headquarters location for legal and administrative purposes,Core Infrastructure
 Enterprise,isActive,Boolean,No,true,,Core Infrastructure
 Enterprise,createdAt,DateTime,No,now(,,Core Infrastructure
 Enterprise,updatedAt,DateTime,No,,,Core Infrastructure
 Enterprise,sites,Site[],No,,,Core Infrastructure
 Site,id,String,No,cuid(,,Core Infrastructure
-Site,siteCode,String,No,,,Core Infrastructure
-Site,siteName,String,No,,,Core Infrastructure
-Site,location,String,Yes,,,Core Infrastructure
-Site,enterpriseId,String,Yes,,,Core Infrastructure
+Site,siteCode,String,No,,Unique identifier for manufacturing site following corporate site naming standards,Core Infrastructure
+Site,siteName,String,No,,Descriptive name of the manufacturing facility for operational identification,Core Infrastructure
+Site,location,String,Yes,,Physical address or geographic location of the manufacturing site,Core Infrastructure
+Site,enterpriseId,String,Yes,,Foreign key linking site to its parent enterprise organization,Core Infrastructure
 Site,isActive,Boolean,No,true,,Core Infrastructure
 Site,createdAt,DateTime,No,now(,,Core Infrastructure
 Site,updatedAt,DateTime,No,,,Core Infrastructure
@@ -36,10 +36,10 @@ Site,workOrders,WorkOrder[],No,,,Core Infrastructure
 Site,roleTemplateInstances,RoleTemplateInstance[],No,,,Core Infrastructure
 Site,roleTemplateUsageLogs,RoleTemplateUsageLog[],No,,,Core Infrastructure
 Area,id,String,No,cuid(,,Core Infrastructure
-Area,areaCode,String,No,,,Core Infrastructure
-Area,areaName,String,No,,,Core Infrastructure
-Area,description,String,Yes,,,Core Infrastructure
-Area,siteId,String,No,,,Core Infrastructure
+Area,areaCode,String,No,,Unique identifier for work area within the site following site area naming standards,Core Infrastructure
+Area,areaName,String,No,,Descriptive name of the work area for operational identification and communication,Core Infrastructure
+Area,description,String,Yes,,Detailed description of the area's purpose; capabilities; and operational characteristics,Core Infrastructure
+Area,siteId,String,No,,Foreign key linking area to its parent site location,Core Infrastructure
 Area,isActive,Boolean,No,true,,Core Infrastructure
 Area,createdAt,DateTime,No,now(,,Core Infrastructure
 Area,updatedAt,DateTime,No,,,Core Infrastructure
@@ -55,15 +55,15 @@ User,passwordHash,String,No,,,Personnel Management
 User,isActive,Boolean,No,true,,Personnel Management
 User,roles,String[],No,,,Personnel Management
 User,permissions,String[],No,,,Personnel Management
-User,lastLoginAt,DateTime,Yes,,,Personnel Management
+User,lastLoginAt,DateTime,Yes,,Timestamp of user's most recent successful authentication,Personnel Management
 User,createdAt,DateTime,No,now(,,Personnel Management
 User,updatedAt,DateTime,No,,,Personnel Management
-User,employeeNumber,String,Yes,,,Personnel Management
-User,personnelClassId,String,Yes,,,Personnel Management
+User,employeeNumber,String,Yes,,Unique identifier from HR system linking MES user to employee record,Personnel Management
+User,personnelClassId,String,Yes,,Links user to job classification determining access levels and capabilities,Personnel Management
 User,hireDate,DateTime,Yes,,,Personnel Management
 User,terminationDate,DateTime,Yes,,,Personnel Management
 User,phone,String,Yes,,,Personnel Management
-User,emergencyContact,String,Yes,,,Personnel Management
+User,emergencyContact,String,Yes,,Emergency contact information required for manufacturing safety compliance,Personnel Management
 User,emergencyPhone,String,Yes,,,Personnel Management
 User,department,String,Yes,,,Personnel Management
 User,supervisorId,String,Yes,,,Personnel Management
@@ -298,9 +298,9 @@ MaterialProperty,createdAt,DateTime,No,now(,,Material Management
 MaterialProperty,updatedAt,DateTime,No,,,Material Management
 MaterialProperty,material,MaterialDefinition,No,,,Material Management
 MaterialLot,id,String,No,cuid(,,Material Management
-MaterialLot,lotNumber,String,No,,,Material Management
+MaterialLot,lotNumber,String,No,,Unique identifier for a specific lot or batch of material with complete traceability,Material Management
 MaterialLot,materialId,String,No,,,Material Management
-MaterialLot,supplierLotNumber,String,Yes,,,Material Management
+MaterialLot,supplierLotNumber,String,Yes,,Original lot or batch number from the material supplier for upstream traceability,Material Management
 MaterialLot,purchaseOrderNumber,String,Yes,,,Material Management
 MaterialLot,heatNumber,String,Yes,,,Material Management
 MaterialLot,serialNumber,String,Yes,,,Material Management
@@ -311,7 +311,7 @@ MaterialLot,location,String,Yes,,,Material Management
 MaterialLot,warehouseId,String,Yes,,,Material Management
 MaterialLot,manufactureDate,DateTime,Yes,,,Material Management
 MaterialLot,receivedDate,DateTime,No,,,Material Management
-MaterialLot,expirationDate,DateTime,Yes,,,Material Management
+MaterialLot,expirationDate,DateTime,Yes,,Date when material lot expires or becomes unsuitable for use in production,Material Management
 MaterialLot,shelfLifeDays,Int,Yes,,,Material Management
 MaterialLot,firstUsedDate,DateTime,Yes,,,Material Management
 MaterialLot,lastUsedDate,DateTime,Yes,,,Material Management
@@ -740,13 +740,13 @@ ProductLifecycle,metadata,Json,Yes,,,Other
 ProductLifecycle,createdAt,DateTime,No,now(,,Other
 ProductLifecycle,part,Part,No,,,Other
 WorkOrder,id,String,No,cuid(,,Production Management
-WorkOrder,workOrderNumber,String,No,,,Production Management
+WorkOrder,workOrderNumber,String,No,,Human-readable identifier for production work orders following company format,Production Management
 WorkOrder,partId,String,No,,,Production Management
 WorkOrder,partNumber,String,Yes,,,Production Management
 WorkOrder,quantity,Int,No,,,Production Management
 WorkOrder,quantityCompleted,Int,No,auto,,Production Management
 WorkOrder,quantityScrapped,Int,No,auto,,Production Management
-WorkOrder,priority,WorkOrderPriority,No,,,Production Management
+WorkOrder,priority,WorkOrderPriority,No,,Production priority level affecting scheduling and resource allocation,Production Management
 WorkOrder,status,WorkOrderStatus,No,,,Production Management
 WorkOrder,dueDate,DateTime,Yes,,,Production Management
 WorkOrder,customerOrder,String,Yes,,,Production Management
@@ -755,7 +755,7 @@ WorkOrder,siteId,String,Yes,,,Production Management
 WorkOrder,createdById,String,No,,,Production Management
 WorkOrder,assignedToId,String,Yes,,,Production Management
 WorkOrder,startedAt,DateTime,Yes,,,Production Management
-WorkOrder,actualStartDate,DateTime,Yes,,,Production Management
+WorkOrder,actualStartDate,DateTime,Yes,,Date when production work actually began on the shop floor,Production Management
 WorkOrder,completedAt,DateTime,Yes,,,Production Management
 WorkOrder,actualEndDate,DateTime,Yes,,,Production Management
 WorkOrder,createdAt,DateTime,No,now(,,Production Management
@@ -909,16 +909,16 @@ WorkCenter,routingSteps,RoutingStep[],No,,,Core Infrastructure
 WorkCenter,scheduleEntries,ScheduleEntry[],No,,,Core Infrastructure
 WorkCenter,area,Area,Yes,,,Core Infrastructure
 WorkCenter,workUnits,WorkUnit[],No,,,Core Infrastructure
-WorkUnit,id,String,No,cuid(,,Other
-WorkUnit,workUnitCode,String,No,,,Other
-WorkUnit,workUnitName,String,No,,,Other
-WorkUnit,description,String,Yes,,,Other
-WorkUnit,workCenterId,String,No,,,Other
-WorkUnit,isActive,Boolean,No,true,,Other
-WorkUnit,createdAt,DateTime,No,now(,,Other
-WorkUnit,updatedAt,DateTime,No,,,Other
-WorkUnit,equipment,Equipment[],No,,,Other
-WorkUnit,workCenter,WorkCenter,No,,,Other
+WorkUnit,id,String,No,cuid(,,Production Management
+WorkUnit,workUnitCode,String,No,,,Production Management
+WorkUnit,workUnitName,String,No,,,Production Management
+WorkUnit,description,String,Yes,,,Production Management
+WorkUnit,workCenterId,String,No,,,Production Management
+WorkUnit,isActive,Boolean,No,true,,Production Management
+WorkUnit,createdAt,DateTime,No,now(,,Production Management
+WorkUnit,updatedAt,DateTime,No,,,Production Management
+WorkUnit,equipment,Equipment[],No,,,Production Management
+WorkUnit,workCenter,WorkCenter,No,,,Production Management
 WorkOrderOperation,id,String,No,cuid(,,Production Management
 WorkOrderOperation,workOrderId,String,No,,,Production Management
 WorkOrderOperation,routingOperationId,String,No,,,Production Management
@@ -940,7 +940,7 @@ WorkOrderOperation,workOrder,WorkOrder,No,,,Production Management
 WorkOrderOperation,workPerformance,WorkPerformance[],No,,,Production Management
 ProductionSchedule,id,String,No,cuid(,,Production Management
 ProductionSchedule,scheduleNumber,String,No,,,Production Management
-ProductionSchedule,scheduleName,String,No,,,Production Management
+ProductionSchedule,scheduleName,String,No,,Human-readable identifier for the production schedule,Production Management
 ProductionSchedule,description,String,Yes,,,Production Management
 ProductionSchedule,periodStart,DateTime,No,,,Production Management
 ProductionSchedule,periodEnd,DateTime,No,,,Production Management
@@ -1005,43 +1005,43 @@ ScheduleEntry,routing,Routing,Yes,,,Other
 ScheduleEntry,schedule,ProductionSchedule,No,,,Other
 ScheduleEntry,workCenter,WorkCenter,Yes,,,Other
 ScheduleEntry,workOrder,WorkOrder,Yes,,,Other
-ScheduleConstraint,id,String,No,cuid(,,Other
-ScheduleConstraint,entryId,String,No,,,Other
-ScheduleConstraint,constraintType,ConstraintType,No,,,Other
-ScheduleConstraint,constraintName,String,No,,,Other
-ScheduleConstraint,description,String,Yes,,,Other
-ScheduleConstraint,resourceId,String,Yes,,,Other
-ScheduleConstraint,resourceType,String,Yes,,,Other
-ScheduleConstraint,requiredQuantity,Float,Yes,,,Other
-ScheduleConstraint,availableQuantity,Float,Yes,,,Other
-ScheduleConstraint,unitOfMeasure,String,Yes,,,Other
-ScheduleConstraint,constraintDate,DateTime,Yes,,,Other
-ScheduleConstraint,leadTimeDays,Int,Yes,,,Other
-ScheduleConstraint,isViolated,Boolean,No,auto,,Other
-ScheduleConstraint,violationSeverity,String,Yes,,,Other
-ScheduleConstraint,violationMessage,String,Yes,,,Other
-ScheduleConstraint,isResolved,Boolean,No,auto,,Other
-ScheduleConstraint,resolvedAt,DateTime,Yes,,,Other
-ScheduleConstraint,resolvedBy,String,Yes,,,Other
-ScheduleConstraint,resolutionNotes,String,Yes,,,Other
-ScheduleConstraint,notes,String,Yes,,,Other
-ScheduleConstraint,metadata,Json,Yes,,,Other
-ScheduleConstraint,createdAt,DateTime,No,now(,,Other
-ScheduleConstraint,updatedAt,DateTime,No,,,Other
-ScheduleConstraint,entry,ScheduleEntry,No,,,Other
-ScheduleStateHistory,id,String,No,cuid(,,Other
-ScheduleStateHistory,scheduleId,String,No,,,Other
-ScheduleStateHistory,previousState,ScheduleState,Yes,,,Other
-ScheduleStateHistory,newState,ScheduleState,No,,,Other
-ScheduleStateHistory,transitionDate,DateTime,No,now(,,Other
-ScheduleStateHistory,reason,String,Yes,,,Other
-ScheduleStateHistory,changedBy,String,Yes,,,Other
-ScheduleStateHistory,entriesAffected,Int,Yes,,,Other
-ScheduleStateHistory,notificationsSent,Boolean,No,auto,,Other
-ScheduleStateHistory,notes,String,Yes,,,Other
-ScheduleStateHistory,metadata,Json,Yes,,,Other
-ScheduleStateHistory,createdAt,DateTime,No,now(,,Other
-ScheduleStateHistory,schedule,ProductionSchedule,No,,,Other
+ScheduleConstraint,id,String,No,cuid(,,Production Management
+ScheduleConstraint,entryId,String,No,,,Production Management
+ScheduleConstraint,constraintType,ConstraintType,No,,,Production Management
+ScheduleConstraint,constraintName,String,No,,,Production Management
+ScheduleConstraint,description,String,Yes,,,Production Management
+ScheduleConstraint,resourceId,String,Yes,,,Production Management
+ScheduleConstraint,resourceType,String,Yes,,,Production Management
+ScheduleConstraint,requiredQuantity,Float,Yes,,,Production Management
+ScheduleConstraint,availableQuantity,Float,Yes,,,Production Management
+ScheduleConstraint,unitOfMeasure,String,Yes,,,Production Management
+ScheduleConstraint,constraintDate,DateTime,Yes,,,Production Management
+ScheduleConstraint,leadTimeDays,Int,Yes,,,Production Management
+ScheduleConstraint,isViolated,Boolean,No,auto,,Production Management
+ScheduleConstraint,violationSeverity,String,Yes,,,Production Management
+ScheduleConstraint,violationMessage,String,Yes,,,Production Management
+ScheduleConstraint,isResolved,Boolean,No,auto,,Production Management
+ScheduleConstraint,resolvedAt,DateTime,Yes,,,Production Management
+ScheduleConstraint,resolvedBy,String,Yes,,,Production Management
+ScheduleConstraint,resolutionNotes,String,Yes,,,Production Management
+ScheduleConstraint,notes,String,Yes,,,Production Management
+ScheduleConstraint,metadata,Json,Yes,,,Production Management
+ScheduleConstraint,createdAt,DateTime,No,now(,,Production Management
+ScheduleConstraint,updatedAt,DateTime,No,,,Production Management
+ScheduleConstraint,entry,ScheduleEntry,No,,,Production Management
+ScheduleStateHistory,id,String,No,cuid(,,Production Management
+ScheduleStateHistory,scheduleId,String,No,,,Production Management
+ScheduleStateHistory,previousState,ScheduleState,Yes,,,Production Management
+ScheduleStateHistory,newState,ScheduleState,No,,,Production Management
+ScheduleStateHistory,transitionDate,DateTime,No,now(,,Production Management
+ScheduleStateHistory,reason,String,Yes,,,Production Management
+ScheduleStateHistory,changedBy,String,Yes,,,Production Management
+ScheduleStateHistory,entriesAffected,Int,Yes,,,Production Management
+ScheduleStateHistory,notificationsSent,Boolean,No,auto,,Production Management
+ScheduleStateHistory,notes,String,Yes,,,Production Management
+ScheduleStateHistory,metadata,Json,Yes,,,Production Management
+ScheduleStateHistory,createdAt,DateTime,No,now(,,Production Management
+ScheduleStateHistory,schedule,ProductionSchedule,No,,,Production Management
 WorkOrderStatusHistory,id,String,No,cuid(,,Production Management
 WorkOrderStatusHistory,workOrderId,String,No,,,Production Management
 WorkOrderStatusHistory,previousStatus,WorkOrderStatus,Yes,,,Production Management
@@ -1055,25 +1055,25 @@ WorkOrderStatusHistory,scrapAtTransition,Int,Yes,,,Production Management
 WorkOrderStatusHistory,metadata,Json,Yes,,,Production Management
 WorkOrderStatusHistory,createdAt,DateTime,No,now(,,Production Management
 WorkOrderStatusHistory,workOrder,WorkOrder,No,,,Production Management
-DispatchLog,id,String,No,cuid(,,Other
-DispatchLog,workOrderId,String,No,,,Other
-DispatchLog,dispatchedAt,DateTime,No,now(,,Other
-DispatchLog,dispatchedBy,String,Yes,,,Other
-DispatchLog,dispatchedFrom,String,Yes,,,Other
-DispatchLog,assignedToId,String,Yes,,,Other
-DispatchLog,workCenterId,String,Yes,,,Other
-DispatchLog,priorityOverride,WorkOrderPriority,Yes,,,Other
-DispatchLog,expectedStartDate,DateTime,Yes,,,Other
-DispatchLog,expectedEndDate,DateTime,Yes,,,Other
-DispatchLog,quantityDispatched,Int,No,,,Other
-DispatchLog,materialReserved,Boolean,No,auto,,Other
-DispatchLog,toolingReserved,Boolean,No,auto,,Other
-DispatchLog,dispatchNotes,String,Yes,,,Other
-DispatchLog,metadata,Json,Yes,,,Other
-DispatchLog,createdAt,DateTime,No,now(,,Other
-DispatchLog,assignedTo,User,Yes,,,Other
-DispatchLog,workCenter,WorkCenter,Yes,,,Other
-DispatchLog,workOrder,WorkOrder,No,,,Other
+DispatchLog,id,String,No,cuid(,,Production Management
+DispatchLog,workOrderId,String,No,,,Production Management
+DispatchLog,dispatchedAt,DateTime,No,now(,,Production Management
+DispatchLog,dispatchedBy,String,Yes,,,Production Management
+DispatchLog,dispatchedFrom,String,Yes,,,Production Management
+DispatchLog,assignedToId,String,Yes,,,Production Management
+DispatchLog,workCenterId,String,Yes,,,Production Management
+DispatchLog,priorityOverride,WorkOrderPriority,Yes,,,Production Management
+DispatchLog,expectedStartDate,DateTime,Yes,,,Production Management
+DispatchLog,expectedEndDate,DateTime,Yes,,,Production Management
+DispatchLog,quantityDispatched,Int,No,,,Production Management
+DispatchLog,materialReserved,Boolean,No,auto,,Production Management
+DispatchLog,toolingReserved,Boolean,No,auto,,Production Management
+DispatchLog,dispatchNotes,String,Yes,,,Production Management
+DispatchLog,metadata,Json,Yes,,,Production Management
+DispatchLog,createdAt,DateTime,No,now(,,Production Management
+DispatchLog,assignedTo,User,Yes,,,Production Management
+DispatchLog,workCenter,WorkCenter,Yes,,,Production Management
+DispatchLog,workOrder,WorkOrder,No,,,Production Management
 WorkPerformance,id,String,No,cuid(,,Other
 WorkPerformance,workOrderId,String,No,,,Other
 WorkPerformance,operationId,String,Yes,,,Other
@@ -1111,32 +1111,32 @@ WorkPerformance,updatedAt,DateTime,No,,,Other
 WorkPerformance,operation,WorkOrderOperation,Yes,,,Other
 WorkPerformance,personnel,User,Yes,,,Other
 WorkPerformance,workOrder,WorkOrder,No,,,Other
-ProductionVariance,id,String,No,cuid(,,Other
-ProductionVariance,workOrderId,String,No,,,Other
-ProductionVariance,operationId,String,Yes,,,Other
-ProductionVariance,varianceType,VarianceType,No,,,Other
-ProductionVariance,varianceName,String,No,,,Other
-ProductionVariance,plannedValue,Float,No,,,Other
-ProductionVariance,actualValue,Float,No,,,Other
-ProductionVariance,variance,Float,No,,,Other
-ProductionVariance,variancePercent,Float,No,,,Other
-ProductionVariance,isFavorable,Boolean,No,auto,,Other
-ProductionVariance,costImpact,Float,Yes,,,Other
-ProductionVariance,rootCause,String,Yes,,,Other
-ProductionVariance,correctiveAction,String,Yes,,,Other
-ProductionVariance,responsibleParty,String,Yes,,,Other
-ProductionVariance,calculatedAt,DateTime,No,now(,,Other
-ProductionVariance,periodStart,DateTime,Yes,,,Other
-ProductionVariance,periodEnd,DateTime,Yes,,,Other
-ProductionVariance,isResolved,Boolean,No,auto,,Other
-ProductionVariance,resolvedAt,DateTime,Yes,,,Other
-ProductionVariance,resolvedBy,String,Yes,,,Other
-ProductionVariance,notes,String,Yes,,,Other
-ProductionVariance,metadata,Json,Yes,,,Other
-ProductionVariance,createdAt,DateTime,No,now(,,Other
-ProductionVariance,updatedAt,DateTime,No,,,Other
-ProductionVariance,operation,WorkOrderOperation,Yes,,,Other
-ProductionVariance,workOrder,WorkOrder,No,,,Other
+ProductionVariance,id,String,No,cuid(,,Production Management
+ProductionVariance,workOrderId,String,No,,,Production Management
+ProductionVariance,operationId,String,Yes,,,Production Management
+ProductionVariance,varianceType,VarianceType,No,,,Production Management
+ProductionVariance,varianceName,String,No,,,Production Management
+ProductionVariance,plannedValue,Float,No,,,Production Management
+ProductionVariance,actualValue,Float,No,,,Production Management
+ProductionVariance,variance,Float,No,,,Production Management
+ProductionVariance,variancePercent,Float,No,,,Production Management
+ProductionVariance,isFavorable,Boolean,No,auto,,Production Management
+ProductionVariance,costImpact,Float,Yes,,,Production Management
+ProductionVariance,rootCause,String,Yes,,,Production Management
+ProductionVariance,correctiveAction,String,Yes,,,Production Management
+ProductionVariance,responsibleParty,String,Yes,,,Production Management
+ProductionVariance,calculatedAt,DateTime,No,now(,,Production Management
+ProductionVariance,periodStart,DateTime,Yes,,,Production Management
+ProductionVariance,periodEnd,DateTime,Yes,,,Production Management
+ProductionVariance,isResolved,Boolean,No,auto,,Production Management
+ProductionVariance,resolvedAt,DateTime,Yes,,,Production Management
+ProductionVariance,resolvedBy,String,Yes,,,Production Management
+ProductionVariance,notes,String,Yes,,,Production Management
+ProductionVariance,metadata,Json,Yes,,,Production Management
+ProductionVariance,createdAt,DateTime,No,now(,,Production Management
+ProductionVariance,updatedAt,DateTime,No,,,Production Management
+ProductionVariance,operation,WorkOrderOperation,Yes,,,Production Management
+ProductionVariance,workOrder,WorkOrder,No,,,Production Management
 QualityPlan,id,String,No,cuid(,,Quality Management
 QualityPlan,planNumber,String,No,,,Quality Management
 QualityPlan,planName,String,No,,,Quality Management
@@ -1345,8 +1345,8 @@ Inventory,transactions,MaterialTransaction[],No,,,Other
 MaterialTransaction,id,String,No,cuid(,,Material Management
 MaterialTransaction,inventoryId,String,No,,,Material Management
 MaterialTransaction,workOrderId,String,Yes,,,Material Management
-MaterialTransaction,transactionType,MaterialTransactionType,No,,,Material Management
-MaterialTransaction,quantity,Float,No,,,Material Management
+MaterialTransaction,transactionType,MaterialTransactionType,No,,Type of material movement or inventory transaction being recorded,Material Management
+MaterialTransaction,quantity,Float,No,,Amount of material involved in the transaction with appropriate units of measure,Material Management
 MaterialTransaction,unitOfMeasure,String,No,,,Material Management
 MaterialTransaction,reference,String,Yes,,,Material Management
 MaterialTransaction,transactionDate,DateTime,No,now(,,Material Management
@@ -1925,34 +1925,34 @@ EquipmentMaterialMovement,createdAt,DateTime,No,now(,,Core Infrastructure
 EquipmentMaterialMovement,equipment,Equipment,No,,,Core Infrastructure
 EquipmentMaterialMovement,part,Part,Yes,,,Core Infrastructure
 EquipmentMaterialMovement,workOrder,WorkOrder,Yes,,,Core Infrastructure
-ProcessDataCollection,id,String,No,cuid(,,Other
-ProcessDataCollection,equipmentId,String,No,,,Other
-ProcessDataCollection,processName,String,No,,,Other
-ProcessDataCollection,processStepNumber,Int,Yes,,,Other
-ProcessDataCollection,startTimestamp,DateTime,No,,,Other
-ProcessDataCollection,endTimestamp,DateTime,Yes,,,Other
-ProcessDataCollection,duration,Float,Yes,,,Other
-ProcessDataCollection,workOrderId,String,Yes,,,Other
-ProcessDataCollection,operationId,String,Yes,,,Other
-ProcessDataCollection,partNumber,String,Yes,,,Other
-ProcessDataCollection,lotNumber,String,Yes,,,Other
-ProcessDataCollection,serialNumber,String,Yes,,,Other
-ProcessDataCollection,parameters,Json,No,,,Other
-ProcessDataCollection,quantityProduced,Float,Yes,,,Other
-ProcessDataCollection,quantityGood,Float,Yes,,,Other
-ProcessDataCollection,quantityScrap,Float,Yes,,,Other
-ProcessDataCollection,inSpecCount,Int,Yes,,,Other
-ProcessDataCollection,outOfSpecCount,Int,Yes,,,Other
-ProcessDataCollection,averageUtilization,Float,Yes,,,Other
-ProcessDataCollection,peakUtilization,Float,Yes,,,Other
-ProcessDataCollection,alarmCount,Int,No,auto,,Other
-ProcessDataCollection,criticalAlarmCount,Int,No,auto,,Other
-ProcessDataCollection,operatorId,String,Yes,,,Other
-ProcessDataCollection,supervisorId,String,Yes,,,Other
-ProcessDataCollection,createdAt,DateTime,No,now(,,Other
-ProcessDataCollection,updatedAt,DateTime,No,,,Other
-ProcessDataCollection,equipment,Equipment,No,,,Other
-ProcessDataCollection,workOrder,WorkOrder,Yes,,,Other
+ProcessDataCollection,id,String,No,cuid(,,Production Management
+ProcessDataCollection,equipmentId,String,No,,,Production Management
+ProcessDataCollection,processName,String,No,,,Production Management
+ProcessDataCollection,processStepNumber,Int,Yes,,,Production Management
+ProcessDataCollection,startTimestamp,DateTime,No,,,Production Management
+ProcessDataCollection,endTimestamp,DateTime,Yes,,,Production Management
+ProcessDataCollection,duration,Float,Yes,,,Production Management
+ProcessDataCollection,workOrderId,String,Yes,,,Production Management
+ProcessDataCollection,operationId,String,Yes,,,Production Management
+ProcessDataCollection,partNumber,String,Yes,,,Production Management
+ProcessDataCollection,lotNumber,String,Yes,,,Production Management
+ProcessDataCollection,serialNumber,String,Yes,,,Production Management
+ProcessDataCollection,parameters,Json,No,,,Production Management
+ProcessDataCollection,quantityProduced,Float,Yes,,,Production Management
+ProcessDataCollection,quantityGood,Float,Yes,,,Production Management
+ProcessDataCollection,quantityScrap,Float,Yes,,,Production Management
+ProcessDataCollection,inSpecCount,Int,Yes,,,Production Management
+ProcessDataCollection,outOfSpecCount,Int,Yes,,,Production Management
+ProcessDataCollection,averageUtilization,Float,Yes,,,Production Management
+ProcessDataCollection,peakUtilization,Float,Yes,,,Production Management
+ProcessDataCollection,alarmCount,Int,No,auto,,Production Management
+ProcessDataCollection,criticalAlarmCount,Int,No,auto,,Production Management
+ProcessDataCollection,operatorId,String,Yes,,,Production Management
+ProcessDataCollection,supervisorId,String,Yes,,,Production Management
+ProcessDataCollection,createdAt,DateTime,No,now(,,Production Management
+ProcessDataCollection,updatedAt,DateTime,No,,,Production Management
+ProcessDataCollection,equipment,Equipment,No,,,Production Management
+ProcessDataCollection,workOrder,WorkOrder,Yes,,,Production Management
 QIFMeasurementPlan,id,String,No,cuid(,,Other
 QIFMeasurementPlan,qifPlanId,String,No,,,Other
 QIFMeasurementPlan,partNumber,String,No,,,Other
@@ -3215,21 +3215,21 @@ MultipartUpload,retryCount,Int,No,auto,,Other
 MultipartUpload,metadata,Json,Yes,,,Other
 Role,id,String,No,cuid(,,Security & Access
 Role,roleCode,String,No,,,Security & Access
-Role,roleName,String,No,,,Security & Access
-Role,description,String,Yes,,,Security & Access
-Role,isActive,Boolean,No,true,,Security & Access
+Role,roleName,String,No,,Unique name identifier for the role following corporate role naming standards,Security & Access
+Role,description,String,Yes,,Detailed description of the role's responsibilities and scope of authority,Security & Access
+Role,isActive,Boolean,No,true,Indicates whether the role is currently active and available for assignment,Security & Access
 Role,isGlobal,Boolean,No,true,,Security & Access
 Role,createdAt,DateTime,No,now(,,Security & Access
 Role,updatedAt,DateTime,No,,,Security & Access
 Role,createdBy,String,Yes,,,Security & Access
-Role,permissions,RolePermission[],No,,,Security & Access
+Role,permissions,RolePermission[],No,,Array of permission identifiers that define what actions this role can perform,Security & Access
 Role,userRoles,UserRole[],No,,,Security & Access
 Role,userSiteRoles,UserSiteRole[],No,,,Security & Access
 Role,templateInstance,RoleTemplateInstance,Yes,,,Security & Access
 Permission,id,String,No,cuid(,,Security & Access
 Permission,permissionCode,String,No,,,Security & Access
-Permission,permissionName,String,No,,,Security & Access
-Permission,description,String,Yes,,,Security & Access
+Permission,permissionName,String,No,,Unique identifier for the specific system permission or access right,Security & Access
+Permission,description,String,Yes,,Human-readable description of what this permission allows users to do,Security & Access
 Permission,category,String,Yes,,,Security & Access
 Permission,isActive,Boolean,No,true,,Security & Access
 Permission,isWildcard,Boolean,No,auto,,Security & Access
@@ -3253,17 +3253,17 @@ UserRole,expiresAt,DateTime,Yes,,,Personnel Management
 UserRole,role,Role,No,,,Personnel Management
 UserRole,user,User,No,,,Personnel Management
 UserSiteRole,id,String,No,cuid(,,Core Infrastructure
-UserSiteRole,userId,String,No,,,Core Infrastructure
+UserSiteRole,userId,String,No,,Foreign key reference to the user being assigned a site-specific role,Core Infrastructure
 UserSiteRole,roleId,String,No,,,Core Infrastructure
-UserSiteRole,siteId,String,No,,,Core Infrastructure
-UserSiteRole,assignedAt,DateTime,No,now(,,Core Infrastructure
-UserSiteRole,assignedBy,String,Yes,,,Core Infrastructure
+UserSiteRole,siteId,String,No,,Foreign key reference to the specific site where this role assignment applies,Core Infrastructure
+UserSiteRole,assignedAt,DateTime,No,now(,Timestamp when the role assignment was created,Core Infrastructure
+UserSiteRole,assignedBy,String,Yes,,User who authorized and created this role assignment,Core Infrastructure
 UserSiteRole,expiresAt,DateTime,Yes,,,Core Infrastructure
 UserSiteRole,role,Role,No,,,Core Infrastructure
 UserSiteRole,site,Site,No,,,Core Infrastructure
 UserSiteRole,user,User,No,,,Core Infrastructure
 TimeTrackingConfiguration,id,String,No,cuid(,,Time Tracking
-TimeTrackingConfiguration,siteId,String,No,,,Time Tracking
+TimeTrackingConfiguration,siteId,String,No,,Foreign key reference to the site where this time tracking configuration applies,Time Tracking
 TimeTrackingConfiguration,timeTrackingEnabled,Boolean,No,true,,Time Tracking
 TimeTrackingConfiguration,trackingGranularity,TimeTrackingGranularity,No,OPERATION,,Time Tracking
 TimeTrackingConfiguration,costingModel,CostingModel,No,LABOR_HOURS,,Time Tracking
@@ -3272,7 +3272,7 @@ TimeTrackingConfiguration,multiTaskingMode,MultiTaskingMode,Yes,,,Time Tracking
 TimeTrackingConfiguration,autoSubtractBreaks,Boolean,No,auto,,Time Tracking
 TimeTrackingConfiguration,standardBreakMinutes,Int,Yes,,,Time Tracking
 TimeTrackingConfiguration,requireBreakClockOut,Boolean,No,auto,,Time Tracking
-TimeTrackingConfiguration,overtimeThresholdHours,Float,Yes,8,,Time Tracking
+TimeTrackingConfiguration,overtimeThresholdHours,Float,Yes,8,Number of hours per day after which overtime rules apply,Time Tracking
 TimeTrackingConfiguration,warnOnOvertime,Boolean,No,true,,Time Tracking
 TimeTrackingConfiguration,enableMachineTracking,Boolean,No,auto,,Time Tracking
 TimeTrackingConfiguration,autoStartFromMachine,Boolean,No,auto,,Time Tracking
@@ -3284,13 +3284,13 @@ TimeTrackingConfiguration,updatedAt,DateTime,No,,,Time Tracking
 TimeTrackingConfiguration,createdBy,String,No,,,Time Tracking
 TimeTrackingConfiguration,site,Site,No,,,Time Tracking
 LaborTimeEntry,id,String,No,cuid(,,Time Tracking
-LaborTimeEntry,userId,String,No,,,Time Tracking
-LaborTimeEntry,workOrderId,String,Yes,,,Time Tracking
-LaborTimeEntry,operationId,String,Yes,,,Time Tracking
+LaborTimeEntry,userId,String,No,,Foreign key reference to the user/operator who performed the work,Time Tracking
+LaborTimeEntry,workOrderId,String,Yes,,Foreign key reference to the work order this labor time is charged against,Time Tracking
+LaborTimeEntry,operationId,String,Yes,,Foreign key reference to the specific operation within the work order,Time Tracking
 LaborTimeEntry,indirectCodeId,String,Yes,,,Time Tracking
 LaborTimeEntry,timeType,TimeType,No,,,Time Tracking
-LaborTimeEntry,clockInTime,DateTime,No,,,Time Tracking
-LaborTimeEntry,clockOutTime,DateTime,Yes,,,Time Tracking
+LaborTimeEntry,clockInTime,DateTime,No,,Timestamp when the operator clocked in to start work on the assigned task or operation,Time Tracking
+LaborTimeEntry,clockOutTime,DateTime,Yes,,Timestamp when the operator clocked out after completing work on the assigned task,Time Tracking
 LaborTimeEntry,duration,Float,Yes,,,Time Tracking
 LaborTimeEntry,entrySource,TimeEntrySource,No,,,Time Tracking
 LaborTimeEntry,deviceId,String,Yes,,,Time Tracking
@@ -3300,7 +3300,7 @@ LaborTimeEntry,approvedBy,String,Yes,,,Time Tracking
 LaborTimeEntry,approvedAt,DateTime,Yes,,,Time Tracking
 LaborTimeEntry,rejectionReason,String,Yes,,,Time Tracking
 LaborTimeEntry,costCenter,String,Yes,,,Time Tracking
-LaborTimeEntry,laborRate,Float,Yes,,,Time Tracking
+LaborTimeEntry,laborRate,Float,Yes,,Hourly labor rate applied to this time entry for cost calculation,Time Tracking
 LaborTimeEntry,laborCost,Float,Yes,,,Time Tracking
 LaborTimeEntry,originalClockInTime,DateTime,Yes,,,Time Tracking
 LaborTimeEntry,originalClockOutTime,DateTime,Yes,,,Time Tracking
@@ -3317,15 +3317,15 @@ LaborTimeEntry,operation,WorkOrderOperation,Yes,,,Time Tracking
 LaborTimeEntry,user,User,No,,,Time Tracking
 LaborTimeEntry,workOrder,WorkOrder,Yes,,,Time Tracking
 MachineTimeEntry,id,String,No,cuid(,,Time Tracking
-MachineTimeEntry,equipmentId,String,No,,,Time Tracking
+MachineTimeEntry,equipmentId,String,No,,Foreign key reference to the equipment/machine for which time is being tracked,Time Tracking
 MachineTimeEntry,workOrderId,String,Yes,,,Time Tracking
 MachineTimeEntry,operationId,String,Yes,,,Time Tracking
-MachineTimeEntry,startTime,DateTime,No,,,Time Tracking
-MachineTimeEntry,endTime,DateTime,Yes,,,Time Tracking
+MachineTimeEntry,startTime,DateTime,No,,Timestamp when the machine started operating or processing,Time Tracking
+MachineTimeEntry,endTime,DateTime,Yes,,Timestamp when the machine stopped operating or completed processing,Time Tracking
 MachineTimeEntry,duration,Float,Yes,,,Time Tracking
 MachineTimeEntry,entrySource,TimeEntrySource,No,,,Time Tracking
 MachineTimeEntry,dataSource,String,Yes,,,Time Tracking
-MachineTimeEntry,cycleCount,Int,Yes,,,Time Tracking
+MachineTimeEntry,cycleCount,Int,Yes,,Number of machine cycles or parts processed during this time period,Time Tracking
 MachineTimeEntry,partCount,Int,Yes,,,Time Tracking
 MachineTimeEntry,machineUtilization,Float,Yes,,,Time Tracking
 MachineTimeEntry,status,TimeEntryStatus,No,ACTIVE,,Time Tracking
@@ -3466,13 +3466,13 @@ AuditReport,siteId,String,Yes,,,Quality Management
 AuditReport,generatedByUser,User,No,,,Quality Management
 AuditReport,site,Site,Yes,,,Quality Management
 PermissionChangeLog,id,String,No,cuid(,,Security & Access
-PermissionChangeLog,changeType,PermissionChangeType,No,,,Security & Access
+PermissionChangeLog,changeType,PermissionChangeType,No,,Type of permission change that was performed,Security & Access
 PermissionChangeLog,targetUserId,String,No,,,Security & Access
 PermissionChangeLog,targetRole,String,Yes,,,Security & Access
 PermissionChangeLog,permission,String,Yes,,,Security & Access
-PermissionChangeLog,oldValue,Json,Yes,,,Security & Access
-PermissionChangeLog,newValue,Json,Yes,,,Security & Access
-PermissionChangeLog,changedBy,String,No,,,Security & Access
+PermissionChangeLog,oldValue,Json,Yes,,Previous permission configuration before the change,Security & Access
+PermissionChangeLog,newValue,Json,Yes,,New permission configuration after the change,Security & Access
+PermissionChangeLog,changedBy,String,No,,User who authorized and performed the permission change,Security & Access
 PermissionChangeLog,reason,String,Yes,,,Security & Access
 PermissionChangeLog,timestamp,DateTime,No,now(,,Security & Access
 PermissionChangeLog,siteId,String,Yes,,,Security & Access

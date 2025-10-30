@@ -390,7 +390,7 @@ export class MetadataExtractor {
       'Core Infrastructure': ['Enterprise', 'Site', 'Area', 'WorkCenter', 'Equipment'],
       'Personnel Management': ['User', 'PersonnelClass', 'UserSkill', 'UserCertification', 'UserSiteRole'],
       'Quality Management': ['QualityPlan', 'QualityMeasurement', 'NCR', 'AuditReport', 'QualityInspection'],
-      'Production Management': ['WorkOrder', 'Operation', 'Routing', 'ProductionSchedule', 'RoutingStep'],
+      'Production Management': ['WorkOrder', 'Operation', 'Routing', 'ProductionSchedule', 'RoutingStep', 'DispatchLog', 'ProductionVariance', 'ProcessDataCollection', 'ScheduleConstraint', 'ScheduleStateHistory', 'RoutingStepParameter', 'MaterialOperationSpecification', 'WorkUnit', 'PersonnelOperationSpecification', 'OperationGaugeRequirement', 'ProductionScheduleRequest', 'ProductionScheduleResponse', 'PhysicalAssetOperationSpecification'],
       'Material Management': ['Material', 'BOM', 'InventoryTransaction', 'Lot', 'PartNumber'],
       'Document Management': ['WorkInstruction', 'Document', 'DocumentRevision', 'DocumentComment'],
       'Security & Access': ['Role', 'Permission', 'SecurityEvent', 'PermissionUsageLog'],

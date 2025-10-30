@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// COST TRACKING MODULE
+// Cost tracking and financial management
+// ====================================================================
+
+model IndirectCostCode {
+  id           String           @id @default(cuid())
+  code         String           @unique
+  description  String
+  category     IndirectCategory
+  costCenter   String?
+  glAccount    String?
+  isActive     Boolean          @default(true)
+  siteId       String?
+  displayColor String?
+  displayIcon  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  createdBy    String
+  site         Site?            @relation(fields: [siteId], references: [id])
+  laborEntries LaborTimeEntry[]
+
+  @@index([code])
+  @@index([category])
+  @@index([siteId])
+  @@map("indirect_cost_codes")
+}
