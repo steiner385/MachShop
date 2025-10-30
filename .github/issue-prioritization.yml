@@ -48,7 +48,7 @@ issues:
     strategic_focus: null
     business_value: 9
     effort_estimate: 9
-    blocks: [133, 132, 131]
+    blocks: [133, 132, 131, 203, 204]
     notes: "Foundation for enterprise SSO, must come before specific providers"
 
   - number: 133
@@ -60,7 +60,7 @@ issues:
     business_value: 8
     effort_estimate: 6
     blocks: []
-    notes: "Most requested enterprise SSO provider"
+    notes: "COMPLETED - Most requested enterprise SSO provider - Azure AD/Entra ID Native Integration implemented"
 
   - number: 132
     title: "OAuth 2.0/OpenID Connect Integration"
@@ -83,6 +83,28 @@ issues:
     effort_estimate: 7
     blocks: []
     notes: "Legacy enterprise SSO support"
+
+  - number: 203
+    title: "Enterprise SSO & Authentication: CyberArk Privileged Access Management Integration"
+    category: security_auth
+    foundation_level: 0
+    dependencies: [134]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 5
+    blocks: []
+    notes: "Enterprise secrets management and privileged access management - CyberArk integration for secure credential storage and rotation"
+
+  - number: 204
+    title: "Enterprise SSO & Authentication: Saviynt Identity Governance Integration"
+    category: security_auth
+    foundation_level: 0
+    dependencies: [134]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 5
+    blocks: []
+    notes: "Enterprise identity governance and administration - Saviynt integration for automated user provisioning and access governance"
 
   # --- Advanced RBAC Extensions ---
   - number: 127
