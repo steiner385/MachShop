@@ -1,0 +1,279 @@
+name: Schema Documentation Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'docs/schema-documentation/**'
+      - 'src/tools/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'docs/schema-documentation/**'
+      - 'src/tools/**'
+
+jobs:
+  validate-schema-documentation:
+    runs-on: ubuntu-latest
+    name: Validate Schema Documentation Integration
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Set up database environment
+      run: |
+        echo "DATABASE_URL=postgresql://user:password@localhost:5432/test" >> $GITHUB_ENV
+
+    - name: Validate original schema
+      run: npx prisma validate
+
+    - name: Generate documented schema
+      run: npm run schema:docs:integrate
+
+    - name: Validate documented schema
+      run: npx prisma validate --schema=./prisma/schema.final.prisma
+
+    - name: Test Prisma client generation
+      run: npm run db:generate:documented
+
+    - name: Generate documentation coverage report
+      run: npm run docs:schema:coverage
+
+    - name: Check documentation coverage thresholds
+      run: |
+        echo "Checking documentation coverage requirements..."
+
+        # Extract coverage percentages from coverage report
+        TABLE_COVERAGE=$(grep -oP 'Tables: \K\d+(?=/\d+ \(\d+%\))' docs/generated/coverage-report.md | head -1)
+        TOTAL_TABLES=$(grep -oP 'Tables: \d+/\K\d+(?= \(\d+%\))' docs/generated/coverage-report.md | head -1)
+        COVERAGE_PERCENT=$(( ($TABLE_COVERAGE * 100) / $TOTAL_TABLES ))
+
+        echo "Table coverage: $TABLE_COVERAGE/$TOTAL_TABLES ($COVERAGE_PERCENT%)"
+
+        # Set minimum coverage threshold (currently 37%, require no regression)
+        MIN_COVERAGE=37
+
+        if [ $COVERAGE_PERCENT -lt $MIN_COVERAGE ]; then
+          echo "❌ Documentation coverage ($COVERAGE_PERCENT%) is below minimum threshold ($MIN_COVERAGE%)"
+          echo "Please add documentation for missing tables before merging."
+          exit 1
+        else
+          echo "✅ Documentation coverage ($COVERAGE_PERCENT%) meets minimum threshold ($MIN_COVERAGE%)"
+        fi
+
+    - name: Validate documentation completeness for core tables
+      run: |
+        echo "Validating core table documentation completeness..."
+
+        # Check that critical tables have both table and field documentation
+        CRITICAL_TABLES=("User" "WorkOrder" "Material" "QualityPlan" "Equipment")
+
+        for table in "${CRITICAL_TABLES[@]}"; do
+          if ! grep -q "\"$table\":" docs/schema-documentation/table-descriptions.json; then
+            echo "❌ Critical table '$table' missing table documentation"
+            exit 1
+          fi
+
+          if ! grep -q "\"$table\":" docs/schema-documentation/field-descriptions.json; then
+            echo "⚠️  Critical table '$table' missing field documentation (warning)"
+          fi
+
+          echo "✅ Table '$table' documentation validated"
+        done
+
+    - name: Generate enhanced data dictionary
+      run: npm run docs:schema:enhanced:quick
+
+    - name: Archive documentation artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: schema-documentation-${{ github.sha }}
+        path: |
+          docs/generated/
+          prisma/schema.final.prisma
+        retention-days: 30
+
+    - name: Comment coverage report on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          // Read coverage report
+          const coverageContent = fs.readFileSync('docs/generated/coverage-report.md', 'utf8');
+
+          // Extract key metrics
+          const tableMatch = coverageContent.match(/Tables: (\d+)\/(\d+) \((\d+)%\)/);
+          const fieldMatch = coverageContent.match(/Fields: (\d+)\/(\d+) \((\d+)%\)/);
+
+          if (!tableMatch || !fieldMatch) {
+            console.log('Could not parse coverage metrics');
+            return;
+          }
+
+          const tablesCovered = tableMatch[1];
+          const totalTables = tableMatch[2];
+          const tableCoverage = tableMatch[3];
+          const fieldsCovered = fieldMatch[1];
+          const totalFields = fieldMatch[2];
+          const fieldCoverage = fieldMatch[3];
+
+          // Create PR comment
+          const comment = `## 📊 Schema Documentation Coverage Report
+
+          | Metric | Current | Coverage |
+          |--------|---------|----------|
+          | **Tables** | ${tablesCovered}/${totalTables} | ${tableCoverage}% |
+          | **Fields** | ${fieldsCovered}/${totalFields} | ${fieldCoverage}% |
+
+          ### ✅ Validation Results
+          - Schema validation: **Passed**
+          - Documented schema validation: **Passed**
+          - Prisma client generation: **Passed**
+          - Coverage threshold (37%): **${tableCoverage >= 37 ? 'Passed' : 'Failed'}**
+
+          ### 📋 Documentation Status
+          Core production tables are fully documented with business context including:
+          - Production Management (WorkOrder, WorkOrderOperation, ProductionSchedule)
+          - Material Management (Material, MaterialLot, MaterialTransaction)
+          - Core Infrastructure (Enterprise, Site, Area)
+          - User Management & Quality Control
+
+          <details>
+          <summary>View Full Coverage Report</summary>
+
+          \`\`\`
+          ${coverageContent.substring(0, 2000)}...
+          \`\`\`
+
+          </details>
+
+          ---
+          *Documentation validation completed by GitHub Actions*`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  detect-schema-changes:
+    runs-on: ubuntu-latest
+    name: Detect Schema Changes Requiring Documentation
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Detect new models or significant changes
+      run: |
+        echo "Checking for schema changes that require documentation updates..."
+
+        # Get changed files in PR
+        git diff --name-only origin/main...HEAD > changed_files.txt
+
+        if grep -q "prisma/schema.prisma" changed_files.txt; then
+          echo "Schema file was modified, checking for new models..."
+
+          # Get new model additions
+          NEW_MODELS=$(git diff origin/main...HEAD -- prisma/schema.prisma | grep "^+model " | sed 's/^+model \(.*\) {/\1/' || true)
+
+          if [ ! -z "$NEW_MODELS" ]; then
+            echo "🆕 New models detected:"
+            echo "$NEW_MODELS"
+            echo ""
+            echo "⚠️  Please ensure new models are documented in:"
+            echo "   - docs/schema-documentation/table-descriptions.json"
+            echo "   - docs/schema-documentation/field-descriptions.json (for key fields)"
+            echo ""
+            echo "📋 Use these commands to help:"
+            echo "   npm run docs:schema:templates  # Generate templates"
+            echo "   npm run schema:final           # Validate integration"
+
+            # Create issue comment about new models
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              echo "NEW_MODELS_FOUND=true" >> $GITHUB_ENV
+              echo "$NEW_MODELS" > new_models.txt
+            fi
+          else
+            echo "✅ No new models detected in schema changes"
+          fi
+        else
+          echo "✅ Schema file not modified in this PR"
+        fi
+
+    - name: Comment about new models
+      if: env.NEW_MODELS_FOUND == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const newModels = fs.readFileSync('new_models.txt', 'utf8').trim();
+
+          const comment = `## 🆕 New Database Models Detected
+
+          The following new models were added to the schema:
+
+          \`\`\`
+          ${newModels}
+          \`\`\`
+
+          ### 📋 Documentation Required
+
+          Please add documentation for these new models:
+
+          1. **Table Documentation** in \`docs/schema-documentation/table-descriptions.json\`
+             - Business purpose and description
+             - Data owner and update frequency
+             - Compliance and integration notes
+             - Examples and common queries
+
+          2. **Field Documentation** in \`docs/schema-documentation/field-descriptions.json\`
+             - Key field descriptions and business rules
+             - Data sources and validation requirements
+             - Privacy and compliance notes
+
+          ### 🛠️ Helper Commands
+
+          \`\`\`bash
+          # Generate documentation templates
+          npm run docs:schema:templates
+
+          # Validate documentation integration
+          npm run schema:final
+
+          # Check coverage improvement
+          npm run docs:schema:coverage
+          \`\`\`
+
+          ### 📖 Documentation Guidelines
+
+          See [Complete Prisma Documentation Integration Guide](docs/COMPLETE_PRISMA_DOCUMENTATION_INTEGRATION.md) for examples and best practices.
+
+          ---
+          *Automated detection by GitHub Actions*`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

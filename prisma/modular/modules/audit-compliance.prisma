@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// AUDIT COMPLIANCE MODULE
+// Audit trails, compliance, and regulatory support
+// ====================================================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tableName String
+  recordId  String
+  action    String
+  oldValues Json?
+  newValues Json?
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+model AuditReport {
+  id              String       @id @default(cuid())
+  reportType      ReportType
+  title           String
+  parameters      Json
+  generatedBy     String
+  generatedAt     DateTime     @default(now())
+  filePath        String?
+  status          ReportStatus
+  error           String?
+  downloadCount   Int          @default(0)
+  siteId          String?
+  generatedByUser User         @relation(fields: [generatedBy], references: [id], onDelete: Cascade)
+  site            Site?        @relation(fields: [siteId], references: [id])
+
+  @@index([reportType, generatedAt])
+  @@index([generatedBy, generatedAt])
+  @@index([status])
+  @@index([siteId, reportType])
+  @@map("audit_reports")
+}

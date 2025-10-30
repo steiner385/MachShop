@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// ROUTING TEMPLATES MODULE
+// Manufacturing routing templates and configurations
+// ====================================================================
+
+model Routing {
+  id              String                @id @default(cuid())
+  routingNumber   String                @unique
+  partId          String?
+  siteId          String?
+  version         String                @default("1.0")
+  lifecycleState  RoutingLifecycleState @default(DRAFT)
+  description     String?
+  isPrimaryRoute  Boolean               @default(false)
+  isActive        Boolean               @default(true)
+  effectiveDate   DateTime?
+  expirationDate  DateTime?
+  routingType     RoutingType           @default(PRIMARY)
+  alternateForId  String?
+  priority        Int                   @default(1)
+  approvedBy      String?
+  approvedAt      DateTime?
+  visualData      Json?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdBy       String?
+  notes           String?
+  operations      RoutingOperation[]
+  steps           RoutingStep[]
+  templateSources RoutingTemplate[]     @relation("TemplateSource")
+  alternateFor    Routing?              @relation("AlternateRoutes", fields: [alternateForId], references: [id])
+  alternateRoutes Routing[]             @relation("AlternateRoutes")
+  part            Part?                 @relation(fields: [partId], references: [id])
+  site            Site?                 @relation(fields: [siteId], references: [id])
+  scheduleEntries ScheduleEntry[]
+  workOrders      WorkOrder[]
+
+  @@unique([partId, siteId, version])
+  @@index([siteId])
+  @@index([partId])
+  @@index([lifecycleState])
+  @@index([isActive])
+  @@index([partId, siteId, routingType])
+  @@index([alternateForId])
+  @@map("routings")
+}
+model RoutingOperation {
+  id              String               @id @default(cuid())
+  routingId       String
+  operationNumber Int
+  operationName   String
+  description     String?
+  setupTime       Float?
+  cycleTime       Float?
+  workCenterId    String?
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  routing         Routing              @relation(fields: [routingId], references: [id])
+  workCenter      WorkCenter?          @relation(fields: [workCenterId], references: [id])
+  workOrderOps    WorkOrderOperation[]
+
+  @@map("routing_operations")
+}
+model RoutingTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  number          String   @unique @default(cuid())
+  category        String?
+  description     String?
+  tags            String[]
+  isPublic        Boolean  @default(false)
+  isFavorite      Boolean  @default(false)
+  usageCount      Int      @default(0)
+  rating          Float?
+  visualData      Json?
+  sourceRoutingId String?
+  createdById     String
+  siteId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       User     @relation(fields: [createdById], references: [id])
+  site            Site     @relation(fields: [siteId], references: [id])
+  sourceRouting   Routing? @relation("TemplateSource", fields: [sourceRoutingId], references: [id])
+
+  @@index([siteId])
+  @@index([createdById])
+  @@index([category])
+  @@index([isFavorite])
+  @@map("routing_templates")
+}

@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// INTEGRATION EXTERNAL MODULE
+// External system integration and data exchange
+// ====================================================================
+
+model IntegrationConfig {
+  id                           String                        @id @default(cuid())
+  name                         String                        @unique
+  displayName                  String
+  type                         IntegrationType
+  enabled                      Boolean                       @default(true)
+  config                       Json
+  lastSync                     DateTime?
+  lastSyncStatus               String?
+  lastError                    String?
+  errorCount                   Int                           @default(0)
+  totalSyncs                   Int                           @default(0)
+  successCount                 Int                           @default(0)
+  failureCount                 Int                           @default(0)
+  syncSchedule                 Json?
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  erpMaterialTransactions      ERPMaterialTransaction[]
+  logs                         IntegrationLog[]
+  personnelInfoExchanges       PersonnelInfoExchange[]
+  productionPerformanceActuals ProductionPerformanceActual[]
+  productionScheduleRequests   ProductionScheduleRequest[]
+
+  @@index([name])
+  @@index([type])
+  @@index([enabled])
+  @@map("integration_configs")
+}
+model IntegrationLog {
+  id           String               @id @default(cuid())
+  configId     String
+  operation    String
+  direction    IntegrationDirection
+  status       IntegrationLogStatus
+  recordCount  Int                  @default(0)
+  successCount Int                  @default(0)
+  errorCount   Int                  @default(0)
+  duration     Int
+  requestData  Json?
+  responseData Json?
+  errors       Json?
+  details      Json?
+  startedAt    DateTime             @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime             @default(now())
+  config       IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([operation])
+  @@map("integration_logs")
+}
+model DataCollectionFieldTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  fieldSchema     Json
+  validationRules Json?
+  category        String?
+  tags            String[]
+  usageCount      Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String
+
+  @@index([category])
+  @@index([tags])
+  @@map("data_collection_field_templates")
+}

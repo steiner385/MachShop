@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// DOCUMENT MANAGEMENT MODULE
+// Document management and version control
+// ====================================================================
+
+model DocumentTemplate {
+  id               String       @id @default(cuid())
+  name             String
+  description      String?
+  documentType     DocumentType
+  templateData     Json
+  defaultValues    Json?
+  isPublic         Boolean      @default(false)
+  isSystemTemplate Boolean      @default(false)
+  tags             String[]
+  category         String?
+  usageCount       Int          @default(0)
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  createdById      String
+  updatedById      String
+  createdBy        User         @relation("DocumentTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User         @relation("DocumentTemplateUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([documentType])
+  @@index([isPublic])
+  @@index([category])
+  @@map("document_templates")
+}
+model DocumentComment {
+  id               String              @id @default(cuid())
+  documentType     String
+  documentId       String
+  contextType      CommentContextType?
+  contextId        String?
+  contextPath      String?
+  commentText      String
+  attachments      String[]
+  parentCommentId  String?
+  status           CommentStatus       @default(OPEN)
+  priority         CommentPriority     @default(MEDIUM)
+  tags             String[]
+  isPinned         Boolean             @default(false)
+  isResolved       Boolean             @default(false)
+  resolvedAt       DateTime?
+  resolvedById     String?
+  authorId         String
+  authorName       String
+  mentionedUserIds String[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  editedAt         DateTime?
+  reactions        CommentReaction[]
+  parentComment    DocumentComment?    @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies          DocumentComment[]   @relation("CommentThread")
+
+  @@index([documentType, documentId])
+  @@index([parentCommentId])
+  @@index([authorId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("document_comments")
+}
+model DocumentAnnotation {
+  id             String         @id @default(cuid())
+  documentType   String
+  documentId     String
+  mediaType      String?
+  mediaUrl       String?
+  annotationType AnnotationType
+  annotationData Json
+  text           String?
+  color          String?
+  strokeWidth    Int?
+  opacity        Float?
+  fontSize       Int?
+  timestamp      Float?
+  authorId       String
+  authorName     String
+  isResolved     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([documentType, documentId])
+  @@index([authorId])
+  @@map("document_annotations")
+}
+model DocumentActivity {
+  id              String       @id @default(cuid())
+  documentType    String
+  documentId      String
+  activityType    ActivityType
+  description     String
+  changesSummary  Json?
+  performedById   String
+  performedByName String
+  performedByRole String?
+  metadata        Json?
+  occurredAt      DateTime     @default(now())
+
+  @@index([documentType, documentId])
+  @@index([activityType])
+  @@index([occurredAt])
+  @@index([performedById])
+  @@map("document_activities")
+}
+model DocumentSubscription {
+  id               String   @id @default(cuid())
+  userId           String
+  documentType     String
+  documentId       String
+  notifyOnEdit     Boolean  @default(true)
+  notifyOnComment  Boolean  @default(true)
+  notifyOnApproval Boolean  @default(true)
+  notifyOnVersion  Boolean  @default(true)
+  subscribedAt     DateTime @default(now())
+
+  @@unique([userId, documentType, documentId])
+  @@index([userId])
+  @@index([documentType, documentId])
+  @@map("document_subscriptions")
+}
+model DocumentEditSession {
+  id             String    @id @default(cuid())
+  documentType   String
+  documentId     String
+  userId         String
+  userName       String
+  sessionId      String    @unique
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  endedAt        DateTime?
+  cursorPosition Json?
+  lockedSections String[]
+  isActive       Boolean   @default(true)
+
+  @@index([documentType, documentId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("document_edit_sessions")
+}
+model FileVersion {
+  id                String            @id @default(uuid())
+  fileId            String
+  versionNumber     Int
+  versionId         String
+  storagePath       String
+  fileSize          Int
+  fileHash          String
+  mimeType          String
+  changeDescription String?
+  changeType        VersionChangeType @default(UPDATE)
+  storageClass      StorageClass      @default(HOT)
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  createdById       String
+  createdByName     String
+  retentionPolicy   String?
+  expiresAt         DateTime?
+  file              StoredFile        @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, versionNumber])
+  @@index([fileId])
+  @@index([createdAt])
+  @@map("file_versions")
+}
+model FileAccessLog {
+  id             String     @id @default(uuid())
+  fileId         String
+  accessType     AccessType
+  accessMethod   String
+  userId         String?
+  userName       String?
+  userAgent      String?
+  ipAddress      String?
+  referrer       String?
+  requestHeaders Json?
+  responseCode   Int?
+  responseSize   Int?
+  accessedAt     DateTime   @default(now())
+  duration       Int?
+  country        String?
+  region         String?
+  city           String?
+  cdnHit         Boolean?
+  edgeLocation   String?
+  file           StoredFile @relation(fields: [fileId], references: [id])
+
+  @@index([fileId])
+  @@index([accessedAt])
+  @@index([userId])
+  @@index([accessType])
+  @@map("file_access_logs")
+}

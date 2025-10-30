@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// PRODUCTION SCHEDULING MODULE
+// Production scheduling and capacity planning
+// ====================================================================
+
+model ProductionSchedule {
+  id               String                 @id @default(cuid())
+  scheduleNumber   String                 @unique
+  scheduleName     String
+  description      String?
+  periodStart      DateTime
+  periodEnd        DateTime
+  periodType       String                 @default("MONTHLY")
+  siteId           String?
+  areaId           String?
+  state            ScheduleState          @default(FORECAST)
+  stateChangedAt   DateTime               @default(now())
+  stateChangedBy   String?
+  priority         SchedulePriority       @default(NORMAL)
+  plannedBy        String?
+  approvedBy       String?
+  approvedAt       DateTime?
+  dispatchedCount  Int                    @default(0)
+  totalEntries     Int                    @default(0)
+  isLocked         Boolean                @default(false)
+  isFeasible       Boolean                @default(true)
+  feasibilityNotes String?
+  notes            String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  site             Site?                  @relation(fields: [siteId], references: [id])
+  entries          ScheduleEntry[]
+  stateHistory     ScheduleStateHistory[]
+
+  @@index([siteId])
+  @@index([state])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("production_schedules")
+}
+model ScheduleEntry {
+  id                 String               @id @default(cuid())
+  scheduleId         String
+  entryNumber        Int
+  partId             String
+  partNumber         String
+  description        String?
+  plannedQuantity    Float
+  dispatchedQuantity Float                @default(0)
+  completedQuantity  Float                @default(0)
+  unitOfMeasure      String               @default("EA")
+  plannedStartDate   DateTime
+  plannedEndDate     DateTime
+  actualStartDate    DateTime?
+  actualEndDate      DateTime?
+  priority           SchedulePriority     @default(NORMAL)
+  sequenceNumber     Int?
+  estimatedDuration  Int?
+  workCenterId       String?
+  routingId          String?
+  customerOrder      String?
+  customerDueDate    DateTime?
+  salesOrder         String?
+  isDispatched       Boolean              @default(false)
+  dispatchedAt       DateTime?
+  dispatchedBy       String?
+  workOrderId        String?              @unique
+  isCancelled        Boolean              @default(false)
+  cancelledAt        DateTime?
+  cancelledReason    String?
+  notes              String?
+  metadata           Json?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  constraints        ScheduleConstraint[]
+  part               Part                 @relation(fields: [partId], references: [id])
+  routing            Routing?             @relation(fields: [routingId], references: [id])
+  schedule           ProductionSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  workCenter         WorkCenter?          @relation(fields: [workCenterId], references: [id])
+  workOrder          WorkOrder?           @relation(fields: [workOrderId], references: [id])
+
+  @@unique([scheduleId, entryNumber])
+  @@index([scheduleId])
+  @@index([partId])
+  @@index([plannedStartDate])
+  @@index([plannedEndDate])
+  @@index([priority])
+  @@index([isDispatched])
+  @@index([workOrderId])
+  @@map("schedule_entries")
+}
+model ScheduleConstraint {
+  id                String         @id @default(cuid())
+  entryId           String
+  constraintType    ConstraintType
+  constraintName    String
+  description       String?
+  resourceId        String?
+  resourceType      String?
+  requiredQuantity  Float?
+  availableQuantity Float?
+  unitOfMeasure     String?
+  constraintDate    DateTime?
+  leadTimeDays      Int?
+  isViolated        Boolean        @default(false)
+  violationSeverity String?
+  violationMessage  String?
+  isResolved        Boolean        @default(false)
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  resolutionNotes   String?
+  notes             String?
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  entry             ScheduleEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+  @@index([constraintType])
+  @@index([isViolated])
+  @@index([constraintDate])
+  @@map("schedule_constraints")
+}

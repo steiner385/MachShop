@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// QUALITY MANAGEMENT MODULE
+// Quality plans, inspections, and measurements
+// ====================================================================
+
+model QualityPlan {
+  id              String                  @id @default(cuid())
+  planNumber      String                  @unique
+  planName        String
+  partId          String
+  operation       String?
+  description     String?
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  characteristics QualityCharacteristic[]
+  inspections     QualityInspection[]
+  part            Part                    @relation(fields: [partId], references: [id])
+
+  @@map("quality_plans")
+}
+model QualityCharacteristic {
+  id               String               @id @default(cuid())
+  planId           String
+  characteristic   String
+  specification    String
+  toleranceType    QualityToleranceType
+  nominalValue     Float?
+  upperLimit       Float?
+  lowerLimit       Float?
+  unitOfMeasure    String?
+  inspectionMethod String?
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  plan             QualityPlan          @relation(fields: [planId], references: [id])
+  measurements     QualityMeasurement[]
+
+  @@map("quality_characteristics")
+}
+model QualityInspection {
+  id               String                   @id @default(cuid())
+  inspectionNumber String                   @unique
+  workOrderId      String
+  planId           String
+  inspectorId      String
+  status           QualityInspectionStatus
+  result           QualityInspectionResult?
+  quantity         Int
+  startedAt        DateTime?
+  completedAt      DateTime?
+  notes            String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  ncrs             NCR[]
+  inspector        User                     @relation(fields: [inspectorId], references: [id])
+  plan             QualityPlan              @relation(fields: [planId], references: [id])
+  workOrder        WorkOrder                @relation(fields: [workOrderId], references: [id])
+  measurements     QualityMeasurement[]
+
+  @@map("quality_inspections")
+}
+model QualityMeasurement {
+  id               String                @id @default(cuid())
+  inspectionId     String
+  characteristicId String
+  measuredValue    Float
+  result           String
+  notes            String?
+  createdAt        DateTime              @default(now())
+  characteristic   QualityCharacteristic @relation(fields: [characteristicId], references: [id])
+  inspection       QualityInspection     @relation(fields: [inspectionId], references: [id])
+
+  @@map("quality_measurements")
+}
+model NCR {
+  id               String             @id @default(cuid())
+  ncrNumber        String             @unique
+  workOrderId      String?
+  inspectionId     String?
+  siteId           String?
+  partNumber       String
+  operation        String?
+  defectType       String
+  description      String
+  severity         NCRSeverity
+  status           NCRStatus
+  quantity         Int
+  createdById      String
+  assignedToId     String?
+  dueDate          DateTime?
+  rootCause        String?
+  correctiveAction String?
+  preventiveAction String?
+  closedAt         DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
+  inspection       QualityInspection? @relation(fields: [inspectionId], references: [id])
+  site             Site?              @relation(fields: [siteId], references: [id])
+  workOrder        WorkOrder?         @relation(fields: [workOrderId], references: [id])
+
+  @@map("ncrs")
+}
+model MeasurementEquipment {
+  id                         String                      @id @default(cuid())
+  externalGaugeId            String?                     @unique
+  description                String
+  manufacturer               String?
+  model                      String?
+  serialNumber               String?
+  gaugeType                  String
+  measurementType            String
+  measurementRange           String?
+  resolution                 Float?
+  accuracy                   Float?
+  location                   String?
+  calibrationFrequency       Int?
+  lastCalibrationDate        DateTime?
+  nextCalibrationDate        DateTime?
+  calibrationStatus          String                      @default("IN_CAL")
+  isActive                   Boolean                     @default(true)
+  lastSyncedAt               DateTime?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  inspectionRecords          InspectionRecord[]
+  operationGaugeRequirements OperationGaugeRequirement[]
+  qifMeasurementResults      QIFMeasurementResult[]
+
+  @@index([externalGaugeId])
+  @@index([calibrationStatus])
+  @@index([nextCalibrationDate])
+  @@map("measurement_equipment")
+}
+model InspectionRecord {
+  id                     String                @id @default(cuid())
+  serializedPartId       String?
+  measurementEquipmentId String?
+  characteristic         String
+  nominalValue           Float
+  actualValue            Float
+  lowerTolerance         Float
+  upperTolerance         Float
+  unit                   String
+  result                 String
+  inspectionDate         DateTime              @default(now())
+  createdAt              DateTime              @default(now())
+  measurementEquipment   MeasurementEquipment? @relation(fields: [measurementEquipmentId], references: [id])
+  serializedPart         SerializedPart?       @relation(fields: [serializedPartId], references: [id])
+
+  @@index([serializedPartId])
+  @@index([measurementEquipmentId])
+  @@index([result])
+  @@map("inspection_records")
+}
+model InspectionPlan {
+  id                 String                     @id @default(cuid())
+  documentNumber     String                     @unique
+  title              String
+  description        String?
+  version            String                     @default("1.0.0")
+  status             WorkInstructionStatus      @default(DRAFT)
+  effectiveDate      DateTime?
+  supersededDate     DateTime?
+  ecoNumber          String?
+  partId             String?
+  operationId        String?
+  inspectionType     InspectionType
+  frequency          InspectionFrequency
+  samplingPlan       Json?
+  dispositionRules   Json?
+  gageRRRequired     Boolean                    @default(false)
+  gageRRFrequency    String?
+  imageUrls          String[]
+  videoUrls          String[]
+  attachmentUrls     String[]
+  tags               String[]
+  categories         String[]
+  keywords           String[]
+  thumbnailUrl       String?
+  parentVersionId    String?
+  approvalWorkflowId String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalHistory    Json?
+  isActive           Boolean                    @default(true)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  createdById        String
+  updatedById        String
+  characteristics    InspectionCharacteristic[]
+  executions         InspectionExecution[]
+  approvedBy         User?                      @relation("InspectionPlanApprovedBy", fields: [approvedById], references: [id])
+  createdBy          User                       @relation("InspectionPlanCreatedBy", fields: [createdById], references: [id])
+  parentVersion      InspectionPlan?            @relation("InspectionPlanVersionHistory", fields: [parentVersionId], references: [id])
+  childVersions      InspectionPlan[]           @relation("InspectionPlanVersionHistory")
+  updatedBy          User                       @relation("InspectionPlanUpdatedBy", fields: [updatedById], references: [id])
+  steps              InspectionStep[]
+
+  @@index([documentNumber])
+  @@index([status])
+  @@index([partId])
+  @@index([operationId])
+  @@index([inspectionType])
+  @@map("inspection_plans")
+}
+model InspectionCharacteristic {
+  id                   String          @id @default(cuid())
+  inspectionPlanId     String
+  characteristicNumber Int
+  characteristicName   String
+  measurementType      MeasurementType
+  nominal              Float?
+  upperLimit           Float?
+  lowerLimit           Float?
+  unit                 String?
+  measurementMethod    String?
+  gageType             String?
+  isCritical           Boolean         @default(false)
+  inspectionPlan       InspectionPlan  @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([inspectionPlanId, characteristicNumber])
+  @@index([inspectionPlanId])
+  @@map("inspection_characteristics")
+}
+model InspectionStep {
+  id                 String         @id @default(cuid())
+  inspectionPlanId   String
+  stepNumber         Int
+  title              String
+  instructions       String
+  characteristicRefs Int[]
+  imageUrls          String[]
+  inspectionPlan     InspectionPlan @relation(fields: [inspectionPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([inspectionPlanId, stepNumber])
+  @@index([inspectionPlanId])
+  @@map("inspection_steps")
+}
+model InspectionExecution {
+  id               String           @id @default(cuid())
+  inspectionPlanId String
+  workOrderId      String?
+  operationId      String?
+  lotNumber        String?
+  serialNumber     String?
+  inspectorId      String
+  inspectedAt      DateTime         @default(now())
+  results          Json
+  overallResult    InspectionResult
+  defectsFound     Json?
+  disposition      Disposition?
+  signatureId      String?
+  inspectionPlan   InspectionPlan   @relation(fields: [inspectionPlanId], references: [id])
+  inspector        User             @relation("InspectionExecutionInspector", fields: [inspectorId], references: [id])
+
+  @@index([inspectionPlanId])
+  @@index([workOrderId])
+  @@index([inspectedAt])
+  @@map("inspection_executions")
+}

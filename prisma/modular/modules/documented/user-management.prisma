@@ -1,0 +1,429 @@
+generator client {
+  provider = "prisma-client-js"
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "default"
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+
+
+// ====================================================================
+// USER MANAGEMENT MODULE
+// User accounts, authentication, and personnel management
+// ====================================================================
+
+/**
+ * System users with authentication credentials and role-based access permissions
+ *
+ * @businessPurpose Manages personnel access to the MES system, tracks user activities, and enforces security policies across manufacturing operations
+ * @dataOwner IT Security Team
+ * @updateFrequency Real-time for status changes, daily batch for HR integration
+ * @complianceNotes Contains PII - subject to data privacy regulations. Electronic signatures require 21 CFR Part 11 compliance
+ * @dataRetention 7 years after employment termination for audit purposes
+ * @securityClassification Confidential - Contains PII and access control data
+ * @integrations HR Management System, Active Directory, Badge Access System, Electronic Signature System
+ * @relatedTables UserSiteRole, PersonnelClass, ElectronicSignature, SecurityEvent
+ *
+ * @examples
+ * - Production operator with shop floor access: Typical production worker with basic manufacturing access
+ * - Quality engineer with inspection authority: Quality professional with inspection and approval permissions
+ *
+ * @commonQueries
+ * - Find all active users by role for access reviews
+ * - Generate user activity reports for compliance audits
+ * - List users requiring certification renewal
+ */
+model User {
+  id                        String                          @id @default(cuid())
+  username                  String                          @unique
+  email                     String                          @unique
+  firstName                 String?
+  lastName                  String?
+  passwordHash              String
+  isActive                  Boolean                         @default(true)
+  roles                     String[]
+  permissions               String[]
+  /// Timestamp of user's most recent successful authentication
+  /// @businessRule Updated automatically on each successful login
+  /// @dataSource Authentication system
+  /// @format ISO 8601 timestamp with timezone
+  /// @validation Cannot be future date
+  /// @businessImpact Used for inactive user identification and security audits
+  /// @auditTrail Tracked for security monitoring and compliance
+  lastLoginAt               DateTime?
+  createdAt                 DateTime                        @default(now())
+  updatedAt                 DateTime                        @updatedAt
+  /// Unique identifier from HR system linking MES user to employee record
+  /// @businessRule Must match active employee records in HR system for integration
+  /// @dataSource HR Management System daily import
+  /// @format EMP-NNNNNN (e.g., EMP-001234)
+  /// @validation Must be unique when not null, format validated on entry
+  /// @businessImpact Incorrect mapping prevents HR integration and payroll allocation
+  /// @privacy Internal employee identifier - not PII but confidential
+  /// @examples
+  /// - EMP-001234 - Regular full-time employee
+  /// - EMP-999999 - Temporary contractor
+  /// - null - System service accounts
+  /// @integrationMapping
+  /// - hrSystem: EmployeeID
+  /// - badgeSystem: EmployeeNumber
+  employeeNumber            String?                         @unique
+  /// Links user to job classification determining access levels and capabilities
+  /// @businessRule Must reference valid personnel class with current effective dates
+  /// @dataSource HR system or manual assignment by administrators
+  /// @validation Must exist in PersonnelClass table and be currently active
+  /// @businessImpact Determines user permissions and system access levels
+  /// @examples
+  /// - PROD-OP-L1 - Level 1 Production Operator
+  /// - QE-SENIOR - Senior Quality Engineer
+  /// - MAINT-TECH - Maintenance Technician
+  personnelClassId          String?
+  hireDate                  DateTime?
+  terminationDate           DateTime?
+  phone                     String?
+  /// Emergency contact information required for manufacturing safety compliance
+  /// @businessRule Required for all personnel with shop floor access
+  /// @dataSource User self-service portal or HR system
+  /// @format Name and phone number in free text format
+  /// @businessImpact Critical for workplace safety and emergency response
+  /// @privacy PII - Personal emergency contact information
+  /// @examples
+  /// - Jane Doe - (555) 123-4567 (spouse)
+  /// - Emergency Services - 911
+  /// - Company Security - ext. 5555
+  emergencyContact          String?
+  emergencyPhone            String?
+  department                String?
+  supervisorId              String?
+  costCenter                String?
+  laborRate                 Float?
+  auditLogs                 AuditLog[]
+  generatedAuditReports     AuditReport[]
+
+  // Role Template relationships
+  createdRoleTemplates      RoleTemplate[]              @relation("RoleTemplateCreator")
+  updatedRoleTemplates      RoleTemplate[]              @relation("RoleTemplateUpdater")
+  instantiatedTemplates     RoleTemplateInstance[]
+  templateUsageLogsAsPerformer RoleTemplateUsageLog[]   @relation("RoleTemplateLogPerformer")
+  templateUsageLogsAsTarget    RoleTemplateUsageLog[]   @relation("RoleTemplateLogTarget")
+  authenticationEvents      AuthenticationEvent[]
+  dispatchedWorkOrders      DispatchLog[]                   @relation("DispatchAssignedTo")
+  createdDocumentTemplates  DocumentTemplate[]              @relation("DocumentTemplateCreatedBy")
+  updatedDocumentTemplates  DocumentTemplate[]              @relation("DocumentTemplateUpdatedBy")
+  invalidatedSignatures     ElectronicSignature[]           @relation("ElectronicSignatureInvalidatedBy")
+  electronicSignatures      ElectronicSignature[]           @relation("ElectronicSignatureUser")
+  equipmentLogs             EquipmentLog[]
+  inspectionExecutions      InspectionExecution[]           @relation("InspectionExecutionInspector")
+  approvedInspectionPlans   InspectionPlan[]                @relation("InspectionPlanApprovedBy")
+  createdInspectionPlans    InspectionPlan[]                @relation("InspectionPlanCreatedBy")
+  updatedInspectionPlans    InspectionPlan[]                @relation("InspectionPlanUpdatedBy")
+  laborTimeEntries          LaborTimeEntry[]
+  assignedNcrs              NCR[]                           @relation("AssignedTo")
+  ncrReports                NCR[]                           @relation("CreatedBy")
+  permissionChangesChanger  PermissionChangeLog[]           @relation("PermissionChangeChanger")
+  permissionChangesTarget   PermissionChangeLog[]           @relation("PermissionChangeTarget")
+  permissionUsageLogs       PermissionUsageLog[]
+  availability              PersonnelAvailability[]
+  certifications            PersonnelCertification[]
+  skills                    PersonnelSkillAssignment[]
+  workCenterAssignments     PersonnelWorkCenterAssignment[]
+  qualityInspections        QualityInspection[]
+  routingTemplates          RoutingTemplate[]
+  resolvedSecurityEvents    SecurityEvent[]                 @relation("SecurityEventResolvedBy")
+  securityEvents            SecurityEvent[]
+  completedSetupExecutions  SetupExecution[]                @relation("SetupExecutionCompletedBy")
+  startedSetupExecutions    SetupExecution[]                @relation("SetupExecutionStartedBy")
+  approvedSetupSheets       SetupSheet[]                    @relation("SetupSheetApprovedBy")
+  createdSetupSheets        SetupSheet[]                    @relation("SetupSheetCreatedBy")
+  updatedSetupSheets        SetupSheet[]                    @relation("SetupSheetUpdatedBy")
+  sopAcknowledgments        SOPAcknowledgment[]             @relation("SOPAcknowledgmentUser")
+  sopAudits                 SOPAudit[]                      @relation("SOPAuditAuditor")
+  ssoSessions               SsoSession[]
+  approvedSOPs              StandardOperatingProcedure[]    @relation("SOPApprovedBy")
+  createdSOPs               StandardOperatingProcedure[]    @relation("SOPCreatedBy")
+  updatedSOPs               StandardOperatingProcedure[]    @relation("SOPUpdatedBy")
+  toolCalibrationRecords    ToolCalibrationRecord[]         @relation("ToolCalibrationPerformedBy")
+  approvedToolDrawings      ToolDrawing[]                   @relation("ToolDrawingApprovedBy")
+  createdToolDrawings       ToolDrawing[]                   @relation("ToolDrawingCreatedBy")
+  updatedToolDrawings       ToolDrawing[]                   @relation("ToolDrawingUpdatedBy")
+  toolMaintenanceRecords    ToolMaintenanceRecord[]         @relation("ToolMaintenancePerformedBy")
+  toolUsageLogs             ToolUsageLog[]                  @relation("ToolUsageLogUsedBy")
+  userRoles                 UserRole[]
+  userSessionLogs           UserSessionLog[]
+  userSiteRoles             UserSiteRole[]
+  personnelClass            PersonnelClass?                 @relation(fields: [personnelClassId], references: [id])
+  supervisor                User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
+  subordinates              User[]                          @relation("SupervisorRelation")
+  workInstructionExecutions WorkInstructionExecution[]      @relation("WIExecutionOperator")
+  signedStepExecutions      WorkInstructionStepExecution[]  @relation("WIStepExecutionSignedBy")
+  approvedWorkInstructions  WorkInstruction[]               @relation("WorkInstructionApprovedBy")
+  createdWorkInstructions   WorkInstruction[]               @relation("WorkInstructionCreatedBy")
+  updatedWorkInstructions   WorkInstruction[]               @relation("WorkInstructionUpdatedBy")
+  assignedWorkOrders        WorkOrder[]                     @relation("AssignedTo")
+  createdWorkOrders         WorkOrder[]                     @relation("CreatedBy")
+  workPerformanceRecords    WorkPerformance[]               @relation("WorkPerformancePersonnel")
+
+  @@index([employeeNumber])
+  @@index([personnelClassId])
+  @@index([supervisorId])
+  @@map("users")
+}
+model PersonnelClass {
+  id             String                   @id @default(cuid())
+  classCode      String                   @unique
+  className      String
+  description    String?
+  level          Int
+  parentClassId  String?
+  isActive       Boolean                  @default(true)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  parentClass    PersonnelClass?          @relation("PersonnelClassHierarchy", fields: [parentClassId], references: [id])
+  childClasses   PersonnelClass[]         @relation("PersonnelClassHierarchy")
+  qualifications PersonnelQualification[]
+  personnel      User[]
+
+  @@index([parentClassId])
+  @@index([level])
+  @@map("personnel_classes")
+}
+model PersonnelQualification {
+  id                   String                   @id @default(cuid())
+  qualificationCode    String                   @unique
+  qualificationName    String
+  description          String?
+  qualificationType    QualificationType
+  issuingOrganization  String?
+  validityPeriodMonths Int?
+  requiresRenewal      Boolean                  @default(false)
+  personnelClassId     String?
+  isActive             Boolean                  @default(true)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  certifications       PersonnelCertification[]
+  personnelClass       PersonnelClass?          @relation(fields: [personnelClassId], references: [id])
+
+  @@index([personnelClassId])
+  @@index([qualificationType])
+  @@map("personnel_qualifications")
+}
+model PersonnelCertification {
+  id                  String                 @id @default(cuid())
+  personnelId         String
+  qualificationId     String
+  certificationNumber String?
+  issuedDate          DateTime
+  expirationDate      DateTime?
+  status              CertificationStatus    @default(ACTIVE)
+  attachmentUrls      String[]
+  verifiedBy          String?
+  verifiedAt          DateTime?
+  notes               String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  personnel           User                   @relation(fields: [personnelId], references: [id])
+  qualification       PersonnelQualification @relation(fields: [qualificationId], references: [id])
+
+  @@unique([personnelId, qualificationId])
+  @@index([personnelId])
+  @@index([qualificationId])
+  @@index([expirationDate])
+  @@index([status])
+  @@map("personnel_certifications")
+}
+model PersonnelSkill {
+  id               String                     @id @default(cuid())
+  skillCode        String                     @unique
+  skillName        String
+  description      String?
+  skillCategory    SkillCategory
+  isActive         Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  skillAssignments PersonnelSkillAssignment[]
+
+  @@index([skillCategory])
+  @@map("personnel_skills")
+}
+model PersonnelSkillAssignment {
+  id              String          @id @default(cuid())
+  personnelId     String
+  skillId         String
+  competencyLevel CompetencyLevel
+  assessedBy      String?
+  assessedAt      DateTime?
+  lastUsedDate    DateTime?
+  certifiedDate   DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  personnel       User            @relation(fields: [personnelId], references: [id])
+  skill           PersonnelSkill  @relation(fields: [skillId], references: [id])
+
+  @@unique([personnelId, skillId])
+  @@index([personnelId])
+  @@index([skillId])
+  @@index([competencyLevel])
+  @@map("personnel_skill_assignments")
+}
+model PersonnelWorkCenterAssignment {
+  id            String     @id @default(cuid())
+  personnelId   String
+  workCenterId  String
+  isPrimary     Boolean    @default(false)
+  effectiveDate DateTime   @default(now())
+  endDate       DateTime?
+  certifiedDate DateTime?
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  personnel     User       @relation(fields: [personnelId], references: [id])
+  workCenter    WorkCenter @relation(fields: [workCenterId], references: [id])
+
+  @@unique([personnelId, workCenterId])
+  @@index([personnelId])
+  @@index([workCenterId])
+  @@index([effectiveDate])
+  @@map("personnel_work_center_assignments")
+}
+model PersonnelAvailability {
+  id               String           @id @default(cuid())
+  personnelId      String
+  availabilityType AvailabilityType
+  startDateTime    DateTime
+  endDateTime      DateTime
+  shiftCode        String?
+  isRecurring      Boolean          @default(false)
+  recurrenceRule   String?
+  reason           String?
+  approvedBy       String?
+  approvedAt       DateTime?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  personnel        User             @relation(fields: [personnelId], references: [id])
+
+  @@index([personnelId])
+  @@index([startDateTime])
+  @@index([availabilityType])
+  @@map("personnel_availability")
+}
+model PersonnelInfoExchange {
+  id                  String               @id @default(cuid())
+  messageId           String               @unique
+  configId            String
+  personnelId         String?
+  externalPersonnelId String
+  actionType          PersonnelActionType
+  direction           IntegrationDirection
+  firstName           String?
+  lastName            String?
+  email               String?
+  employeeNumber      String?
+  department          String?
+  jobTitle            String?
+  skills              Json?
+  certifications      Json?
+  qualifications      Json?
+  shiftCode           String?
+  workCalendar        String?
+  availableFrom       DateTime?
+  availableTo         DateTime?
+  employmentStatus    String?
+  lastWorkDate        DateTime?
+  status              B2MMessageStatus
+  processedAt         DateTime?
+  errorMessage        String?
+  messagePayload      Json
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([actionType])
+  @@index([status])
+  @@index([externalPersonnelId])
+  @@index([personnelId])
+  @@map("personnel_info_exchanges")
+}
+model UserWorkstationPreference {
+  id                    String         @id @default(cuid())
+  userId                String
+  workstationId         String?
+  layoutMode            LayoutMode     @default(SPLIT_VERTICAL)
+  splitRatio            Float?         @default(0.6)
+  panelPosition         PanelPosition? @default(LEFT)
+  autoAdvanceSteps      Boolean        @default(false)
+  showStepTimer         Boolean        @default(true)
+  compactMode           Boolean        @default(false)
+  useSecondMonitor      Boolean        @default(false)
+  secondMonitorPosition Json?
+  isActive              Boolean        @default(true)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@unique([userId, workstationId])
+  @@index([userId])
+  @@index([workstationId])
+  @@map("user_workstation_preferences")
+}
+model UserNotification {
+  id               String           @id @default(cuid())
+  userId           String
+  notificationType NotificationType
+  title            String
+  message          String
+  entityType       String?
+  entityId         String?
+  actionUrl        String?
+  isRead           Boolean          @default(false)
+  readAt           DateTime?
+  createdAt        DateTime         @default(now())
+  expiresAt        DateTime?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("user_notifications")
+}
+model UserRole {
+  id         String    @id @default(cuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime  @default(now())
+  assignedBy String?
+  expiresAt  DateTime?
+  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([expiresAt])
+  @@map("user_roles")
+}
+model UserSessionLog {
+  id           String    @id @default(cuid())
+  userId       String
+  sessionId    String    @unique
+  ip           String?
+  userAgent    String?
+  startTime    DateTime  @default(now())
+  endTime      DateTime?
+  duration     Int?
+  actionsCount Int       @default(0)
+  siteAccess   String[]
+  lastActivity DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startTime])
+  @@index([sessionId])
+  @@index([ip, startTime])
+  @@index([lastActivity])
+  @@map("user_session_logs")
+}
