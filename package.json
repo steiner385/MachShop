@@ -211,7 +211,7 @@
     "@types/turndown": "^5.0.6",
     "@types/uuid": "^9.0.7",
     "@types/xlsx": "^0.0.35",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^6.15.0",
     "@vitest/coverage-v8": "^1.1.0",
     "@vitest/ui": "^1.1.0",
