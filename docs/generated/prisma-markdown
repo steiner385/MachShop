@@ -152,6 +152,22 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"units_of_measure" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  UnitType unitType
+  SystemOfMeasure systemOfMeasure
+  Boolean isBaseUnit
+  Decimal conversionFactor "nullable"
+  String baseUnitId FK "nullable"
+  String symbol "nullable"
+  Boolean isActive
+  Int sortOrder "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "material_classes" {
   String id PK
   String classCode UK
@@ -177,6 +193,8 @@ erDiagram
   String materialClassId FK
   String baseUnitOfMeasure
   String alternateUnitOfMeasure "nullable"
+  String baseUnitOfMeasureId FK "nullable"
+  String alternateUnitOfMeasureId FK "nullable"
   Float conversionFactor "nullable"
   MaterialType materialType
   String materialGrade "nullable"
@@ -213,6 +231,7 @@ erDiagram
   MaterialPropertyType propertyType
   String propertyValue
   String propertyUnit "nullable"
+  String propertyUnitId FK "nullable"
   String testMethod "nullable"
   Float nominalValue "nullable"
   Float minValue "nullable"
@@ -234,6 +253,7 @@ erDiagram
   Float originalQuantity
   Float currentQuantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   String location "nullable"
   String warehouseId "nullable"
   DateTime manufactureDate "nullable"
@@ -273,6 +293,7 @@ erDiagram
   SublotOperationType operationType
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   String workOrderId "nullable"
   String operationId "nullable"
   String reservedFor "nullable"
@@ -292,6 +313,7 @@ erDiagram
   Float quantityConsumed
   Float quantityProduced "nullable"
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   String workOrderId "nullable"
   String operationId "nullable"
   DateTime processDate
@@ -310,6 +332,7 @@ erDiagram
   StateTransitionType transitionType
   Float quantity "nullable"
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   String workOrderId "nullable"
   String operationId "nullable"
   String inspectionId "nullable"
@@ -358,6 +381,7 @@ erDiagram
   ParameterDataType dataType
   String defaultValue "nullable"
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   Float minValue "nullable"
   Float maxValue "nullable"
   String allowedValues
@@ -469,6 +493,7 @@ erDiagram
   MaterialType materialType "nullable"
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   ConsumptionType consumptionType
   String requiredProperties
   String qualityRequirements "nullable"
@@ -503,6 +528,7 @@ erDiagram
   ProductType productType
   ProductLifecycleState lifecycleState
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   Float weight "nullable"
   String weightUnit "nullable"
   String drawingNumber "nullable"
@@ -547,6 +573,7 @@ erDiagram
   String componentPartId FK
   Float quantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   Float scrapFactor "nullable"
   Int sequence "nullable"
   String findNumber "nullable"
@@ -733,6 +760,7 @@ erDiagram
   String parameterName
   String parameterValue
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   String notes "nullable"
   DateTime createdAt
   DateTime updatedAt
@@ -827,6 +855,7 @@ erDiagram
   Float dispatchedQuantity
   Float completedQuantity
   String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
   DateTime plannedStartDate
   DateTime plannedEndDate
   DateTime actualStartDate "nullable"
@@ -1005,6 +1034,7 @@ erDiagram
   Float upperLimit "nullable"
   Float lowerLimit "nullable"
   String unitOfMeasure "nullable"
+  String unitOfMeasureId FK "nullable"
   String inspectionMethod "nullable"
   Boolean isActive
   DateTime createdAt
@@ -3369,21 +3399,30 @@ erDiagram
 "personnel_work_center_assignments" }o--|| "users" : personnel
 "personnel_work_center_assignments" }o--|| "work_centers" : workCenter
 "personnel_availability" }o--|| "users" : personnel
+"units_of_measure" }o--o| "units_of_measure" : baseUnit
 "material_classes" }o--o| "material_classes" : parentClass
 "material_definitions" }o--|| "material_classes" : materialClass
 "material_definitions" }o--o| "material_definitions" : replacementMaterial
+"material_definitions" }o--o| "units_of_measure" : baseUnitOfMeasureRef
+"material_definitions" }o--o| "units_of_measure" : alternateUnitOfMeasureRef
 "material_properties" }o--|| "material_definitions" : material
+"material_properties" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lots" }o--|| "material_definitions" : material
 "material_lots" }o--o| "material_lots" : parentLot
+"material_lots" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_sublots" }o--|| "material_lots" : parentLot
+"material_sublots" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lot_genealogy" }o--|| "material_lots" : childLot
 "material_lot_genealogy" }o--|| "material_lots" : parentLot
+"material_lot_genealogy" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_state_history" }o--|| "material_lots" : lot
+"material_state_history" }o--o| "units_of_measure" : unitOfMeasureRef
 "operations" }o--o| "operations" : parentOperation
 "operations" }o--o| "sites" : site
 "operations" }o--o| "work_instructions" : standardWorkInstruction
 "operation_parameters" }o--|| "operations" : operation
 "operation_parameters" }o--o| "parameter_groups" : parameterGroup
+"operation_parameters" }o--o| "units_of_measure" : unitOfMeasureRef
 "parameter_limits" |o--|| "operation_parameters" : parameter
 "parameter_groups" }o--o| "parameter_groups" : parentGroup
 "parameter_formulas" |o--|| "operation_parameters" : outputParameter
@@ -3392,13 +3431,16 @@ erDiagram
 "personnel_operation_specifications" }o--|| "operations" : operation
 "equipment_operation_specifications" }o--|| "operations" : operation
 "material_operation_specifications" }o--|| "operations" : operation
+"material_operation_specifications" }o--o| "units_of_measure" : unitOfMeasureRef
 "physical_asset_operation_specifications" }o--|| "operations" : operation
 "parts" }o--o| "parts" : replacementPart
+"parts" }o--o| "units_of_measure" : unitOfMeasureRef
 "part_site_availability" }o--|| "parts" : part
 "part_site_availability" }o--|| "sites" : site
 "bom_items" }o--|| "parts" : componentPart
 "bom_items" }o--o| "operations" : operation
 "bom_items" }o--|| "parts" : parentPart
+"bom_items" }o--o| "units_of_measure" : unitOfMeasureRef
 "product_specifications" }o--|| "parts" : part
 "product_configurations" }o--|| "parts" : part
 "configuration_options" }o--|| "product_configurations" : configuration
@@ -3420,6 +3462,7 @@ erDiagram
 "routing_step_dependencies" }o--|| "routing_steps" : dependentStep
 "routing_step_dependencies" }o--|| "routing_steps" : prerequisiteStep
 "routing_step_parameters" }o--|| "routing_steps" : routingStep
+"routing_step_parameters" }o--o| "units_of_measure" : unitOfMeasureRef
 "routing_templates" }o--|| "users" : createdBy
 "routing_templates" }o--|| "sites" : site
 "routing_templates" }o--o| "routings" : sourceRouting
@@ -3434,6 +3477,7 @@ erDiagram
 "schedule_entries" }o--|| "production_schedules" : schedule
 "schedule_entries" }o--o| "work_centers" : workCenter
 "schedule_entries" |o--o| "work_orders" : workOrder
+"schedule_entries" }o--o| "units_of_measure" : unitOfMeasureRef
 "schedule_constraints" }o--|| "schedule_entries" : entry
 "schedule_state_history" }o--|| "production_schedules" : schedule
 "work_order_status_history" }o--|| "work_orders" : workOrder
@@ -3447,6 +3491,7 @@ erDiagram
 "production_variances" }o--|| "work_orders" : workOrder
 "quality_plans" }o--|| "parts" : part
 "quality_characteristics" }o--|| "quality_plans" : plan
+"quality_characteristics" }o--o| "units_of_measure" : unitOfMeasureRef
 "quality_inspections" }o--|| "users" : inspector
 "quality_inspections" }o--|| "quality_plans" : plan
 "quality_inspections" }o--|| "work_orders" : workOrder
@@ -3805,6 +3850,25 @@ erDiagram
   - `createdAt`: 
   - `updatedAt`: 
 
+### `units_of_measure`
+Unit of Measure lookup table for standardizing measurement units across the system
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `unitType`: 
+  - `systemOfMeasure`: 
+  - `isBaseUnit`: 
+  - `conversionFactor`: 
+  - `baseUnitId`: 
+  - `symbol`: 
+  - `isActive`: 
+  - `sortOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
 ### `material_classes`
 
 **Properties**
@@ -3834,6 +3898,8 @@ erDiagram
   - `materialClassId`: 
   - `baseUnitOfMeasure`: 
   - `alternateUnitOfMeasure`: 
+  - `baseUnitOfMeasureId`: 
+  - `alternateUnitOfMeasureId`: 
   - `conversionFactor`: 
   - `materialType`: 
   - `materialGrade`: 
@@ -3872,6 +3938,7 @@ erDiagram
   - `propertyType`: 
   - `propertyValue`: 
   - `propertyUnit`: 
+  - `propertyUnitId`: 
   - `testMethod`: 
   - `nominalValue`: 
   - `minValue`: 
@@ -3895,6 +3962,7 @@ erDiagram
   - `originalQuantity`: 
   - `currentQuantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `location`: 
   - `warehouseId`: 
   - `manufactureDate`: 
@@ -3936,6 +4004,7 @@ erDiagram
   - `operationType`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `workOrderId`: 
   - `operationId`: 
   - `reservedFor`: 
@@ -3957,6 +4026,7 @@ erDiagram
   - `quantityConsumed`: 
   - `quantityProduced`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `workOrderId`: 
   - `operationId`: 
   - `processDate`: 
@@ -3977,6 +4047,7 @@ erDiagram
   - `transitionType`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `workOrderId`: 
   - `operationId`: 
   - `inspectionId`: 
@@ -4029,6 +4100,7 @@ erDiagram
   - `dataType`: 
   - `defaultValue`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `minValue`: 
   - `maxValue`: 
   - `allowedValues`: 
@@ -4154,6 +4226,7 @@ erDiagram
   - `materialType`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `consumptionType`: 
   - `requiredProperties`: 
   - `qualityRequirements`: 
@@ -4192,6 +4265,7 @@ erDiagram
   - `productType`: 
   - `lifecycleState`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `weight`: 
   - `weightUnit`: 
   - `drawingNumber`: 
@@ -4240,6 +4314,7 @@ erDiagram
   - `componentPartId`: 
   - `quantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `scrapFactor`: 
   - `sequence`: 
   - `findNumber`: 
@@ -4446,6 +4521,7 @@ erDiagram
   - `parameterName`: 
   - `parameterValue`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `notes`: 
   - `createdAt`: 
   - `updatedAt`: 
@@ -4552,6 +4628,7 @@ erDiagram
   - `dispatchedQuantity`: 
   - `completedQuantity`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `plannedStartDate`: 
   - `plannedEndDate`: 
   - `actualStartDate`: 
@@ -4746,6 +4823,7 @@ erDiagram
   - `upperLimit`: 
   - `lowerLimit`: 
   - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
   - `inspectionMethod`: 
   - `isActive`: 
   - `createdAt`: 
