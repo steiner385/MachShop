@@ -956,11 +956,24 @@ model Part {
   unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
   torqueSpecifications       TorqueSpecification[]
 
+  // Life-Limited Parts (LLP) Fields
+  isLifeLimited              Boolean                     @default(false)
+  llpCriticalityLevel        LLPCriticalityLevel?
+  llpRetirementType          LLPRetirementType?
+  llpCycleLimit              Int?                        // Maximum cycles before retirement
+  llpTimeLimit               Int?                        // Maximum years before retirement
+  llpInspectionInterval      Int?                        // Cycles between inspections
+  llpRegulatoryReference     String?                     // FAA AD, OEM bulletin, etc.
+  llpCertificationRequired   Boolean                     @default(false)
+  llpNotes                   String?                     // LLP-specific notes
+
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
   @@index([partNumber])
   @@index([unitOfMeasureId])
+  @@index([isLifeLimited])
+  @@index([llpCriticalityLevel])
   @@map("parts")
 }
 
@@ -2012,6 +2025,11 @@ model SerializedPart {
   genealogy             PartGenealogy[]        @relation("ParentPart")
   qifMeasurementResults QIFMeasurementResult[]
   part                  Part                   @relation(fields: [partId], references: [id])
+
+  // Life-Limited Parts (LLP) Relationships
+  llpLifeHistory        LLPLifeHistory[]
+  llpAlerts             LLPAlert[]
+  llpCertifications     LLPCertification[]
 
   @@map("serialized_parts")
 }
@@ -6911,4 +6929,150 @@ enum SystemOfMeasure {
   IMPERIAL       // Imperial/US customary system
   SI             // International System of Units
   OTHER          // Other measurement systems
+}
+
+// ============================================================================
+// LIFE-LIMITED PARTS (LLP) SYSTEM
+// ============================================================================
+
+/// LLP criticality levels for safety classification
+enum LLPCriticalityLevel {
+  SAFETY_CRITICAL     // Must be retired at exact limit - catastrophic failure risk
+  MONITORED          // Closely monitored but some tolerance allowed
+  TRACKED            // Tracked for maintenance planning
+}
+
+/// LLP retirement criteria types
+enum LLPRetirementType {
+  CYCLES_OR_TIME     // Whichever occurs first (typical)
+  CYCLES_ONLY        // Cycles-based retirement only
+  TIME_ONLY          // Calendar time-based retirement only
+  CYCLES_AND_TIME    // Both must be met
+}
+
+/// LLP status for tracking current state
+enum LLPStatus {
+  ACTIVE             // Currently in service
+  RETIRED            // Permanently retired from service
+  QUARANTINED        // Temporarily removed pending investigation
+  UNDER_REPAIR       // In shop for maintenance/repair
+  AWAITING_INSTALL   // Ready for installation
+  SCRAPPED           // Destroyed/disposed
+}
+
+/// LLP alert severity levels
+enum LLPAlertSeverity {
+  INFO               // Informational (>80% life remaining)
+  WARNING            // Warning (80-90% life consumed)
+  CRITICAL           // Critical (90-95% life consumed)
+  URGENT             // Urgent (95-100% life consumed)
+  EXPIRED            // Past retirement limit
+}
+
+/// LLP certification document types
+enum LLPCertificationType {
+  FORM_1             // Authorized Release Certificate
+  MATERIAL_CERT      // Material certification
+  TEST_REPORT        // Test results (tensile, hardness, etc.)
+  TRACEABILITY_CERT  // OEM traceability certificate
+  HEAT_LOT_CERT      // Heat lot certification
+  NDT_REPORT         // Non-destructive testing report
+  OEM_CERT           // Original equipment manufacturer certification
+}
+
+/// Life-Limited Parts life history tracking - complete back-to-birth record
+model LLPLifeHistory {
+  id                    String               @id @default(cuid())
+  serializedPartId      String
+  eventType             String               // INSTALL, REMOVE, REPAIR, INSPECT, MANUFACTURE
+  eventDate             DateTime
+  cyclesAtEvent         Int?                 // Total cycles at this event
+  hoursAtEvent          Float?               // Total flight hours at this event
+  parentAssemblyId      String?              // Which engine/assembly installed in
+  parentSerialNumber    String?              // Serial number of parent assembly
+  workOrderId           String?              // Associated work order
+  operationId           String?              // Specific operation
+  performedBy           String?              // Technician/operator
+  location              String?              // Where event occurred
+  notes                 String?              // Event-specific notes
+  certificationUrls     String[]             // Links to certification documents
+  inspectionResults     Json?                // Inspection findings (JSON)
+  repairDetails         Json?                // Repair work performed (JSON)
+  metadata              Json?                // Additional event metadata
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  serializedPart        SerializedPart       @relation(fields: [serializedPartId], references: [id], onDelete: Cascade)
+
+  @@index([serializedPartId])
+  @@index([eventDate])
+  @@index([eventType])
+  @@index([parentAssemblyId])
+  @@map("llp_life_history")
+}
+
+/// LLP alert management for retirement and inspection notifications
+model LLPAlert {
+  id                    String               @id @default(cuid())
+  serializedPartId      String
+  alertType             String               // RETIREMENT_WARNING, INSPECTION_DUE, RETIRED
+  severity              LLPAlertSeverity
+  triggerCycles         Int?                 // Cycles that triggered the alert
+  triggerDate           DateTime?            // Date that triggered the alert
+  thresholdPercentage   Float?               // Percentage of life consumed (0-100)
+  message               String               // Alert message
+  isActive              Boolean              @default(true)
+  acknowledgedBy        String?              // Who acknowledged the alert
+  acknowledgedAt        DateTime?            // When acknowledged
+  resolvedBy            String?              // Who resolved the alert
+  resolvedAt            DateTime?            // When resolved
+  actionRequired        String?              // Required action description
+  dueDate               DateTime?            // When action is due
+  escalationLevel       Int                  @default(1)
+  notificationsSent     Int                  @default(0)
+  metadata              Json?                // Additional alert data
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  serializedPart        SerializedPart       @relation(fields: [serializedPartId], references: [id], onDelete: Cascade)
+
+  @@index([serializedPartId])
+  @@index([severity])
+  @@index([isActive])
+  @@index([dueDate])
+  @@index([alertType])
+  @@map("llp_alerts")
+}
+
+/// LLP certification document storage and management
+model LLPCertification {
+  id                    String               @id @default(cuid())
+  serializedPartId      String
+  certificationType     LLPCertificationType
+  documentName          String               // Original document name
+  documentUrl           String               // Storage URL/path
+  documentHash          String?              // Document integrity hash
+  issuedBy              String?              // Issuing organization
+  issuedDate            DateTime?            // When certificate was issued
+  expirationDate        DateTime?            // When certificate expires
+  certificationNumber   String?              // Certificate number
+  batchNumber           String?              // Heat lot/batch number
+  testResults           Json?                // Test data (JSON)
+  complianceStandards   String[]             // Applicable standards (FAA, EASA, etc.)
+  verifiedBy            String?              // Who verified the document
+  verifiedAt            DateTime?            // When verified
+  isActive              Boolean              @default(true)
+  notes                 String?              // Additional notes
+  metadata              Json?                // Additional certification data
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  serializedPart        SerializedPart       @relation(fields: [serializedPartId], references: [id], onDelete: Cascade)
+
+  @@index([serializedPartId])
+  @@index([certificationType])
+  @@index([issuedDate])
+  @@index([expirationDate])
+  @@index([isActive])
+  @@map("llp_certifications")
 }
