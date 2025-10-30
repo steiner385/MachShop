@@ -549,6 +549,15 @@ erDiagram
   Boolean requiresFAI
   DateTime createdAt
   DateTime updatedAt
+  Boolean isLifeLimited
+  LLPCriticalityLevel llpCriticalityLevel "nullable"
+  LLPRetirementType llpRetirementType "nullable"
+  Int llpCycleLimit "nullable"
+  Int llpTimeLimit "nullable"
+  Int llpInspectionInterval "nullable"
+  String llpRegulatoryReference "nullable"
+  Boolean llpCertificationRequired
+  String llpNotes "nullable"
 }
 "part_site_availability" {
   String id PK
@@ -3475,6 +3484,71 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"llp_life_history" {
+  String id PK
+  String serializedPartId FK
+  String eventType
+  DateTime eventDate
+  Int cyclesAtEvent "nullable"
+  Float hoursAtEvent "nullable"
+  String parentAssemblyId "nullable"
+  String parentSerialNumber "nullable"
+  String workOrderId "nullable"
+  String operationId "nullable"
+  String performedBy "nullable"
+  String location "nullable"
+  String notes "nullable"
+  String certificationUrls
+  Json inspectionResults "nullable"
+  Json repairDetails "nullable"
+  Json metadata "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"llp_alerts" {
+  String id PK
+  String serializedPartId FK
+  String alertType
+  LLPAlertSeverity severity
+  Int triggerCycles "nullable"
+  DateTime triggerDate "nullable"
+  Float thresholdPercentage "nullable"
+  String message
+  Boolean isActive
+  String acknowledgedBy "nullable"
+  DateTime acknowledgedAt "nullable"
+  String resolvedBy "nullable"
+  DateTime resolvedAt "nullable"
+  String actionRequired "nullable"
+  DateTime dueDate "nullable"
+  Int escalationLevel
+  Int notificationsSent
+  Json metadata "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"llp_certifications" {
+  String id PK
+  String serializedPartId FK
+  LLPCertificationType certificationType
+  String documentName
+  String documentUrl
+  String documentHash "nullable"
+  String issuedBy "nullable"
+  DateTime issuedDate "nullable"
+  DateTime expirationDate "nullable"
+  String certificationNumber "nullable"
+  String batchNumber "nullable"
+  Json testResults "nullable"
+  String complianceStandards
+  String verifiedBy "nullable"
+  DateTime verifiedAt "nullable"
+  Boolean isActive
+  String notes "nullable"
+  Json metadata "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "users" }o--o| "personnel_classes" : personnelClass
@@ -3785,6 +3859,9 @@ erDiagram
 "torque_events" }o--|| "users" : operator
 "torque_events" }o--o| "users" : supervisorReviewer
 "torque_events" }o--o| "users" : reworkUser
+"llp_life_history" }o--|| "serialized_parts" : serializedPart
+"llp_alerts" }o--|| "serialized_parts" : serializedPart
+"llp_certifications" }o--|| "serialized_parts" : serializedPart
 ```
 
 ### `enterprises`
@@ -4391,6 +4468,15 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `requiresFAI`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `isLifeLimited`: 
+  - `llpCriticalityLevel`: 
+  - `llpRetirementType`: 
+  - `llpCycleLimit`: 
+  - `llpTimeLimit`: 
+  - `llpInspectionInterval`: 
+  - `llpRegulatoryReference`: 
+  - `llpCertificationRequired`: 
+  - `llpNotes`: 
 
 ### `part_site_availability`
 
@@ -7711,5 +7797,79 @@ Torque Event - captured actual torque values from digital torque wrenches
   - `reworkCompleted`: 
   - `reworkBy`: User who performed rework
   - `reworkAt`: When rework was completed
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `llp_life_history`
+Life-Limited Parts life history tracking - complete back-to-birth record
+
+**Properties**
+  - `id`: 
+  - `serializedPartId`: 
+  - `eventType`: 
+  - `eventDate`: 
+  - `cyclesAtEvent`: 
+  - `hoursAtEvent`: 
+  - `parentAssemblyId`: 
+  - `parentSerialNumber`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `performedBy`: 
+  - `location`: 
+  - `notes`: 
+  - `certificationUrls`: 
+  - `inspectionResults`: 
+  - `repairDetails`: 
+  - `metadata`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `llp_alerts`
+LLP alert management for retirement and inspection notifications
+
+**Properties**
+  - `id`: 
+  - `serializedPartId`: 
+  - `alertType`: 
+  - `severity`: 
+  - `triggerCycles`: 
+  - `triggerDate`: 
+  - `thresholdPercentage`: 
+  - `message`: 
+  - `isActive`: 
+  - `acknowledgedBy`: 
+  - `acknowledgedAt`: 
+  - `resolvedBy`: 
+  - `resolvedAt`: 
+  - `actionRequired`: 
+  - `dueDate`: 
+  - `escalationLevel`: 
+  - `notificationsSent`: 
+  - `metadata`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `llp_certifications`
+LLP certification document storage and management
+
+**Properties**
+  - `id`: 
+  - `serializedPartId`: 
+  - `certificationType`: 
+  - `documentName`: 
+  - `documentUrl`: 
+  - `documentHash`: 
+  - `issuedBy`: 
+  - `issuedDate`: 
+  - `expirationDate`: 
+  - `certificationNumber`: 
+  - `batchNumber`: 
+  - `testResults`: 
+  - `complianceStandards`: 
+  - `verifiedBy`: 
+  - `verifiedAt`: 
+  - `isActive`: 
+  - `notes`: 
+  - `metadata`: 
   - `createdAt`: 
   - `updatedAt`: 

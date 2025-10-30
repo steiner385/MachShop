@@ -138,7 +138,7 @@ issues:
     business_value: 6
     effort_estimate: 4
     blocks: []
-    notes: "Makes RBAC easier to deploy for customers"
+    notes: "COMPLETED - Makes RBAC easier to deploy for customers - Implemented and closed on 2025-10-30"
 
   # --- Testing Infrastructure ---
   - number: 136
