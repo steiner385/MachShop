@@ -434,6 +434,26 @@ model PersonnelClass {
   @@map("personnel_classes")
 }
 
+/// Personnel qualifications and competency records tracking certifications, skills, training completion, and authorization levels for manufacturing operations
+///
+/// **Business Purpose:** Ensures only qualified and certified personnel perform critical manufacturing operations, maintaining quality standards and regulatory compliance
+/// **Data Owner:** Human Resources and Training Management Teams
+/// **Update Frequency:** Updated when certifications are obtained, renewed, or expired, and when competency assessments are completed
+/// **Compliance:** Critical for AS9100 personnel competency requirements, ISO 9001 training records, and industry-specific certifications
+/// **Data Retention:** 7 years after personnel termination for regulatory compliance and audit requirements
+/// **Security:** Confidential - Personnel competency and certification information
+/// **Integrations:** Training Management, User Management, Work Order Assignment, Quality Management, Certification Bodies
+/// **Related Tables:** User, PersonnelCertification, TrainingRecord, WorkOrderAssignment, OperationAuthorization
+///
+/// **Examples:**
+/// - CNC machinist qualification: Advanced CNC machinist qualification with NIMS certification for titanium machining and specific operational authorizations
+/// - Quality inspector certification: Quality inspector certification with equipment authorizations, special process qualifications, and customer approvals
+///
+/// **Common Queries:**
+/// - Find qualified personnel for specific operations or equipment
+/// - Track certification expiration dates for renewal planning
+/// - Generate competency reports for customer audits
+///
 model PersonnelQualification {
   id                   String                   @id @default(cuid())
   qualificationCode    String                   @unique
@@ -455,6 +475,26 @@ model PersonnelQualification {
   @@map("personnel_qualifications")
 }
 
+/// Personnel certification records tracking professional credentials, industry certifications, and specialized qualifications for manufacturing operations
+///
+/// **Business Purpose:** Ensures regulatory compliance and operational competency by maintaining current certification status and tracking renewal requirements
+/// **Data Owner:** Human Resources and Training Management Teams
+/// **Update Frequency:** Updated when certifications are obtained, renewed, expired, or suspended with real-time status tracking
+/// **Compliance:** Critical for AS9100 personnel competency, OSHA safety certifications, and industry-specific regulatory requirements
+/// **Data Retention:** 7 years after expiration for regulatory compliance and audit requirements
+/// **Security:** Confidential - Personnel certification and competency information
+/// **Integrations:** Personnel Management, Training Systems, Certification Bodies, Work Order Assignment, Compliance Reporting
+/// **Related Tables:** User, PersonnelQualification, TrainingRecord, PersonnelOperationSpecification, WorkOrderAssignment
+///
+/// **Examples:**
+/// - Aerospace welding certification: Advanced aerospace welding certification with multiple material and position qualifications plus customer approvals
+/// - Quality inspector ASQ certification: Professional quality inspector certification with continuing education requirements and specialized competencies
+///
+/// **Common Queries:**
+/// - Track certification expiration dates for renewal planning
+/// - Find certified personnel for specific operations or customers
+/// - Generate compliance reports for regulatory audits
+///
 model PersonnelCertification {
   id                  String                 @id @default(cuid())
   personnelId         String
@@ -480,6 +520,26 @@ model PersonnelCertification {
   @@map("personnel_certifications")
 }
 
+/// Personnel skill definitions and competency levels for manufacturing operations defining specific technical capabilities and proficiency requirements
+///
+/// **Business Purpose:** Enables precise skill-based personnel assignment and competency development by defining specific technical skills and proficiency levels required for manufacturing operations
+/// **Data Owner:** Human Resources and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when new skills are identified, skill requirements change, or competency standards are modified
+/// **Compliance:** Skill definitions support AS9100 competency requirements and provide foundation for personnel qualification and training programs
+/// **Data Retention:** Permanent retention for competency framework and skills development programs
+/// **Security:** Internal - Skills framework and competency definitions
+/// **Integrations:** Personnel Management, Training Systems, Work Order Assignment, Competency Management, Skills Assessment
+/// **Related Tables:** PersonnelSkillAssignment, PersonnelQualification, User, TrainingRecord, PersonnelOperationSpecification
+///
+/// **Examples:**
+/// - CNC machining skill definition: Advanced machining skill with multiple competency levels and assessment criteria for aerospace titanium components
+/// - Quality inspection skill definition: Precision measurement skill with specific equipment authorizations and accuracy requirements for quality control
+///
+/// **Common Queries:**
+/// - Find personnel with specific skills for work assignment
+/// - Generate skill gap analysis for training planning
+/// - Track skill certification and renewal requirements
+///
 model PersonnelSkill {
   id               String                     @id @default(cuid())
   skillCode        String                     @unique
@@ -495,6 +555,26 @@ model PersonnelSkill {
   @@map("personnel_skills")
 }
 
+/// Personnel skill assignments linking employees to specific skills with competency levels and certification status for work order assignment
+///
+/// **Business Purpose:** Enables precise personnel assignment based on specific skills and competency levels, ensuring qualified personnel perform critical manufacturing operations
+/// **Data Owner:** Human Resources and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when skills are acquired, competency levels change, or assignments are modified
+/// **Compliance:** Skill assignments support AS9100 competency requirements and provide foundation for work order personnel validation
+/// **Data Retention:** 7 years after assignment termination for competency audit and training records
+/// **Security:** Internal - Personnel skill assignments and competency information
+/// **Integrations:** Personnel Management, Work Order Assignment, Training Systems, Competency Management, Operations Planning
+/// **Related Tables:** User, PersonnelSkill, PersonnelQualification, WorkOrderOperation, PersonnelOperationSpecification
+///
+/// **Examples:**
+/// - CNC machinist skill assignment: Advanced CNC skill assignment with specific operational authorizations and time restrictions for safety
+/// - Quality inspector skill assignment: Expert quality inspector assignment with customer approvals and specialized aerospace capabilities
+///
+/// **Common Queries:**
+/// - Find qualified personnel for specific work orders
+/// - Generate skill assignment reports for compliance audits
+/// - Track skill competency levels for training planning
+///
 model PersonnelSkillAssignment {
   id              String          @id @default(cuid())
   personnelId     String
@@ -558,6 +638,26 @@ model PersonnelWorkCenterAssignment {
   @@map("personnel_work_center_assignments")
 }
 
+/// Personnel availability schedules tracking work patterns, shifts, time off, and capacity planning for manufacturing resource allocation
+///
+/// **Business Purpose:** Optimizes personnel scheduling and capacity planning by tracking availability patterns, ensuring adequate staffing for manufacturing operations
+/// **Data Owner:** Human Resources and Production Planning Teams
+/// **Update Frequency:** Daily updates for schedule changes, time off requests, and capacity adjustments
+/// **Compliance:** Availability tracking supports labor compliance and ensures proper staffing for critical operations requiring certified personnel
+/// **Data Retention:** 2 years for labor analysis and capacity planning optimization
+/// **Security:** Confidential - Personnel scheduling and availability information
+/// **Integrations:** HR Management, Production Scheduling, Time Tracking, Capacity Planning, Work Order Assignment
+/// **Related Tables:** User, PersonnelSkill, WorkShift, ProductionSchedule, WorkOrderAssignment
+///
+/// **Examples:**
+/// - CNC operator availability schedule: Day shift CNC operator availability with skill set, certification status, and overtime availability for production planning
+/// - Quality inspector vacation schedule: Planned vacation absence with backup personnel assignments and critical responsibility coverage for quality operations
+///
+/// **Common Queries:**
+/// - Find available personnel for work order assignments
+/// - Generate capacity reports for production planning
+/// - Track attendance patterns for workforce optimization
+///
 model PersonnelAvailability {
   id               String           @id @default(cuid())
   personnelId      String
@@ -1278,6 +1378,26 @@ model OperationDependency {
   @@map("operation_dependencies")
 }
 
+/// Personnel requirements and specifications for manufacturing operations defining required skills, certifications, and competency levels
+///
+/// **Business Purpose:** Ensures proper personnel capability matching for production operations by specifying exact skill and certification requirements
+/// **Data Owner:** Manufacturing Engineering and Human Resources Teams
+/// **Update Frequency:** Updated when operation requirements change, new certifications are established, or competency standards are modified
+/// **Compliance:** Personnel specifications critical for AS9100 competency requirements and ensuring qualified personnel perform critical operations
+/// **Data Retention:** 7 years for competency validation and regulatory compliance
+/// **Security:** Internal - Personnel competency requirements and operational assignments
+/// **Integrations:** Personnel Management, Operations Management, Training Systems, Work Order Assignment, Competency Management
+/// **Related Tables:** Operation, PersonnelQualification, User, WorkOrderOperation, PersonnelClass
+///
+/// **Examples:**
+/// - CNC machining personnel requirement: Advanced machinist requirements for critical aerospace titanium machining with specific skills and safety certifications
+/// - Quality inspection personnel requirement: Certified quality inspector requirements for aerospace FAI with customer approvals and equipment authorizations
+///
+/// **Common Queries:**
+/// - Find qualified personnel for specific operations
+/// - Validate personnel assignments against operation requirements
+/// - Generate competency gap analysis for training planning
+///
 model PersonnelOperationSpecification {
   id                     String           @id @default(cuid())
   operationId            String
@@ -1341,6 +1461,26 @@ model EquipmentOperationSpecification {
   @@map("equipment_operation_specifications")
 }
 
+/// Material requirements and consumption specifications for manufacturing operations defining material types, quantities, and quality standards
+///
+/// **Business Purpose:** Ensures correct material allocation and consumption tracking by specifying exact material requirements for each manufacturing operation
+/// **Data Owner:** Manufacturing Engineering and Materials Management Teams
+/// **Update Frequency:** Updated when material requirements change, new materials are qualified, or process optimization affects consumption
+/// **Compliance:** Material specifications critical for traceability compliance and quality assurance - must maintain material-operation linkage for regulatory audits
+/// **Data Retention:** Permanent retention for traceability and process validation
+/// **Security:** Internal - Material consumption and operational specifications
+/// **Integrations:** Material Management, Production Planning, Work Order Management, Quality Management, Inventory Control
+/// **Related Tables:** Operation, MaterialDefinition, WorkOrder, BOMItem, MaterialTransaction
+///
+/// **Examples:**
+/// - Titanium alloy machining specification: Precision machining operation requiring certified titanium alloy with waste factor for material planning
+/// - Assembly consumable specification: Assembly operation specifying fastener requirements with installation specifications and quality criteria
+///
+/// **Common Queries:**
+/// - Generate material requirements for work order planning
+/// - Track material consumption against specifications
+/// - Validate material compliance for quality assurance
+///
 model MaterialOperationSpecification {
   id                   String          @id @default(cuid())
   operationId          String
@@ -1364,6 +1504,26 @@ model MaterialOperationSpecification {
   @@map("material_operation_specifications")
 }
 
+/// Physical asset requirements and specifications for manufacturing operations defining equipment, tooling, and infrastructure needs
+///
+/// **Business Purpose:** Ensures proper physical asset allocation and availability for manufacturing operations by specifying required assets, quantities, and specifications
+/// **Data Owner:** Manufacturing Engineering and Asset Management Teams
+/// **Update Frequency:** Updated when operation requirements change, new assets are qualified, or asset specifications are modified
+/// **Compliance:** Asset specifications support capacity planning and ensure proper asset utilization for regulatory compliance and operational efficiency
+/// **Data Retention:** 7 years for asset utilization analysis and operational optimization
+/// **Security:** Internal - Asset requirements and operational specifications
+/// **Integrations:** Asset Management, Operations Management, Maintenance Systems, Capacity Planning, Work Order Management
+/// **Related Tables:** Operation, PhysicalAsset, AssetCalibration, WorkOrder, MaintenanceSchedule
+///
+/// **Examples:**
+/// - CNC machining asset requirement: Specific CNC machine requirements for precision titanium milling with calibration and lifecycle specifications
+/// - Assembly station tooling requirement: Assembly fixture specification with clamping system and positioning requirements for engine component assembly
+///
+/// **Common Queries:**
+/// - Find required assets for work order planning
+/// - Track asset utilization and availability
+/// - Generate asset calibration schedules for operations
+///
 model PhysicalAssetOperationSpecification {
   id                  String            @id @default(cuid())
   operationId         String
@@ -1653,6 +1813,26 @@ model ProductConfiguration {
   @@map("product_configurations")
 }
 
+/// Product configuration options and variants enabling customizable manufacturing for different customer requirements and specifications
+///
+/// **Business Purpose:** Supports mass customization by defining configurable product options, enabling efficient manufacturing of customer-specific variants
+/// **Data Owner:** Product Engineering and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when new configuration options are introduced, modified, or discontinued based on customer requirements
+/// **Compliance:** Configuration management supports product traceability and ensures proper documentation of custom product variants
+/// **Data Retention:** Permanent retention for product configuration history and customer traceability
+/// **Security:** Internal - Product configuration and customer-specific requirements
+/// **Integrations:** Product Management, Work Order Management, BOM Management, Customer Requirements, Engineering Change Management
+/// **Related Tables:** Product, BOMItem, CustomerRequirement, MaterialDefinition, WorkOrder
+///
+/// **Examples:**
+/// - Turbine blade coating configuration: Thermal barrier coating configuration option for aerospace turbine blades with customer-specific requirements
+/// - Engine valve material configuration: High-performance material configuration for engine valves with temperature rating and supplier restrictions
+///
+/// **Common Queries:**
+/// - Find available configuration options for customer orders
+/// - Track configuration cost and lead time impacts
+/// - Generate configuration documentation for work orders
+///
 model ConfigurationOption {
   id              String               @id @default(cuid())
   configurationId String
@@ -1676,6 +1856,26 @@ model ConfigurationOption {
   @@map("configuration_options")
 }
 
+/// Product lifecycle management tracking development phases, production status, and end-of-life planning for manufactured products
+///
+/// **Business Purpose:** Manages complete product lifecycle from development through production to discontinuation, ensuring proper planning and customer communication
+/// **Data Owner:** Product Management and Engineering Teams
+/// **Update Frequency:** Updated at major lifecycle milestones, phase transitions, and when lifecycle decisions are made
+/// **Compliance:** Lifecycle management supports product traceability, obsolescence planning, and customer notification requirements
+/// **Data Retention:** Permanent retention for product history and customer support
+/// **Security:** Internal - Product roadmap and lifecycle planning information
+/// **Integrations:** Product Management, Engineering Change Management, Customer Management, Supply Chain, Production Planning
+/// **Related Tables:** Product, CustomerRequirement, ProductionSchedule, EngineeringChangeOrder, InventoryPlan
+///
+/// **Examples:**
+/// - Aerospace turbine blade lifecycle: Long-lifecycle aerospace product with regulatory certification and extended spare parts support commitment
+/// - Engine valve technology transition: Mature product transitioning to next-generation technology with managed customer migration and inventory planning
+///
+/// **Common Queries:**
+/// - Track products approaching end-of-life for customer notification
+/// - Generate lifecycle reports for strategic planning
+/// - Monitor transition timelines for successor products
+///
 model ProductLifecycle {
   id                String                 @id @default(cuid())
   partId            String
@@ -1993,6 +2193,26 @@ model RoutingStepDependency {
   @@map("routing_step_dependencies")
 }
 
+/// Specific parameters and settings for individual routing steps enabling precise control of manufacturing operations at the step level
+///
+/// **Business Purpose:** Provides granular control over manufacturing processes by defining step-specific parameters, tolerances, and operational settings for consistent execution
+/// **Data Owner:** Manufacturing Engineering and Process Engineering Teams
+/// **Update Frequency:** Updated when process parameters change, tolerance requirements are modified, or process optimization occurs
+/// **Compliance:** Parameter documentation required for process validation and regulatory compliance - critical for repeatable manufacturing
+/// **Data Retention:** Permanent retention for process validation and regulatory compliance
+/// **Security:** Internal - Proprietary process parameters and manufacturing methods
+/// **Integrations:** Routing Management, Process Control, Work Instructions, Quality Control, Equipment Control
+/// **Related Tables:** RoutingStep, Operation, ParameterGroup, WorkInstruction, QualityPlan
+///
+/// **Examples:**
+/// - Machining speed parameter: Critical spindle speed parameter for precision titanium milling with tight tolerance requirements
+/// - Quality inspection parameter: Precision dimensional tolerance parameter for critical aerospace component inspection
+///
+/// **Common Queries:**
+/// - Retrieve step parameters for work instruction generation
+/// - Validate parameter compliance for quality assurance
+/// - Track parameter changes for process improvement
+///
 model RoutingStepParameter {
   id             String      @id @default(cuid())
   routingStepId  String
@@ -2099,6 +2319,26 @@ model WorkCenter {
   @@map("work_centers")
 }
 
+/// Work center subdivisions representing distinct operational areas within work centers for granular production control and resource allocation
+///
+/// **Business Purpose:** Provides fine-grained control over production resources by organizing equipment and personnel into logical operational units within work centers
+/// **Data Owner:** Manufacturing Engineering and Production Planning Teams
+/// **Update Frequency:** Updated when work center layouts change, equipment is relocated, or operational reorganization occurs
+/// **Compliance:** Work unit organization supports capacity planning and resource allocation required for production efficiency analysis
+/// **Data Retention:** 5 years for capacity analysis and operational optimization
+/// **Security:** Internal - Work center organization and capacity information
+/// **Integrations:** Work Center Management, Equipment Management, Production Scheduling, Capacity Planning, Resource Allocation
+/// **Related Tables:** WorkCenter, Equipment, PersonnelWorkCenterAssignment, ScheduleEntry, DispatchLog
+///
+/// **Examples:**
+/// - CNC machining work unit: Dedicated work unit for precision aerospace machining with specialized equipment and certified operators
+/// - Assembly work unit: Controlled environment assembly work unit with specific tooling and quality requirements
+///
+/// **Common Queries:**
+/// - Find available work units for production scheduling
+/// - Track work unit utilization for capacity planning
+/// - Generate work unit performance reports
+///
 model WorkUnit {
   id           String      @id @default(cuid())
   workUnitCode String      @unique
@@ -2296,6 +2536,26 @@ model ScheduleEntry {
   @@map("schedule_entries")
 }
 
+/// Production schedule constraints defining capacity limitations, resource availability, and operational dependencies that must be respected during scheduling
+///
+/// **Business Purpose:** Ensures feasible production schedules by capturing and enforcing real-world constraints on production capacity, resource availability, and operational dependencies
+/// **Data Owner:** Production Planning and Industrial Engineering Teams
+/// **Update Frequency:** Updated when constraints change due to equipment status, personnel availability, or operational requirements
+/// **Compliance:** Constraint documentation critical for schedule feasibility validation and production capacity audits
+/// **Data Retention:** 3 years for capacity planning analysis and constraint optimization
+/// **Security:** Internal - Production capacity and operational constraint information
+/// **Integrations:** Production Scheduling, Capacity Planning, Resource Management, Equipment Management, Personnel Management
+/// **Related Tables:** ProductionSchedule, ScheduleEntry, Equipment, MaterialDefinition, WorkCenter
+///
+/// **Examples:**
+/// - Equipment capacity constraint: Daily capacity constraint for precision machining center limiting available production hours
+/// - Material availability constraint: Material constraint defining supplier lead times and minimum order quantities affecting schedule feasibility
+///
+/// **Common Queries:**
+/// - Validate schedule feasibility against capacity constraints
+/// - Generate constraint violation reports for schedule optimization
+/// - Track constraint utilization for capacity planning
+///
 model ScheduleConstraint {
   id                String         @id @default(cuid())
   entryId           String
@@ -2329,6 +2589,26 @@ model ScheduleConstraint {
   @@map("schedule_constraints")
 }
 
+/// Audit trail tracking production schedule state transitions and lifecycle changes with timestamp and user accountability
+///
+/// **Business Purpose:** Provides complete traceability of schedule changes for regulatory compliance, performance analysis, and operational decision auditing
+/// **Data Owner:** Production Planning and Quality Assurance Teams
+/// **Update Frequency:** Real-time updates as schedules transition through states (FORECAST → RELEASED → DISPATCHED → RUNNING → COMPLETED → CLOSED)
+/// **Compliance:** Schedule state history required for regulatory compliance and audit trails - must maintain complete lifecycle documentation
+/// **Data Retention:** 7 years for regulatory compliance and audit requirements
+/// **Security:** Internal - Schedule change history with user accountability
+/// **Integrations:** Production Scheduling, Audit Systems, Compliance Reporting, Performance Analytics, Change Management
+/// **Related Tables:** ProductionSchedule, ScheduleEntry, User, ScheduleConstraint, WorkOrder
+///
+/// **Examples:**
+/// - Schedule release transition: Manual schedule release transition from forecast to active production state with planner authorization
+/// - Emergency schedule hold: Emergency hold transition due to equipment failure requiring immediate schedule suspension
+///
+/// **Common Queries:**
+/// - Generate audit reports for schedule change history
+/// - Track schedule performance and state transition times
+/// - Identify frequent schedule disruptions for improvement opportunities
+///
 model ScheduleStateHistory {
   id                String             @id @default(cuid())
   scheduleId        String
@@ -3382,6 +3662,26 @@ model WorkInstructionStepExecution {
   @@map("work_instruction_step_executions")
 }
 
+/// Electronic signatures for digital document approval and authentication supporting regulatory compliance and audit trails
+///
+/// **Business Purpose:** Provides secure electronic approval mechanisms for critical manufacturing documents ensuring regulatory compliance and non-repudiation
+/// **Data Owner:** Quality Assurance and IT Security Teams
+/// **Update Frequency:** Real-time creation when documents are electronically signed with immutable audit trail
+/// **Compliance:** Critical for 21 CFR Part 11 FDA compliance and ISO 9001 document control - must maintain complete signature integrity
+/// **Data Retention:** Permanent retention for regulatory compliance and legal requirements
+/// **Security:** Confidential - Electronic signature data and authentication records
+/// **Integrations:** Document Management, Workflow Systems, User Authentication, Audit Systems, Compliance Reporting
+/// **Related Tables:** User, Document, WorkflowInstance, AuditLog, DocumentRevision
+///
+/// **Examples:**
+/// - Quality plan approval signature: Biometric signature for quality plan approval with complete audit trail and integrity verification
+/// - ECO approval signature chain: PKI-based signature for ECO final approval with preceding signature chain and timestamp verification
+///
+/// **Common Queries:**
+/// - Validate signature integrity for document authenticity
+/// - Generate signature audit trails for regulatory compliance
+/// - Track signature workflow completion for document approval
+///
 model ElectronicSignature {
   id                 String                   @id @default(cuid())
   signatureType      ElectronicSignatureType
@@ -3415,6 +3715,26 @@ model ElectronicSignature {
   @@map("electronic_signatures")
 }
 
+/// First Article Inspection reports documenting complete dimensional and functional verification for new or changed manufacturing processes
+///
+/// **Business Purpose:** Provides comprehensive verification that manufacturing processes can consistently produce parts meeting all engineering requirements and customer specifications
+/// **Data Owner:** Quality Assurance and Manufacturing Engineering Teams
+/// **Update Frequency:** Created for each new part, process change, tooling change, or supplier qualification requiring first article inspection
+/// **Compliance:** Critical for AS9102 aerospace compliance, automotive PPAP requirements, and customer-specific FAI protocols
+/// **Data Retention:** Permanent retention for part qualification and customer delivery requirements
+/// **Security:** Confidential - Contains customer-specific requirements and proprietary manufacturing data
+/// **Integrations:** Quality Management, Engineering Change Management, Supplier Management, Manufacturing Engineering, Customer Portal
+/// **Related Tables:** FAICharacteristic, InspectionPlan, QualityMeasurement, EngineeringChangeOrder, CustomerRequirement
+///
+/// **Examples:**
+/// - Aerospace turbine blade FAI: Complete aerospace FAI for critical turbine blade with customer approval and special process verification
+/// - Medical device component FAI: Medical device FAI with FDA compliance, biocompatibility certification, and sterilization validation
+///
+/// **Common Queries:**
+/// - Generate customer FAI packages for delivery approval
+/// - Track FAI completion status for new product introductions
+/// - Find FAI reports for specific parts or customers
+///
 model FAIReport {
   id                    String                 @id @default(cuid())
   faiNumber             String                 @unique
@@ -3441,6 +3761,26 @@ model FAIReport {
   @@map("fai_reports")
 }
 
+/// First Article Inspection characteristics defining specific measurements and acceptance criteria for aerospace and medical device validation
+///
+/// **Business Purpose:** Ensures comprehensive part validation by defining specific dimensional and functional characteristics requiring verification during first article inspection
+/// **Data Owner:** Quality Engineering and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when part requirements change, inspection methods are validated, or customer specifications are modified
+/// **Compliance:** Critical for AS9102 aerospace FAI compliance and automotive PPAP requirements - must include all critical characteristics
+/// **Data Retention:** Permanent retention for part qualification and customer delivery requirements
+/// **Security:** Confidential - Customer-specific requirements and proprietary measurement criteria
+/// **Integrations:** FAI Reporting, Quality Management, Measurement Systems, Engineering Drawings, Customer Requirements
+/// **Related Tables:** FAIReport, QualityCharacteristic, MeasurementEquipment, InspectionPlan, CustomerRequirement
+///
+/// **Examples:**
+/// - Aerospace turbine blade critical dimension: Critical dimensional characteristic for aerospace turbine blade with tight tolerance and 100% inspection requirement
+/// - Medical device surface finish requirement: Medical device surface finish characteristic with biocompatibility impact and FDA submission requirements
+///
+/// **Common Queries:**
+/// - Generate FAI measurement plans for new parts
+/// - Track characteristic compliance for customer deliveries
+/// - Find critical characteristics requiring special measurement equipment
+///
 model FAICharacteristic {
   id                   String    @id @default(cuid())
   faiReportId          String
@@ -3471,6 +3811,26 @@ model FAICharacteristic {
   @@map("fai_characteristics")
 }
 
+/// System audit logs capturing all critical data changes, user actions, and system events for regulatory compliance and security monitoring
+///
+/// **Business Purpose:** Provides comprehensive audit trail for regulatory compliance, security monitoring, and data integrity verification across all manufacturing operations
+/// **Data Owner:** IT Security and Compliance Teams
+/// **Update Frequency:** Real-time logging of all auditable events with immutable timestamp and user attribution
+/// **Compliance:** Critical for 21 CFR Part 11, ISO 9001, and SOX compliance - must maintain complete audit trail for all regulated activities
+/// **Data Retention:** 7 years minimum for regulatory compliance, permanent for critical manufacturing records
+/// **Security:** Confidential - System audit data and security event information
+/// **Integrations:** User Management, Document Management, Security Systems, Compliance Reporting, SIEM Systems
+/// **Related Tables:** User, SecurityEvent, Document, WorkOrder, QualityPlan
+///
+/// **Examples:**
+/// - Quality document modification audit: Critical quality document modification with complete before/after values and compliance impact assessment
+/// - Security access violation attempt: Security violation attempt with immediate alert generation and investigation requirement
+///
+/// **Common Queries:**
+/// - Generate audit trails for regulatory compliance reports
+/// - Track user activity for security monitoring
+/// - Investigate data changes for compliance verification
+///
 model AuditLog {
   id        String   @id @default(cuid())
   tableName String
@@ -3585,6 +3945,26 @@ model MeasurementEquipment {
   @@map("measurement_equipment")
 }
 
+/// Individual inspection records capturing quality measurements and compliance data for manufactured parts and materials
+///
+/// **Business Purpose:** Documents quality control measurements and inspection results to ensure product conformance to specifications and regulatory requirements
+/// **Data Owner:** Quality Assurance Team
+/// **Update Frequency:** Real-time during inspection activities and quality control processes
+/// **Compliance:** Critical for regulatory compliance (AS9102, FDA, ISO 9001) - inspection records must be maintained for product lifetime and audit purposes
+/// **Data Retention:** Permanent retention for product traceability and regulatory compliance requirements
+/// **Security:** Internal - Quality data with regulatory significance
+/// **Integrations:** Quality Management System, Inspection Equipment, Certificate of Compliance Generation, Customer Quality Reports
+/// **Related Tables:** InspectionPlan, QualityMeasurement, InspectionExecution, Part, MaterialLot
+///
+/// **Examples:**
+/// - Aerospace part dimensional inspection with full measurement data: First article inspection for aerospace component with complete dimensional verification and acceptance
+/// - Medical device biocompatibility inspection with material certification: Material certification inspection for medical implant with FDA Class III biocompatibility verification
+///
+/// **Common Queries:**
+/// - Generate inspection reports for customer delivery packages
+/// - Find non-conforming inspection records for corrective action
+/// - Track inspection completion rates for production scheduling
+///
 model InspectionRecord {
   id                     String                @id @default(cuid())
   serializedPartId       String?
@@ -3607,6 +3987,26 @@ model InspectionRecord {
   @@map("inspection_records")
 }
 
+/// CNC machining programs and G-code management with version control and machine-specific optimization for manufacturing operations
+///
+/// **Business Purpose:** Manages CNC programming assets ensuring consistent machining operations, version control, and optimized machine utilization across manufacturing
+/// **Data Owner:** Manufacturing Engineering and CNC Programming Teams
+/// **Update Frequency:** Updated when programs are modified, optimized, or new versions are validated for production use
+/// **Compliance:** Program management supports traceability requirements and ensures consistent manufacturing processes for quality compliance
+/// **Data Retention:** Permanent retention for program validation and manufacturing repeatability
+/// **Security:** Confidential - Proprietary manufacturing programs and process parameters
+/// **Integrations:** Equipment Management, Work Instructions, Part Programming, Tool Management, Quality Control
+/// **Related Tables:** Equipment, Part, ToolDrawing, WorkInstruction, SetupSheet
+///
+/// **Examples:**
+/// - Titanium aerospace component program: Production-approved CNC program for aerospace titanium component with proven cycle time and tool requirements
+/// - Engine valve precision boring program: High-precision boring program for engine valve with strict accuracy and surface finish requirements
+///
+/// **Common Queries:**
+/// - Find approved programs for specific parts and machines
+/// - Track program version history for manufacturing consistency
+/// - Generate program documentation for work order execution
+///
 model CNCProgram {
   id                  String               @id @default(cuid())
   externalProgramId   String?              @unique
@@ -3643,6 +4043,26 @@ model CNCProgram {
   @@map("cnc_programs")
 }
 
+/// Audit trail and version control for CNC program downloads to manufacturing equipment ensuring program integrity and traceability
+///
+/// **Business Purpose:** Maintains complete control over CNC program deployment preventing unauthorized modifications and ensuring manufacturing consistency
+/// **Data Owner:** Manufacturing Engineering and CNC Programming Teams
+/// **Update Frequency:** Real-time logging of all program download events and version deployments to production equipment
+/// **Compliance:** Program control critical for AS9100 process control and FDA software validation requirements - maintains immutable audit trail
+/// **Data Retention:** 7 years for process validation and audit support
+/// **Security:** Internal - Manufacturing program control with competitive and security sensitivity
+/// **Integrations:** CNC Equipment, Program Management Systems, Version Control, Manufacturing Execution Systems
+/// **Related Tables:** CNCProgram, Equipment, User, WorkOrder, ProgramLoadAuthorization
+///
+/// **Examples:**
+/// - Critical aerospace program download with version verification and authorization tracking: Authorized download of critical aerospace machining program with checksum verification and senior programmer authorization
+/// - Medical device program deployment with FDA validation and digital signature requirements: FDA-validated medical device program download with digital signature and change control documentation
+///
+/// **Common Queries:**
+/// - Track program deployment history for audit purposes
+/// - Verify current program versions on production equipment
+/// - Generate program change control reports for compliance
+///
 model ProgramDownloadLog {
   id                  String      @id @default(cuid())
   programId           String?
@@ -3664,6 +4084,26 @@ model ProgramDownloadLog {
   @@map("program_download_logs")
 }
 
+/// CNC program loading authorizations ensuring only qualified personnel can load programs to specific machines with complete audit trail
+///
+/// **Business Purpose:** Prevents unauthorized program changes and ensures only certified operators load programs, maintaining manufacturing integrity and safety
+/// **Data Owner:** Manufacturing Engineering and CNC Programming Teams
+/// **Update Frequency:** Real-time logging of all program loading attempts with authorization validation
+/// **Compliance:** Program authorization supports manufacturing process control and provides audit trail for quality compliance and operator certification
+/// **Data Retention:** 3 years for manufacturing audit and operator certification validation
+/// **Security:** Internal - Program authorization and operator certification data
+/// **Integrations:** CNC Program Management, User Authentication, Equipment Control, Audit Systems, Training Management
+/// **Related Tables:** CNCProgram, Equipment, User, PersonnelCertification, WorkOrder
+///
+/// **Examples:**
+/// - Authorized titanium machining program load: Authorized program load for certified titanium machining with complete safety verification and supervisor approval
+/// - Rejected program load attempt: Rejected program load attempt due to insufficient operator certification with training recommendation and supervisor notification
+///
+/// **Common Queries:**
+/// - Validate operator authorization before program loading
+/// - Generate program loading audit reports for compliance
+/// - Track unauthorized access attempts for security monitoring
+///
 model ProgramLoadAuthorization {
   id                    String   @id @default(cuid())
   authorizationId       String   @unique
@@ -3695,6 +4135,26 @@ model ProgramLoadAuthorization {
   @@map("program_load_authorizations")
 }
 
+/// Measurement equipment and gauge requirements for specific manufacturing operations ensuring proper inspection capability and measurement traceability
+///
+/// **Business Purpose:** Guarantees correct measurement equipment is available and calibrated for quality control activities, supporting traceability and measurement accuracy
+/// **Data Owner:** Quality Engineering and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when measurement requirements change, new equipment is qualified, or calibration procedures are modified
+/// **Compliance:** Gauge requirements critical for ISO 9001 measurement traceability and AS9102 FAI measurement system requirements
+/// **Data Retention:** Permanent retention for measurement traceability and quality validation
+/// **Security:** Internal - Measurement requirements and quality specifications
+/// **Integrations:** Quality Management, Equipment Management, Calibration Systems, Measurement Systems, Work Instructions
+/// **Related Tables:** Part, Operation, MeasurementEquipment, QualityCharacteristic, InspectionPlan
+///
+/// **Examples:**
+/// - Precision machining gauge requirement: Critical CMM measurement requirement for aerospace component with tight accuracy and calibration traceability
+/// - Surface finish gauge requirement: Surface finish measurement requirement for engine valve with specific roughness range and sampling protocol
+///
+/// **Common Queries:**
+/// - Find required gauges for work order operations
+/// - Validate measurement equipment availability for production
+/// - Generate calibration schedules for operation-specific equipment
+///
 model OperationGaugeRequirement {
   id                     String               @id @default(cuid())
   partNumber             String
@@ -3710,6 +4170,26 @@ model OperationGaugeRequirement {
   @@map("operation_gauge_requirements")
 }
 
+/// System alerts and notifications for real-time monitoring of manufacturing operations, quality exceptions, and equipment status
+///
+/// **Business Purpose:** Enables immediate response to manufacturing exceptions through automated alerting, ensuring operational continuity and quality compliance
+/// **Data Owner:** Production Control and IT Operations Teams
+/// **Update Frequency:** Real-time generation based on system events, threshold violations, and predefined alert conditions
+/// **Compliance:** Alert systems support regulatory requirements for immediate response to quality and safety exceptions
+/// **Data Retention:** 6 months for alert pattern analysis and system optimization
+/// **Security:** Internal - Operational alerts and system monitoring data
+/// **Integrations:** Production Monitoring, Quality Systems, Equipment Management, Notification Systems, Dashboard Systems
+/// **Related Tables:** Equipment, QualityMeasurement, SPCConfiguration, User, MaintenanceSchedule
+///
+/// **Examples:**
+/// - SPC violation alert: High-severity SPC violation alert with specific rule violation, recommended actions, and personnel notification tracking
+/// - Equipment maintenance alert: Equipment maintenance alert with impact assessment and scheduling information for proactive maintenance planning
+///
+/// **Common Queries:**
+/// - Monitor active alerts for real-time dashboard display
+/// - Generate alert summary reports for management review
+/// - Track alert response times for process improvement
+///
 model Alert {
   id         String    @id @default(cuid())
   alertType  String
@@ -3729,6 +4209,26 @@ model Alert {
   @@map("alerts")
 }
 
+/// Integration configuration settings for external system connections including ERP, quality systems, and third-party manufacturing applications
+///
+/// **Business Purpose:** Enables seamless data exchange and process automation between MES and external systems for comprehensive manufacturing integration
+/// **Data Owner:** IT Systems and Integration Teams
+/// **Update Frequency:** Updated when integration requirements change, system upgrades occur, or new external systems are connected
+/// **Compliance:** Integration configurations support audit trails and data integrity requirements for regulatory compliance and system validation
+/// **Data Retention:** 5 years for integration audit and system validation
+/// **Security:** Confidential - System integration and security configuration information
+/// **Integrations:** ERP Systems, Quality Management Systems, PLM Systems, External Databases, Web Services
+/// **Related Tables:** IntegrationLog, SystemCredentials, DataMapping, ExternalSystem, IntegrationSchedule
+///
+/// **Examples:**
+/// - SAP ERP integration configuration: Real-time bidirectional integration with SAP ERP for production order synchronization with OAuth2 security
+/// - Quality system integration: Quality system integration for automatic inspection results transfer with data mapping and error handling
+///
+/// **Common Queries:**
+/// - Monitor integration performance and error rates
+/// - Configure new system connections and data mappings
+/// - Generate integration audit reports for compliance
+///
 model IntegrationConfig {
   id                           String                        @id @default(cuid())
   name                         String                        @unique
@@ -3758,6 +4258,26 @@ model IntegrationConfig {
   @@map("integration_configs")
 }
 
+/// Integration transaction logs capturing data exchanges between MES and external systems with error tracking and performance monitoring
+///
+/// **Business Purpose:** Ensures reliable system integration by logging all data exchanges, tracking errors, and providing diagnostics for continuous system optimization
+/// **Data Owner:** IT Systems and Integration Teams
+/// **Update Frequency:** Real-time logging of all integration transactions with automatic error detection and alerting
+/// **Compliance:** Integration logs provide audit trail for data integrity and system validation required for regulatory compliance
+/// **Data Retention:** 2 years for integration performance analysis and system troubleshooting
+/// **Security:** Internal - System integration logs and performance data
+/// **Integrations:** ERP Systems, Quality Management Systems, PLM Systems, External Databases, Monitoring Systems
+/// **Related Tables:** IntegrationConfig, SystemAlert, ExternalSystem, ErrorLog, PerformanceMetric
+///
+/// **Examples:**
+/// - Successful ERP work order sync: Successful ERP integration transaction updating work order status with performance metrics and payload details
+/// - Failed quality system integration: Failed integration transaction with detailed error information, retry logic, and impact assessment for rapid resolution
+///
+/// **Common Queries:**
+/// - Monitor integration success rates for system reliability
+/// - Troubleshoot failed transactions for rapid resolution
+/// - Generate integration performance reports for system optimization
+///
 model IntegrationLog {
   id           String               @id @default(cuid())
   configId     String
@@ -3784,6 +4304,26 @@ model IntegrationLog {
   @@map("integration_logs")
 }
 
+/// External production scheduling requests from ERP systems or planning applications requiring MES validation and capacity confirmation
+///
+/// **Business Purpose:** Integrates external production planning with MES capabilities by validating schedule feasibility and resource availability
+/// **Data Owner:** Production Planning and Systems Integration Teams
+/// **Update Frequency:** Real-time creation as external systems submit production schedule requests requiring MES validation
+/// **Compliance:** Schedule requests provide audit trail for production planning decisions and capacity allocation validation
+/// **Data Retention:** 3 years for planning analysis and integration audit trails
+/// **Security:** Internal - Production planning and capacity requests
+/// **Integrations:** ERP Systems, Production Planning, Capacity Management, Resource Allocation, Schedule Optimization
+/// **Related Tables:** ProductionSchedule, WorkOrder, WorkCenter, ProductionScheduleResponse, CapacityPlan
+///
+/// **Examples:**
+/// - ERP work order schedule request: High-priority ERP schedule request for aerospace turbine blade production requiring specialized operator capability
+/// - Capacity validation request: Weekly capacity validation request across multiple work centers for production planning optimization
+///
+/// **Common Queries:**
+/// - Process incoming schedule requests for validation
+/// - Track request response times for integration performance
+/// - Generate capacity analysis reports for planning optimization
+///
 model ProductionScheduleRequest {
   id                    String                      @id @default(cuid())
   messageId             String                      @unique
@@ -3826,6 +4366,26 @@ model ProductionScheduleRequest {
   @@map("production_schedule_requests")
 }
 
+/// MES responses to external production scheduling requests confirming feasibility, proposing alternatives, or rejecting infeasible schedules
+///
+/// **Business Purpose:** Provides feedback to external planning systems on schedule feasibility with confirmed dates, capacity constraints, and alternative proposals
+/// **Data Owner:** Production Planning and Systems Integration Teams
+/// **Update Frequency:** Generated in response to ProductionScheduleRequest validation with confirmed schedules or constraint explanations
+/// **Compliance:** Schedule responses provide audit trail for production planning decisions and capacity allocation commitments
+/// **Data Retention:** 3 years for planning analysis and integration performance tracking
+/// **Security:** Internal - Production schedule confirmations and capacity commitments
+/// **Integrations:** ERP Systems, Production Planning, Capacity Management, Schedule Optimization, Resource Allocation
+/// **Related Tables:** ProductionScheduleRequest, ProductionSchedule, WorkCenter, User, CapacityPlan
+///
+/// **Examples:**
+/// - Schedule confirmation response: Confirmed schedule response with specific resource allocations and timing estimates for aerospace production
+/// - Alternative schedule proposal: Alternative schedule proposal when original request cannot be accommodated with detailed reasoning and recommendations
+///
+/// **Common Queries:**
+/// - Track schedule response accuracy for integration performance
+/// - Generate capacity utilization reports from confirmed schedules
+/// - Analyze rejection patterns for capacity planning improvements
+///
 model ProductionScheduleResponse {
   id                 String                    @id @default(cuid())
   requestId          String                    @unique
@@ -3853,6 +4413,26 @@ model ProductionScheduleResponse {
   @@map("production_schedule_responses")
 }
 
+/// Actual production performance data captured from manufacturing operations for ERP integration and performance analysis
+///
+/// **Business Purpose:** Provides real-time production visibility to ERP systems enabling accurate cost tracking, capacity planning, and operational decision making
+/// **Data Owner:** Production Control and ERP Integration Teams
+/// **Update Frequency:** Real-time capture as operations complete with periodic synchronization to ERP systems
+/// **Compliance:** Production actuals support cost accounting accuracy and provide data for regulatory reporting and customer delivery commitments
+/// **Data Retention:** 3 years for financial analysis and operational benchmarking
+/// **Security:** Internal - Production performance and cost data with competitive sensitivity
+/// **Integrations:** ERP Systems, Production Scheduling, Cost Accounting, Performance Analytics, Customer Reporting
+/// **Related Tables:** WorkOrder, Operation, Equipment, User, ProductionVariance
+///
+/// **Examples:**
+/// - Aerospace machining performance actual: Complete aerospace machining actual performance with cost breakdown and variance analysis for ERP integration
+/// - Assembly line performance actual: Assembly line performance actual showing cycle time variance and efficiency metrics for continuous improvement
+///
+/// **Common Queries:**
+/// - Generate production actuals for ERP cost roll-up
+/// - Track actual vs. standard performance for efficiency analysis
+/// - Calculate labor and machine utilization for capacity planning
+///
 model ProductionPerformanceActual {
   id                   String            @id @default(cuid())
   messageId            String            @unique
@@ -3965,6 +4545,26 @@ model ERPMaterialTransaction {
   @@map("erp_material_transactions")
 }
 
+/// Data synchronization and integration records for personnel information exchange between MES and external HR/payroll systems
+///
+/// **Business Purpose:** Ensures accurate and timely personnel data synchronization enabling workforce management and regulatory compliance across systems
+/// **Data Owner:** Human Resources and IT Integration Teams
+/// **Update Frequency:** Real-time synchronization events and scheduled batch updates for personnel data exchange
+/// **Compliance:** Personnel data exchange must comply with data privacy regulations and maintain audit trail for HR compliance
+/// **Data Retention:** 7 years for audit purposes and employee lifecycle management
+/// **Security:** Confidential - Contains PII and requires strict access control
+/// **Integrations:** HR Management Systems, Payroll Systems, Badge Access Systems, Training Management
+/// **Related Tables:** User, PersonnelCertification, IntegrationLog, PersonnelQualification
+///
+/// **Examples:**
+/// - New employee onboarding data synchronization with MES system integration: Successful new employee data synchronization from HR system to MES with skill and access permission mapping
+/// - Certification update synchronization with training system integration and validation: Training system certification update automatically synchronized to MES with workflow trigger for operation authorization updates
+///
+/// **Common Queries:**
+/// - Track personnel data synchronization for audit purposes
+/// - Monitor integration failures for data consistency
+/// - Generate compliance reports for HR data management
+///
 model PersonnelInfoExchange {
   id                  String               @id @default(cuid())
   messageId           String               @unique
@@ -4225,6 +4825,26 @@ model ProcessDataCollection {
   @@map("process_data_collections")
 }
 
+/// Quality Information Framework measurement plans defining structured measurement requirements for aerospace and medical device compliance
+///
+/// **Business Purpose:** Standardizes measurement planning using QIF industry standards ensuring consistent dimensional inspection and regulatory compliance
+/// **Data Owner:** Quality Engineering and Metrology Teams
+/// **Update Frequency:** Updated when measurement requirements change, new QIF standards are adopted, or customer specifications are modified
+/// **Compliance:** Critical for AS9102 aerospace compliance and medical device FDA requirements using QIF industry standards for measurement traceability
+/// **Data Retention:** Permanent retention for measurement validation and regulatory compliance
+/// **Security:** Confidential - Customer-specific measurement requirements and QIF data
+/// **Integrations:** Quality Management, Measurement Systems, FAI Reporting, Customer Portals, CAD Systems
+/// **Related Tables:** QIFCharacteristic, QIFMeasurementResult, MeasurementEquipment, FAIReport, QualityCharacteristic
+///
+/// **Examples:**
+/// - Aerospace turbine blade QIF plan: Comprehensive QIF measurement plan for aerospace turbine blade with ASME standards and customer-specific requirements
+/// - Medical device QIF measurement plan: Medical device QIF plan with FDA compliance requirements and environmental controls for precision measurement
+///
+/// **Common Queries:**
+/// - Generate QIF measurement plans for new product introductions
+/// - Track QIF compliance for customer requirements
+/// - Export QIF data for customer quality portals
+///
 model QIFMeasurementPlan {
   id                  String                 @id @default(cuid())
   qifPlanId           String                 @unique
@@ -4259,6 +4879,26 @@ model QIFMeasurementPlan {
   @@map("qif_measurement_plans")
 }
 
+/// Quality Information Framework (QIF) characteristic definitions specifying measurable quality attributes and their tolerances
+///
+/// **Business Purpose:** Standardizes quality characteristic definitions for consistent measurement and reporting across aerospace and automotive quality systems
+/// **Data Owner:** Quality Engineering Team
+/// **Update Frequency:** Updated when part specifications change or new quality requirements are established
+/// **Compliance:** Complies with QIF 3.0 standard for aerospace and automotive quality data exchange - critical for AS9102 and PPAP documentation
+/// **Data Retention:** Maintained for part lifecycle plus 10 years for aerospace compliance
+/// **Security:** Internal - Quality specification data with competitive sensitivity
+/// **Integrations:** CAD Systems, CMM Programming, Statistical Process Control, Quality Measurement Equipment
+/// **Related Tables:** QIFMeasurementPlan, QualityMeasurement, Part, InspectionCharacteristic
+///
+/// **Examples:**
+/// - Critical dimensional characteristic for aerospace component with tight tolerances: Critical bore diameter specification with tight aerospace tolerances requiring 100% inspection
+/// - Surface finish characteristic for medical implant component: Surface finish specification for medical implant requiring specific measurement method and criticality level
+///
+/// **Common Queries:**
+/// - Retrieve characteristic definitions for CMM programming
+/// - Generate quality plans with characteristic specifications
+/// - Track characteristic measurement capability studies
+///
 model QIFCharacteristic {
   id                   String             @id @default(cuid())
   qifMeasurementPlanId String
@@ -4287,6 +4927,26 @@ model QIFCharacteristic {
   @@map("qif_characteristics")
 }
 
+/// Quality Information Framework (QIF) measurement results containing actual measured values and statistical analysis data
+///
+/// **Business Purpose:** Captures standardized measurement results for quality characteristics enabling statistical analysis and regulatory compliance reporting
+/// **Data Owner:** Quality Control Team
+/// **Update Frequency:** Real-time during measurement activities and automated data collection from inspection equipment
+/// **Compliance:** QIF 3.0 compliant measurement data required for AS9102 First Article Inspection and automotive PPAP documentation
+/// **Data Retention:** Permanent retention for product traceability and statistical process control analysis
+/// **Security:** Internal - Measurement data with regulatory and competitive significance
+/// **Integrations:** Coordinate Measuring Machines, Statistical Process Control Systems, Quality Reporting, Customer Quality Portals
+/// **Related Tables:** QIFCharacteristic, QIFMeasurement, MeasurementEquipment, StatisticalProcessControl
+///
+/// **Examples:**
+/// - CMM measurement results for aerospace critical dimension with statistical analysis: Precise CMM measurement of critical aerospace dimension with statistical capability analysis showing acceptable process control
+/// - Automated gauge measurement with SPC trending data: Automated dimensional measurement with real-time SPC analysis showing stable process performance
+///
+/// **Common Queries:**
+/// - Generate capability studies for process qualification
+/// - Extract measurement data for customer quality reports
+/// - Analyze measurement trends for process improvement
+///
 model QIFMeasurementResult {
   id                   String                @id @default(cuid())
   qifResultsId         String                @unique
@@ -4327,6 +4987,26 @@ model QIFMeasurementResult {
   @@map("qif_measurement_results")
 }
 
+/// Individual QIF measurement instances linking measurement results to specific parts and inspection events
+///
+/// **Business Purpose:** Provides traceability between measured parts and their quality characteristics for complete measurement history and compliance documentation
+/// **Data Owner:** Quality Control Team
+/// **Update Frequency:** Created for each measurement event during inspection and quality control activities
+/// **Compliance:** Essential for AS9102 and PPAP traceability requirements - maintains complete measurement genealogy for regulatory audits
+/// **Data Retention:** Permanent retention for complete measurement traceability and audit support
+/// **Security:** Internal - Measurement traceability data with regulatory significance
+/// **Integrations:** QIF Measurement Results, Part Traceability, Inspection Equipment, Quality Certificates
+/// **Related Tables:** QIFMeasurementResult, QIFMeasurementPlan, Part, InspectionExecution
+///
+/// **Examples:**
+/// - First article inspection measurement with complete traceability to specific part serial number: Complete first article measurement instance for aerospace part with full characteristic measurement and traceability
+/// - In-process measurement for production control with partial characteristic measurement: In-process sampling measurement for production lot with selected critical characteristics for process control
+///
+/// **Common Queries:**
+/// - Track measurement completion for production parts
+/// - Generate measurement genealogy reports for customer audits
+/// - Analyze measurement frequency for process optimization
+///
 model QIFMeasurement {
   id                     String               @id @default(cuid())
   qifMeasurementResultId String
@@ -4353,6 +5033,26 @@ model QIFMeasurement {
   @@map("qif_measurements")
 }
 
+/// Statistical Process Control configuration defining control charts, control limits, and monitoring rules for real-time manufacturing process control
+///
+/// **Business Purpose:** Enables predictive quality control and process optimization through statistical monitoring, early detection of process variations, and automated alerts
+/// **Data Owner:** Quality Engineering and Process Control Teams
+/// **Update Frequency:** Updated when process capability changes, control limits are recalculated, or monitoring rules are modified
+/// **Compliance:** SPC configurations support ISO 9001 process control requirements and automotive PPAP statistical documentation
+/// **Data Retention:** 7 years for process validation and continuous improvement analysis
+/// **Security:** Internal - Process control parameters and statistical methods
+/// **Integrations:** Process Data Collection, Quality Management, Equipment Control, Alert Systems, Performance Analytics
+/// **Related Tables:** ProcessDataCollection, QualityMeasurement, Equipment, Alert, QualityCharacteristic
+///
+/// **Examples:**
+/// - Machining process SPC control: SPC control configuration for critical surface finish monitoring with automated alerts and violation detection
+/// - Assembly torque SPC monitoring: Individual measurement SPC for critical fastener torque with capability requirements and specification limits
+///
+/// **Common Queries:**
+/// - Monitor real-time SPC violations for immediate response
+/// - Generate process capability reports for customer requirements
+/// - Track SPC performance trends for continuous improvement
+///
 model SPCConfiguration {
   id                 String                 @id @default(cuid())
   parameterId        String                 @unique
@@ -4385,6 +5085,26 @@ model SPCConfiguration {
   @@map("spc_configurations")
 }
 
+/// Statistical Process Control rule violations tracking out-of-control conditions and triggering corrective actions for quality management
+///
+/// **Business Purpose:** Maintains process stability and quality by detecting statistical anomalies, triggering immediate corrective actions, and preventing defective production
+/// **Data Owner:** Quality Engineering and Process Control Teams
+/// **Update Frequency:** Real-time detection and logging of SPC rule violations with immediate alerting
+/// **Compliance:** SPC violations support ISO 9001 process control requirements and provide data for continuous improvement and quality audits
+/// **Data Retention:** 3 years for process validation and continuous improvement analysis
+/// **Security:** Internal - Process control data and quality metrics
+/// **Integrations:** SPC Systems, Quality Management, Process Control, Alert Systems, Production Control
+/// **Related Tables:** SPCConfiguration, QualityMeasurement, Equipment, Alert, CorrectiveAction
+///
+/// **Examples:**
+/// - Nelson Rule 1 violation - point beyond control limits: High-severity SPC violation exceeding control limits requiring immediate production stop and corrective action
+/// - Nelson Rule 2 violation - trending pattern: Medium-severity trending violation indicating systematic process shift requiring investigation and tool adjustment
+///
+/// **Common Queries:**
+/// - Monitor real-time SPC violations for immediate response
+/// - Generate process stability reports for quality audits
+/// - Track violation patterns for process improvement opportunities
+///
 model SPCRuleViolation {
   id              String           @id @default(cuid())
   configurationId String
@@ -4411,6 +5131,26 @@ model SPCRuleViolation {
   @@map("spc_rule_violations")
 }
 
+/// Statistical sampling plans defining inspection frequency, sample sizes, and acceptance criteria for quality control and regulatory compliance
+///
+/// **Business Purpose:** Ensures statistically valid quality control through scientific sampling methods while optimizing inspection resources and maintaining product quality
+/// **Data Owner:** Quality Engineering and Statistical Process Control Teams
+/// **Update Frequency:** Updated when quality requirements change, process capability improves, or statistical analysis indicates plan optimization
+/// **Compliance:** Sampling plans support ANSI/ASQ Z1.4 standards, automotive PPAP requirements, and aerospace AS9102 statistical sampling
+/// **Data Retention:** 7 years for statistical validation and regulatory compliance
+/// **Security:** Internal - Quality control methods and statistical sampling approaches
+/// **Integrations:** Quality Management, SPC Systems, Inspection Planning, Statistical Analysis, Customer Requirements
+/// **Related Tables:** InspectionPlan, QualityCharacteristic, SPCConfiguration, CustomerRequirement, RegulatoryRequirement
+///
+/// **Examples:**
+/// - Aerospace component AQL sampling: Critical aerospace component sampling plan with AQL 1.0 for safety-critical dimensional characteristics
+/// - Medical device biocompatibility sampling: Medical device biocompatibility sampling plan with FDA requirements for Class II device approval
+///
+/// **Common Queries:**
+/// - Generate sampling plans for new product introductions
+/// - Validate sample sizes for statistical confidence
+/// - Track sampling plan effectiveness and optimization opportunities
+///
 model SamplingPlan {
   id                        String                     @id @default(cuid())
   planName                  String
@@ -4446,6 +5186,26 @@ model SamplingPlan {
   @@map("sampling_plans")
 }
 
+/// Statistical sampling inspection results capturing acceptance decisions and quality control outcomes for production lots
+///
+/// **Business Purpose:** Enables statistical quality control through sampling methodology reducing inspection costs while maintaining quality assurance
+/// **Data Owner:** Quality Control and Statistical Analysis Teams
+/// **Update Frequency:** Updated for each sampling inspection event with statistical analysis and lot acceptance decisions
+/// **Compliance:** Sampling results critical for statistical process control and regulatory compliance - must follow ANSI/ASQ standards
+/// **Data Retention:** Permanent retention for statistical analysis and regulatory compliance
+/// **Security:** Internal - Quality control data with regulatory and competitive significance
+/// **Integrations:** Statistical Process Control, Quality Management Systems, Production Control, Certificate Generation
+/// **Related Tables:** SamplingPlan, InspectionRecord, MaterialLot, QualityMeasurement, StatisticalProcessControl
+///
+/// **Examples:**
+/// - Production lot sampling inspection with statistical acceptance decision: Military standard sampling inspection with zero defects found resulting in lot acceptance with high statistical confidence
+/// - Medical device sampling with enhanced statistical requirements and FDA compliance: FDA-compliant sampling inspection for medical implants with zero defects and enhanced statistical requirements
+///
+/// **Common Queries:**
+/// - Generate statistical control charts for process monitoring
+/// - Track sampling inspection acceptance rates for process improvement
+/// - Produce regulatory compliance reports for audit purposes
+///
 model SamplingInspectionResult {
   id              String       @id @default(cuid())
   planId          String
@@ -4466,6 +5226,26 @@ model SamplingInspectionResult {
 }
 
 /// Work Instruction Media - Enhanced media library for work instructions
+/// Multimedia content for work instructions including images, videos, animations, and interactive content supporting manufacturing operations
+///
+/// **Business Purpose:** Enhances work instruction effectiveness through visual and interactive content, reducing training time and improving manufacturing consistency
+/// **Data Owner:** Manufacturing Engineering and Technical Documentation Teams
+/// **Update Frequency:** Updated when processes change, new content is created, or media requires refresh for clarity and accuracy
+/// **Compliance:** Media content supports training requirements and process documentation for ISO 9001 and industry-specific training standards
+/// **Data Retention:** 7 years for training records and process validation
+/// **Security:** Internal - Process documentation and training materials
+/// **Integrations:** Work Instructions, Training Systems, Document Management, Digital Asset Management, Shop Floor Displays
+/// **Related Tables:** WorkInstruction, TrainingRecord, DocumentRevision, MediaAsset, DigitalContent
+///
+/// **Examples:**
+/// - CNC setup video instruction: Comprehensive video instruction for CNC setup with timestamped steps and safety emphasis
+/// - Assembly animation sequence: Interactive 3D animation for complex assembly with embedded quality checkpoints and safety callouts
+///
+/// **Common Queries:**
+/// - Find multimedia content for specific work instructions
+/// - Track media usage for training effectiveness analysis
+/// - Generate content inventory for documentation management
+///
 model WorkInstructionMedia {
   id            String          @id @default(cuid())
   instructionId String
@@ -4549,6 +5329,26 @@ model DataCollectionFieldTemplate {
   @@map("data_collection_field_templates")
 }
 
+/// Manufacturing setup sheets providing detailed instructions for equipment configuration, tooling setup, and process preparation for production operations
+///
+/// **Business Purpose:** Ensures consistent and efficient production setup by providing standardized instructions, reducing setup time, and maintaining quality standards
+/// **Data Owner:** Manufacturing Engineering and Process Engineering Teams
+/// **Update Frequency:** Updated when processes are optimized, tooling changes, or setup procedures are improved through continuous improvement
+/// **Compliance:** Setup documentation supports ISO 9001 process control and provides traceability for setup-related quality issues
+/// **Data Retention:** 7 years for process validation and setup optimization analysis
+/// **Security:** Internal - Setup procedures and tooling specifications
+/// **Integrations:** Work Instructions, Tool Management, Equipment Management, Production Planning, Quality Control
+/// **Related Tables:** SetupStep, SetupTool, WorkInstruction, Equipment, ToolDrawing
+///
+/// **Examples:**
+/// - CNC milling setup sheet: Comprehensive CNC setup sheet with tooling, programming, and quality checkpoint specifications for turbine blade machining
+/// - Assembly station setup: Assembly setup sheet with sequential setup steps, tool requirements, and safety protocols for engine subassembly
+///
+/// **Common Queries:**
+/// - Generate setup instructions for work order execution
+/// - Track setup time performance for efficiency improvement
+/// - Find setup sheets for specific parts or operations
+///
 model SetupSheet {
   id                 String                @id @default(cuid())
   documentNumber     String                @unique
@@ -4601,6 +5401,26 @@ model SetupSheet {
   @@map("setup_sheets")
 }
 
+/// Individual steps in manufacturing setup procedures defining specific actions required to configure equipment for production
+///
+/// **Business Purpose:** Standardizes setup procedures to ensure consistent equipment configuration, reduce setup time, and maintain product quality across production runs
+/// **Data Owner:** Manufacturing Engineering Team
+/// **Update Frequency:** Updated when setup procedures are revised or equipment configurations change
+/// **Compliance:** Setup procedures must be validated and controlled for regulated industries - changes require engineering approval and operator training
+/// **Data Retention:** Maintained for equipment lifecycle plus 5 years for procedure validation and training records
+/// **Security:** Internal - Manufacturing process information with competitive sensitivity
+/// **Integrations:** Setup Sheets, Work Instructions, Equipment Control Systems, Operator Training Systems
+/// **Related Tables:** SetupSheet, SetupExecution, SetupParameter, WorkInstruction
+///
+/// **Examples:**
+/// - CNC machine tool setup step with specific torque requirements and verification: Precise tool installation step for CNC machining with torque specification and mandatory verification
+/// - Assembly station fixture setup with alignment verification and safety checks: Assembly fixture setup step with safety requirements and precision alignment verification
+///
+/// **Common Queries:**
+/// - Retrieve setup procedures for equipment configuration
+/// - Track setup step completion times for optimization
+/// - Generate setup training materials for operator certification
+///
 model SetupStep {
   id                   String     @id @default(cuid())
   setupSheetId         String
@@ -4619,6 +5439,26 @@ model SetupStep {
   @@map("setup_steps")
 }
 
+/// Configurable parameters and their values required for equipment setup procedures and manufacturing processes
+///
+/// **Business Purpose:** Defines specific parameter values needed for equipment configuration to ensure consistent product quality and optimal process performance
+/// **Data Owner:** Process Engineering Team
+/// **Update Frequency:** Updated when process parameters are optimized or product specifications change
+/// **Compliance:** Process parameters must be validated and controlled for regulated manufacturing - changes require engineering approval and process validation
+/// **Data Retention:** Maintained for product lifecycle plus 10 years for process validation and continuous improvement analysis
+/// **Security:** Internal - Process parameter data with competitive and quality sensitivity
+/// **Integrations:** Equipment Control Systems, Process Control Software, Setup Sheets, Statistical Process Control
+/// **Related Tables:** SetupStep, SetupExecution, ProcessDataCollection, OperationParameter
+///
+/// **Examples:**
+/// - CNC machining parameters for critical aerospace component with tight tolerances: Critical spindle speed parameter for aerospace machining with tight tolerance control for surface finish and dimensional accuracy
+/// - Injection molding temperature parameter with process control limits: Injection molding temperature parameter with statistical process control for consistent part quality and material properties
+///
+/// **Common Queries:**
+/// - Retrieve parameter settings for equipment setup
+/// - Track parameter variations for process optimization
+/// - Generate parameter control charts for quality analysis
+///
 model SetupParameter {
   id                 String     @id @default(cuid())
   setupSheetId       String
@@ -4634,6 +5474,26 @@ model SetupParameter {
   @@map("setup_parameters")
 }
 
+/// Specific tools and equipment required for manufacturing setup procedures with specifications and usage requirements
+///
+/// **Business Purpose:** Ensures proper tool selection and availability for consistent setup execution and manufacturing quality
+/// **Data Owner:** Manufacturing Engineering and Tool Management Teams
+/// **Update Frequency:** Updated when setup procedures change, tools are upgraded, or new equipment is introduced
+/// **Compliance:** Setup tool specifications support process validation and ensure consistent manufacturing capability
+/// **Data Retention:** Maintained for equipment lifecycle plus 5 years for setup optimization and tool analysis
+/// **Security:** Internal - Tool specifications and setup requirements
+/// **Integrations:** Tool Management Systems, Setup Procedures, Equipment Management, Inventory Control
+/// **Related Tables:** SetupSheet, Tool, ToolCalibrationRecord, SetupExecution
+///
+/// **Examples:**
+/// - CNC setup tooling with precision requirements and calibration specifications: Precision cutting tool for CNC setup with accuracy requirements and calibration specifications for aerospace machining
+/// - Assembly setup tool with torque specifications and safety requirements: Precision torque wrench for assembly setup with calibration requirements and operator certification for quality control
+///
+/// **Common Queries:**
+/// - Find required tools for setup procedures
+/// - Track tool calibration status for setup readiness
+/// - Generate tool lists for setup planning and procurement
+///
 model SetupTool {
   id           String     @id @default(cuid())
   setupSheetId String
@@ -4650,6 +5510,26 @@ model SetupTool {
   @@map("setup_tools")
 }
 
+/// Execution records of manufacturing setup procedures tracking completion status, times, and operator verification
+///
+/// **Business Purpose:** Documents actual setup execution to ensure procedures are followed correctly, track setup efficiency, and maintain quality control compliance
+/// **Data Owner:** Production Operations Team
+/// **Update Frequency:** Real-time updates during setup execution and completion verification
+/// **Compliance:** Setup execution records required for quality control and regulatory compliance - must include operator verification and timestamp documentation
+/// **Data Retention:** Maintained for 3 years for setup optimization analysis and operator performance evaluation
+/// **Security:** Internal - Production execution data with operational sensitivity
+/// **Integrations:** Setup Sheets, Work Orders, Operator Training Records, Equipment Control Systems
+/// **Related Tables:** SetupSheet, SetupStep, WorkOrder, User, Equipment
+///
+/// **Examples:**
+/// - CNC machine setup execution with operator verification and time tracking: Completed CNC setup execution with 45-minute setup time and full operator verification for production readiness
+/// - Assembly line changeover execution with multiple operator involvement: Assembly line changeover with multiple operators, extended setup time, and quality verification signoff
+///
+/// **Common Queries:**
+/// - Track setup times for production scheduling optimization
+/// - Generate setup efficiency reports for continuous improvement
+/// - Verify setup completion before production authorization
+///
 model SetupExecution {
   id                String                         @id @default(cuid())
   setupSheetId      String
@@ -4672,6 +5552,26 @@ model SetupExecution {
   @@map("setup_executions")
 }
 
+/// Quality inspection plans defining comprehensive inspection strategies, procedures, and acceptance criteria for manufacturing operations
+///
+/// **Business Purpose:** Ensures product quality and regulatory compliance by defining systematic inspection approaches with statistical sampling and measurement requirements
+/// **Data Owner:** Quality Assurance and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when quality requirements change, new inspection methods are validated, or customer specifications are modified
+/// **Compliance:** Critical for AS9102 FAI compliance, ISO 9001 quality planning, and ANSI/ASQ Z1.4 sampling standards
+/// **Data Retention:** Permanent retention for quality validation and regulatory compliance
+/// **Security:** Internal - Quality procedures and customer-specific inspection requirements
+/// **Integrations:** Quality Management, SPC Systems, FAI Reporting, Measurement Systems, Work Instructions
+/// **Related Tables:** InspectionCharacteristic, InspectionStep, SamplingPlan, FAIReport, QualityMeasurement
+///
+/// **Examples:**
+/// - Aerospace component inspection plan: Critical aerospace inspection plan with statistical sampling and tight tolerance requirements for safety components
+/// - In-process quality control plan: In-process SPC monitoring plan for machining operations with real-time control and corrective actions
+///
+/// **Common Queries:**
+/// - Generate inspection requirements for work orders
+/// - Track inspection plan effectiveness and compliance
+/// - Create FAI inspection plans for new products
+///
 model InspectionPlan {
   id                 String                     @id @default(cuid())
   documentNumber     String                     @unique
@@ -4724,6 +5624,26 @@ model InspectionPlan {
   @@map("inspection_plans")
 }
 
+/// Specific measurable attributes and quality characteristics that must be inspected during quality control processes
+///
+/// **Business Purpose:** Defines what quality attributes must be measured and verified to ensure product conformance to specifications and regulatory requirements
+/// **Data Owner:** Quality Engineering Team
+/// **Update Frequency:** Updated when product specifications change or new quality requirements are established
+/// **Compliance:** Inspection characteristics must align with customer specifications and regulatory standards (AS9100, ISO 9001, FDA) for compliance verification
+/// **Data Retention:** Maintained for product lifecycle plus 10 years for quality system traceability and audit support
+/// **Security:** Internal - Quality specification data with competitive and regulatory sensitivity
+/// **Integrations:** Quality Plans, Inspection Equipment, Measurement Systems, Customer Quality Requirements
+/// **Related Tables:** InspectionPlan, QualityMeasurement, InspectionRecord, MeasurementEquipment
+///
+/// **Examples:**
+/// - Critical dimensional characteristic for aerospace component with statistical process control: Critical aerospace dimension requiring 100% inspection with CMM measurement for tight tolerance verification
+/// - Surface finish characteristic for medical device with specific measurement requirements: Medical device surface finish characteristic with specific measurement method and sampling strategy for biocompatibility
+///
+/// **Common Queries:**
+/// - Retrieve inspection characteristics for quality plan creation
+/// - Generate inspection checklists for operator guidance
+/// - Track characteristic measurement capability for process validation
+///
 model InspectionCharacteristic {
   id                   String          @id @default(cuid())
   inspectionPlanId     String
@@ -4744,6 +5664,26 @@ model InspectionCharacteristic {
   @@map("inspection_characteristics")
 }
 
+/// Individual steps within inspection procedures defining specific measurement actions, acceptance criteria, and verification requirements
+///
+/// **Business Purpose:** Standardizes inspection procedures ensuring consistent quality verification and measurement traceability across all operators
+/// **Data Owner:** Quality Engineering and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when inspection procedures change, measurement methods improve, or customer requirements are modified
+/// **Compliance:** Inspection procedures must be validated and controlled for regulatory compliance - changes require quality approval
+/// **Data Retention:** Maintained for product lifecycle plus 10 years for procedure validation and training records
+/// **Security:** Internal - Quality procedures and measurement specifications
+/// **Integrations:** Inspection Plans, Quality Procedures, Measurement Equipment, Operator Training Systems
+/// **Related Tables:** InspectionPlan, InspectionExecution, MeasurementEquipment, QualityMeasurement
+///
+/// **Examples:**
+/// - Critical dimension measurement step with CMM requirements and statistical analysis: Critical dimensional measurement step requiring CMM with specific measurement method and statistical capability requirements
+/// - Surface finish inspection step with profilometer measurement and biocompatibility requirements: Medical device surface finish inspection with biocompatibility standards and cleanroom requirements
+///
+/// **Common Queries:**
+/// - Retrieve inspection procedures for operator training
+/// - Generate inspection checklists for quality control
+/// - Track inspection step completion times for efficiency analysis
+///
 model InspectionStep {
   id                 String         @id @default(cuid())
   inspectionPlanId   String
@@ -4759,6 +5699,26 @@ model InspectionStep {
   @@map("inspection_steps")
 }
 
+/// Execution records of quality inspection activities tracking inspector actions, measurement completion, and inspection results
+///
+/// **Business Purpose:** Documents actual inspection execution to ensure quality procedures are followed, maintain inspection traceability, and support regulatory compliance
+/// **Data Owner:** Quality Control Team
+/// **Update Frequency:** Real-time updates during inspection activities and completion verification
+/// **Compliance:** Inspection execution records required for quality traceability and regulatory compliance - must include inspector certification and complete audit trail
+/// **Data Retention:** Permanent retention for quality traceability and regulatory audit support
+/// **Security:** Internal - Quality execution data with regulatory and audit significance
+/// **Integrations:** Inspection Plans, Quality Measurements, Inspector Certification, Non-Conformance Systems
+/// **Related Tables:** InspectionPlan, InspectionRecord, User, QualityMeasurement, NonConformanceReport
+///
+/// **Examples:**
+/// - First article inspection execution for aerospace component with complete measurement verification: Complete first article inspection execution for aerospace component with certified inspector and full measurement completion
+/// - In-process inspection execution with sampling strategy and real-time results: In-process sampling inspection for production lot with statistical sampling strategy and lot acceptance decision
+///
+/// **Common Queries:**
+/// - Track inspection completion for production releases
+/// - Generate inspector performance reports for certification maintenance
+/// - Analyze inspection cycle times for capacity planning
+///
 model InspectionExecution {
   id               String           @id @default(cuid())
   inspectionPlanId String
@@ -4782,6 +5742,26 @@ model InspectionExecution {
   @@map("inspection_executions")
 }
 
+/// Standardized operating procedures providing detailed step-by-step instructions for manufacturing operations, safety protocols, and quality procedures
+///
+/// **Business Purpose:** Ensures consistent and safe execution of manufacturing operations while maintaining quality standards and regulatory compliance across all personnel
+/// **Data Owner:** Manufacturing Engineering and Training Teams
+/// **Update Frequency:** Updated when processes change, safety requirements evolve, or continuous improvement modifications are implemented
+/// **Compliance:** Critical for ISO 9001 process documentation, OSHA safety compliance, and training record requirements for regulated industries
+/// **Data Retention:** 7 years for training records and regulatory compliance
+/// **Security:** Internal - Operational procedures and safety protocols
+/// **Integrations:** Training Management, Work Instructions, Safety Management, Document Control, Electronic Signatures
+/// **Related Tables:** SOPStep, SOPAcknowledgment, WorkInstruction, TrainingRecord, ElectronicSignature
+///
+/// **Examples:**
+/// - CNC machining safety SOP: Safety-focused SOP for CNC operations with hazard identification, PPE requirements, and certification prerequisites
+/// - Quality inspection SOP: Precision measurement SOP with environmental controls and calibration requirements for quality assurance
+///
+/// **Common Queries:**
+/// - Generate training requirements for personnel certification
+/// - Track SOP compliance and acknowledgment status
+/// - Find applicable SOPs for specific operations or equipment
+///
 model StandardOperatingProcedure {
   id                 String                       @id @default(cuid())
   documentNumber     String                       @unique
@@ -4837,6 +5817,26 @@ model StandardOperatingProcedure {
   @@map("standard_operating_procedures")
 }
 
+/// Individual steps within Standard Operating Procedures defining specific actions, safety requirements, and process controls
+///
+/// **Business Purpose:** Ensures consistent execution of critical manufacturing processes through standardized procedures and safety protocols
+/// **Data Owner:** Manufacturing Engineering and Safety Teams
+/// **Update Frequency:** Updated when processes change, safety requirements are modified, or continuous improvement opportunities are identified
+/// **Compliance:** SOP procedures critical for safety compliance, regulatory requirements, and process validation - changes require approval
+/// **Data Retention:** Maintained for equipment lifecycle plus 7 years for training validation and safety compliance
+/// **Security:** Internal - Manufacturing procedures and safety protocols
+/// **Integrations:** Standard Operating Procedures, Training Systems, Safety Management, Process Control Systems
+/// **Related Tables:** StandardOperatingProcedure, SOPExecution, SafetyRequirement, TrainingRecord
+///
+/// **Examples:**
+/// - CNC machine startup procedure step with safety interlocks and verification requirements: Critical safety verification step in CNC startup procedure with mandatory testing and PPE requirements
+/// - Chemical handling procedure step with environmental controls and disposal requirements: Environmental compliance step for chemical waste disposal with regulatory requirements and training prerequisites
+///
+/// **Common Queries:**
+/// - Retrieve SOP procedures for operator training and certification
+/// - Track procedure compliance for safety audits
+/// - Generate training materials from standardized procedures
+///
 model SOPStep {
   id           String                     @id @default(cuid())
   sopId        String
@@ -4854,6 +5854,26 @@ model SOPStep {
   @@map("sop_steps")
 }
 
+/// Employee acknowledgment and compliance records for Standard Operating Procedure training and understanding verification
+///
+/// **Business Purpose:** Ensures all personnel have received, understood, and acknowledged critical safety and operational procedures for regulatory compliance
+/// **Data Owner:** Training and Safety Management Teams
+/// **Update Frequency:** Updated when employees complete SOP training, acknowledgments are recorded, or retraining occurs
+/// **Compliance:** SOP acknowledgments critical for safety compliance and regulatory requirements - maintains proof of training for audits
+/// **Data Retention:** Permanent retention for safety compliance and training audit requirements
+/// **Security:** Internal - Training records with regulatory and liability significance
+/// **Integrations:** Training Management Systems, Safety Management, Electronic Signature Systems, Compliance Reporting
+/// **Related Tables:** StandardOperatingProcedure, User, TrainingRecord, ElectronicSignature
+///
+/// **Examples:**
+/// - Critical safety procedure acknowledgment with electronic signature and comprehension verification: Critical lockout/tagout safety procedure acknowledgment with biometric signature and high comprehension test score
+/// - Chemical handling procedure acknowledgment with specialized training and certification requirements: Annual hazmat handling retraining with practical demonstration and emergency procedure verification for regulatory compliance
+///
+/// **Common Queries:**
+/// - Track employee SOP acknowledgment status for compliance audits
+/// - Identify personnel requiring retraining or certification renewal
+/// - Generate training compliance reports for regulatory submissions
+///
 model SOPAcknowledgment {
   id                  String                     @id @default(cuid())
   sopId               String
@@ -4873,6 +5893,26 @@ model SOPAcknowledgment {
   @@map("sop_acknowledgments")
 }
 
+/// Compliance audit records for Standard Operating Procedure adherence verification and corrective action tracking
+///
+/// **Business Purpose:** Ensures ongoing compliance with established procedures through systematic auditing and continuous improvement of safety and operational practices
+/// **Data Owner:** Quality Assurance and Safety Audit Teams
+/// **Update Frequency:** Updated during scheduled audits, compliance verification activities, and corrective action implementation
+/// **Compliance:** SOP audits essential for regulatory compliance verification and maintaining safety management system effectiveness
+/// **Data Retention:** 10 years for regulatory compliance and audit trail requirements
+/// **Security:** Internal - Audit findings with regulatory and liability significance
+/// **Integrations:** Audit Management Systems, Corrective Action Systems, Training Management, Compliance Reporting
+/// **Related Tables:** StandardOperatingProcedure, User, CorrectiveAction, AuditReport
+///
+/// **Examples:**
+/// - Safety procedure compliance audit with findings and corrective action requirements: Scheduled confined space safety audit with minor non-compliance finding requiring corrective action within 15 days
+/// - Chemical handling audit with regulatory compliance verification and training assessment: Regulatory compliance audit for chemical storage with excellent rating and identification of best practices for sharing
+///
+/// **Common Queries:**
+/// - Track SOP compliance audit results for regulatory reporting
+/// - Monitor corrective action completion for audit findings
+/// - Generate audit trend analysis for continuous improvement
+///
 model SOPAudit {
   id                String                     @id @default(cuid())
   sopId             String
@@ -4892,6 +5932,26 @@ model SOPAudit {
   @@map("sop_audits")
 }
 
+/// Engineering drawings and technical specifications for manufacturing tools, fixtures, and production equipment
+///
+/// **Business Purpose:** Provides complete technical documentation for tool design, manufacturing, maintenance, and quality control of production tooling
+/// **Data Owner:** Tool Design Engineering and Manufacturing Engineering Teams
+/// **Update Frequency:** Updated when tool designs change, revisions are required, or engineering improvements are implemented
+/// **Compliance:** Tool drawings must be controlled and validated for manufacturing repeatability and quality assurance
+/// **Data Retention:** Maintained for tool lifecycle plus 10 years for design validation and improvement analysis
+/// **Security:** Confidential - Proprietary tool designs and manufacturing specifications
+/// **Integrations:** CAD Systems, Tool Management, Engineering Change Control, Manufacturing Systems
+/// **Related Tables:** Tool, EngineeringDrawing, ToolCalibrationRecord, ToolMaintenanceRecord
+///
+/// **Examples:**
+/// - CNC fixture drawing with precision specifications and assembly instructions: Precision machining fixture drawing with tight tolerance requirements and assembly specifications for aerospace component
+/// - Inspection gauge drawing with calibration specifications and measurement uncertainty: Medical device inspection gauge with FDA compliance requirements and NIST traceability for regulatory validation
+///
+/// **Common Queries:**
+/// - Retrieve tool specifications for manufacturing and maintenance
+/// - Track drawing revisions for change control
+/// - Generate tool procurement specifications from drawings
+///
 model ToolDrawing {
   id                   String                  @id @default(cuid())
   documentNumber       String                  @unique
@@ -4960,6 +6020,26 @@ model ToolDrawing {
   @@map("tool_drawings")
 }
 
+/// Tool and equipment maintenance records tracking service history, repairs, and lifecycle management for manufacturing assets
+///
+/// **Business Purpose:** Ensures equipment reliability and compliance through systematic maintenance tracking, extending asset life and preventing production disruptions
+/// **Data Owner:** Maintenance Engineering and Asset Management Teams
+/// **Update Frequency:** Updated after each maintenance activity with complete service documentation
+/// **Compliance:** Maintenance records support asset management requirements and provide documentation for regulatory compliance and warranty claims
+/// **Data Retention:** Asset lifetime plus 5 years for warranty and regulatory compliance
+/// **Security:** Internal - Equipment maintenance and asset management data
+/// **Integrations:** Asset Management, Maintenance Scheduling, Equipment Control, Cost Accounting, Supplier Management
+/// **Related Tables:** Equipment, MaintenanceSchedule, CalibrationRecord, AssetLifecycle, CostCenter
+///
+/// **Examples:**
+/// - CNC spindle rebuild maintenance: Major spindle overhaul with certified technician, detailed parts list, cost tracking, and quality verification
+/// - CMM routine calibration: Precision measurement equipment calibration with NIST traceability and uncertainty verification for quality compliance
+///
+/// **Common Queries:**
+/// - Track maintenance history for equipment reliability analysis
+/// - Generate maintenance cost reports for budget planning
+/// - Schedule preventive maintenance based on usage and history
+///
 model ToolMaintenanceRecord {
   id                  String          @id @default(cuid())
   toolDrawingId       String
@@ -4980,6 +6060,26 @@ model ToolMaintenanceRecord {
   @@map("tool_maintenance_records")
 }
 
+/// Tool and measurement equipment calibration records maintaining traceability and accuracy verification for quality assurance and regulatory compliance
+///
+/// **Business Purpose:** Ensures measurement accuracy and regulatory compliance by tracking calibration status, maintaining traceability to standards, and scheduling recalibration
+/// **Data Owner:** Quality Engineering and Metrology Teams
+/// **Update Frequency:** Updated after each calibration event with traceability information and next due dates
+/// **Compliance:** Critical for ISO 9001 measurement system requirements, AS9102 FAI traceability, and customer-specific calibration standards
+/// **Data Retention:** 7 years for measurement traceability and regulatory compliance
+/// **Security:** Internal - Calibration data and measurement system information
+/// **Integrations:** Quality Management, Equipment Management, Metrology Systems, Calibration Services, Work Instructions
+/// **Related Tables:** MeasurementEquipment, QualityCharacteristic, OperationGaugeRequirement, InspectionPlan, CalibrationSchedule
+///
+/// **Examples:**
+/// - CMM calibration record: Precision CMM calibration with NIST traceability and environmental control requirements for aerospace measurements
+/// - Torque wrench calibration record: Torque tool calibration with multiple point verification and accuracy specification for critical assembly operations
+///
+/// **Common Queries:**
+/// - Track calibration due dates for preventive scheduling
+/// - Generate calibration certificates for customer requirements
+/// - Validate measurement equipment status for work orders
+///
 model ToolCalibrationRecord {
   id                  String      @id @default(cuid())
   toolDrawingId       String
@@ -4999,6 +6099,26 @@ model ToolCalibrationRecord {
   @@map("tool_calibration_records")
 }
 
+/// Comprehensive usage tracking and lifecycle management for manufacturing tools including utilization, performance, and maintenance history
+///
+/// **Business Purpose:** Optimizes tool utilization, predicts maintenance needs, and ensures quality control through complete tool lifecycle tracking
+/// **Data Owner:** Tool Management and Manufacturing Engineering Teams
+/// **Update Frequency:** Real-time logging of tool usage events, performance metrics, and lifecycle milestones
+/// **Compliance:** Tool usage tracking supports quality control validation and process capability verification for regulatory compliance
+/// **Data Retention:** 5 years for tool lifecycle analysis and maintenance optimization
+/// **Security:** Internal - Tool performance data with operational and competitive significance
+/// **Integrations:** Tool Management Systems, Equipment Control, Maintenance Systems, Quality Control
+/// **Related Tables:** Tool, ToolMaintenanceRecord, ToolCalibrationRecord, Equipment
+///
+/// **Examples:**
+/// - Precision cutting tool usage tracking with performance monitoring and wear analysis: Precision titanium cutting operation with tool wear monitoring showing optimal performance and good condition
+/// - Assembly tool usage with torque verification and calibration status tracking: Assembly torque tool usage with precision torque applications and current calibration status verification
+///
+/// **Common Queries:**
+/// - Track tool utilization for replacement planning and optimization
+/// - Monitor tool performance for quality control and process validation
+/// - Generate tool lifecycle reports for cost analysis and procurement
+///
 model ToolUsageLog {
   id                String      @id @default(cuid())
   toolDrawingId     String
@@ -5126,6 +6246,26 @@ model WorkstationDisplayConfig {
   @@map("workstation_display_configs")
 }
 
+/// Business workflow definitions enabling automated routing of approvals, reviews, and business processes throughout the manufacturing organization
+///
+/// **Business Purpose:** Standardizes and automates business processes ensuring consistent execution, proper approvals, and audit trails for regulatory compliance
+/// **Data Owner:** Business Process Management and IT Systems Teams
+/// **Update Frequency:** Updated when business processes change, approval hierarchies are modified, or regulatory requirements evolve
+/// **Compliance:** Workflow definitions critical for 21 CFR Part 11 electronic signature compliance and ISO 9001 process control requirements
+/// **Data Retention:** 7 years for regulatory compliance and business process audit requirements
+/// **Security:** Internal - Business process definitions and approval hierarchies
+/// **Integrations:** Electronic Signature System, Document Management, User Management, Audit Systems, Notification Systems
+/// **Related Tables:** WorkflowStage, WorkflowInstance, WorkflowHistory, WorkflowAssignment, ElectronicSignature
+///
+/// **Examples:**
+/// - ECO approval workflow: Multi-stage ECO approval workflow with role-based approvers and time limits for regulatory compliance
+/// - Quality deviation workflow: Critical quality workflow for non-conformance investigation with escalation and mandatory approvals
+///
+/// **Common Queries:**
+/// - Deploy new workflow definitions for business process automation
+/// - Track workflow performance and bottlenecks
+/// - Generate compliance reports for workflow execution
+///
 model WorkflowDefinition {
   id           String             @id @default(cuid())
   name         String
@@ -5148,6 +6288,26 @@ model WorkflowDefinition {
   @@map("workflow_definitions")
 }
 
+/// Workflow stage definitions within business processes defining approval steps, decision points, and stage-specific requirements
+///
+/// **Business Purpose:** Structures business process execution by defining discrete stages with specific requirements, approvers, and transition criteria for compliance and efficiency
+/// **Data Owner:** Business Process Management and Quality Assurance Teams
+/// **Update Frequency:** Updated when business processes are modified, approval hierarchies change, or regulatory requirements evolve
+/// **Compliance:** Workflow stages support 21 CFR Part 11 electronic signature requirements and ISO 9001 document control processes
+/// **Data Retention:** 7 years for regulatory compliance and business process validation
+/// **Security:** Internal - Business process definitions and approval hierarchies
+/// **Integrations:** Workflow Management, Electronic Signatures, Document Control, Role Management, Audit Systems
+/// **Related Tables:** WorkflowDefinition, WorkflowInstance, Role, ElectronicSignature, User
+///
+/// **Examples:**
+/// - ECO approval workflow stage: Quality review stage in ECO workflow with specific approval requirements, timing constraints, and electronic signature
+/// - Quality plan approval stage: Final approval stage for quality plan with business hours restriction and automatic advancement upon approval
+///
+/// **Common Queries:**
+/// - Define workflow stages for new business processes
+/// - Track stage completion times for process optimization
+/// - Generate workflow configuration reports for compliance audits
+///
 model WorkflowStage {
   id                 String                  @id @default(cuid())
   workflowId         String
@@ -5175,6 +6335,26 @@ model WorkflowStage {
   @@map("workflow_stages")
 }
 
+/// Business logic rules and automation conditions that govern workflow behavior, transitions, and decision-making processes
+///
+/// **Business Purpose:** Enables automated workflow decision-making and business process enforcement through configurable rules and conditions
+/// **Data Owner:** Business Process Management and IT Operations Teams
+/// **Update Frequency:** Updated when business rules change, process optimization occurs, or regulatory requirements are modified
+/// **Compliance:** Workflow rules support SOX compliance for process automation and provide audit trail for automated business decisions
+/// **Data Retention:** 7 years for business process validation and regulatory compliance
+/// **Security:** Internal - Business logic and process automation rules
+/// **Integrations:** Workflow Engine, Business Rules Engine, Process Analytics, Compliance Systems, Decision Management
+/// **Related Tables:** WorkflowDefinition, WorkflowStageInstance, WorkflowHistory, Role, User
+///
+/// **Examples:**
+/// - Engineering change approval rule with conditional routing based on impact level: Automated routing rule that escalates high-impact engineering changes to executive approval for enhanced oversight
+/// - Quality plan approval rule with time-based escalation and role validation: Automatic escalation rule ensuring quality plan approvals don't exceed business hour timelines
+///
+/// **Common Queries:**
+/// - Evaluate workflow rules for process automation decisions
+/// - Track rule effectiveness for process optimization
+/// - Generate business rule compliance reports for audits
+///
 model WorkflowRule {
   id                String             @id @default(cuid())
   workflowId        String
@@ -5196,6 +6376,26 @@ model WorkflowRule {
   @@map("workflow_rules")
 }
 
+/// Active workflow instances managing approval processes, document reviews, and business process execution with complete audit trails
+///
+/// **Business Purpose:** Orchestrates business process execution ensuring proper approvals, compliance requirements, and audit trails for regulatory and quality standards
+/// **Data Owner:** Business Process Management and Quality Assurance Teams
+/// **Update Frequency:** Real-time updates as workflows progress through stages, approvals, and completion
+/// **Compliance:** Critical for 21 CFR Part 11 electronic signature workflows and ISO 9001 document control compliance
+/// **Data Retention:** 7 years for regulatory compliance and business process audit requirements
+/// **Security:** Internal - Business process execution and approval workflows
+/// **Integrations:** Workflow Management, Electronic Signatures, Document Control, User Management, Audit Systems
+/// **Related Tables:** WorkflowDefinition, WorkflowStage, ElectronicSignature, User, Document
+///
+/// **Examples:**
+/// - ECO approval workflow instance: High-priority ECO workflow instance in quality review stage with tracked progress and pending approvals
+/// - Quality plan approval workflow: Quality plan approval workflow requiring electronic signature with complete approval history tracking
+///
+/// **Common Queries:**
+/// - Track workflow progress for management dashboards
+/// - Generate approval status reports for compliance audits
+/// - Find overdue workflows requiring escalation
+///
 model WorkflowInstance {
   id                 String                  @id @default(cuid())
   workflowId         String
@@ -5222,6 +6422,26 @@ model WorkflowInstance {
   @@map("workflow_instances")
 }
 
+/// Active instances of workflow stages tracking real-time progress, approvals, and execution status for ongoing business processes
+///
+/// **Business Purpose:** Provides real-time visibility into workflow execution enabling process monitoring, performance tracking, and proactive management
+/// **Data Owner:** Business Process Management and Operations Teams
+/// **Update Frequency:** Real-time updates as workflow stages progress, complete, or encounter exceptions
+/// **Compliance:** Stage instance tracking critical for audit trails and compliance verification - maintains complete execution history
+/// **Data Retention:** 5 years for process analysis and audit support
+/// **Security:** Internal - Active process execution data with operational sensitivity
+/// **Integrations:** Workflow Engine, Task Management, Notification Systems, Process Analytics, Performance Monitoring
+/// **Related Tables:** WorkflowInstance, WorkflowStage, User, WorkflowTask, ElectronicSignature
+///
+/// **Examples:**
+/// - Engineering change approval stage in progress with timing and approval tracking: Active engineering review stage with progress tracking and deadline management for ECO approval process
+/// - Quality plan approval stage completed with electronic signature and timing metrics: Completed quality approval stage with electronic signature verification and performance timing metrics
+///
+/// **Common Queries:**
+/// - Monitor active workflow stages for operational oversight
+/// - Track stage completion times for performance optimization
+/// - Generate workflow progress reports for management dashboards
+///
 model WorkflowStageInstance {
   id                   String                         @id @default(cuid())
   workflowInstanceId   String
@@ -5246,6 +6466,26 @@ model WorkflowStageInstance {
   @@map("workflow_stage_instances")
 }
 
+/// Task and approval assignments within workflows specifying responsible users, roles, and delegation relationships
+///
+/// **Business Purpose:** Ensures proper task allocation and accountability in business processes while supporting delegation and workload distribution
+/// **Data Owner:** Business Process Management and Human Resources Teams
+/// **Update Frequency:** Updated when assignments change, delegations occur, or organizational structure modifications happen
+/// **Compliance:** Assignment tracking essential for SOX compliance and audit trail requirements - maintains accountability and segregation of duties
+/// **Data Retention:** 7 years for accountability tracking and organizational analysis
+/// **Security:** Internal - Assignment and delegation information with organizational sensitivity
+/// **Integrations:** Workflow Engine, User Management, Organization Structure, Notification Systems, Performance Tracking
+/// **Related Tables:** WorkflowInstance, WorkflowStageInstance, User, Role, WorkflowDelegation
+///
+/// **Examples:**
+/// - Engineering change review assignment with primary and backup assignees: ECO review assignment with backup assignee ensuring continuity and specialized focus requirements
+/// - Quality approval assignment with delegation due to vacation coverage: Quality approval assignment delegated for vacation coverage with automatic approval for continuity
+///
+/// **Common Queries:**
+/// - Find active assignments for user workload management
+/// - Track delegation patterns for organizational analysis
+/// - Generate assignment reports for performance evaluation
+///
 model WorkflowAssignment {
   id               String                @id @default(cuid())
   stageInstanceId  String
@@ -5274,6 +6514,26 @@ model WorkflowAssignment {
   @@map("workflow_assignments")
 }
 
+/// Complete audit trail and historical record of all workflow activities, decisions, and state changes for compliance and analysis
+///
+/// **Business Purpose:** Provides comprehensive audit trail for regulatory compliance, process analysis, and continuous improvement of business workflows
+/// **Data Owner:** Business Process Management and Compliance Teams
+/// **Update Frequency:** Real-time capture of all workflow events, decisions, and state transitions
+/// **Compliance:** Critical for SOX, FDA, and regulatory audit requirements - maintains immutable record of all business process activities
+/// **Data Retention:** Permanent retention for regulatory compliance and historical process analysis
+/// **Security:** Internal - Complete audit trail with regulatory and competitive significance
+/// **Integrations:** Workflow Engine, Audit Systems, Compliance Reporting, Process Analytics, Data Warehouse
+/// **Related Tables:** WorkflowInstance, WorkflowStageInstance, User, WorkflowRule, ElectronicSignature
+///
+/// **Examples:**
+/// - Engineering change workflow history with complete decision trail and timing analysis: Complete audit record of engineering review completion with decision rationale and supporting documentation
+/// - Quality plan workflow history with escalation event and resolution tracking: Audit record of automatic escalation due to timeout with complete rule and user tracking
+///
+/// **Common Queries:**
+/// - Generate complete audit trails for regulatory compliance
+/// - Analyze workflow performance and bottlenecks
+/// - Track decision history for process improvement
+///
 model WorkflowHistory {
   id                 String            @id @default(cuid())
   workflowInstanceId String
@@ -5295,6 +6555,26 @@ model WorkflowHistory {
   @@map("workflow_history")
 }
 
+/// Authority delegation and coverage management for workflow responsibilities enabling business continuity and flexible resource allocation
+///
+/// **Business Purpose:** Ensures business process continuity through systematic delegation while maintaining accountability and approval authority tracking
+/// **Data Owner:** Business Process Management and Human Resources Teams
+/// **Update Frequency:** Updated when delegation arrangements are established, modified, or terminated
+/// **Compliance:** Delegation tracking critical for SOX compliance and audit trail requirements - maintains clear authority and accountability
+/// **Data Retention:** 7 years for accountability tracking and organizational audit support
+/// **Security:** Internal - Authority delegation with organizational and compliance sensitivity
+/// **Integrations:** Workflow Engine, User Management, Organization Structure, Electronic Signature Systems
+/// **Related Tables:** User, WorkflowAssignment, Role, WorkflowInstance
+///
+/// **Examples:**
+/// - Quality manager vacation delegation with time-limited authority and approval scope restrictions: Time-limited quality manager delegation for vacation coverage with specific authority scope and financial limits
+/// - Emergency engineering approval delegation with escalation and notification requirements: Emergency engineering delegation with escalation requirements and confirmation protocols for critical decisions
+///
+/// **Common Queries:**
+/// - Track active delegations for authority verification
+/// - Monitor delegation usage for organizational analysis
+/// - Generate delegation reports for compliance audits
+///
 model WorkflowDelegation {
   id                 String        @id @default(cuid())
   delegatorId        String
@@ -5313,6 +6593,26 @@ model WorkflowDelegation {
   @@map("workflow_delegations")
 }
 
+/// Reusable workflow patterns and standardized process templates for consistent business process implementation across the organization
+///
+/// **Business Purpose:** Enables rapid deployment of standardized business processes while ensuring consistency and compliance across different operational contexts
+/// **Data Owner:** Business Process Management and Quality Teams
+/// **Update Frequency:** Updated when process standards change, templates are optimized, or new business requirements are established
+/// **Compliance:** Workflow templates support process standardization and regulatory compliance by ensuring consistent implementation
+/// **Data Retention:** 10 years for process validation and continuous improvement analysis
+/// **Security:** Internal - Process templates with competitive and operational significance
+/// **Integrations:** Workflow Engine, Process Design Tools, Compliance Systems, Change Management
+/// **Related Tables:** WorkflowDefinition, WorkflowInstance, Role, ComplianceRequirement
+///
+/// **Examples:**
+/// - Engineering change control template with aerospace compliance requirements and approval stages: Comprehensive aerospace ECO template with AS9100D compliance requirements and multi-stage approval process
+/// - Supplier qualification template with quality system assessment and certification requirements: Structured supplier qualification template with comprehensive assessment requirements and ongoing monitoring
+///
+/// **Common Queries:**
+/// - Retrieve workflow templates for process standardization
+/// - Track template usage for process optimization
+/// - Generate process compliance reports from template implementations
+///
 model WorkflowTemplate {
   id                 String       @id @default(cuid())
   name               String
@@ -5334,6 +6634,26 @@ model WorkflowTemplate {
   @@map("workflow_templates")
 }
 
+/// Individual tasks and action items within workflow stages defining specific work to be completed by assigned users
+///
+/// **Business Purpose:** Breaks down complex workflow stages into manageable tasks enabling detailed progress tracking and resource management
+/// **Data Owner:** Business Process Management and Operations Teams
+/// **Update Frequency:** Real-time updates as tasks are created, assigned, progressed, and completed
+/// **Compliance:** Task tracking supports detailed audit requirements and provides granular accountability for process compliance
+/// **Data Retention:** 5 years for process optimization and performance analysis
+/// **Security:** Internal - Task details and work assignments with operational sensitivity
+/// **Integrations:** Workflow Engine, Task Management Systems, Time Tracking, Performance Analytics, Notification Systems
+/// **Related Tables:** WorkflowInstance, WorkflowStageInstance, User, WorkflowAssignment, TimeEntry
+///
+/// **Examples:**
+/// - Engineering change technical assessment task with deliverables and time tracking: Technical assessment task with detailed deliverable tracking and time management for ECO evaluation
+/// - Quality plan validation task with checklist and verification requirements: Quality validation task with structured checklist and compliance verification for plan approval
+///
+/// **Common Queries:**
+/// - Track individual task progress for workflow monitoring
+/// - Generate task performance reports for productivity analysis
+/// - Find overdue tasks for escalation and resource reallocation
+///
 model WorkflowTask {
   id                 String     @id @default(cuid())
   assignmentId       String     @unique
@@ -5358,6 +6678,26 @@ model WorkflowTask {
   @@map("workflow_tasks")
 }
 
+/// Performance analytics and operational metrics for workflow processes enabling continuous improvement and efficiency optimization
+///
+/// **Business Purpose:** Provides data-driven insights for process optimization, resource allocation, and operational excellence through comprehensive workflow analytics
+/// **Data Owner:** Business Process Management and Performance Analytics Teams
+/// **Update Frequency:** Real-time metric calculation and periodic aggregation for performance trending and analysis
+/// **Compliance:** Workflow metrics support process validation and continuous improvement requirements for quality management systems
+/// **Data Retention:** 5 years for trend analysis and process improvement validation
+/// **Security:** Internal - Performance data with operational and competitive significance
+/// **Integrations:** Workflow Engine, Business Intelligence, Performance Dashboards, Process Analytics
+/// **Related Tables:** WorkflowInstance, WorkflowStageInstance, PerformanceIndicator, ProcessImprovement
+///
+/// **Examples:**
+/// - Engineering change workflow performance metrics with cycle time analysis and bottleneck identification: Q1 ECO workflow metrics showing above-target performance with customer approval identified as primary bottleneck
+/// - Quality plan approval workflow metrics with efficiency trending and resource utilization analysis: March quality plan metrics showing 18% cycle time improvement and high quality scores with moderate automation
+///
+/// **Common Queries:**
+/// - Generate workflow performance dashboards for management reporting
+/// - Analyze process bottlenecks for optimization opportunities
+/// - Track continuous improvement metrics for quality system validation
+///
 model WorkflowMetrics {
   id                 String        @id @default(cuid())
   periodStart        DateTime
@@ -5383,6 +6723,26 @@ model WorkflowMetrics {
   @@map("workflow_metrics")
 }
 
+/// Coordination and synchronization management for parallel workflow branches enabling complex multi-path business process execution
+///
+/// **Business Purpose:** Manages sophisticated parallel process execution ensuring proper coordination, timing, and decision-making for complex manufacturing workflows
+/// **Data Owner:** Business Process Management and Systems Integration Teams
+/// **Update Frequency:** Real-time coordination updates as parallel branches progress, synchronize, and reach decision points
+/// **Compliance:** Parallel coordination tracking ensures process integrity and audit trail completeness for complex regulatory workflows
+/// **Data Retention:** 5 years for process validation and coordination pattern analysis
+/// **Security:** Internal - Process coordination with operational and competitive significance
+/// **Integrations:** Workflow Engine, Process Orchestration, Decision Management, Event Processing
+/// **Related Tables:** WorkflowInstance, WorkflowStageInstance, WorkflowRule, DecisionPoint
+///
+/// **Examples:**
+/// - Engineering change parallel review coordination with simultaneous engineering and manufacturing assessment: ECO parallel review coordination waiting for manufacturing assessment completion before proceeding to design approval gate
+/// - Supplier qualification parallel coordination with simultaneous audit, financial review, and capability assessment: Supplier qualification coordination with majority approval achieved including critical quality audit branch completion
+///
+/// **Common Queries:**
+/// - Monitor parallel workflow coordination for process management
+/// - Track coordination patterns for process optimization
+/// - Generate parallel execution reports for complexity analysis
+///
 model WorkflowParallelCoordination {
   id                   String                @id @default(cuid())
   stageInstanceId      String
@@ -5410,6 +6770,26 @@ model WorkflowParallelCoordination {
 }
 
 /// Engineering Change Order - Core ECO entity for formal change management
+/// Engineering change orders managing all product and process modifications with complete approval workflow and compliance traceability
+///
+/// **Business Purpose:** Controls and documents all engineering changes to ensure proper authorization, impact assessment, and regulatory compliance throughout the product lifecycle
+/// **Data Owner:** Engineering Change Management and Product Engineering Teams
+/// **Update Frequency:** Real-time updates as ECOs progress through approval workflows and implementation stages
+/// **Compliance:** Critical for ISO 9001, AS9100, and 21 CFR Part 11 compliance - must maintain complete audit trail of all product/process changes
+/// **Data Retention:** Permanent retention for product lifecycle traceability and regulatory compliance
+/// **Security:** Confidential - Product design changes and proprietary engineering information
+/// **Integrations:** Product Lifecycle Management, Document Control, Quality Management, Production Planning, Workflow Systems
+/// **Related Tables:** ECOAffectedDocument, ECOTask, ECOHistory, WorkflowInstance, DocumentRevision
+///
+/// **Examples:**
+/// - Critical dimensional change ECO: High-priority design change requiring approval workflow for critical aerospace component dimensional revisions
+/// - Process improvement ECO: Process optimization ECO with cost savings tracking and approved implementation status
+///
+/// **Common Queries:**
+/// - Track ECO status and approval progress
+/// - Generate ECO impact reports for cost analysis
+/// - Find all ECOs affecting specific products or documents
+///
 model EngineeringChangeOrder {
   id                     String                @id @default(cuid())
   ecoNumber              String                @unique

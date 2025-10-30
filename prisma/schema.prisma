@@ -8,6 +8,12 @@ generator erd {
   theme    = "default"
 }
 
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "../docs/generated/prisma-markdown"
+  title    = "MachShop MES Schema Documentation"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -322,6 +328,54 @@ model PersonnelAvailability {
   @@map("personnel_availability")
 }
 
+/// Unit of Measure lookup table for standardizing measurement units across the system
+model UnitOfMeasure {
+  id                       String            @id @default(cuid())
+  code                     String            @unique      // e.g., "EA", "KG", "LB", "M", "FT"
+  name                     String                         // e.g., "Each", "Kilogram", "Pound"
+  description              String?                        // Detailed description
+  unitType                 UnitType                       // Category of measurement
+  systemOfMeasure          SystemOfMeasure               // Metric, Imperial, etc.
+  isBaseUnit               Boolean           @default(false) // True if this is the base unit for conversions
+  conversionFactor         Decimal?                       // Factor to convert to base unit
+  baseUnitId               String?                        // Reference to base unit for conversions
+  symbol                   String?                        // e.g., "kg", "lb", "m"
+  isActive                 Boolean           @default(true)
+  sortOrder                Int?                           // For consistent display ordering
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  // Self-referential relation for unit conversions
+  baseUnit                 UnitOfMeasure?    @relation("UnitConversions", fields: [baseUnitId], references: [id])
+  derivedUnits             UnitOfMeasure[]   @relation("UnitConversions")
+
+  // Relations to entities using this UOM - only implemented models
+  materialDefinitionsBase     MaterialDefinition[]        @relation("MaterialDefinitionBaseUOM")
+  materialDefinitionsAlt      MaterialDefinition[]        @relation("MaterialDefinitionAlternateUOM")
+  materialProperties          MaterialProperty[]          @relation("MaterialPropertyUOM")
+  materialLots                MaterialLot[]               @relation("MaterialLotUOM")
+  materialSublots             MaterialSublot[]            @relation("MaterialSublotUOM")
+  materialLotGenealogies      MaterialLotGenealogy[]      @relation("MaterialLotGenealogyUOM")
+  materialStateHistories      MaterialStateHistory[]      @relation("MaterialStateHistoryUOM")
+  operationParameters         OperationParameter[]        @relation("OperationParameterUOM")
+  materialOperationSpecs      MaterialOperationSpecification[] @relation("MaterialOperationSpecificationUOM")
+  parts                       Part[]                      @relation("PartUOM")
+  bomItems                    BOMItem[]                   @relation("BOMItemUOM")
+  routingStepParameters       RoutingStepParameter[]      @relation("RoutingStepParameterUOM")
+  scheduleEntries             ScheduleEntry[]             @relation("ScheduleEntryUOM")
+  qualityCharacteristics      QualityCharacteristic[]     @relation("QualityCharacteristicUOM")
+  productSpecifications       ProductSpecification[]      @relation("ProductSpecificationUOM")
+  scheduleConstraints         ScheduleConstraint[]        @relation("ScheduleConstraintUOM")
+  inventories                 Inventory[]                 @relation("InventoryUOM")
+  materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
+
+  @@index([code])
+  @@index([unitType])
+  @@index([systemOfMeasure])
+  @@index([isActive])
+  @@map("units_of_measure")
+}
+
 model MaterialClass {
   id                     String               @id @default(cuid())
   classCode              String               @unique
@@ -355,6 +409,8 @@ model MaterialDefinition {
   materialClassId        String
   baseUnitOfMeasure      String
   alternateUnitOfMeasure String?
+  baseUnitOfMeasureId    String?              // FK to UnitOfMeasure
+  alternateUnitOfMeasureId String?            // FK to UnitOfMeasure
   conversionFactor       Float?
   materialType           MaterialType
   materialGrade          String?
@@ -386,12 +442,16 @@ model MaterialDefinition {
   materialClass          MaterialClass        @relation(fields: [materialClassId], references: [id])
   replacementMaterial    MaterialDefinition?  @relation("MaterialReplacement", fields: [replacementMaterialId], references: [id])
   replacedMaterials      MaterialDefinition[] @relation("MaterialReplacement")
+  baseUnitOfMeasureRef   UnitOfMeasure?       @relation("MaterialDefinitionBaseUOM", fields: [baseUnitOfMeasureId], references: [id])
+  alternateUnitOfMeasureRef UnitOfMeasure?    @relation("MaterialDefinitionAlternateUOM", fields: [alternateUnitOfMeasureId], references: [id])
   lots                   MaterialLot[]
   properties             MaterialProperty[]
 
   @@index([materialClassId])
   @@index([materialType])
   @@index([isActive])
+  @@index([baseUnitOfMeasureId])
+  @@index([alternateUnitOfMeasureId])
   @@index([materialNumber])
   @@map("material_definitions")
 }
@@ -403,6 +463,7 @@ model MaterialProperty {
   propertyType  MaterialPropertyType
   propertyValue String
   propertyUnit  String?
+  propertyUnitId String?              // FK to UnitOfMeasure
   testMethod    String?
   nominalValue  Float?
   minValue      Float?
@@ -413,9 +474,11 @@ model MaterialProperty {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   material      MaterialDefinition   @relation(fields: [materialId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?    @relation("MaterialPropertyUOM", fields: [propertyUnitId], references: [id])
 
   @@unique([materialId, propertyName])
   @@index([materialId])
+  @@index([propertyUnitId])
   @@index([propertyType])
   @@map("material_properties")
 }
@@ -431,6 +494,7 @@ model MaterialLot {
   originalQuantity    Float
   currentQuantity     Float
   unitOfMeasure       String
+  unitOfMeasureId     String?              // FK to UnitOfMeasure
   location            String?
   warehouseId         String?
   manufactureDate     DateTime?
@@ -467,6 +531,7 @@ model MaterialLot {
   material            MaterialDefinition     @relation(fields: [materialId], references: [id])
   parentLot           MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
   childLots           MaterialLot[]          @relation("LotGenealogy")
+  unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
 
@@ -477,6 +542,7 @@ model MaterialLot {
   @@index([expirationDate])
   @@index([qualityStatus])
   @@index([parentLotId])
+  @@index([unitOfMeasureId])
   @@map("material_lots")
 }
 
@@ -487,6 +553,7 @@ model MaterialSublot {
   operationType SublotOperationType
   quantity      Float
   unitOfMeasure String
+  unitOfMeasureId String?              // FK to UnitOfMeasure
   workOrderId   String?
   operationId   String?
   reservedFor   String?
@@ -498,10 +565,12 @@ model MaterialSublot {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   parentLot     MaterialLot         @relation(fields: [parentLotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?    @relation("MaterialSublotUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([parentLotId])
   @@index([sublotNumber])
   @@index([workOrderId])
+  @@index([unitOfMeasureId])
   @@map("material_sublots")
 }
 
@@ -513,6 +582,7 @@ model MaterialLotGenealogy {
   quantityConsumed Float
   quantityProduced Float?
   unitOfMeasure    String
+  unitOfMeasureId  String?              // FK to UnitOfMeasure
   workOrderId      String?
   operationId      String?
   processDate      DateTime
@@ -521,12 +591,14 @@ model MaterialLotGenealogy {
   createdAt        DateTime              @default(now())
   childLot         MaterialLot           @relation("ChildLot", fields: [childLotId], references: [id])
   parentLot        MaterialLot           @relation("ParentLot", fields: [parentLotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?        @relation("MaterialLotGenealogyUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([parentLotId, childLotId, processDate])
   @@index([parentLotId])
   @@index([childLotId])
   @@index([workOrderId])
   @@index([processDate])
+  @@index([unitOfMeasureId])
   @@map("material_lot_genealogy")
 }
 
@@ -541,6 +613,7 @@ model MaterialStateHistory {
   transitionType StateTransitionType
   quantity       Float?
   unitOfMeasure  String?
+  unitOfMeasureId String?              // FK to UnitOfMeasure
   workOrderId    String?
   operationId    String?
   inspectionId   String?
@@ -553,10 +626,12 @@ model MaterialStateHistory {
   metadata       Json?
   createdAt      DateTime            @default(now())
   lot            MaterialLot         @relation(fields: [lotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?     @relation("MaterialStateHistoryUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([lotId])
   @@index([changedAt])
   @@index([newState])
+  @@index([unitOfMeasureId])
   @@index([newStatus])
   @@map("material_state_history")
 }
@@ -620,6 +695,7 @@ model OperationParameter {
   dataType             ParameterDataType
   defaultValue         String?
   unitOfMeasure        String?
+  unitOfMeasureId      String?           // FK to UnitOfMeasure
   minValue             Float?
   maxValue             Float?
   allowedValues        String[]
@@ -637,10 +713,12 @@ model OperationParameter {
   limits               ParameterLimits?
   samplingPlans        SamplingPlan[]
   spcConfiguration     SPCConfiguration?
+  unitOfMeasureRef     UnitOfMeasure?    @relation("OperationParameterUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([operationId, parameterName])
   @@index([operationId])
   @@index([parameterType])
+  @@index([unitOfMeasureId])
   @@map("operation_parameters")
 }
 
@@ -780,6 +858,7 @@ model MaterialOperationSpecification {
   materialType         MaterialType?
   quantity             Float
   unitOfMeasure        String
+  unitOfMeasureId      String?          // FK to UnitOfMeasure
   consumptionType      ConsumptionType
   requiredProperties   String[]
   qualityRequirements  String?
@@ -789,9 +868,11 @@ model MaterialOperationSpecification {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   operation            Operation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef     UnitOfMeasure?  @relation("MaterialOperationSpecificationUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([operationId])
   @@index([materialDefinitionId])
+  @@index([unitOfMeasureId])
   @@map("material_operation_specifications")
 }
 
@@ -826,6 +907,7 @@ model Part {
   productType                ProductType                 @default(MADE_TO_STOCK)
   lifecycleState             ProductLifecycleState       @default(PRODUCTION)
   unitOfMeasure              String
+  unitOfMeasureId            String?                     // FK to UnitOfMeasure
   weight                     Float?
   weightUnit                 String?
   drawingNumber              String?
@@ -863,11 +945,13 @@ model Part {
   scheduleEntries            ScheduleEntry[]
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
+  unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
   @@index([partNumber])
+  @@index([unitOfMeasureId])
   @@map("parts")
 }
 
@@ -902,6 +986,7 @@ model BOMItem {
   componentPartId     String
   quantity            Float
   unitOfMeasure       String
+  unitOfMeasureId     String?    // FK to UnitOfMeasure
   scrapFactor         Float?     @default(0)
   sequence            Int?
   findNumber          String?
@@ -920,10 +1005,12 @@ model BOMItem {
   componentPart       Part       @relation("ComponentPart", fields: [componentPartId], references: [id])
   operation           Operation? @relation(fields: [operationId], references: [id])
   parentPart          Part       @relation("ParentPart", fields: [parentPartId], references: [id])
+  unitOfMeasureRef    UnitOfMeasure? @relation("BOMItemUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([parentPartId])
   @@index([componentPartId])
   @@index([operationId])
+  @@index([unitOfMeasureId])
   @@index([effectiveDate])
   @@map("bom_items")
 }
@@ -938,6 +1025,7 @@ model ProductSpecification {
   minValue            Float?
   maxValue            Float?
   unitOfMeasure       String?
+  unitOfMeasureId     String?           // FK to UnitOfMeasure
   testMethod          String?
   inspectionFrequency String?
   isCritical          Boolean           @default(false)
@@ -948,10 +1036,12 @@ model ProductSpecification {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   part                Part              @relation(fields: [partId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef    UnitOfMeasure?    @relation("ProductSpecificationUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([partId])
   @@index([specificationType])
   @@index([isCritical])
+  @@index([unitOfMeasureId])
   @@map("product_specifications")
 }
 
@@ -1201,13 +1291,16 @@ model RoutingStepParameter {
   parameterName  String
   parameterValue String
   unitOfMeasure  String?
+  unitOfMeasureId String?     // FK to UnitOfMeasure
   notes          String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   routingStep    RoutingStep @relation(fields: [routingStepId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef UnitOfMeasure? @relation("RoutingStepParameterUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([routingStepId, parameterName])
   @@index([routingStepId])
+  @@index([unitOfMeasureId])
   @@map("routing_step_parameters")
 }
 
@@ -1349,6 +1442,7 @@ model ScheduleEntry {
   dispatchedQuantity Float                @default(0)
   completedQuantity  Float                @default(0)
   unitOfMeasure      String               @default("EA")
+  unitOfMeasureId    String?              // FK to UnitOfMeasure
   plannedStartDate   DateTime
   plannedEndDate     DateTime
   actualStartDate    DateTime?
@@ -1378,6 +1472,7 @@ model ScheduleEntry {
   schedule           ProductionSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   workCenter         WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrder          WorkOrder?           @relation(fields: [workOrderId], references: [id])
+  unitOfMeasureRef   UnitOfMeasure?       @relation("ScheduleEntryUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([scheduleId, entryNumber])
   @@index([scheduleId])
@@ -1387,6 +1482,7 @@ model ScheduleEntry {
   @@index([priority])
   @@index([isDispatched])
   @@index([workOrderId])
+  @@index([unitOfMeasureId])
   @@map("schedule_entries")
 }
 
@@ -1401,6 +1497,7 @@ model ScheduleConstraint {
   requiredQuantity  Float?
   availableQuantity Float?
   unitOfMeasure     String?
+  unitOfMeasureId   String?        // FK to UnitOfMeasure
   constraintDate    DateTime?
   leadTimeDays      Int?
   isViolated        Boolean        @default(false)
@@ -1415,11 +1512,13 @@ model ScheduleConstraint {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   entry             ScheduleEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef  UnitOfMeasure? @relation("ScheduleConstraintUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([entryId])
   @@index([constraintType])
   @@index([isViolated])
   @@index([constraintDate])
+  @@index([unitOfMeasureId])
   @@map("schedule_constraints")
 }
 
@@ -1603,13 +1702,17 @@ model QualityCharacteristic {
   upperLimit       Float?
   lowerLimit       Float?
   unitOfMeasure    String?
+  unitOfMeasureId  String?              // FK to UnitOfMeasure
   inspectionMethod String?
   isActive         Boolean              @default(true)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   plan             QualityPlan          @relation(fields: [planId], references: [id])
   measurements     QualityMeasurement[]
+  unitOfMeasureRef UnitOfMeasure?       @relation("QualityCharacteristicUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([planId])
+  @@index([unitOfMeasureId])
   @@map("quality_characteristics")
 }
 
@@ -1841,6 +1944,7 @@ model Inventory {
   lotNumber     String?
   quantity      Float
   unitOfMeasure String
+  unitOfMeasureId String?                // FK to UnitOfMeasure
   unitCost      Float?
   receivedDate  DateTime?
   expiryDate    DateTime?
@@ -1849,7 +1953,11 @@ model Inventory {
   updatedAt     DateTime              @updatedAt
   part          Part                  @relation(fields: [partId], references: [id])
   transactions  MaterialTransaction[]
+  unitOfMeasureRef UnitOfMeasure?      @relation("InventoryUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([partId])
+  @@index([location])
+  @@index([unitOfMeasureId])
   @@map("inventory")
 }
 
@@ -1860,12 +1968,18 @@ model MaterialTransaction {
   transactionType MaterialTransactionType
   quantity        Float
   unitOfMeasure   String
+  unitOfMeasureId String?                 // FK to UnitOfMeasure
   reference       String?
   transactionDate DateTime                @default(now())
   createdAt       DateTime                @default(now())
   inventory       Inventory               @relation(fields: [inventoryId], references: [id])
   workOrder       WorkOrder?              @relation(fields: [workOrderId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?         @relation("MaterialTransactionUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([inventoryId])
+  @@index([workOrderId])
+  @@index([transactionType])
+  @@index([unitOfMeasureId])
   @@map("material_transactions")
 }
 
@@ -2391,6 +2505,7 @@ model ProductionScheduleRequest {
   partNumber            String?
   quantity              Float
   unitOfMeasure         String
+  unitOfMeasureId       String?             // FK to UnitOfMeasure
   dueDate               DateTime
   workCenterId          String?
   equipmentRequirements Json?
@@ -2509,6 +2624,7 @@ model ERPMaterialTransaction {
   externalWorkOrderId String?
   quantity            Float
   unitOfMeasure       String
+  unitOfMeasureId     String?              // FK to UnitOfMeasure
   lotNumber           String?
   serialNumber        String?
   unitCost            Float?
@@ -2651,6 +2767,7 @@ model EquipmentMaterialMovement {
   movementType      String
   quantity          Float
   unitOfMeasure     String
+  unitOfMeasureId   String?    // FK to UnitOfMeasure
   movementTimestamp DateTime   @default(now())
   workOrderId       String?
   operationId       String?
@@ -6564,4 +6681,30 @@ model RoleTemplateUsageLog {
   @@index([targetUserId])
   @@index([timestamp])
   @@map("role_template_usage_logs")
+}
+
+/// Unit types for different measurement categories
+enum UnitType {
+  QUANTITY        // Count/Each
+  MASS           // Weight measurements
+  LENGTH         // Distance/dimensional measurements
+  VOLUME         // Volume/capacity measurements
+  AREA           // Surface area measurements
+  TIME           // Time duration measurements
+  TEMPERATURE    // Temperature measurements
+  PRESSURE       // Pressure measurements
+  FORCE          // Force measurements
+  ENERGY         // Energy measurements
+  POWER          // Power measurements
+  VELOCITY       // Speed measurements
+  ANGLE          // Angular measurements
+  OTHER          // Other measurement types
+}
+
+/// System of measurement classification
+enum SystemOfMeasure {
+  METRIC         // Metric system (SI)
+  IMPERIAL       // Imperial/US customary system
+  SI             // International System of Units
+  OTHER          // Other measurement systems
 }

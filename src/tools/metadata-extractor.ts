@@ -113,15 +113,27 @@ export class MetadataExtractor {
   private extractFields(modelBody: string): FieldMetadata[] {
     const lines = modelBody.split('\n').map(line => line.trim()).filter(line => line);
     const fields: FieldMetadata[] = [];
+    let pendingDocumentation: string[] = [];
 
     for (const line of lines) {
-      // Skip comments, @@map directives, and other non-field lines
+      // Handle documentation comments
+      if (line.startsWith('///')) {
+        pendingDocumentation.push(line.substring(3).trim());
+        continue;
+      }
+
+      // Skip other comments, @@map directives, and other non-field lines
       if (line.startsWith('//') || line.startsWith('@@') || line.startsWith('*') || !line.includes(' ')) {
         continue;
       }
 
       const field = this.parseField(line);
       if (field) {
+        // Add accumulated documentation to this field
+        if (pendingDocumentation.length > 0) {
+          field.documentation = pendingDocumentation.join('\n');
+          pendingDocumentation = [];
+        }
         fields.push(field);
       }
     }
@@ -266,14 +278,52 @@ export class MetadataExtractor {
       .map(field => {
         const relationType = field.isList ? 'one-to-many' : 'one-to-one';
 
+        // Generate meaningful relationship description
+        const description = this.generateRelationshipDescription(field, relationType);
+
         return {
           type: relationType,
           relatedModel: field.type,
           fieldName: field.name,
           isRequired: !field.isOptional,
-          description: field.documentation
+          description: description
         };
       });
+  }
+
+  /**
+   * Generate meaningful relationship descriptions
+   */
+  private generateRelationshipDescription(field: FieldMetadata, relationType: string): string {
+    // Use existing documentation if available
+    if (field.documentation && field.documentation.trim()) {
+      return field.documentation;
+    }
+
+    // Generate description based on field name and relationship type
+    const fieldName = field.name;
+    const relatedModel = field.type;
+
+    if (relationType === 'one-to-many') {
+      // Convert fieldName to human readable (e.g., userSiteRoles -> user site roles)
+      const humanFieldName = this.camelCaseToHumanReadable(fieldName);
+      return `One ${relatedModel} can have multiple ${humanFieldName}`;
+    } else {
+      // one-to-one relationship
+      const humanFieldName = this.camelCaseToHumanReadable(fieldName);
+      return `References associated ${humanFieldName} record in ${relatedModel} table`;
+    }
+  }
+
+  /**
+   * Convert camelCase to human readable text
+   */
+  private camelCaseToHumanReadable(text: string): string {
+    return text
+      .replace(/([A-Z])/g, ' $1')
+      .toLowerCase()
+      .trim()
+      .replace(/^./, str => str.toUpperCase());
   }
 
   /**

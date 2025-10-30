@@ -1,0 +1,179 @@
+#!/usr/bin/env tsx
+
+/**
+ * Schema Documentation Coverage Verification Tool
+ * Directly counts documentation comments in the final documented schema
+ */
+
+import * as fs from 'fs';
+
+interface CoverageStats {
+  totalTables: number;
+  documentedTables: number;
+  totalFields: number;
+  documentedFields: number;
+  tableCoverage: number;
+  fieldCoverage: number;
+}
+
+class SchemaCoverageVerifier {
+  private schemaPath = './prisma/schema.final.prisma';
+
+  async verifySchemaDocumentation(): Promise<void> {
+    console.log('🔍 Verifying Schema Documentation Coverage');
+    console.log('==========================================\n');
+
+    const schemaContent = await fs.promises.readFile(this.schemaPath, 'utf8');
+    console.log(`📖 Reading schema: ${this.schemaPath}`);
+
+    const stats = this.analyzeDocumentation(schemaContent);
+    await this.generateCoverageReport(stats);
+  }
+
+  private analyzeDocumentation(schemaContent: string): CoverageStats {
+    const lines = schemaContent.split('\n');
+
+    let totalTables = 0;
+    let documentedTables = 0;
+    let totalFields = 0;
+    let documentedFields = 0;
+
+    let inModel = false;
+    let currentModelHasDoc = false;
+    let nextFieldIsDocumented = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Check for model start
+      if (line.startsWith('model ')) {
+        if (inModel) {
+          // Previous model ended
+          if (currentModelHasDoc) documentedTables++;
+        }
+
+        totalTables++;
+        inModel = true;
+        currentModelHasDoc = false;
+
+        // Check if previous line has table documentation
+        if (i > 0 && lines[i - 1].trim().startsWith('///')) {
+          currentModelHasDoc = true;
+        }
+        continue;
+      }
+
+      // Check for model end
+      if (line === '}' && inModel) {
+        if (currentModelHasDoc) documentedTables++;
+        inModel = false;
+        currentModelHasDoc = false;
+        continue;
+      }
+
+      if (!inModel) continue;
+
+      // Check for field documentation
+      if (line.startsWith('///')) {
+        nextFieldIsDocumented = true;
+        continue;
+      }
+
+      // Check for actual field (not comments, attributes, or empty lines)
+      if (line && !line.startsWith('//') && !line.startsWith('@@') && line.includes(' ')) {
+        const fieldMatch = line.match(/^\s*(\w+)\s+/);
+        if (fieldMatch) {
+          totalFields++;
+          if (nextFieldIsDocumented) {
+            documentedFields++;
+          }
+          nextFieldIsDocumented = false;
+        }
+      }
+    }
+
+    // Handle last model if schema doesn't end with }
+    if (inModel && currentModelHasDoc) {
+      documentedTables++;
+    }
+
+    const tableCoverage = totalTables > 0 ? Math.round((documentedTables / totalTables) * 100) : 0;
+    const fieldCoverage = totalFields > 0 ? Math.round((documentedFields / totalFields) * 100) : 0;
+
+    return {
+      totalTables,
+      documentedTables,
+      totalFields,
+      documentedFields,
+      tableCoverage,
+      fieldCoverage
+    };
+  }
+
+  private async generateCoverageReport(stats: CoverageStats): Promise<void> {
+    console.log('📊 Coverage Analysis Results:');
+    console.log('============================\n');
+
+    console.log(`📋 Tables: ${stats.documentedTables}/${stats.totalTables} (${stats.tableCoverage}%)`);
+    console.log(`📝 Fields: ${stats.documentedFields}/${stats.totalFields} (${stats.fieldCoverage}%)\n`);
+
+    if (stats.fieldCoverage === 100) {
+      console.log('🎉 PERFECT! 100% field documentation coverage achieved!');
+    } else if (stats.fieldCoverage >= 90) {
+      console.log('✅ Excellent coverage! Nearly complete documentation.');
+    } else if (stats.fieldCoverage >= 70) {
+      console.log('👍 Good coverage, continue improving documentation.');
+    } else {
+      console.log('⚠️  Coverage needs improvement. Consider adding more documentation.');
+    }
+
+    // Generate updated coverage report
+    const report = `# Schema Documentation Coverage Verification
+
+Generated: ${new Date().toLocaleString()}
+
+## Summary
+
+| Metric | Value | Coverage |
+|--------|-------|----------|
+| **Tables** | ${stats.documentedTables} / ${stats.totalTables} | ${stats.tableCoverage}% |
+| **Fields** | ${stats.documentedFields} / ${stats.totalFields} | ${stats.fieldCoverage}% |
+
+## Status
+
+${stats.fieldCoverage === 100 ? '🎉 **PERFECT!** Complete field documentation coverage achieved!' :
+  stats.fieldCoverage >= 90 ? '✅ Excellent documentation coverage' :
+  stats.fieldCoverage >= 70 ? '👍 Good documentation coverage' :
+  '⚠️ Documentation coverage needs improvement'}
+
+## Details
+
+- Schema file analyzed: \`${this.schemaPath}\`
+- Total models processed: ${stats.totalTables}
+- Documentation methodology: Direct comment parsing
+- Coverage calculation: Comments immediately preceding field definitions
+
+---
+
+*Generated by Schema Documentation Coverage Verification Tool*
+`;
+
+    await fs.promises.writeFile('./docs/generated/verified-coverage-report.md', report, 'utf8');
+    console.log('\n📄 Detailed report saved to: docs/generated/verified-coverage-report.md');
+  }
+}
+
+async function main() {
+  try {
+    const verifier = new SchemaCoverageVerifier();
+    await verifier.verifySchemaDocumentation();
+
+    console.log('\n✅ Schema documentation verification completed!');
+
+  } catch (error) {
+    console.error('❌ Error during verification:', error);
+    process.exit(1);
+  }
+}
+
+main().catch(console.error);

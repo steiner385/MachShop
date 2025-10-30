@@ -1,0 +1,174 @@
+{
+  "executedAt": "2025-10-30T19:43:50.063Z",
+  "totalTablesAnalyzed": 22,
+  "totalRecordsAnalyzed": 0,
+  "totalUniqueValues": 0,
+  "mappingStats": {
+    "highConfidence": 0,
+    "mediumConfidence": 0,
+    "lowConfidence": 0,
+    "unmapped": 0
+  },
+  "tableResults": [
+    {
+      "tableName": "material_definitions",
+      "fieldName": "base_unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_definitions",
+      "fieldName": "alternate_unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_properties",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_lots",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_sublots",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_lot_genealogy",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_state_history",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "operation_parameters",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_operation_specifications",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "routing_step_parameters",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "schedule_entries",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "schedule_constraints",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "production_schedule_requests",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "parts",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "parts",
+      "fieldName": "weight_unit",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "bom_items",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "product_specifications",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "quality_characteristics",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "inventory",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "material_transactions",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "erp_material_transactions",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    },
+    {
+      "tableName": "equipment_material_movements",
+      "fieldName": "unit_of_measure",
+      "totalRecords": 0,
+      "recordsWithUOM": 0,
+      "uniqueValues": []
+    }
+  ],
+  "migrationMappings": [],
+  "recommendations": [
+    "🎯 Migration Planning Recommendations:",
+    "   • 0 values have high-confidence mappings - ready for automated migration"
+  ],
+  "dataQualityIssues": []
+}

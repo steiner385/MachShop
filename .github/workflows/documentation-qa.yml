@@ -1,0 +1,49 @@
+name: 'API Documentation Quality Check'
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'src/routes/**/*.ts', 'prisma/schema.prisma' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'src/routes/**/*.ts', 'prisma/schema.prisma' ]
+
+jobs:
+  documentation-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Documentation QA Pipeline
+        run: npm run docs:qa
+
+      - name: Upload Quality Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation-quality-reports
+          path: docs/generated/
+
+      - name: Comment PR with Quality Report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('./docs/generated/qa-report.json', 'utf8'));
+            const summary = fs.readFileSync('./docs/generated/QA-SUMMARY.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

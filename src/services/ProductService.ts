@@ -20,6 +20,44 @@ export class ProductService {
     this.prisma = prisma || new PrismaClient();
   }
 
+  // ==================== UOM HELPER METHODS ====================
+
+  /**
+   * Resolve UnitOfMeasure ID from string code
+   * Supports both direct ID (if already a CUID) and code lookup
+   */
+  private async resolveUomId(uomCode: string): Promise<string | null> {
+    // If it's already a CUID (starts with 'c'), assume it's an ID
+    if (uomCode.startsWith('c') && uomCode.length > 20) {
+      return uomCode;
+    }
+
+    // Look up by code (case-insensitive)
+    const uom = await this.prisma.unitOfMeasure.findFirst({
+      where: {
+        code: { equals: uomCode.toUpperCase(), mode: 'insensitive' },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    return uom?.id || null;
+  }
+
+  /**
+   * Enhanced UOM data preparation for database operations
+   * Returns both string and FK for dual-field support
+   */
+  private async prepareUomData(uomCode?: string) {
+    if (!uomCode) return { unitOfMeasure: null, unitOfMeasureId: null };
+
+    const unitOfMeasureId = await this.resolveUomId(uomCode);
+    return {
+      unitOfMeasure: uomCode.toUpperCase(), // Normalize to uppercase
+      unitOfMeasureId
+    };
+  }
+
   // ============================================================================
   // PART (PRODUCT DEFINITION) CRUD OPERATIONS
   // ============================================================================
@@ -53,9 +91,14 @@ export class ProductService {
   isConfigurable?: boolean;
   requiresFAI?: boolean;
 }) {
+  // Prepare UOM data (both string and FK)
+  const uomData = await this.prepareUomData(data.unitOfMeasure);
+
   const part = await this.prisma.part.create({
     data: {
       ...data,
+      unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
+      unitOfMeasureId: uomData.unitOfMeasureId,
       productType: data.productType || 'MADE_TO_STOCK',
       lifecycleState: data.lifecycleState || 'PRODUCTION',
     },
@@ -913,6 +956,9 @@ async addBOMItem(data: {
   isCritical?: boolean;
   notes?: string;
 }) {
+  // Prepare UOM data (both string and FK)
+  const uomData = await this.prepareUomData(data.unitOfMeasure);
+
   // Use transaction to ensure atomicity of BOM item creation with validation
   return await this.prisma.$transaction(async (prisma) => {
     // Validate parent part exists
@@ -968,6 +1014,8 @@ async addBOMItem(data: {
     const bomItem = await prisma.bOMItem.create({
       data: {
         ...data,
+        unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
         scrapFactor: data.scrapFactor || 0,
       },
       include: {
@@ -1045,9 +1093,18 @@ async updateBOMItem(bomItemId: string, data: Partial<{
     throw new Error(`BOM item with ID ${bomItemId} not found`);
   }
 
+  // Prepare UOM data if unitOfMeasure is being updated
+  const uomData = data.unitOfMeasure ? await this.prepareUomData(data.unitOfMeasure) : {};
+
   const bomItem = await this.prisma.bOMItem.update({
     where: { id: bomItemId },
-    data,
+    data: {
+      ...data,
+      ...(data.unitOfMeasure && {
+        unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
+        unitOfMeasureId: uomData.unitOfMeasureId,
+      }),
+    },
     include: {
       parentPart: true,
       componentPart: true,

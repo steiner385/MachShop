@@ -1,0 +1,263 @@
+{
+  "overall": {
+    "totalEndpoints": 891,
+    "qualityScore": 959,
+    "enterpriseGrade": "STANDARD",
+    "readinessLevel": "PRODUCTION",
+    "coverageMetrics": {
+      "exampleCoverage": 89,
+      "schemaCoverage": 76,
+      "descriptionCoverage": 100,
+      "businessContextCoverage": 100,
+      "errorHandlingCoverage": 100
+    },
+    "consistencyScore": 8767
+  },
+  "domainAnalysis": {
+    "Other": {
+      "totalEndpoints": 762,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Authentication & Security": {
+      "totalEndpoints": 7,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Analytics & Reporting": {
+      "totalEndpoints": 5,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Equipment Management": {
+      "totalEndpoints": 27,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Quality Management": {
+      "totalEndpoints": 25,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Material Management": {
+      "totalEndpoints": 31,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Personnel Management": {
+      "totalEndpoints": 17,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    },
+    "Production Management": {
+      "totalEndpoints": 17,
+      "qualityScore": 100,
+      "criticalIssues": 0,
+      "majorIssues": 0,
+      "minorIssues": 0,
+      "domainSpecificScore": 85,
+      "businessContextScore": 90,
+      "exampleRealism": 88
+    }
+  },
+  "complianceMetrics": {
+    "openApiCompliance": 95,
+    "restfulnessScore": 92,
+    "securityDocumentation": 88,
+    "manufacturingStandards": {
+      "isa95Compliance": 85,
+      "as9100Documentation": 82,
+      "traceabilityDocumentation": 78,
+      "qualitySystemIntegration": 80
+    }
+  },
+  "enterpriseMetrics": {
+    "maintainabilityScore": 92,
+    "scalabilityIndicators": {
+      "paginationConsistency": 85,
+      "filteringStandardization": 90,
+      "sortingImplementation": 88,
+      "bulkOperationSupport": 75
+    },
+    "developerExperience": {
+      "exampleRealism": 96,
+      "errorMessageClarity": 90,
+      "responseTimeDocumentation": 60,
+      "troubleshootingGuidance": 55
+    },
+    "apiMaturity": {
+      "versioningStrategy": 85,
+      "deprecationDocumentation": 70,
+      "changelogMaintenance": 65,
+      "backwardCompatibility": 80
+    }
+  },
+  "detailedAnalysis": {
+    "endpointComplexity": [
+      {
+        "path": "/activities",
+        "method": "POST",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document/:documentType/:documentId",
+        "method": "GET",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/user/:userId",
+        "method": "GET",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/feed",
+        "method": "GET",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document/:documentType/:documentId/summary",
+        "method": "GET",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/user/:userId/summary",
+        "method": "GET",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document-created",
+        "method": "POST",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document-updated",
+        "method": "POST",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document-approved",
+        "method": "POST",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      },
+      {
+        "path": "/activities/document-rejected",
+        "method": "POST",
+        "complexityScore": 75,
+        "businessLogicDepth": 80,
+        "parameterComplexity": 70,
+        "responseComplexity": 85
+      }
+    ],
+    "responsePatterns": {
+      "consistentPagination": true,
+      "standardErrorResponses": true,
+      "uniformDataStructures": true,
+      "manufacturingDataCompliance": true
+    },
+    "securityPatterns": {
+      "authenticationDocumented": true,
+      "authorizationPatternsDocumented": true,
+      "rbacDocumentation": 88,
+      "sensitiveDataHandling": 85
+    },
+    "manufacturingPatterns": {
+      "workOrderPatterns": 95,
+      "materialTraceability": 85,
+      "qualityDocumentation": 90,
+      "equipmentIntegration": 80,
+      "routingDocumentation": 88
+    }
+  },
+  "recommendations": [
+    {
+      "category": "HIGH",
+      "title": "Improve Example Coverage",
+      "description": "Current example coverage is 89%. Target: 98%+",
+      "impact": "Significantly improves developer experience and API adoption",
+      "effort": "MEDIUM",
+      "affectedEndpoints": [],
+      "implementationSteps": [
+        "Identify endpoints with missing or generic examples",
+        "Generate manufacturing-specific realistic examples",
+        "Validate examples against actual API responses",
+        "Update OpenAPI specification"
+      ]
+    },
+    {
+      "category": "CRITICAL",
+      "title": "Enhance Traceability Documentation",
+      "description": "Manufacturing traceability documentation is below enterprise standards",
+      "impact": "Critical for regulatory compliance and quality audit readiness",
+      "effort": "HIGH",
+      "affectedEndpoints": [],
+      "implementationSteps": [
+        "Document material traceability chains",
+        "Add lot and serial number tracking examples",
+        "Include quality history documentation",
+        "Add regulatory compliance notes"
+      ]
+    }
+  ]
+}
