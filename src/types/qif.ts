@@ -648,15 +648,18 @@ export interface DecisionRule {
 
 /**
  * Simplified QIF Measurement Plan for MES storage
+ * Updated to support NIST AMS 300-12 UUID standards
  */
 export interface MESQIFPlan {
-  qifPlanId: string;
+  qifPlanUuid?: string;           // NIST AMS 300-12 compliant UUID (preferred)
+  qifPlanId?: string;             // Legacy string ID (deprecated)
   partNumber: string;
   revision: string;
   planVersion: string;
   createdDate: Date;
   characteristics: {
-    characteristicId: string;
+    characteristicUuid?: string;  // NIST AMS 300-12 compliant UUID (preferred)
+    characteristicId?: string;    // Legacy string ID (deprecated)
     balloonNumber: string;
     description: string;
     nominalValue: number;
@@ -671,16 +674,20 @@ export interface MESQIFPlan {
 
 /**
  * Simplified QIF Measurement Results for MES storage
+ * Updated to support NIST AMS 300-12 UUID standards
  */
 export interface MESQIFResults {
-  qifResultsId: string;
-  qifPlanId: string;
+  qifResultsUuid?: string;        // NIST AMS 300-12 compliant UUID (preferred)
+  qifResultsId?: string;          // Legacy string ID (deprecated)
+  qifPlanUuid?: string;           // NIST AMS 300-12 compliant plan UUID reference (preferred)
+  qifPlanId?: string;             // Legacy plan ID reference (deprecated)
   serialNumber?: string;
   inspectionDate: Date;
   inspectedBy: string;
   overallStatus: 'PASS' | 'FAIL' | 'CONDITIONAL';
   measurements: {
-    characteristicId: string;
+    characteristicUuid?: string;  // NIST AMS 300-12 compliant UUID reference (preferred)
+    characteristicId?: string;    // Legacy characteristic ID (deprecated)
     measuredValue: number;
     deviation: number;
     status: 'PASS' | 'FAIL';
@@ -714,6 +721,68 @@ export interface QIFImportResult {
   measurements?: number;
   errors?: string[];
   warnings?: string[];
+}
+
+// =======================
+// UUID Support Types
+// =======================
+
+/**
+ * QIF UUID Validation Result
+ */
+export interface QIFUUIDValidationResult {
+  isValid: boolean;
+  format: 'UUID' | 'LEGACY' | 'INVALID';
+  normalizedValue?: string;
+  errors?: string[];
+}
+
+/**
+ * QIF ID Resolution - supports both UUID and legacy string IDs
+ */
+export interface QIFIdentifier {
+  uuid?: string;      // NIST AMS 300-12 compliant UUID (preferred)
+  legacyId?: string;  // Legacy string ID (deprecated)
+  primary: string;    // The preferred identifier to use
+}
+
+/**
+ * QIF Migration Status for entities
+ */
+export interface QIFMigrationStatus {
+  hasUuid: boolean;
+  hasLegacyId: boolean;
+  migrationComplete: boolean;
+  identifierType: 'UUID_ONLY' | 'LEGACY_ONLY' | 'HYBRID';
+}
+
+/**
+ * Extended QIF Plan interface supporting UUID migration
+ */
+export interface ExtendedMESQIFPlan extends MESQIFPlan {
+  migrationStatus?: QIFMigrationStatus;
+  identifiers?: QIFIdentifier;
+}
+
+/**
+ * Extended QIF Results interface supporting UUID migration
+ */
+export interface ExtendedMESQIFResults extends MESQIFResults {
+  migrationStatus?: QIFMigrationStatus;
+  identifiers?: QIFIdentifier;
+  planIdentifiers?: QIFIdentifier;
+}
+
+/**
+ * QIF Service Configuration for UUID handling
+ */
+export interface QIFServiceConfig {
+  preferUuids: boolean;           // Use UUIDs when available
+  requireUuids: boolean;          // Enforce UUID-only mode
+  allowLegacyIds: boolean;        // Support legacy string IDs
+  validateUuidFormat: boolean;    // Validate UUID format strictly
+  migrationMode: boolean;         // Enable migration-specific features
+  nistCompliance: boolean;        // Enforce NIST AMS 300-12 standards
 }
 
 export default {

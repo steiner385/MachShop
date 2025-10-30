@@ -2835,7 +2835,8 @@ model ProcessDataCollection {
 
 model QIFMeasurementPlan {
   id                  String                 @id @default(cuid())
-  qifPlanId           String                 @unique
+  qifPlanUuid         String                 @unique @default(uuid()) /// QIF plan UUID per NIST AMS 300-12 standards
+  qifPlanId           String?                @unique /// Legacy QIF plan ID (deprecated, use qifPlanUuid)
   partNumber          String
   partRevision        String
   planVersion         String
@@ -2860,6 +2861,7 @@ model QIFMeasurementPlan {
 
   @@index([partNumber])
   @@index([partRevision])
+  @@index([qifPlanUuid])
   @@index([qifPlanId])
   @@index([workOrderId])
   @@index([faiReportId])
@@ -2870,7 +2872,8 @@ model QIFMeasurementPlan {
 model QIFCharacteristic {
   id                   String             @id @default(cuid())
   qifMeasurementPlanId String
-  characteristicId     String
+  characteristicUuid   String             @unique @default(uuid()) /// QIF characteristic UUID per NIST AMS 300-12 standards
+  characteristicId     String?            /// Legacy characteristic ID (deprecated, use characteristicUuid)
   balloonNumber        String?
   characteristicName   String?
   description          String?
@@ -2890,6 +2893,7 @@ model QIFCharacteristic {
   measurements         QIFMeasurement[]
 
   @@index([qifMeasurementPlanId])
+  @@index([characteristicUuid])
   @@index([characteristicId])
   @@index([balloonNumber])
   @@map("qif_characteristics")
@@ -2897,7 +2901,8 @@ model QIFCharacteristic {
 
 model QIFMeasurementResult {
   id                   String                @id @default(cuid())
-  qifResultsId         String                @unique
+  qifResultsUuid       String                @unique @default(uuid()) /// QIF measurement results UUID per NIST AMS 300-12 standards
+  qifResultsId         String?               @unique /// Legacy QIF results ID (deprecated, use qifResultsUuid)
   qifMeasurementPlanId String?
   partNumber           String
   serialNumber         String?
@@ -2924,6 +2929,7 @@ model QIFMeasurementResult {
   workOrder            WorkOrder?            @relation(fields: [workOrderId], references: [id])
   measurements         QIFMeasurement[]
 
+  @@index([qifResultsUuid])
   @@index([qifResultsId])
   @@index([qifMeasurementPlanId])
   @@index([partNumber])
@@ -2939,7 +2945,8 @@ model QIFMeasurement {
   id                     String               @id @default(cuid())
   qifMeasurementResultId String
   qifCharacteristicId    String?
-  characteristicId       String
+  characteristicUuidRef  String?              /// QIF characteristic UUID reference per NIST AMS 300-12 standards
+  characteristicId       String?              /// Legacy characteristic ID (deprecated, use characteristicUuidRef)
   balloonNumber          String?
   measuredValue          Float
   deviation              Float?
@@ -2956,6 +2963,7 @@ model QIFMeasurement {
 
   @@index([qifMeasurementResultId])
   @@index([qifCharacteristicId])
+  @@index([characteristicUuidRef])
   @@index([characteristicId])
   @@index([status])
   @@map("qif_measurements")

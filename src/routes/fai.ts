@@ -529,24 +529,38 @@ router.get('/:id/download-pdf', async (req: Request, res: Response, next: NextFu
 });
 
 // ===== QIF (Quality Information Framework) ENDPOINTS =====
+// Enhanced with NIST AMS 300-12 UUID support
 
 /**
  * @route   POST /api/v1/fai/:id/qif/plan
- * @desc    Generate QIF MeasurementPlan from FAI report
+ * @desc    Generate QIF MeasurementPlan from FAI report (UUID-enhanced)
  * @access  Private
  */
 router.post('/:id/qif/plan', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
+    const { planUuid, includeUuids = true, nistCompliance = true } = req.body;
 
-    const qifXml = await faiService.generateQIFPlan(id);
+    // Enhanced QIF generation with UUID options
+    const qifOptions = {
+      planUuid,
+      includeUuids,
+      nistCompliance,
+      preferUuids: true,
+    };
 
-    logger.info('QIF MeasurementPlan generated', {
+    const qifXml = await faiService.generateQIFPlan(id, qifOptions);
+
+    logger.info('QIF MeasurementPlan generated (UUID-enhanced)', {
       userId: (req as any).user?.id,
       faiReportId: id,
+      planUuid,
+      nistCompliance,
     });
 
     res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('X-QIF-Version', '3.0.0');
+    res.setHeader('X-NIST-Compliance', nistCompliance ? 'AMS-300-12' : 'false');
     res.send(qifXml);
   } catch (error) {
     next(error);
@@ -555,23 +569,43 @@ router.post('/:id/qif/plan', async (req: Request, res: Response, next: NextFunct
 
 /**
  * @route   POST /api/v1/fai/:id/qif/results
- * @desc    Generate QIF MeasurementResults from FAI report
+ * @desc    Generate QIF MeasurementResults from FAI report (UUID-enhanced)
  * @access  Private
  */
 router.post('/:id/qif/results', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { id } = req.params;
-    const { serialNumber } = req.body;
+    const {
+      serialNumber,
+      resultsUuid,
+      planUuid,
+      includeUuids = true,
+      nistCompliance = true
+    } = req.body;
 
-    const qifXml = await faiService.generateQIFResults(id, serialNumber);
+    // Enhanced QIF results generation with UUID options
+    const qifOptions = {
+      resultsUuid,
+      planUuid,
+      includeUuids,
+      nistCompliance,
+      preferUuids: true,
+    };
 
-    logger.info('QIF MeasurementResults generated', {
+    const qifXml = await faiService.generateQIFResults(id, serialNumber, qifOptions);
+
+    logger.info('QIF MeasurementResults generated (UUID-enhanced)', {
       userId: (req as any).user?.id,
       faiReportId: id,
       serialNumber,
+      resultsUuid,
+      planUuid,
+      nistCompliance,
     });
 
     res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('X-QIF-Version', '3.0.0');
+    res.setHeader('X-NIST-Compliance', nistCompliance ? 'AMS-300-12' : 'false');
     res.send(qifXml);
   } catch (error) {
     next(error);
@@ -579,8 +613,119 @@ router.post('/:id/qif/results', async (req: Request, res: Response, next: NextFu
 });
 
 /**
+ * @route   GET /api/v1/fai/qif/plan/:qifPlanId
+ * @desc    Get QIF MeasurementPlan by ID (supports UUID and legacy IDs)
+ * @access  Private
+ */
+router.get('/qif/plan/:qifPlanId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { qifPlanId } = req.params;
+    const { format = 'xml', includeMetadata = false } = req.query;
+
+    // Lookup QIF plan by UUID or legacy ID
+    const qifPlan = await faiService.getQIFPlan(qifPlanId, {
+      supportLegacyIds: true,
+      includeMetadata: includeMetadata === 'true',
+    });
+
+    if (!qifPlan) {
+      res.status(404).json({ error: 'QIF Measurement Plan not found' });
+      return;
+    }
+
+    logger.info('QIF MeasurementPlan retrieved', {
+      userId: (req as any).user?.id,
+      qifPlanId,
+      format,
+    });
+
+    if (format === 'json') {
+      res.json(qifPlan);
+    } else {
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('X-QIF-Version', '3.0.0');
+      res.send(qifPlan.xmlContent || qifPlan);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/v1/fai/qif/results/:qifResultsId
+ * @desc    Get QIF MeasurementResults by ID (supports UUID and legacy IDs)
+ * @access  Private
+ */
+router.get('/qif/results/:qifResultsId', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { qifResultsId } = req.params;
+    const { format = 'xml', includeMetadata = false } = req.query;
+
+    // Lookup QIF results by UUID or legacy ID
+    const qifResults = await faiService.getQIFResults(qifResultsId, {
+      supportLegacyIds: true,
+      includeMetadata: includeMetadata === 'true',
+    });
+
+    if (!qifResults) {
+      res.status(404).json({ error: 'QIF Measurement Results not found' });
+      return;
+    }
+
+    logger.info('QIF MeasurementResults retrieved', {
+      userId: (req as any).user?.id,
+      qifResultsId,
+      format,
+    });
+
+    if (format === 'json') {
+      res.json(qifResults);
+    } else {
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('X-QIF-Version', '3.0.0');
+      res.send(qifResults.xmlContent || qifResults);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/v1/fai/qif/validate
+ * @desc    Validate QIF document and check UUID compliance
+ * @access  Private
+ */
+router.post('/qif/validate', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { qifXml, checkNistCompliance = true } = req.body;
+
+    if (!qifXml || typeof qifXml !== 'string') {
+      res.status(400).json({ error: 'QIF XML content is required' });
+      return;
+    }
+
+    const validation = await faiService.validateQIFDocument(qifXml, {
+      checkNistCompliance,
+      validateUuids: true,
+      strictMode: checkNistCompliance,
+    });
+
+    logger.info('QIF document validated', {
+      userId: (req as any).user?.id,
+      isValid: validation.isValid,
+      hasUuids: validation.hasUuids,
+      nistCompliant: validation.nistCompliant,
+    });
+
+    res.json(validation);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * @route   GET /api/v1/fai/:id/qif/export
- * @desc    Export complete FAI report as QIF AS9102 document
+ * @desc    Export complete FAI report as QIF AS9102 document (UUID-enhanced)
  * @access  Private
  */
 router.get('/:id/qif/export', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
