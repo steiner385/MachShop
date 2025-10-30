@@ -17,7 +17,8 @@ import {
   KeyOutlined,
   TeamOutlined,
   BarChartOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  CloudOutlined
 } from '@ant-design/icons';
 
 // Import RBAC Admin Components
@@ -25,6 +26,9 @@ import RBACDashboardPage from './RBACDashboardPage';
 import RoleManagementPage from './RoleManagementPage';
 import PermissionCatalogPage from './PermissionCatalogPage';
 import UserRoleAssignmentPage from './UserRoleAssignmentPage';
+
+// Import Azure AD Admin Components
+import AzureADPage from './AzureADPage';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -69,6 +73,11 @@ const AdminPage: React.FC = () => {
         },
       ],
     },
+    {
+      key: 'azure-ad',
+      icon: <CloudOutlined />,
+      label: 'Azure AD Integration',
+    },
   ];
 
   const renderContent = () => {
@@ -81,6 +90,8 @@ const AdminPage: React.FC = () => {
         return <PermissionCatalogPage />;
       case 'user-assignments':
         return <UserRoleAssignmentPage />;
+      case 'azure-ad':
+        return <AzureADPage />;
       case 'overview':
       default:
         return (
@@ -170,6 +181,29 @@ const AdminPage: React.FC = () => {
                 </Row>
               </Card>
 
+              {/* Azure AD Integration Section */}
+              <Card title="Azure AD / Entra ID Integration">
+                <Row gutter={16}>
+                  <Col span={24}>
+                    <Card
+                      hoverable
+                      onClick={() => setSelectedModule('azure-ad')}
+                      style={{ textAlign: 'center', marginBottom: 16 }}
+                      cover={
+                        <div style={{ padding: 40, textAlign: 'center', background: '#f0f2f5' }}>
+                          <CloudOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                        </div>
+                      }
+                    >
+                      <Card.Meta
+                        title="Azure AD Integration"
+                        description="Configure Azure Active Directory for single sign-on, user synchronization, and enterprise authentication."
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </Card>
+
               {/* Coming Soon Section */}
               <Card title="Additional Features (Coming Soon)">
                 <Row gutter={16}>
@@ -235,6 +269,12 @@ const AdminPage: React.FC = () => {
                     onClick={() => setSelectedModule('user-assignments')}
                   >
                     Assign Roles
+                  </Button>
+                  <Button
+                    icon={<CloudOutlined />}
+                    onClick={() => setSelectedModule('azure-ad')}
+                  >
+                    Azure AD
                   </Button>
                 </Space>
               </Card>
