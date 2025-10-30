@@ -1,5 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   test: {
@@ -47,7 +51,7 @@ export default defineConfig({
         'src/types/',
         'frontend/src/types/',
         'playwright.config.ts',
-        'vitest.config.ts',
+        'vitest.config.mjs',
         'frontend/src/vite-env.d.ts'
       ],
       thresholds: {
@@ -72,18 +76,18 @@ export default defineConfig({
   resolve: {
     alias: {
       // Backend aliases
-      '@': path.resolve(__dirname, './src'),
-      '@/types': path.resolve(__dirname, './src/types'),
-      '@/services': path.resolve(__dirname, './src/services'),
-      '@/controllers': path.resolve(__dirname, './src/controllers'),
-      '@/middleware': path.resolve(__dirname, './src/middleware'),
-      '@/utils': path.resolve(__dirname, './src/utils'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/tests': path.resolve(__dirname, './src/tests'),
+      '@': resolve(__dirname, './src'),
+      '@/types': resolve(__dirname, './src/types'),
+      '@/services': resolve(__dirname, './src/services'),
+      '@/controllers': resolve(__dirname, './src/controllers'),
+      '@/middleware': resolve(__dirname, './src/middleware'),
+      '@/utils': resolve(__dirname, './src/utils'),
+      '@/lib': resolve(__dirname, './src/lib'),
+      '@/tests': resolve(__dirname, './src/tests'),
       // Frontend aliases - for tests in frontend/src
-      '@/components': path.resolve(__dirname, './frontend/src/components'),
-      '@/store': path.resolve(__dirname, './frontend/src/store'),
-      '@/api': path.resolve(__dirname, './frontend/src/api'),
+      '@/components': resolve(__dirname, './frontend/src/components'),
+      '@/store': resolve(__dirname, './frontend/src/store'),
+      '@/api': resolve(__dirname, './frontend/src/api'),
     }
   }
 });

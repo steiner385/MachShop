@@ -8,10 +8,10 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import RBACDashboardPage from '../../../pages/Admin/RBACDashboardPage';
-import RoleManagementPage from '../../../pages/Admin/RoleManagementPage';
-import PermissionCatalogPage from '../../../pages/Admin/PermissionCatalogPage';
-import UserRoleAssignmentPage from '../../../pages/Admin/UserRoleAssignmentPage';
+import RBACDashboardPage from '../RBACDashboardPage';
+import RoleManagementPage from '../RoleManagementPage';
+import PermissionCatalogPage from '../PermissionCatalogPage';
+import UserRoleAssignmentPage from '../UserRoleAssignmentPage';
 
 // Mock the RBAC API
 vi.mock('../../../api/rbac', () => ({

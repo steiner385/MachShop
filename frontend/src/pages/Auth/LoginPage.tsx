@@ -16,9 +16,9 @@ import {
   Tag
 } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined, ExperimentOutlined } from '@ant-design/icons';
-import { useAuthStore } from '@/store/AuthStore';
-import { LoginRequest } from '@/types/auth';
-import { getDemoCredentialsForDisplay, DEMO_WARNING } from '@/config/demoCredentials';
+import { useAuthStore } from '../../store/AuthStore.tsx';
+import { LoginRequest } from '../../types/auth.ts';
+import { getDemoCredentialsForDisplay, DEMO_WARNING } from '../../config/demoCredentials.ts';
 import styles from './LoginPage.module.css';
 
 const { Content } = Layout;

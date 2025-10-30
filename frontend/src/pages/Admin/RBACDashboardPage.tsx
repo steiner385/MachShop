@@ -33,8 +33,8 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { rbacAPI } from '@/api/rbac';
-import { RBACDashboardStats } from '@/types/rbac';
+import { rbacAPI } from '../../api/rbac';
+import { RBACDashboardStats } from '../../types/rbac';
 
 const { Title, Text } = Typography;
 
