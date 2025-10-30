@@ -8,6 +8,12 @@ generator erd {
   theme    = "default"
 }
 
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "../docs/generated/prisma-markdown"
+  title    = "MachShop MES Schema Documentation"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -322,6 +328,50 @@ model PersonnelAvailability {
   @@map("personnel_availability")
 }
 
+/// Unit of Measure lookup table for standardizing measurement units across the system
+model UnitOfMeasure {
+  id                       String            @id @default(cuid())
+  code                     String            @unique      // e.g., "EA", "KG", "LB", "M", "FT"
+  name                     String                         // e.g., "Each", "Kilogram", "Pound"
+  description              String?                        // Detailed description
+  unitType                 UnitType                       // Category of measurement
+  systemOfMeasure          SystemOfMeasure               // Metric, Imperial, etc.
+  isBaseUnit               Boolean           @default(false) // True if this is the base unit for conversions
+  conversionFactor         Decimal?                       // Factor to convert to base unit
+  baseUnitId               String?                        // Reference to base unit for conversions
+  symbol                   String?                        // e.g., "kg", "lb", "m"
+  isActive                 Boolean           @default(true)
+  sortOrder                Int?                           // For consistent display ordering
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  // Self-referential relation for unit conversions
+  baseUnit                 UnitOfMeasure?    @relation("UnitConversions", fields: [baseUnitId], references: [id])
+  derivedUnits             UnitOfMeasure[]   @relation("UnitConversions")
+
+  // Relations to entities using this UOM
+  materialDefinitionsBase  MaterialDefinition[] @relation("MaterialDefinitionBaseUOM")
+  materialDefinitionsAlt   MaterialDefinition[] @relation("MaterialDefinitionAlternateUOM")
+  materialProperties       MaterialProperty[]   @relation("MaterialPropertyUOM")
+  materialLots             MaterialLot[]        @relation("MaterialLotUOM")
+  materialSublots          MaterialSublot[]     @relation("MaterialSublotUOM")
+  operationParameters      OperationParameter[] @relation("OperationParameterUOM")
+  parts                    Part[]               @relation("PartUOM")
+  partsWeight              Part[]               @relation("PartWeightUOM")
+  bomItems                 BOMItem[]            @relation("BOMItemUOM")
+  productSpecifications    ProductSpecification[] @relation("ProductSpecificationUOM")
+  scheduleEntries          ScheduleEntry[]      @relation("ScheduleEntryUOM")
+  qualityCharacteristics   QualityCharacteristic[] @relation("QualityCharacteristicUOM")
+  inventories              Inventory[]          @relation("InventoryUOM")
+  materialTransactions     MaterialTransaction[] @relation("MaterialTransactionUOM")
+
+  @@index([code])
+  @@index([unitType])
+  @@index([systemOfMeasure])
+  @@index([isActive])
+  @@map("units_of_measure")
+}
+
 model MaterialClass {
   id                     String               @id @default(cuid())
   classCode              String               @unique
@@ -355,6 +405,8 @@ model MaterialDefinition {
   materialClassId        String
   baseUnitOfMeasure      String
   alternateUnitOfMeasure String?
+  baseUnitOfMeasureId    String?              // FK to UnitOfMeasure
+  alternateUnitOfMeasureId String?            // FK to UnitOfMeasure
   conversionFactor       Float?
   materialType           MaterialType
   materialGrade          String?
@@ -386,12 +438,16 @@ model MaterialDefinition {
   materialClass          MaterialClass        @relation(fields: [materialClassId], references: [id])
   replacementMaterial    MaterialDefinition?  @relation("MaterialReplacement", fields: [replacementMaterialId], references: [id])
   replacedMaterials      MaterialDefinition[] @relation("MaterialReplacement")
+  baseUnitOfMeasureRef   UnitOfMeasure?       @relation("MaterialDefinitionBaseUOM", fields: [baseUnitOfMeasureId], references: [id])
+  alternateUnitOfMeasureRef UnitOfMeasure?    @relation("MaterialDefinitionAlternateUOM", fields: [alternateUnitOfMeasureId], references: [id])
   lots                   MaterialLot[]
   properties             MaterialProperty[]
 
   @@index([materialClassId])
   @@index([materialType])
   @@index([isActive])
+  @@index([baseUnitOfMeasureId])
+  @@index([alternateUnitOfMeasureId])
   @@index([materialNumber])
   @@map("material_definitions")
 }
@@ -403,6 +459,7 @@ model MaterialProperty {
   propertyType  MaterialPropertyType
   propertyValue String
   propertyUnit  String?
+  propertyUnitId String?              // FK to UnitOfMeasure
   testMethod    String?
   nominalValue  Float?
   minValue      Float?
@@ -413,9 +470,11 @@ model MaterialProperty {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   material      MaterialDefinition   @relation(fields: [materialId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?    @relation("MaterialPropertyUOM", fields: [propertyUnitId], references: [id])
 
   @@unique([materialId, propertyName])
   @@index([materialId])
+  @@index([propertyUnitId])
   @@index([propertyType])
   @@map("material_properties")
 }
@@ -431,6 +490,7 @@ model MaterialLot {
   originalQuantity    Float
   currentQuantity     Float
   unitOfMeasure       String
+  unitOfMeasureId     String?              // FK to UnitOfMeasure
   location            String?
   warehouseId         String?
   manufactureDate     DateTime?
@@ -467,6 +527,7 @@ model MaterialLot {
   material            MaterialDefinition     @relation(fields: [materialId], references: [id])
   parentLot           MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
   childLots           MaterialLot[]          @relation("LotGenealogy")
+  unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
 
@@ -477,6 +538,7 @@ model MaterialLot {
   @@index([expirationDate])
   @@index([qualityStatus])
   @@index([parentLotId])
+  @@index([unitOfMeasureId])
   @@map("material_lots")
 }
 
@@ -6564,4 +6626,30 @@ model RoleTemplateUsageLog {
   @@index([targetUserId])
   @@index([timestamp])
   @@map("role_template_usage_logs")
+}
+
+/// Unit types for different measurement categories
+enum UnitType {
+  QUANTITY        // Count/Each
+  MASS           // Weight measurements
+  LENGTH         // Distance/dimensional measurements
+  VOLUME         // Volume/capacity measurements
+  AREA           // Surface area measurements
+  TIME           // Time duration measurements
+  TEMPERATURE    // Temperature measurements
+  PRESSURE       // Pressure measurements
+  FORCE          // Force measurements
+  ENERGY         // Energy measurements
+  POWER          // Power measurements
+  VELOCITY       // Speed measurements
+  ANGLE          // Angular measurements
+  OTHER          // Other measurement types
+}
+
+/// System of measurement classification
+enum SystemOfMeasure {
+  METRIC         // Metric system (SI)
+  IMPERIAL       // Imperial/US customary system
+  SI             // International System of Units
+  OTHER          // Other measurement systems
 }
