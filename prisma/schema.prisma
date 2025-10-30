@@ -1284,13 +1284,16 @@ model RoutingStepParameter {
   parameterName  String
   parameterValue String
   unitOfMeasure  String?
+  unitOfMeasureId String?     // FK to UnitOfMeasure
   notes          String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   routingStep    RoutingStep @relation(fields: [routingStepId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef UnitOfMeasure? @relation("RoutingStepParameterUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([routingStepId, parameterName])
   @@index([routingStepId])
+  @@index([unitOfMeasureId])
   @@map("routing_step_parameters")
 }
 
@@ -1432,6 +1435,7 @@ model ScheduleEntry {
   dispatchedQuantity Float                @default(0)
   completedQuantity  Float                @default(0)
   unitOfMeasure      String               @default("EA")
+  unitOfMeasureId    String?              // FK to UnitOfMeasure
   plannedStartDate   DateTime
   plannedEndDate     DateTime
   actualStartDate    DateTime?
@@ -1461,6 +1465,7 @@ model ScheduleEntry {
   schedule           ProductionSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   workCenter         WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrder          WorkOrder?           @relation(fields: [workOrderId], references: [id])
+  unitOfMeasureRef   UnitOfMeasure?       @relation("ScheduleEntryUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([scheduleId, entryNumber])
   @@index([scheduleId])
@@ -1470,6 +1475,7 @@ model ScheduleEntry {
   @@index([priority])
   @@index([isDispatched])
   @@index([workOrderId])
+  @@index([unitOfMeasureId])
   @@map("schedule_entries")
 }
 
@@ -1686,13 +1692,17 @@ model QualityCharacteristic {
   upperLimit       Float?
   lowerLimit       Float?
   unitOfMeasure    String?
+  unitOfMeasureId  String?              // FK to UnitOfMeasure
   inspectionMethod String?
   isActive         Boolean              @default(true)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   plan             QualityPlan          @relation(fields: [planId], references: [id])
   measurements     QualityMeasurement[]
+  unitOfMeasureRef UnitOfMeasure?       @relation("QualityCharacteristicUOM", fields: [unitOfMeasureId], references: [id])
 
+  @@index([planId])
+  @@index([unitOfMeasureId])
   @@map("quality_characteristics")
 }
 
