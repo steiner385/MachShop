@@ -95,6 +95,9 @@ import unifiedApprovalRoutes from './routes/unifiedApprovals';
 // ✅ GITHUB ISSUE #125: Role Templates for Predefined Role Configurations
 import roleTemplateRoutes from './routes/roleTemplates';
 
+// ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability
+import llpRoutes from './routes/llp';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -284,6 +287,9 @@ apiRouter.use('/approvals', authMiddleware, unifiedApprovalRoutes);
 
 // ✅ GITHUB ISSUE #125: Role Templates for Predefined Role Configurations API Routes
 apiRouter.use('/role-templates', authMiddleware, roleTemplateRoutes);
+
+// ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability API Routes
+apiRouter.use('/llp', authMiddleware, llpRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
