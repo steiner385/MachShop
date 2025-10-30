@@ -87,6 +87,9 @@ import ssoAdminRoutes from './routes/ssoAdmin';
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval Routes
 import unifiedApprovalRoutes from './routes/unifiedApprovals';
 
+// ✅ GITHUB ISSUE #125: Role Templates for Predefined Role Configurations
+import roleTemplateRoutes from './routes/roleTemplates';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -266,6 +269,9 @@ apiRouter.use('/admin/sso', authMiddleware, ssoAdminRoutes);
 
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval API Routes
 apiRouter.use('/approvals', authMiddleware, unifiedApprovalRoutes);
+
+// ✅ GITHUB ISSUE #125: Role Templates for Predefined Role Configurations API Routes
+apiRouter.use('/role-templates', authMiddleware, roleTemplateRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
