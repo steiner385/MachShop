@@ -1,0 +1,23 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-10-30T14:28:12.143Z",
+  "__export_source": "machshop-api-exporter",
+  "resources": [
+    {
+      "_id": "wrk_machshop",
+      "_type": "workspace",
+      "name": "MachShop API",
+      "description": "Manufacturing Execution System API"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "https://api.machshop.com/api/v1",
+        "auth_token": "your-jwt-token-here"
+      }
+    }
+  ]
+}

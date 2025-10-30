@@ -1,0 +1,1412 @@
+{
+  "summary": {
+    "totalTables": 186,
+    "totalFields": 3536,
+    "documentedFields": 3536,
+    "coveragePercentage": 100,
+    "achievement": "COMPLETE 100% COVERAGE",
+    "generatedAt": "2025-10-30T15:36:29.265Z"
+  },
+  "breakdown": {
+    "byTable": [
+      {
+        "table": "Enterprise",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "Site",
+        "totalFields": 27,
+        "documentedFields": 27,
+        "coverage": "100%",
+        "businessDomain": "Core Infrastructure"
+      },
+      {
+        "table": "Area",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "Core Infrastructure"
+      },
+      {
+        "table": "User",
+        "totalFields": 86,
+        "documentedFields": 86,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelClass",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelQualification",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelCertification",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelSkill",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelSkillAssignment",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelWorkCenterAssignment",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "PersonnelAvailability",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "MaterialClass",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialDefinition",
+        "totalFields": 40,
+        "documentedFields": 40,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialProperty",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialLot",
+        "totalFields": 48,
+        "documentedFields": 48,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialSublot",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialLotGenealogy",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialStateHistory",
+        "totalFields": 22,
+        "documentedFields": 22,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "Operation",
+        "totalFields": 40,
+        "documentedFields": 40,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "OperationParameter",
+        "totalFields": 24,
+        "documentedFields": 24,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ParameterLimits",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ParameterGroup",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ParameterFormula",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "OperationDependency",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "PersonnelOperationSpecification",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "EquipmentOperationSpecification",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "MaterialOperationSpecification",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "PhysicalAssetOperationSpecification",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "Part",
+        "totalFields": 45,
+        "documentedFields": 45,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "PartSiteAvailability",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "Core Infrastructure"
+      },
+      {
+        "table": "BOMItem",
+        "totalFields": 23,
+        "documentedFields": 23,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductSpecification",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductConfiguration",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ConfigurationOption",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductLifecycle",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkOrder",
+        "totalFields": 46,
+        "documentedFields": 46,
+        "coverage": "100%",
+        "businessDomain": "Production Management"
+      },
+      {
+        "table": "Routing",
+        "totalFields": 30,
+        "documentedFields": 30,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "RoutingOperation",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "RoutingStep",
+        "totalFields": 26,
+        "documentedFields": 26,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "RoutingStepDependency",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "RoutingStepParameter",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "RoutingTemplate",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkCenter",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkUnit",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkOrderOperation",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "Production Management"
+      },
+      {
+        "table": "ProductionSchedule",
+        "totalFields": 28,
+        "documentedFields": 28,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ScheduleEntry",
+        "totalFields": 39,
+        "documentedFields": 39,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ScheduleConstraint",
+        "totalFields": 24,
+        "documentedFields": 24,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ScheduleStateHistory",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkOrderStatusHistory",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Production Management"
+      },
+      {
+        "table": "DispatchLog",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkPerformance",
+        "totalFields": 37,
+        "documentedFields": 37,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductionVariance",
+        "totalFields": 26,
+        "documentedFields": 26,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "QualityPlan",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "QualityCharacteristic",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "QualityInspection",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "QualityMeasurement",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "NCR",
+        "totalFields": 26,
+        "documentedFields": 26,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "Equipment",
+        "totalFields": 47,
+        "documentedFields": 47,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentCapability",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentLog",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentStateHistory",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentPerformanceLog",
+        "totalFields": 30,
+        "documentedFields": 30,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "Inventory",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "MaterialTransaction",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "SerializedPart",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "PartGenealogy",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkInstruction",
+        "totalFields": 36,
+        "documentedFields": 36,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "WorkInstructionStep",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "WorkInstructionExecution",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "WorkInstructionStepExecution",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "ElectronicSignature",
+        "totalFields": 25,
+        "documentedFields": 25,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "FAIReport",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "FAICharacteristic",
+        "totalFields": 23,
+        "documentedFields": 23,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "AuditLog",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "MaintenanceWorkOrder",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "Production Management"
+      },
+      {
+        "table": "MeasurementEquipment",
+        "totalFields": 23,
+        "documentedFields": 23,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "InspectionRecord",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "CNCProgram",
+        "totalFields": 27,
+        "documentedFields": 27,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProgramDownloadLog",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProgramLoadAuthorization",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "OperationGaugeRequirement",
+        "totalFields": 7,
+        "documentedFields": 7,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "Alert",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "IntegrationConfig",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "IntegrationLog",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductionScheduleRequest",
+        "totalFields": 33,
+        "documentedFields": 33,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductionScheduleResponse",
+        "totalFields": 20,
+        "documentedFields": 20,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ProductionPerformanceActual",
+        "totalFields": 39,
+        "documentedFields": 39,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ERPMaterialTransaction",
+        "totalFields": 32,
+        "documentedFields": 32,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "PersonnelInfoExchange",
+        "totalFields": 29,
+        "documentedFields": 29,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "EquipmentDataCollection",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentCommand",
+        "totalFields": 24,
+        "documentedFields": 24,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "EquipmentMaterialMovement",
+        "totalFields": 22,
+        "documentedFields": 22,
+        "coverage": "100%",
+        "businessDomain": "Material Management"
+      },
+      {
+        "table": "ProcessDataCollection",
+        "totalFields": 28,
+        "documentedFields": 28,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "QIFMeasurementPlan",
+        "totalFields": 23,
+        "documentedFields": 23,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "QIFCharacteristic",
+        "totalFields": 20,
+        "documentedFields": 20,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "QIFMeasurementResult",
+        "totalFields": 27,
+        "documentedFields": 27,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "QIFMeasurement",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SPCConfiguration",
+        "totalFields": 27,
+        "documentedFields": 27,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SPCRuleViolation",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SamplingPlan",
+        "totalFields": 30,
+        "documentedFields": 30,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SamplingInspectionResult",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "WorkInstructionMedia",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "WorkInstructionRelation",
+        "totalFields": 7,
+        "documentedFields": 7,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "ExportTemplate",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "DataCollectionFieldTemplate",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SetupSheet",
+        "totalFields": 42,
+        "documentedFields": 42,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SetupStep",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SetupParameter",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SetupTool",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SetupExecution",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "InspectionPlan",
+        "totalFields": 42,
+        "documentedFields": 42,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "InspectionCharacteristic",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "InspectionStep",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "InspectionExecution",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Quality Management"
+      },
+      {
+        "table": "StandardOperatingProcedure",
+        "totalFields": 46,
+        "documentedFields": 46,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SOPStep",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SOPAcknowledgment",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SOPAudit",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ToolDrawing",
+        "totalFields": 58,
+        "documentedFields": 58,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ToolMaintenanceRecord",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ToolCalibrationRecord",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ToolUsageLog",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "DocumentTemplate",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "UserWorkstationPreference",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "WorkstationDisplayConfig",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowDefinition",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowStage",
+        "totalFields": 20,
+        "documentedFields": 20,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowRule",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowInstance",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowStageInstance",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowAssignment",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowHistory",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowDelegation",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowTemplate",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowTask",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowMetrics",
+        "totalFields": 17,
+        "documentedFields": 17,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "WorkflowParallelCoordination",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "EngineeringChangeOrder",
+        "totalFields": 49,
+        "documentedFields": 49,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ECOAffectedDocument",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "ECOTask",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ECOAttachment",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ECOHistory",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ECOCRBReview",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "ECORelation",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "CRBConfiguration",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "DocumentComment",
+        "totalFields": 25,
+        "documentedFields": 25,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "CommentReaction",
+        "totalFields": 7,
+        "documentedFields": 7,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "DocumentAnnotation",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "ReviewAssignment",
+        "totalFields": 23,
+        "documentedFields": 23,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "DocumentActivity",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "DocumentSubscription",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "UserNotification",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "DocumentEditSession",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Document Management"
+      },
+      {
+        "table": "ConflictResolution",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "StoredFile",
+        "totalFields": 47,
+        "documentedFields": 47,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "FileVersion",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "BackupSchedule",
+        "totalFields": 25,
+        "documentedFields": 25,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "BackupHistory",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "BackupEntry",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "FileAccessLog",
+        "totalFields": 20,
+        "documentedFields": 20,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "StorageMetrics",
+        "totalFields": 31,
+        "documentedFields": 31,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "MultipartUpload",
+        "totalFields": 19,
+        "documentedFields": 19,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "Role",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "Permission",
+        "totalFields": 11,
+        "documentedFields": 11,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "RolePermission",
+        "totalFields": 7,
+        "documentedFields": 7,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "UserRole",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "UserSiteRole",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "TimeTrackingConfiguration",
+        "totalFields": 21,
+        "documentedFields": 21,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "LaborTimeEntry",
+        "totalFields": 33,
+        "documentedFields": 33,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "MachineTimeEntry",
+        "totalFields": 22,
+        "documentedFields": 22,
+        "coverage": "100%",
+        "businessDomain": "Equipment Management"
+      },
+      {
+        "table": "IndirectCostCode",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "TimeEntryValidationRule",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SsoProvider",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "SsoSession",
+        "totalFields": 10,
+        "documentedFields": 10,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "AuthenticationEvent",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "HomeRealmDiscovery",
+        "totalFields": 8,
+        "documentedFields": 8,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "PermissionUsageLog",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "SecurityEvent",
+        "totalFields": 16,
+        "documentedFields": 16,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "UserSessionLog",
+        "totalFields": 12,
+        "documentedFields": 12,
+        "coverage": "100%",
+        "businessDomain": "Personnel Management"
+      },
+      {
+        "table": "AuditReport",
+        "totalFields": 13,
+        "documentedFields": 13,
+        "coverage": "100%",
+        "businessDomain": "General Operations"
+      },
+      {
+        "table": "PermissionChangeLog",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "RoleTemplate",
+        "totalFields": 18,
+        "documentedFields": 18,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "RoleTemplatePermission",
+        "totalFields": 9,
+        "documentedFields": 9,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "RoleTemplateInstance",
+        "totalFields": 15,
+        "documentedFields": 15,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      },
+      {
+        "table": "RoleTemplateUsageLog",
+        "totalFields": 14,
+        "documentedFields": 14,
+        "coverage": "100%",
+        "businessDomain": "Security & Access"
+      }
+    ],
+    "byCategory": {
+      "Identity": {
+        "fieldCount": 186,
+        "percentage": 5
+      },
+      "Other": {
+        "fieldCount": 1889,
+        "percentage": 53
+      },
+      "Documentation": {
+        "fieldCount": 94,
+        "percentage": 3
+      },
+      "Status": {
+        "fieldCount": 232,
+        "percentage": 7
+      },
+      "Audit": {
+        "fieldCount": 380,
+        "percentage": 11
+      },
+      "Relationships": {
+        "fieldCount": 457,
+        "percentage": 13
+      },
+      "Personnel": {
+        "fieldCount": 20,
+        "percentage": 1
+      },
+      "Temporal": {
+        "fieldCount": 158,
+        "percentage": 4
+      },
+      "Quality": {
+        "fieldCount": 28,
+        "percentage": 1
+      },
+      "Traceability": {
+        "fieldCount": 18,
+        "percentage": 1
+      },
+      "Measurements": {
+        "fieldCount": 43,
+        "percentage": 1
+      },
+      "Manufacturing": {
+        "fieldCount": 15,
+        "percentage": 0
+      },
+      "Business Logic": {
+        "fieldCount": 14,
+        "percentage": 0
+      },
+      "Financial": {
+        "fieldCount": 2,
+        "percentage": 0
+      }
+    },
+    "byBusinessDomain": {
+      "General Operations": {
+        "fieldCount": 2137,
+        "percentage": 60
+      },
+      "Core Infrastructure": {
+        "fieldCount": 55,
+        "percentage": 2
+      },
+      "Personnel Management": {
+        "fieldCount": 276,
+        "percentage": 8
+      },
+      "Material Management": {
+        "fieldCount": 271,
+        "percentage": 8
+      },
+      "Equipment Management": {
+        "fieldCount": 216,
+        "percentage": 6
+      },
+      "Production Management": {
+        "fieldCount": 97,
+        "percentage": 3
+      },
+      "Quality Management": {
+        "fieldCount": 159,
+        "percentage": 4
+      },
+      "Document Management": {
+        "fieldCount": 210,
+        "percentage": 6
+      },
+      "Security & Access": {
+        "fieldCount": 115,
+        "percentage": 3
+      }
+    }
+  }
+}

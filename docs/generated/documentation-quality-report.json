@@ -1,0 +1,157 @@
+{
+  "summary": {
+    "totalEndpoints": 891,
+    "qualityScore": 98,
+    "criticalIssues": 0,
+    "majorIssues": 14,
+    "minorIssues": 0
+  },
+  "domainAnalysis": {
+    "Personnel Management": {
+      "total": 3,
+      "problems": 3,
+      "qualityScore": 0,
+      "issues": [
+        "empty_example"
+      ]
+    },
+    "Other": {
+      "total": 11,
+      "problems": 11,
+      "qualityScore": 0,
+      "issues": [
+        "generic_example",
+        "empty_example"
+      ]
+    }
+  },
+  "problemEndpoints": [
+    {
+      "path": "/personnel/:id/certifications",
+      "method": "POST",
+      "domain": "Personnel Management",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/personnel/:id/work-centers",
+      "method": "POST",
+      "domain": "Personnel Management",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/personnel/:id/availability",
+      "method": "POST",
+      "domain": "Personnel Management",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates",
+      "method": "GET",
+      "domain": "Other",
+      "issues": [
+        "generic_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "generic_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates/:id",
+      "method": "GET",
+      "domain": "Other",
+      "issues": [
+        "generic_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates/:id",
+      "method": "PUT",
+      "domain": "Other",
+      "issues": [
+        "generic_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates/:id/favorite",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "generic_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/routing-templates/:id/use",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/serialization/generate",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/serialization/generate-batch",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/serialization/parts",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/serialization/validate",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    },
+    {
+      "path": "/serialization/sequences/initialize",
+      "method": "POST",
+      "domain": "Other",
+      "issues": [
+        "empty_example"
+      ],
+      "severity": "major"
+    }
+  ],
+  "generatedAt": "2025-10-30T15:09:24.083Z"
+}

@@ -1,0 +1,28 @@
+openapi: "3.0.3"
+info:
+  title: "MachShop Manufacturing Execution System API"
+  version: "1.0.0"
+  description: |
+    # MachShop MES API Documentation
+    
+    Comprehensive API documentation for the MachShop Manufacturing Execution System (MES),
+    designed for aerospace component manufacturing with full traceability and compliance.
+    
+    ## API Coverage
+    - **864 Endpoints** across 62 modules
+    - **14 Business Domains**
+    - **57% Documentation Coverage**
+    
+    ## Standards Compliance
+    - ISA-95 Manufacturing Operations Management
+    - AS9100 Quality Management Systems
+    - FDA 21 CFR Part 11 Electronic Records
+    - ITAR Export Control Compliance
+    
+    ## Authentication
+    All endpoints require JWT bearer token authentication with role-based access control (RBAC).
+    
+    Generated: 10/30/2025, 10:25:14 AM
+
+# For complete YAML specification, use the JSON version with a YAML converter
+# This is a simplified YAML header for compatibility

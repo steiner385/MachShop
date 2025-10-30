@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-10-30T15:09:11.439Z",
+  "overallScore": 959,
+  "enterpriseGrade": "STANDARD",
+  "readinessLevel": "PRODUCTION",
+  "totalEndpoints": 891,
+  "issues": [
+    {
+      "severity": "major",
+      "category": "Example Coverage",
+      "description": "Example coverage is 89%, below threshold of 98%",
+      "affectedEndpoints": [],
+      "autoFixable": true
+    },
+    {
+      "severity": "major",
+      "category": "Schema Coverage",
+      "description": "Schema coverage is 76%, below threshold of 95%",
+      "affectedEndpoints": [],
+      "autoFixable": true
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "HIGH",
+      "title": "Improve Example Coverage",
+      "description": "Current example coverage is 89%. Target: 98%+",
+      "impact": "Significantly improves developer experience and API adoption",
+      "effort": "MEDIUM",
+      "affectedEndpoints": [],
+      "implementationSteps": [
+        "Identify endpoints with missing or generic examples",
+        "Generate manufacturing-specific realistic examples",
+        "Validate examples against actual API responses",
+        "Update OpenAPI specification"
+      ]
+    },
+    {
+      "category": "CRITICAL",
+      "title": "Enhance Traceability Documentation",
+      "description": "Manufacturing traceability documentation is below enterprise standards",
+      "impact": "Critical for regulatory compliance and quality audit readiness",
+      "effort": "HIGH",
+      "affectedEndpoints": [],
+      "implementationSteps": [
+        "Document material traceability chains",
+        "Add lot and serial number tracking examples",
+        "Include quality history documentation",
+        "Add regulatory compliance notes"
+      ]
+    }
+  ],
+  "trend": {
+    "previousScore": 90,
+    "currentScore": 98,
+    "improvement": 8,
+    "trendDirection": "improving"
+  }
+}

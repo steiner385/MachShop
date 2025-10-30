@@ -549,6 +549,7 @@ model MaterialSublot {
   operationType SublotOperationType
   quantity      Float
   unitOfMeasure String
+  unitOfMeasureId String?              // FK to UnitOfMeasure
   workOrderId   String?
   operationId   String?
   reservedFor   String?
@@ -560,10 +561,12 @@ model MaterialSublot {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   parentLot     MaterialLot         @relation(fields: [parentLotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?    @relation("MaterialSublotUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([parentLotId])
   @@index([sublotNumber])
   @@index([workOrderId])
+  @@index([unitOfMeasureId])
   @@map("material_sublots")
 }
 
@@ -575,6 +578,7 @@ model MaterialLotGenealogy {
   quantityConsumed Float
   quantityProduced Float?
   unitOfMeasure    String
+  unitOfMeasureId  String?              // FK to UnitOfMeasure
   workOrderId      String?
   operationId      String?
   processDate      DateTime
@@ -583,12 +587,14 @@ model MaterialLotGenealogy {
   createdAt        DateTime              @default(now())
   childLot         MaterialLot           @relation("ChildLot", fields: [childLotId], references: [id])
   parentLot        MaterialLot           @relation("ParentLot", fields: [parentLotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?        @relation("MaterialLotGenealogyUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([parentLotId, childLotId, processDate])
   @@index([parentLotId])
   @@index([childLotId])
   @@index([workOrderId])
   @@index([processDate])
+  @@index([unitOfMeasureId])
   @@map("material_lot_genealogy")
 }
 
@@ -603,6 +609,7 @@ model MaterialStateHistory {
   transitionType StateTransitionType
   quantity       Float?
   unitOfMeasure  String?
+  unitOfMeasureId String?              // FK to UnitOfMeasure
   workOrderId    String?
   operationId    String?
   inspectionId   String?
@@ -615,10 +622,12 @@ model MaterialStateHistory {
   metadata       Json?
   createdAt      DateTime            @default(now())
   lot            MaterialLot         @relation(fields: [lotId], references: [id])
+  unitOfMeasureRef UnitOfMeasure?     @relation("MaterialStateHistoryUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([lotId])
   @@index([changedAt])
   @@index([newState])
+  @@index([unitOfMeasureId])
   @@index([newStatus])
   @@map("material_state_history")
 }
@@ -682,6 +691,7 @@ model OperationParameter {
   dataType             ParameterDataType
   defaultValue         String?
   unitOfMeasure        String?
+  unitOfMeasureId      String?           // FK to UnitOfMeasure
   minValue             Float?
   maxValue             Float?
   allowedValues        String[]
@@ -699,10 +709,12 @@ model OperationParameter {
   limits               ParameterLimits?
   samplingPlans        SamplingPlan[]
   spcConfiguration     SPCConfiguration?
+  unitOfMeasureRef     UnitOfMeasure?    @relation("OperationParameterUOM", fields: [unitOfMeasureId], references: [id])
 
   @@unique([operationId, parameterName])
   @@index([operationId])
   @@index([parameterType])
+  @@index([unitOfMeasureId])
   @@map("operation_parameters")
 }
 
@@ -842,6 +854,7 @@ model MaterialOperationSpecification {
   materialType         MaterialType?
   quantity             Float
   unitOfMeasure        String
+  unitOfMeasureId      String?          // FK to UnitOfMeasure
   consumptionType      ConsumptionType
   requiredProperties   String[]
   qualityRequirements  String?
@@ -851,9 +864,11 @@ model MaterialOperationSpecification {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   operation            Operation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  unitOfMeasureRef     UnitOfMeasure?  @relation("MaterialOperationSpecificationUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([operationId])
   @@index([materialDefinitionId])
+  @@index([unitOfMeasureId])
   @@map("material_operation_specifications")
 }
 
@@ -888,6 +903,7 @@ model Part {
   productType                ProductType                 @default(MADE_TO_STOCK)
   lifecycleState             ProductLifecycleState       @default(PRODUCTION)
   unitOfMeasure              String
+  unitOfMeasureId            String?                     // FK to UnitOfMeasure
   weight                     Float?
   weightUnit                 String?
   drawingNumber              String?
@@ -925,11 +941,13 @@ model Part {
   scheduleEntries            ScheduleEntry[]
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
+  unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
   @@index([partNumber])
+  @@index([unitOfMeasureId])
   @@map("parts")
 }
 
@@ -964,6 +982,7 @@ model BOMItem {
   componentPartId     String
   quantity            Float
   unitOfMeasure       String
+  unitOfMeasureId     String?    // FK to UnitOfMeasure
   scrapFactor         Float?     @default(0)
   sequence            Int?
   findNumber          String?
@@ -982,10 +1001,12 @@ model BOMItem {
   componentPart       Part       @relation("ComponentPart", fields: [componentPartId], references: [id])
   operation           Operation? @relation(fields: [operationId], references: [id])
   parentPart          Part       @relation("ParentPart", fields: [parentPartId], references: [id])
+  unitOfMeasureRef    UnitOfMeasure? @relation("BOMItemUOM", fields: [unitOfMeasureId], references: [id])
 
   @@index([parentPartId])
   @@index([componentPartId])
   @@index([operationId])
+  @@index([unitOfMeasureId])
   @@index([effectiveDate])
   @@map("bom_items")
 }
