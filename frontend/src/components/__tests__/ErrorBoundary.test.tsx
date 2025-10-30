@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ErrorBoundary from '../ErrorBoundary';
 
@@ -61,6 +61,7 @@ describe('ErrorBoundary', () => {
   });
 
   afterEach(() => {
+    cleanup(); // Clean up DOM between tests
     consoleErrorSpy.mockRestore();
     vi.resetAllMocks();
   });
