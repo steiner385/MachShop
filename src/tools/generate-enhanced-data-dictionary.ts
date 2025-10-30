@@ -9,7 +9,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import EnhancedMetadataExtractor, { DocumentationCoverageReport } from './enhanced-metadata-extractor';
 import EnhancedDocumentationGenerator from './enhanced-doc-generator';
-import DocumentationGenerator from './doc-generator';
 
 interface EnhancedCLIOptions {
   schemaPath?: string;
@@ -21,6 +20,9 @@ interface EnhancedCLIOptions {
   coverage?: boolean;
   generateTemplates?: boolean;
   templateDir?: string;
+  fieldDisplay?: string;
+  showFields?: string[];
+  interactive?: boolean;
 }
 
 class EnhancedDataDictionaryCLI {
@@ -35,15 +37,18 @@ class EnhancedDataDictionaryCLI {
    */
   private parseArgs(args: string[]): EnhancedCLIOptions {
     const options: EnhancedCLIOptions = {
-      schemaPath: './prisma/schema.prisma',
-      docsPath: './docs/schema-documentation',
+      schemaPath: './prisma/schema.final.prisma',
+      docsPath: './docs/schema-documentation', // Enable external docs with 17-attribute system
       outputDir: './docs/generated',
       formats: ['all'],
       verbose: false,
       help: false,
       coverage: false,
       generateTemplates: false,
-      templateDir: './docs/schema-documentation/generated-templates'
+      templateDir: './docs/schema-documentation/generated-templates',
+      fieldDisplay: 'business-focused',
+      showFields: [],
+      interactive: false
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -93,6 +98,20 @@ class EnhancedDataDictionaryCLI {
         case '--template-dir':
           options.templateDir = args[++i];
           break;
+
+        case '--field-display':
+        case '--display':
+          options.fieldDisplay = args[++i];
+          break;
+
+        case '--show-fields':
+          options.showFields = args[++i].split(',').map(field => field.trim());
+          break;
+
+        case '--interactive':
+        case '-i':
+          options.interactive = true;
+          break;
       }
     }
 
@@ -117,6 +136,9 @@ OPTIONS:
   -c, --coverage             Generate documentation coverage report
   -t, --generate-templates   Generate templates for missing documentation
   --template-dir <path>      Template output directory (default: ./docs/schema-documentation/generated-templates)
+  --field-display <preset>   Field display preset: minimal, business-focused, technical-focused, compliance-focused, all-attributes (default: business-focused)
+  --show-fields <list>       Comma-separated list of specific 17-attribute fields to show in main tables
+  -i, --interactive          Generate interactive HTML with toggleable columns (includes all 17 attributes)
   -v, --verbose              Verbose output
   -h, --help                 Show this help message
 
@@ -135,6 +157,18 @@ EXAMPLES:
 
   # Use custom external documentation location
   npx tsx src/tools/generate-enhanced-data-dictionary.ts --docs ./custom-docs
+
+  # Show all 17 attributes in main tables
+  npx tsx src/tools/generate-enhanced-data-dictionary.ts --field-display all-attributes
+
+  # Show only compliance-focused fields
+  npx tsx src/tools/generate-enhanced-data-dictionary.ts --field-display compliance-focused
+
+  # Show specific custom fields in main tables
+  npx tsx src/tools/generate-enhanced-data-dictionary.ts --show-fields businessRule,complianceNotes,dataSource
+
+  # Generate interactive HTML with toggleable columns
+  npx tsx src/tools/generate-enhanced-data-dictionary.ts --interactive --formats html
 
 EXTERNAL DOCUMENTATION STRUCTURE:
   docs/schema-documentation/
@@ -170,7 +204,7 @@ OUTPUT FILES:
       await this.validateInputs();
 
       // Initialize enhanced metadata extractor
-      const extractor = new EnhancedMetadataExtractor(this.options.schemaPath!, this.options.docsPath!);
+      const extractor = new EnhancedMetadataExtractor(this.options.schemaPath!, this.options.docsPath || null);
 
       // Generate templates if requested
       if (this.options.generateTemplates) {
@@ -225,12 +259,14 @@ OUTPUT FILES:
       throw new Error(`Schema file not found: ${this.options.schemaPath}`);
     }
 
-    // Check if external docs directory exists, create if not
-    if (!fs.existsSync(this.options.docsPath!)) {
+    // Check if external docs directory exists, create if not (skip if disabled)
+    if (this.options.docsPath && !fs.existsSync(this.options.docsPath)) {
       console.log(`⚠️  External documentation directory not found: ${this.options.docsPath}`);
       console.log('   📁 Creating directory structure...');
-      await fs.promises.mkdir(this.options.docsPath!, { recursive: true });
+      await fs.promises.mkdir(this.options.docsPath, { recursive: true });
       await this.createInitialDocumentationStructure();
+    } else if (!this.options.docsPath) {
+      console.log('   📋 External documentation disabled - using schema comments only');
     }
 
     // Ensure output directory exists
@@ -238,7 +274,11 @@ OUTPUT FILES:
 
     if (this.options.verbose) {
       console.log(`   ✓ Schema file: ${path.resolve(this.options.schemaPath!)}`);
-      console.log(`   ✓ External docs: ${path.resolve(this.options.docsPath!)}`);
+      if (this.options.docsPath) {
+        console.log(`   ✓ External docs: ${path.resolve(this.options.docsPath)}`);
+      } else {
+        console.log(`   ✓ External docs: Disabled (using schema comments only)`);
+      }
       console.log(`   ✓ Output directory: ${path.resolve(this.options.outputDir!)}\n`);
     }
   }
@@ -276,16 +316,19 @@ OUTPUT FILES:
    * Generate all documentation formats
    */
   private async generateAllFormats(metadata: any): Promise<void> {
-    const enhancedGenerator = new EnhancedDocumentationGenerator(metadata, this.options.outputDir!);
-    const standardGenerator = new DocumentationGenerator(metadata, this.options.outputDir!);
+    const displayConfig = this.getFieldDisplayConfiguration();
+    const enhancedGenerator = new EnhancedDocumentationGenerator(metadata, this.options.outputDir!, displayConfig);
 
     await Promise.all([
       enhancedGenerator.generateMarkdownDocumentation(), // Enhanced markdown
-      standardGenerator.generateHTMLDataDictionary(),     // Standard HTML (enhanced version would be complex)
-      standardGenerator.generateCSVExport(),              // Standard CSV
-      standardGenerator.generateJSONExport(),             // Standard JSON
-      standardGenerator.generateRelationshipDocumentation(), // Standard relationships
-      standardGenerator.generateSummaryReport()           // Standard summary
+      enhancedGenerator.generateHTMLDocumentation(),     // Enhanced HTML
+      enhancedGenerator.generateCSVExport(),             // Enhanced CSV
+      enhancedGenerator.generateJSONExport(),            // Enhanced JSON
+      enhancedGenerator.generateRelationshipDocumentation(), // Enhanced relationships
+      enhancedGenerator.generateSummaryReport(),         // Enhanced summary
+      enhancedGenerator.generateBusinessRulesAnalytics(), // Business rules analytics
+      enhancedGenerator.generateComplianceDashboard(),   // Compliance dashboard
+      enhancedGenerator.generateStakeholderViews()       // Stakeholder-specific views
     ]);
   }
 
@@ -293,8 +336,8 @@ OUTPUT FILES:
    * Generate selected formats
    */
   private async generateSelectedFormats(metadata: any): Promise<void> {
-    const enhancedGenerator = new EnhancedDocumentationGenerator(metadata, this.options.outputDir!);
-    const standardGenerator = new DocumentationGenerator(metadata, this.options.outputDir!);
+    const displayConfig = this.getFieldDisplayConfiguration();
+    const enhancedGenerator = new EnhancedDocumentationGenerator(metadata, this.options.outputDir!, displayConfig);
 
     const formats = this.options.formats!;
     const tasks = [];
@@ -304,18 +347,49 @@ OUTPUT FILES:
     }
 
     if (formats.includes('html')) {
-      tasks.push(standardGenerator.generateHTMLDataDictionary());
+      tasks.push(enhancedGenerator.generateHTMLDocumentation());
     }
 
     if (formats.includes('csv')) {
-      tasks.push(standardGenerator.generateCSVExport());
+      tasks.push(enhancedGenerator.generateCSVExport());
     }
 
     if (formats.includes('json')) {
-      tasks.push(standardGenerator.generateJSONExport());
+      tasks.push(enhancedGenerator.generateJSONExport());
     }
 
     await Promise.all(tasks);
+  }
+
+  /**
+   * Get field display configuration based on CLI options
+   */
+  private getFieldDisplayConfiguration(): any {
+    // Import the preset configurations
+    const presets = EnhancedDocumentationGenerator.getPresetConfigs();
+
+    // If interactive mode is enabled, always generate all attributes for client-side toggling
+    if (this.options.interactive) {
+      return {
+        ...presets['all-attributes'],
+        interactive: true
+      };
+    }
+
+    if (this.options.showFields && this.options.showFields.length > 0) {
+      // Custom field selection
+      return {
+        showInMainTable: this.options.showFields,
+        showInDetailedView: [],
+        tableStyle: 'custom'
+      };
+    } else if (this.options.fieldDisplay && presets[this.options.fieldDisplay]) {
+      // Use preset configuration
+      return presets[this.options.fieldDisplay];
+    } else {
+      // Default to business-focused
+      return presets['business-focused'];
+    }
   }
 
   /**
@@ -465,7 +539,13 @@ Generated: ${new Date().toLocaleString()}
       'schema-metadata.json',
       'schema-relationships.md',
       'schema-summary.md',
-      'coverage-report.md'
+      'coverage-report.md',
+      'business-rules-analytics.md',
+      'compliance-dashboard.md',
+      'engineering-view.md',
+      'quality-view.md',
+      'production-view.md',
+      'management-view.md'
     ];
 
     for (const file of expectedFiles) {

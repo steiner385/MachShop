@@ -1,0 +1,424 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-10-30",
+    "description": "Structured business rules for MachShop MES database",
+    "domains": ["production", "quality", "material", "personnel", "equipment", "compliance"],
+    "ruleTypes": ["validation", "calculation", "workflow", "constraint"],
+    "priorities": ["critical", "high", "medium", "low"]
+  },
+  "WorkOrder": [
+    {
+      "id": "WO-BR-001",
+      "description": "Work order numbers must follow sequential site-based numbering pattern",
+      "type": "validation",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "workOrderNumber",
+      "compliance": ["AS9100", "ISO9001"],
+      "businessJustification": "Ensures unique identification for production tracking and customer communication",
+      "validationLogic": "Format: WO-YYYY-NNNNNN where YYYY=year, NNNNNN=sequential per site",
+      "consequences": "Duplicate numbers cause production tracking failures and customer confusion"
+    },
+    {
+      "id": "WO-BR-002",
+      "description": "Work orders cannot transition to RELEASED status without approved routing",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "status",
+      "compliance": ["AS9100"],
+      "businessJustification": "Prevents production of parts without validated manufacturing process",
+      "validationLogic": "Status change to RELEASED requires routingId to reference approved routing",
+      "consequences": "Manufacturing without approved routing violates quality standards"
+    },
+    {
+      "id": "WO-BR-003",
+      "description": "Actual start date cannot be modified once set",
+      "type": "constraint",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "high",
+      "field": "actualStartDate",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Maintains production timeline integrity for metrics and traceability",
+      "validationLogic": "Once actualStartDate is not null, field becomes read-only",
+      "consequences": "Modifying start dates corrupts production metrics and audit trails"
+    },
+    {
+      "id": "WO-BR-004",
+      "description": "Scheduled dates must respect material availability and lead times",
+      "type": "workflow",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "high",
+      "field": "scheduledStartDate",
+      "compliance": ["ISO9001"],
+      "businessJustification": "Prevents scheduling conflicts and ensures material availability for production",
+      "validationLogic": "scheduledStartDate >= MAX(materialRequirement.availableDate) for all required materials",
+      "consequences": "Scheduling without materials causes production delays and customer delivery failures"
+    },
+    {
+      "id": "WO-BR-005",
+      "description": "Work order priority changes require production manager approval",
+      "type": "workflow",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "medium",
+      "field": "priority",
+      "compliance": ["ISO9001"],
+      "businessJustification": "Maintains production schedule integrity and resource allocation balance",
+      "validationLogic": "Priority changes to HIGH or URGENT require approvalUserId with PRODUCTION_MANAGER role",
+      "consequences": "Unauthorized priority changes disrupt production flow and resource planning"
+    },
+    {
+      "id": "WO-BR-006",
+      "description": "Work orders cannot be deleted once production has started",
+      "type": "constraint",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "status",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Maintains production history and traceability for regulatory compliance",
+      "validationLogic": "DELETE operations blocked when status IN ('IN_PROGRESS', 'COMPLETED', 'SHIPPED')",
+      "consequences": "Deleting active work orders breaks traceability and regulatory record retention"
+    }
+  ],
+  "Operation": [
+    {
+      "id": "OP-BR-001",
+      "description": "Operation duration must be positive and within equipment capability ranges",
+      "type": "validation",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "high",
+      "field": "duration",
+      "compliance": ["ISO9001"],
+      "businessJustification": "Ensures realistic scheduling and capacity planning",
+      "validationLogic": "duration > 0 AND duration <= equipment.maxCycleTime",
+      "consequences": "Invalid durations cause scheduling conflicts and resource overallocation"
+    },
+    {
+      "id": "OP-BR-002",
+      "description": "Operations must be performed in routing sequence order",
+      "type": "workflow",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "sequenceNumber",
+      "compliance": ["AS9100", "ISO9001"],
+      "businessJustification": "Ensures manufacturing process integrity and product quality consistency",
+      "validationLogic": "Operation completion requires all previous operations (lower sequenceNumber) to be completed",
+      "consequences": "Out-of-sequence operations compromise product quality and process validation"
+    },
+    {
+      "id": "OP-BR-003",
+      "description": "Setup time must be allocated when equipment changes between different part families",
+      "type": "calculation",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "medium",
+      "field": "setupTime",
+      "compliance": ["ISO9001"],
+      "businessJustification": "Provides accurate scheduling and costing for production planning",
+      "validationLogic": "IF equipment.lastPartFamily != current.partFamily THEN setupTime >= equipment.changeoverTime",
+      "consequences": "Inadequate setup time allocation causes schedule delays and quality issues"
+    }
+  ],
+  "Material": [
+    {
+      "id": "MAT-BR-001",
+      "description": "Material transactions must maintain non-negative inventory balances",
+      "type": "constraint",
+      "scope": "cross-table",
+      "implementation": "database",
+      "priority": "critical",
+      "field": "quantity",
+      "compliance": ["GAAP", "AS9100"],
+      "businessJustification": "Prevents overselling and maintains accurate inventory valuation",
+      "validationLogic": "SUM(transactions.quantity) >= 0 for each material.id",
+      "consequences": "Negative inventory corrupts financial reporting and production planning"
+    },
+    {
+      "id": "MAT-BR-002",
+      "description": "Lot numbers must be globally unique across all materials",
+      "type": "validation",
+      "scope": "cross-table",
+      "implementation": "database",
+      "priority": "critical",
+      "field": "lotNumber",
+      "compliance": ["FDA", "AS9100"],
+      "businessJustification": "Enables complete traceability for quality and recall management",
+      "validationLogic": "lotNumber must be unique across all Material records",
+      "consequences": "Duplicate lot numbers break traceability and regulatory compliance"
+    }
+  ],
+  "QualityMeasurement": [
+    {
+      "id": "QM-BR-001",
+      "description": "Measurement values must fall within specification limits or trigger non-conformance",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "result",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Automates quality control and ensures only conforming products ship",
+      "validationLogic": "IF result < LSL OR result > USL THEN create NCR record",
+      "consequences": "Undetected non-conformances risk customer delivery of defective products"
+    }
+  ],
+  "User": [
+    {
+      "id": "USR-BR-001",
+      "description": "Employee numbers must match active HR system records",
+      "type": "validation",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "high",
+      "field": "employeeNumber",
+      "compliance": ["SOX", "GDPR"],
+      "businessJustification": "Ensures only authorized personnel have system access",
+      "validationLogic": "employeeNumber must exist in HR.ActiveEmployees table",
+      "consequences": "Unauthorized access violates security policies and audit requirements"
+    }
+  ],
+  "Equipment": [
+    {
+      "id": "EQ-BR-001",
+      "description": "Equipment must have valid calibration before use in production",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "calibrationStatus",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Ensures measurement accuracy and product quality conformance",
+      "validationLogic": "calibrationStatus = VALID AND calibrationDate >= (today - calibrationInterval)",
+      "consequences": "Uncalibrated equipment produces invalid measurements and non-conforming products"
+    },
+    {
+      "id": "EQ-BR-002",
+      "description": "Equipment must complete preventive maintenance before maximum usage hours",
+      "type": "workflow",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "high",
+      "field": "operatingHours",
+      "compliance": ["AS9100", "ISO9001"],
+      "businessJustification": "Prevents equipment failures that could compromise product quality and delivery",
+      "validationLogic": "operatingHours < nextMaintenanceHours OR maintenanceStatus = 'SCHEDULED'",
+      "consequences": "Overdue maintenance increases breakdown risk and potential quality issues"
+    }
+  ],
+  "QualityPlan": [
+    {
+      "id": "QP-BR-001",
+      "description": "Quality plans must include all critical characteristics from engineering specifications",
+      "type": "validation",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "characteristics",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Ensures all customer and regulatory requirements are verified during production",
+      "validationLogic": "All characteristics marked as 'CRITICAL' in engineering specs must exist in quality plan",
+      "consequences": "Missing critical characteristics risk shipping non-conforming products"
+    },
+    {
+      "id": "QP-BR-002",
+      "description": "Quality plan approval requires both engineering and quality manager signatures",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "approvalStatus",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Ensures quality plans meet both technical and regulatory requirements",
+      "validationLogic": "approvalStatus = 'APPROVED' requires approvals from ENGINEERING_MANAGER and QUALITY_MANAGER roles",
+      "consequences": "Inadequate approval process risks non-compliant quality control procedures"
+    },
+    {
+      "id": "QP-BR-003",
+      "description": "Quality plans cannot be modified while work orders are in active production",
+      "type": "constraint",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "high",
+      "field": "version",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Maintains process integrity and traceability during active production",
+      "validationLogic": "Modifications blocked when related WorkOrders have status IN ('IN_PROGRESS', 'QUALITY_HOLD')",
+      "consequences": "Mid-production changes compromise traceability and process validation"
+    }
+  ],
+  "MaterialLot": [
+    {
+      "id": "ML-BR-001",
+      "description": "Material lots must have complete supplier certification before use in production",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "certificationStatus",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Ensures only qualified materials are used in regulated product manufacturing",
+      "validationLogic": "certificationStatus = 'APPROVED' AND certificationDate >= receivedDate",
+      "consequences": "Uncertified materials risk product quality and regulatory non-compliance"
+    },
+    {
+      "id": "ML-BR-002",
+      "description": "Material lots with expiration dates cannot be used beyond shelf life",
+      "type": "validation",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "expirationDate",
+      "compliance": ["FDA", "AS9100"],
+      "businessJustification": "Prevents use of degraded materials that could affect product quality",
+      "validationLogic": "IF expirationDate IS NOT NULL THEN expirationDate >= CURRENT_DATE for production use",
+      "consequences": "Expired materials compromise product integrity and regulatory compliance"
+    },
+    {
+      "id": "ML-BR-003",
+      "description": "Material lot consumption must be tracked for complete production traceability",
+      "type": "workflow",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "high",
+      "field": "consumedQuantity",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Enables rapid identification and containment during quality issues or recalls",
+      "validationLogic": "Every material consumption must create MaterialTransaction with lotId and workOrderId",
+      "consequences": "Incomplete traceability prevents effective recall actions and root cause analysis"
+    }
+  ],
+  "UserRole": [
+    {
+      "id": "UR-BR-001",
+      "description": "Users must have current training certification for assigned manufacturing roles",
+      "type": "validation",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "roleId",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Ensures only qualified personnel perform critical manufacturing operations",
+      "validationLogic": "Role assignment requires valid TrainingCertification for role.requiredSkills",
+      "consequences": "Unqualified personnel risk product quality and regulatory compliance violations"
+    },
+    {
+      "id": "UR-BR-002",
+      "description": "Critical role assignments require supervisor approval and competency verification",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "high",
+      "field": "approvalStatus",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Validates personnel competency for quality-critical operations",
+      "validationLogic": "Roles marked as 'CRITICAL' require supervisorApproval = true AND competencyVerified = true",
+      "consequences": "Inadequate role verification compromises process control and product quality"
+    }
+  ],
+  "NonConformance": [
+    {
+      "id": "NC-BR-001",
+      "description": "Non-conformances must be contained within 4 hours of identification",
+      "type": "workflow",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "containmentDate",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Prevents shipment of non-conforming products and limits customer impact",
+      "validationLogic": "containmentDate <= (identifiedDate + 4 hours) for HIGH and CRITICAL severity",
+      "consequences": "Delayed containment risks shipping defective products to customers"
+    },
+    {
+      "id": "NC-BR-002",
+      "description": "Non-conformance root cause analysis must be completed before closure",
+      "type": "workflow",
+      "scope": "record",
+      "implementation": "application",
+      "priority": "high",
+      "field": "status",
+      "compliance": ["AS9100", "FDA", "ISO9001"],
+      "businessJustification": "Ensures systemic issues are identified and corrected to prevent recurrence",
+      "validationLogic": "Status change to 'CLOSED' requires rootCauseAnalysis != null AND correctiveActions.count > 0",
+      "consequences": "Incomplete analysis allows recurring problems and ongoing quality risks"
+    },
+    {
+      "id": "NC-BR-003",
+      "description": "Customer-related non-conformances require immediate notification within 24 hours",
+      "type": "workflow",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "customerNotificationDate",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Maintains customer relationships and meets contractual notification requirements",
+      "validationLogic": "IF customerAffected = true THEN customerNotificationDate <= (identifiedDate + 24 hours)",
+      "consequences": "Late customer notification damages relationships and may violate contract terms"
+    }
+  ],
+  "InventoryTransaction": [
+    {
+      "id": "IT-BR-001",
+      "description": "Inventory transactions must balance to maintain accurate stock levels",
+      "type": "constraint",
+      "scope": "cross-table",
+      "implementation": "database",
+      "priority": "critical",
+      "field": "quantity",
+      "compliance": ["GAAP", "AS9100"],
+      "businessJustification": "Maintains accurate inventory valuation and prevents material shortage surprises",
+      "validationLogic": "SUM(transactions.quantity) = current inventory balance for each material/location",
+      "consequences": "Unbalanced transactions corrupt inventory accuracy and financial reporting"
+    },
+    {
+      "id": "IT-BR-002",
+      "description": "Material issue transactions require valid work order authorization",
+      "type": "validation",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "high",
+      "field": "workOrderId",
+      "compliance": ["AS9100", "ISO9001"],
+      "businessJustification": "Ensures materials are only used for authorized production activities",
+      "validationLogic": "transactionType = 'ISSUE' requires workOrderId with status IN ('RELEASED', 'IN_PROGRESS')",
+      "consequences": "Unauthorized material usage causes costing errors and inventory discrepancies"
+    }
+  ],
+  "MaintenanceRecord": [
+    {
+      "id": "MR-BR-001",
+      "description": "Preventive maintenance must be completed within scheduled maintenance windows",
+      "type": "workflow",
+      "scope": "field",
+      "implementation": "application",
+      "priority": "high",
+      "field": "completionDate",
+      "compliance": ["AS9100", "ISO9001"],
+      "businessJustification": "Maintains equipment reliability and prevents unplanned downtime during production",
+      "validationLogic": "completionDate <= scheduledDate + maintenanceWindow for preventive maintenance",
+      "consequences": "Overdue maintenance increases breakdown risk and potential production delays"
+    },
+    {
+      "id": "MR-BR-002",
+      "description": "Critical equipment maintenance requires qualified technician certification",
+      "type": "validation",
+      "scope": "cross-table",
+      "implementation": "application",
+      "priority": "critical",
+      "field": "technicianId",
+      "compliance": ["AS9100", "FDA"],
+      "businessJustification": "Ensures maintenance quality on equipment critical to product conformance",
+      "validationLogic": "equipment.criticality = 'HIGH' requires technician with valid certification for equipment type",
+      "consequences": "Unqualified maintenance compromises equipment accuracy and product quality"
+    }
+  ]
+}

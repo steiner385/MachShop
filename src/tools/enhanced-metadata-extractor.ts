@@ -68,6 +68,15 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
    * Load external documentation files
    */
   async loadExternalDocumentation(): Promise<ExternalDocumentation> {
+    // Return empty documentation if external docs are disabled
+    if (!this.externalDocsPath) {
+      return {
+        tableDescriptions: {},
+        fieldDescriptions: {},
+        businessRules: {}
+      };
+    }
+
     const tableDescriptionsPath = path.join(this.externalDocsPath, 'table-descriptions.json');
     const fieldDescriptionsPath = path.join(this.externalDocsPath, 'field-descriptions.json');
     const businessRulesPath = path.join(this.externalDocsPath, 'business-rules.json');
@@ -106,8 +115,18 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
       try {
         const businessRulesContent = await fs.promises.readFile(businessRulesPath, 'utf8');
         externalDocs.businessRules = JSON.parse(businessRulesContent);
-        const ruleCount = Object.values(externalDocs.businessRules).reduce((sum, rules) => sum + rules.length, 0);
-        console.log(`✓ Loaded ${ruleCount} business rules for ${Object.keys(externalDocs.businessRules).length} tables`);
+
+        // Filter out _metadata and count only table-specific rules
+        const tableRules = Object.entries(externalDocs.businessRules)
+          .filter(([key]) => !key.startsWith('_'))
+          .reduce((acc, [key, rules]) => {
+            acc[key] = rules;
+            return acc;
+          }, {} as Record<string, BusinessRule[]>);
+
+        const ruleCount = Object.values(tableRules).reduce((sum, rules) => sum + (Array.isArray(rules) ? rules.length : 0), 0);
+        const tableCount = Object.keys(tableRules).length;
+        console.log(`✓ Loaded ${ruleCount} business rules for ${tableCount} tables`);
       } catch (error) {
         console.warn(`⚠️  Failed to load business rules: ${error}`);
       }
@@ -159,12 +178,29 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
    * Enhance individual model with external documentation
    */
   private enhanceModel(model: ModelMetadata, externalDocs: ExternalDocumentation): ModelMetadata {
-    const tableDoc = externalDocs.tableDescriptions[model.name];
-    const fieldDocs = externalDocs.fieldDescriptions[model.name] || {};
-    const businessRules = externalDocs.businessRules[model.name] || [];
+    const tableDoc = externalDocs?.tableDescriptions?.[model.name];
+    const fieldDocs = externalDocs?.fieldDescriptions?.[model.name] || {};
+    const businessRules = externalDocs?.businessRules?.[model.name] || [];
 
-    // Enhance fields with external documentation
-    const enhancedFields = model.fields.map(field => this.enhanceField(field, fieldDocs[field.name]));
+    // Enhance fields with external documentation and unit information
+    const enhancedFields = model.fields.map(field => {
+      const enhancedField = this.enhanceField(field, fieldDocs[field.name]);
+
+      // Apply unit enhancements to measurement fields
+      if (this.isMeasurementField(enhancedField)) {
+        const enhancedDescription = this.enhanceDescriptionWithUnits(
+          enhancedField,
+          model,
+          enhancedField.documentation || 'No description available'
+        );
+        return {
+          ...enhancedField,
+          documentation: enhancedDescription
+        };
+      }
+
+      return enhancedField;
+    });
 
     // Merge table-level documentation (external takes priority over schema comments)
     const enhancedModel: ModelMetadata = {
@@ -262,7 +298,7 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
 
     // Analyze table coverage
     for (const model of metadata.models) {
-      const hasTableDoc = !!(this.externalDocs!.tableDescriptions[model.name]?.description || model.documentation);
+      const hasTableDoc = !!(model.documentation || this.externalDocs?.tableDescriptions?.[model.name]?.description);
       if (hasTableDoc) {
         report.tablesWithDocumentation++;
       } else {
@@ -270,11 +306,11 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
       }
 
       // Analyze field coverage for this table
-      const tableFieldDocs = this.externalDocs!.fieldDescriptions[model.name] || {};
+      const tableFieldDocs = this.externalDocs?.fieldDescriptions?.[model.name] || {};
       let fieldsWithDocs = 0;
 
       for (const field of model.fields) {
-        const hasFieldDoc = !!(tableFieldDocs[field.name]?.description || field.documentation);
+        const hasFieldDoc = !!(field.documentation || tableFieldDocs[field.name]?.description);
         if (hasFieldDoc) {
           fieldsWithDocs++;
           report.fieldsWithDocumentation++;
@@ -380,6 +416,168 @@ export class EnhancedMetadataExtractor extends MetadataExtractor {
       await fs.promises.writeFile(fieldTemplatePath, JSON.stringify(fieldTemplate, null, 2));
       console.log(`📝 Generated field documentation templates: ${fieldTemplatePath}`);
     }
+  }
+
+  /**
+   * Check if a field is a measurement field that should have unit information
+   */
+  private isMeasurementField(field: any): boolean {
+    // Only consider numeric fields (Int, Float)
+    if (!['Int', 'Float'].includes(field.type)) {
+      return false;
+    }
+
+    const fieldName = field.name.toLowerCase();
+
+    // Time-related measurements
+    const timeFields = ['duration', 'time', 'setuptime', 'teardowntime', 'cycletime', 'mincycletime', 'maxcycletime'];
+
+    // Statistical Process Control and limits
+    const spcFields = ['minvalue', 'maxvalue', 'engineeringmin', 'engineeringmax', 'lsl', 'usl', 'nominalvalue', 'lowerlimit', 'upperlimit'];
+
+    // Physical measurements
+    const physicalFields = ['weight', 'length', 'width', 'height', 'depth', 'thickness', 'diameter', 'radius', 'area', 'volume', 'quantity'];
+
+    // Process measurements
+    const processFields = ['temperature', 'pressure', 'voltage', 'current', 'power', 'flow', 'rate', 'speed', 'velocity', 'rpm'];
+
+    // Alarm and monitoring values
+    const alarmFields = ['highalarm', 'lowalarm', 'highhighalarm', 'lowlowalarm'];
+
+    // General measurement and result fields
+    const measurementFields = ['value', 'result', 'reading', 'measurement'];
+
+    const allMeasurementFields = [
+      ...timeFields,
+      ...spcFields,
+      ...physicalFields,
+      ...processFields,
+      ...alarmFields,
+      ...measurementFields
+    ];
+
+    return allMeasurementFields.some(pattern => fieldName.includes(pattern));
+  }
+
+  /**
+   * Enhance field description with unit information
+   */
+  private enhanceDescriptionWithUnits(field: any, model: any, currentDescription: string): string {
+    const fieldName = field.name.toLowerCase();
+
+    // Skip if description already mentions specific units (but allow general "unit" references)
+    if (currentDescription.toLowerCase().includes('kg') ||
+        currentDescription.toLowerCase().includes('minute') ||
+        currentDescription.toLowerCase().includes('second') ||
+        currentDescription.toLowerCase().includes('meter') ||
+        currentDescription.toLowerCase().includes('degree') ||
+        currentDescription.toLowerCase().includes('volts') ||
+        currentDescription.toLowerCase().includes('amperes') ||
+        currentDescription.toLowerCase().includes('watts') ||
+        currentDescription.toLowerCase().includes('typically in') ||
+        currentDescription.toLowerCase().includes('units specified in')) {
+      return currentDescription;
+    }
+
+    // Check if model has unitOfMeasure or unit field
+    const hasUnitField = model.fields?.some((f: any) =>
+      f.name === 'unitOfMeasure' || f.name === 'unit'
+    );
+
+    let unitInfo = '';
+
+    // Time-related fields - specify common units
+    if (fieldName.includes('duration') || fieldName.includes('time')) {
+      if (fieldName.includes('cycle')) {
+        unitInfo = ' (typically in seconds)';
+      } else {
+        unitInfo = ' (typically in minutes)';
+      }
+    }
+
+    // Statistical Process Control fields
+    else if (['lsl', 'usl', 'nominalvalue', 'minvalue', 'maxvalue', 'engineeringmin', 'engineeringmax'].some(term => fieldName.includes(term))) {
+      if (hasUnitField) {
+        unitInfo = ' (units specified in `unitOfMeasure` field)';
+      } else {
+        // Specific SPC term explanations
+        if (fieldName.includes('lsl')) {
+          return currentDescription.replace('L s l', 'Lower Specification Limit (LSL)') + ' (units vary by characteristic)';
+        } else if (fieldName.includes('usl')) {
+          return currentDescription.replace('U s l', 'Upper Specification Limit (USL)') + ' (units vary by characteristic)';
+        } else {
+          unitInfo = ' (units vary by parameter type)';
+        }
+      }
+    }
+
+    // Weight fields
+    else if (fieldName.includes('weight')) {
+      unitInfo = ' (typically in kilograms)';
+    }
+
+    // Quantity fields
+    else if (fieldName.includes('quantity')) {
+      if (hasUnitField) {
+        unitInfo = '. Quantity units specified in `unitOfMeasure` field';
+        return currentDescription.replace('Numerical quantity', 'Material or part quantity') + unitInfo;
+      } else {
+        return currentDescription.replace('Numerical quantity', 'Material or part quantity (units context-dependent)');
+      }
+    }
+
+    // Alarm values
+    else if (['highalarm', 'lowalarm', 'highhighalarm', 'lowlowalarm'].some(term => fieldName.includes(term))) {
+      unitInfo = ' (units match monitored parameter)';
+    }
+
+    // Temperature
+    else if (fieldName.includes('temperature') || fieldName.includes('temp')) {
+      unitInfo = ' (typically in °C)';
+    }
+
+    // Pressure
+    else if (fieldName.includes('pressure')) {
+      unitInfo = ' (typically in bar or PSI)';
+    }
+
+    // Electrical measurements
+    else if (fieldName.includes('voltage')) {
+      unitInfo = ' (in volts)';
+    } else if (fieldName.includes('current')) {
+      unitInfo = ' (in amperes)';
+    } else if (fieldName.includes('power')) {
+      unitInfo = ' (in watts)';
+    }
+
+    // Dimensional measurements
+    else if (['length', 'width', 'height', 'depth', 'thickness', 'diameter', 'radius'].some(term => fieldName.includes(term))) {
+      unitInfo = ' (typically in millimeters)';
+    } else if (fieldName.includes('area')) {
+      unitInfo = ' (typically in mm²)';
+    } else if (fieldName.includes('volume')) {
+      unitInfo = ' (typically in cm³ or liters)';
+    }
+
+    // Speed/Rate measurements
+    else if (fieldName.includes('rpm')) {
+      unitInfo = ' (in revolutions per minute)';
+    } else if (fieldName.includes('rate') || fieldName.includes('speed') || fieldName.includes('velocity')) {
+      unitInfo = ' (units vary by context)';
+    } else if (fieldName.includes('flow')) {
+      unitInfo = ' (typically in L/min or m³/h)';
+    }
+
+    // Generic measurement fields
+    else if (['value', 'result', 'reading', 'measurement'].some(term => fieldName.includes(term))) {
+      if (hasUnitField) {
+        unitInfo = ' (units specified in associated `unit` field)';
+      } else {
+        unitInfo = ' (units context-dependent)';
+      }
+    }
+
+    return currentDescription + unitInfo;
   }
 }
 

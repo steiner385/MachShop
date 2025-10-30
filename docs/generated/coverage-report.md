@@ -1,65 +1,33 @@
 # Documentation Coverage Report
 
-Generated: 10/30/2025, 9:59:11 AM
+Generated: 10/30/2025, 2:06:17 PM
 
 ## Summary
 
 | Metric | Value | Coverage |
 |--------|-------|----------|
 | **Tables** | 186 / 186 | 100% |
-| **Fields** | 50 / 3536 | 1% |
+| **Fields** | 3536 / 3536 | 100% |
 
 ## Coverage by Category
 
 | Category | Tables | Table Coverage | Fields | Field Coverage |
 |----------|--------|----------------|--------|----------------|
-| Core Infrastructure | 17/17 | 100% | 15/318 | 5% |
-| Personnel Management | 6/6 | 100% | 4/145 | 3% |
-| Other | 94/94 | 100% | 0/1775 | 0% |
-| Material Management | 10/10 | 100% | 5/242 | 2% |
-| Production Management | 26/26 | 100% | 4/536 | 1% |
-| Quality Management | 5/5 | 100% | 0/78 | 0% |
-| Document Management | 13/13 | 100% | 0/210 | 0% |
-| Security & Access | 10/10 | 100% | 10/131 | 8% |
-| Time Tracking | 5/5 | 100% | 12/101 | 12% |
+| Core Infrastructure | 17/17 | 100% | 318/318 | 100% |
+| Personnel Management | 6/6 | 100% | 145/145 | 100% |
+| Other | 94/94 | 100% | 1775/1775 | 100% |
+| Material Management | 10/10 | 100% | 242/242 | 100% |
+| Production Management | 26/26 | 100% | 536/536 | 100% |
+| Quality Management | 5/5 | 100% | 78/78 | 100% |
+| Document Management | 13/13 | 100% | 210/210 | 100% |
+| Security & Access | 10/10 | 100% | 131/131 | 100% |
+| Time Tracking | 5/5 | 100% | 101/101 | 100% |
 
 ## Missing Documentation
 
 ### Tables Without Documentation (0)
 
-### Fields Without Documentation (3486)
-- Enterprise.id
-- Enterprise.description
-- Enterprise.isActive
-- Enterprise.createdAt
-- Enterprise.updatedAt
-- Enterprise.sites
-- Site.id
-- Site.isActive
-- Site.createdAt
-- Site.updatedAt
-- Site.areas
-- Site.auditReports
-- Site.equipment
-- Site.indirectCostCodes
-- Site.ncrs
-- Site.operations
-- Site.partAvailability
-- Site.permissionChangeLogs
-- Site.permissionUsageLogs
-- Site.productionSchedules
-- Site.routingTemplates
-- Site.routings
-- Site.securityEvents
-- Site.enterprise
-- Site.timeTrackingConfiguration
-- Site.userSiteRoles
-- Site.workOrders
-- Site.roleTemplateInstances
-- Site.roleTemplateUsageLogs
-- Area.id
-
-... and 3456 more fields.
+### Fields Without Documentation (0)
 
 ## Recommendations
 

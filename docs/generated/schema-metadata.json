@@ -40726,7 +40726,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Work Instruction Relation - Relationships between work instructions",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nWork Instruction Relation - Relationships between work instructions\nDocument Management - 7 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -40974,7 +40974,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Export Template - Templates for exporting work instructions",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nExport Template - Templates for exporting work instructions\nGeneral Operations - 16 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -41163,7 +41163,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Data Collection Field Template - Reusable field templates",
+      "documentation": "Instructions for ExportTemplate\nPurpose: Supports General Operations operations by tracking instructions\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nData Collection Field Template - Reusable field templates\nGeneral Operations - 12 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -48607,7 +48607,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Workstation Display Config - Physical display configuration for workstations",
+      "documentation": "Purpose: Tracks latest changes for audit\nCategory: Audit\nExamples: 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nWorkstation Display Config - Physical display configuration for workstations\nGeneral Operations - 13 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -53474,7 +53474,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO Affected Document - Links ECOs to documents that need updates",
+      "documentation": "Purpose: Supports General Operations operations by tracking tasks\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nECO Affected Document - Links ECOs to documents that need updates\nDocument Management - 16 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -53779,7 +53779,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO Task - Implementation tasks for ECO completion",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nECO Task - Implementation tasks for ECO completion\nGeneral Operations - 19 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -53989,7 +53989,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO Attachment - Supporting documents for ECOs",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nECO Attachment - Supporting documents for ECOs\nGeneral Operations - 12 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -54187,7 +54187,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO History - Complete audit trail for ECO changes",
+      "documentation": "Eco for ECOAttachment\nPurpose: Supports General Operations operations by tracking eco\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nECO History - Complete audit trail for ECO changes\nGeneral Operations - 12 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -54468,7 +54468,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO CRB Review - Change Review Board meeting records",
+      "documentation": "Purpose: Supports General Operations operations by tracking eco\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nECO CRB Review - Change Review Board meeting records\nGeneral Operations - 18 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -54627,7 +54627,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "ECO Relation - Relationships between ECOs",
+      "documentation": "Eco for ECOCRBReview\nPurpose: Supports General Operations operations by tracking eco\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nECO Relation - Relationships between ECOs\nGeneral Operations - 8 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -54810,7 +54810,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "CRB Configuration - Change Review Board setup",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nCRB Configuration - Change Review Board setup\nGeneral Operations - 11 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -55190,7 +55190,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Document Comment - Threaded comments on documents",
+      "documentation": "Constraints: NOT NULL\nLast modification timestamp\nPurpose: Tracks latest changes for audit\nCategory: Audit\nExamples: 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nDocument Comment - Threaded comments on documents\nDocument Management - 25 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -55341,7 +55341,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Comment Reaction - Reactions to comments",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nComment Reaction - Reactions to comments\nGeneral Operations - 7 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -55609,7 +55609,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Document Annotation - Visual annotations on media",
+      "documentation": "Purpose: Supports General Operations operations by tracking comment\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nDocument Annotation - Visual annotations on media\nDocument Management - 18 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -55942,7 +55942,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Review Assignment - Document review assignments",
+      "documentation": "Last modification timestamp\nPurpose: Tracks latest changes for audit\nCategory: Audit\nExamples: 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nReview Assignment - Document review assignments\nGeneral Operations - 23 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -56127,7 +56127,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Document Activity - Activity log for documents",
+      "documentation": "Purpose: Supports General Operations operations by tracking signed off at\nCategory: Audit\nExamples: 2024-10-30T10:00:00Z, 2024-10-30T14:30:00Z\nDocument Activity - Activity log for documents\nDocument Management - 11 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -56288,7 +56288,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Document Subscription - User subscriptions to document updates",
+      "documentation": "Category: Audit\nExamples: 2024-10-30T10:00:00Z, 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nDocument Subscription - User subscriptions to document updates\nDocument Management - 9 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -56725,7 +56725,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Document Edit Session - Real-time collaboration sessions",
+      "documentation": "Expires at for UserNotification\nPurpose: Supports Personnel Management operations by tracking expires at\nCategory: Audit\nExamples: 2024-10-30T10:00:00Z, 2024-10-30T14:30:00Z\nDocument Edit Session - Real-time collaboration sessions\nDocument Management - 12 fields documented\nBusiness Domain: Document Management",
       "category": "Document Management",
       "isJunctionTable": false,
       "primaryKey": {
@@ -56929,7 +56929,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Conflict Resolution - Merge conflict resolutions",
+      "documentation": "Active status flag\nPurpose: Enable/disable entity in processes\nCategory: Status\nExamples: true, false\nConstraints: NOT NULL\nConflict Resolution - Merge conflict resolutions\nGeneral Operations - 13 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -57617,7 +57617,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Cloud storage file registry\nTracks all files stored in S3/MinIO with versioning, deduplication, and metadata",
+      "documentation": "Category: Audit\nExamples: 2024-10-30T10:00:00Z, 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nCloud storage file registry\nTracks all files stored in S3/MinIO with versioning, deduplication, and metadata\nGeneral Operations - 47 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -57921,7 +57921,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "File version history for comprehensive version tracking",
+      "documentation": "Examples: Example value\nConstraints: NOT NULL\nFile version history for comprehensive version tracking\nGeneral Operations - 18 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -58296,7 +58296,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Backup schedules for automated backup management",
+      "documentation": "Purpose: Supports General Operations operations by tracking file\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nBackup schedules for automated backup management\nGeneral Operations - 25 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -58619,7 +58619,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Backup execution history and status tracking",
+      "documentation": "Backup history for BackupSchedule\nPurpose: Supports General Operations operations by tracking backup history\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nBackup execution history and status tracking\nGeneral Operations - 21 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -58813,7 +58813,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Backup entries linking files to backup instances",
+      "documentation": "Purpose: Supports General Operations operations by tracking schedule\nCategory: Other\nExamples: Example value\nBackup entries linking files to backup instances\nGeneral Operations - 10 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -59122,7 +59122,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "File access logging for security and analytics",
+      "documentation": "File for BackupEntry\nPurpose: Supports General Operations operations by tracking file\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nFile access logging for security and analytics\nGeneral Operations - 20 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -59590,7 +59590,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Storage analytics and metrics for monitoring",
+      "documentation": "Purpose: Supports General Operations operations by tracking file\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nStorage analytics and metrics for monitoring\nGeneral Operations - 31 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -59870,7 +59870,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Multipart upload session tracking",
+      "documentation": "Examples: 1, 10\nConstraints: NOT NULL\nEstimated cost for StorageMetrics\nPurpose: Supports General Operations operations by tracking estimated cost\nCategory: Other\nExamples: Example value\nMultipart upload session tracking\nGeneral Operations - 19 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -60142,7 +60142,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Enhanced Role model - Replaces placeholder in auth service\nSupports both global and site-specific roles with flexible permission assignment",
+      "documentation": "Category: Other\nExamples: Example value\nEnhanced Role model - Replaces placeholder in auth service\nSupports both global and site-specific roles with flexible permission assignment\nSecurity & Access - 13 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -60357,7 +60357,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Enhanced Permission model - Replaces placeholder in auth service\nGranular permissions with wildcard support and categorization",
+      "documentation": "Purpose: Supports Security & Access operations by tracking template instance\nCategory: Other\nExamples: Example value\nEnhanced Permission model - Replaces placeholder in auth service\nGranular permissions with wildcard support and categorization\nSecurity & Access - 11 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -60501,7 +60501,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Junction table: Role ↔ Permission (many-to-many)\nDefines which permissions are assigned to each role",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nJunction table: Role ↔ Permission (many-to-many)\nDefines which permissions are assigned to each role\nSecurity & Access - 7 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -60930,7 +60930,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)\nAssigns site-specific roles to users for enhanced granular control",
+      "documentation": "Examples: Example value\nConstraints: NOT NULL\nJunction table: User ↔ Role ↔ Site (many-to-many, site-specific)\nAssigns site-specific roles to users for enhanced granular control\nPersonnel Management - 10 fields documented\nBusiness Domain: Personnel Management",
       "category": "Core Infrastructure",
       "isJunctionTable": false,
       "primaryKey": {
@@ -61288,7 +61288,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Time tracking configuration (site level)\nControls how time tracking behaves at each manufacturing site",
+      "documentation": "Examples: Example value\nConstraints: NOT NULL\nTime tracking configuration (site level)\nControls how time tracking behaves at each manufacturing site\nGeneral Operations - 21 fields documented\nBusiness Domain: General Operations",
       "category": "Time Tracking",
       "isJunctionTable": false,
       "primaryKey": {
@@ -61816,7 +61816,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Labor time entry (operator clocking in/out)\nRecords when operators clock in and out for work orders, operations, or indirect activities",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nLabor time entry (operator clocking in/out)\nRecords when operators clock in and out for work orders, operations, or indirect activities\nGeneral Operations - 33 fields documented\nBusiness Domain: General Operations",
       "category": "Time Tracking",
       "isJunctionTable": false,
       "primaryKey": {
@@ -62195,7 +62195,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Machine time entry (equipment run time)\nRecords machine run time separately from labor for equipment-based costing",
+      "documentation": "Machine time entry (equipment run time)\nRecords machine run time separately from labor for equipment-based costing\nEquipment Management - 22 fields documented\nBusiness Domain: Equipment Management",
       "category": "Time Tracking",
       "isJunctionTable": false,
       "primaryKey": {
@@ -62456,7 +62456,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Indirect cost codes (non-productive time)\nDefines categories for non-productive time like breaks, training, meetings",
+      "documentation": "Examples: Example value\nIndirect cost codes (non-productive time)\nDefines categories for non-productive time like breaks, training, meetings\nGeneral Operations - 15 fields documented\nBusiness Domain: General Operations",
       "category": "Time Tracking",
       "isJunctionTable": false,
       "primaryKey": {
@@ -62623,7 +62623,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Time entry validation rules (business logic)\nConfigurable rules for validating time entries and preventing common errors",
+      "documentation": "Purpose: Supports General Operations operations by tracking labor entries\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nTime entry validation rules (business logic)\nConfigurable rules for validating time entries and preventing common errors\nGeneral Operations - 10 fields documented\nBusiness Domain: General Operations",
       "category": "Time Tracking",
       "isJunctionTable": false,
       "primaryKey": {
@@ -62865,7 +62865,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "SSO Provider Registry\nCentralized registry of all configured SSO providers",
+      "documentation": "Last modification timestamp\nPurpose: Tracks latest changes for audit\nCategory: Audit\nExamples: 2024-10-30T14:30:00Z\nConstraints: NOT NULL\nSSO Provider Registry\nCentralized registry of all configured SSO providers\nGeneral Operations - 15 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -63056,7 +63056,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "SSO Session Management\nUnified session handling across multiple providers",
+      "documentation": "Purpose: Supports General Operations operations by tracking sso sessions\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nSSO Session Management\nUnified session handling across multiple providers\nGeneral Operations - 10 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -63297,7 +63297,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Authentication Analytics\nComprehensive tracking of authentication events and metrics",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nAuthentication Analytics\nComprehensive tracking of authentication events and metrics\nGeneral Operations - 14 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -63454,7 +63454,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Home Realm Discovery Rules\nAutomatic provider selection based on user attributes",
+      "documentation": "Category: Other\nExamples: Example value\nHome Realm Discovery Rules\nAutomatic provider selection based on user attributes\nGeneral Operations - 8 fields documented\nBusiness Domain: General Operations",
       "category": "Other",
       "isJunctionTable": false,
       "primaryKey": {
@@ -63701,7 +63701,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Permission Usage Tracking\nLogs every permission check with full context for security monitoring",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nPermission Usage Tracking\nLogs every permission check with full context for security monitoring\nSecurity & Access - 14 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -63996,7 +63996,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Security Event Monitoring\nTracks security-related events for threat detection and compliance",
+      "documentation": "Constraints: NOT NULL\nSecurity Event Monitoring\nTracks security-related events for threat detection and compliance\nGeneral Operations - 16 fields documented\nBusiness Domain: General Operations",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -64842,7 +64842,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Permission Change History\nTracks all changes to user permissions and roles for compliance",
+      "documentation": "Category: Other\nExamples: Example value\nPermission Change History\nTracks all changes to user permissions and roles for compliance\nSecurity & Access - 14 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -65165,7 +65165,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Role Template Actions for Audit Trail\nRole Template - Master template definition for role configurations",
+      "documentation": "Role Template Actions for Audit Trail\nRole Template - Master template definition for role configurations\nSecurity & Access - 18 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -65337,7 +65337,7 @@
         }
       ],
       "relationships": [],
-      "documentation": "Role Template Permissions - Defines permissions included in each template",
+      "documentation": "Category: Other\nExamples: Example value\nRole Template Permissions - Defines permissions included in each template\nSecurity & Access - 9 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -65613,7 +65613,7 @@
           "isRequired": true
         }
       ],
-      "documentation": "Role Template Instance - Tracks when templates are instantiated into actual roles",
+      "documentation": "Category: Other\nExamples: Example value\nConstraints: NOT NULL\nRole Template Instance - Tracks when templates are instantiated into actual roles\nSecurity & Access - 15 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -65889,7 +65889,7 @@
           "isRequired": false
         }
       ],
-      "documentation": "Role Template Usage Log - Audit trail for template operations",
+      "documentation": "Purpose: Supports Security & Access operations by tracking usage logs\nCategory: Other\nExamples: Example value\nConstraints: NOT NULL\nRole Template Usage Log - Audit trail for template operations\nSecurity & Access - 14 fields documented\nBusiness Domain: Security & Access",
       "category": "Security & Access",
       "isJunctionTable": false,
       "primaryKey": {
@@ -69461,7 +69461,7 @@
     "provider": "postgresql",
     "url": "env(\"DATABASE_URL\")"
   },
-  "generatedAt": "2025-10-30T13:59:11.407Z",
+  "generatedAt": "2025-10-30T15:40:48.529Z",
   "totalModels": 186,
   "totalFields": 3536,
   "totalRelationships": 417

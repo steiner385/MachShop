@@ -353,7 +353,7 @@ issues:
     strategic_focus: null
     business_value: 7
     effort_estimate: 5
-    blocks: [166, 167]
+    blocks: [166, 167, 213, 214, 215, 216, 217]
     notes: "COMPLETED - Foundation for comprehensive database documentation - Complete data dictionary infrastructure with automated tooling for 186 models, 3,536 fields, 417 relationships. Implemented in PR #205"
 
   # --- Production Alerts & Andon ---
@@ -367,6 +367,51 @@ issues:
     effort_estimate: 7
     blocks: [172, 173]
     notes: "Foundation for shop floor issue escalation - configurable at global/site levels, data models, UI for raising alerts"
+
+  # --- Data Quality & Schema Normalization ---
+  - number: 206
+    title: "Data Quality: Create UnitOfMeasure Lookup Table & Migrate String Fields"
+    category: data_quality
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 5
+    blocks: []
+    notes: "Foundation for unit standardization - affects ~40 fields across Material, Inventory, Production, Quality modules. Enables unit conversions, prevents data errors, supports compliance traceability"
+
+  - number: 207
+    title: "Data Quality: Create Location/Warehouse Lookup Table & Migrate String Fields"
+    category: data_quality
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "Foundation for location management - affects ~15 fields. Enables location hierarchies, capacity tracking, warehouse zone management"
+
+  - number: 208
+    title: "Data Quality: Create Currency Lookup Table & Migrate String Fields"
+    category: data_quality
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "Foundation for multi-currency operations - affects ~10 fields. Enables exchange rate tracking, proper decimal handling, international operations"
+
+  - number: 209
+    title: "Data Quality: Create Department Lookup Table for Organizational Structure"
+    category: data_quality
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 4
+    blocks: []
+    notes: "Foundation for organizational structure - affects ~5 fields. Enables org hierarchy, cost center tracking, departmental reporting"
 
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
@@ -721,8 +766,63 @@ issues:
     strategic_focus: null
     business_value: 7
     effort_estimate: 5
-    blocks: [167]
+    blocks: [167, 213, 214, 215, 216, 217]
     notes: "Comprehensive documentation of all database schemas, tables, columns, and relationships"
+
+  - number: 213
+    title: "Database Documentation: Business Context & Rules for All Tables/Fields"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "Systematically populate business context attributes (businessRule, businessPurpose, businessJustification, businessImpact) for all 3,536 fields across 186 database tables"
+
+  - number: 214
+    title: "Database Documentation: Technical Specifications for All Tables/Fields"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Systematically populate technical specification attributes (dataSource, format, validation, calculations) for all 3,536 fields across 186 database tables"
+
+  - number: 215
+    title: "Database Documentation: Examples & Valid Values for All Tables/Fields"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Systematically populate usage examples and valid values (examples, validValues) for all 3,536 fields across 186 database tables"
+
+  - number: 216
+    title: "Database Documentation: Compliance & Governance for All Tables/Fields"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Systematically populate compliance and governance attributes (privacy, retention, auditTrail, complianceNotes, consequences) for all 3,536 fields across 186 database tables"
+
+  - number: 217
+    title: "Database Documentation: Integration Mapping for All Tables/Fields"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [165, 166]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "Systematically populate integration mapping (integrationMapping) for all 3,536 fields across 186 database tables to document external system relationships and data flow"
 
   # --- Production Alerts & Andon ---
   - number: 172
@@ -751,6 +851,18 @@ issues:
     effort_estimate: 5
     blocks: []
     notes: "Integration with third-party eAndon systems - use MES UI for raising alerts, delegate escalation to external platforms"
+
+  # --- Data Quality & Schema Normalization ---
+  - number: 210
+    title: "Data Quality: Create Equipment/Material Type Lookup Tables"
+    category: data_quality
+    foundation_level: 2
+    dependencies: []
+    strategic_focus: null
+    business_value: 6
+    effort_estimate: 6
+    blocks: []
+    notes: "Enhanced categorization - create lookup tables for Equipment Type, Part Type, Manufacturer, and Model. Affects ~10+ fields. Enables structured filtering, manufacturer/model hierarchies, improved equipment/material management"
 
   # --- AI/ML Advanced Features ---
   - number: 146
@@ -992,6 +1104,18 @@ issues:
     effort_estimate: 5
     blocks: []
     notes: "Productivity analytics and operator feedback"
+
+  # --- Data Quality & Schema Normalization ---
+  - number: 211
+    title: "Data Quality: Convert String Fields to Enums (color, makeOrBuy, periodType)"
+    category: data_quality
+    foundation_level: 3
+    dependencies: []
+    strategic_focus: null
+    business_value: 5
+    effort_estimate: 3
+    blocks: []
+    notes: "Type safety improvements - convert small set of String fields to proper Enums (ParameterGroup.color, Part.makeOrBuy, ProductionSchedule.periodType). Low complexity, high code quality impact"
 
   # --- Advanced Production Planning ---
   - number: 86
@@ -1443,3 +1567,7 @@ categories:
   production_alerts:
     name: "Production Alerts & Andon"
     description: "Shop floor issue escalation and Andon system with multi-channel notifications and external system integration"
+
+  data_quality:
+    name: "Data Quality & Schema Normalization"
+    description: "Database schema normalization, lookup table migrations, enum conversions, and data integrity improvements"
