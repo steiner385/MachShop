@@ -71,7 +71,19 @@
     "validate:deps": "node scripts/validate-dependencies.js",
     "deps:audit": "npm audit",
     "deps:update": "npm update && npm audit",
-    "deps:check-unused": "npx depcheck"
+    "deps:check-unused": "npx depcheck",
+    "schema:build": "bash ./prisma/modular/build-schema.sh",
+    "schema:dev": "npm run schema:build && npx prisma generate",
+    "schema:migrate": "npm run schema:build && npx prisma migrate dev",
+    "schema:deploy": "npm run schema:build && npx prisma migrate deploy",
+    "schema:modularize": "tsx src/tools/schema-modularizer.ts",
+    "schema:docs:migrate": "tsx src/tools/modular-documentation-migrator.ts",
+    "schema:docs:integrate": "tsx src/tools/prisma-compliant-doc-migrator.ts",
+    "schema:final": "npm run schema:docs:integrate && npx prisma validate --schema=./prisma/schema.final.prisma",
+    "schema:validate:all": "npx prisma validate && npm run schema:final",
+    "schema:docs:validate": "npm run schema:final && npm run docs:schema:coverage",
+    "db:generate:documented": "npx prisma generate --schema=./prisma/schema.final.prisma",
+    "docs:check": "npm run schema:docs:validate && npm run docs:schema:enhanced:quick"
   },
   "keywords": [
     "manufacturing",
