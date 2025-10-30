@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 // import swaggerUi from 'swagger-ui-express';
 import { config } from './config/config';
 import { logger } from './utils/logger';
@@ -14,6 +15,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { requestLogger } from './middleware/requestLogger';
 import { metricsMiddleware, setupMetricsEndpoint } from './middleware/metrics';
+import { csrfProtection } from './middleware/csrf';
 
 // Import route handlers
 import authRoutes from './routes/auth';
@@ -129,11 +131,15 @@ app.use(cors({
   origin: config.cors.allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Client-Token'],
+  exposedHeaders: ['X-CSRF-Client-Token'],
 }));
 
 // Compression middleware
 app.use(compression());
+
+// Cookie parsing middleware (required for CSRF protection)
+app.use(cookieParser());
 
 // Rate limiting (disabled in test environment to prevent HTTP 429 errors during E2E tests)
 if (config.env !== 'test') {
@@ -281,6 +287,18 @@ apiRouter.use('/role-templates', authMiddleware, roleTemplateRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
+
+// CSRF Protection for API routes (GitHub Issue #117: Cross-Site Request Forgery Protection)
+// Applied to all authenticated API endpoints except auth and SSO
+app.use('/api/v1', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Skip CSRF protection for authentication and SSO endpoints
+  if (req.path.startsWith('/auth') || req.path.startsWith('/sso')) {
+    return next();
+  }
+
+  // Apply CSRF protection to all other authenticated endpoints
+  return csrfProtection(req, res, next);
+});
 
 // Mount API routes
 app.use('/api/v1', apiRouter);
