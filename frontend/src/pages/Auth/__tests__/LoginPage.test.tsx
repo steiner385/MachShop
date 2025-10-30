@@ -2,11 +2,11 @@ import { render, screen, fireEvent as _fireEvent, waitFor } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import LoginPage from '@/pages/Auth/LoginPage';
-import { useAuthStore } from '@/store/AuthStore';
+import LoginPage from '../LoginPage';
+import { useAuthStore } from '../../../store/AuthStore';
 
 // Mock the auth store
-vi.mock('@/store/AuthStore', () => ({
+vi.mock('../../../store/AuthStore', () => ({
   useAuthStore: vi.fn()
 }));
 
