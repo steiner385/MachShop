@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -9,9 +9,13 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   Panel,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import '../../styles/reactflow-keyboard.css';
 import { listFormulas, extractDependencies, ParameterFormula } from '../../api/parameters';
+import { useReactFlowKeyboard, generateReactFlowAriaLabels } from '@/hooks/useReactFlowKeyboard';
+import { announceToScreenReader } from '@/utils/ariaUtils';
 
 interface DependencyVisualizerProps {
   formulaId?: string; // Optional: highlight specific formula and its dependencies
@@ -40,6 +44,47 @@ export const DependencyVisualizer: React.FC<DependencyVisualizerProps> = ({ form
   const [selectedNode, setSelectedNode] = useState<string | null>(formulaId || null);
   const [cycles, setCycles] = useState<string[][]>([]);
   const [showCycles, setShowCycles] = useState(false);
+
+  const reactFlowInstance = useReactFlow();
+
+  // Keyboard navigation callbacks for dependency graph
+  const handleNodeSelect = useCallback((nodeId: string) => {
+    setSelectedNode(nodeId);
+    announceToScreenReader(`Selected formula: ${nodeId}`);
+  }, []);
+
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    // DependencyVisualizer is read-only, so no deletion allowed
+    announceToScreenReader('Dependencies are read-only and cannot be deleted');
+  }, []);
+
+  const handleEdgeSelect = useCallback((edgeId: string) => {
+    // Find the edge to get source and target info
+    const edge = edges.find(e => e.id === edgeId);
+    if (edge) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      announceToScreenReader(
+        `Selected dependency from ${sourceNode?.data.label || edge.source} to ${targetNode?.data.label || edge.target}`
+      );
+    }
+  }, [edges, nodes]);
+
+  // Initialize keyboard navigation for dependency graph
+  const {
+    containerRef,
+    focusElement,
+    clearFocusIndicators,
+  } = useReactFlowKeyboard({
+    reactFlowInstance,
+    nodes,
+    edges,
+    onNodeSelect: handleNodeSelect,
+    onEdgeSelect: handleEdgeSelect,
+    onNodeDelete: handleNodeDelete,
+    enableNodeEdit: false, // Read-only visualization
+    enableConnection: false, // Read-only visualization
+  });
 
   useEffect(() => {
     loadDependencyGraph();
@@ -349,10 +394,47 @@ export const DependencyVisualizer: React.FC<DependencyVisualizerProps> = ({ form
   }
 
   return (
-    <div style={{ width: '100%', height: '600px', border: '1px solid #E0E0E0', borderRadius: '8px' }}>
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '600px', border: '1px solid #E0E0E0', borderRadius: '8px' }}
+      role="application"
+      aria-label="Parameter dependency visualization"
+      aria-describedby="dependency-instructions"
+    >
+      {/* Skip to content link for keyboard users */}
+      <a href="#dependency-diagram-content" className="reactflow-skip-link">
+        Skip to dependency diagram
+      </a>
+
+      {/* Screen reader instructions */}
+      <div id="dependency-instructions" className="sr-only">
+        Parameter dependency diagram. Use Tab to navigate between formulas and connections, arrow keys to move between elements.
+        Press Enter to select a formula and highlight its dependencies. This diagram is read-only.
+      </div>
+
+      {/* Live region for announcements */}
+      <div className="reactflow-announcements" aria-live="polite" aria-atomic="true"></div>
+
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        id="dependency-diagram-content"
+        nodes={nodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            ...generateReactFlowAriaLabels.node(node),
+          },
+        }))}
+        edges={edges.map(edge => {
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          const targetNode = nodes.find(n => n.id === edge.target);
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              ...generateReactFlowAriaLabels.edge(edge, sourceNode, targetNode),
+            },
+          };
+        })}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
