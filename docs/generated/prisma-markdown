@@ -36,6 +36,20 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"departments" {
+  String id PK
+  String departmentCode UK
+  String departmentName
+  String description "nullable"
+  String parentDepartmentId FK "nullable"
+  String siteId FK "nullable"
+  String costCenter "nullable"
+  String budgetCode "nullable"
+  String managerId FK "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
 "users" {
   String id PK
   String username UK
@@ -57,6 +71,7 @@ erDiagram
   String emergencyContact "nullable"
   String emergencyPhone "nullable"
   String department "nullable"
+  String departmentId FK "nullable"
   String supervisorId FK "nullable"
   String costCenter "nullable"
   Float laborRate "nullable"
@@ -1553,6 +1568,166 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"andon_alerts" {
+  String id PK
+  String alertNumber UK
+  String title
+  String description "nullable"
+  String issueTypeId FK
+  AndonSeverity severity
+  AndonPriority priority
+  String siteId FK "nullable"
+  String areaId FK "nullable"
+  String workCenterId FK "nullable"
+  String equipmentId FK "nullable"
+  String workOrderId FK "nullable"
+  String operationId FK "nullable"
+  String raisedById FK
+  String assignedToId FK "nullable"
+  AndonAlertStatus status
+  Json statusHistory
+  Int currentEscalationLevel
+  DateTime nextEscalationAt "nullable"
+  Json escalationHistory
+  DateTime resolvedAt "nullable"
+  String resolvedById FK "nullable"
+  String resolutionNotes "nullable"
+  String resolutionActionTaken "nullable"
+  Int responseTime "nullable"
+  Int resolutionTime "nullable"
+  Json metadata "nullable"
+  Json attachments
+  DateTime createdAt
+  DateTime updatedAt
+}
+"andon_issue_types" {
+  String id PK
+  String typeCode UK
+  String typeName
+  String description "nullable"
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean requiresAttachment
+  Boolean requiresWorkOrder
+  Boolean requiresEquipment
+  String autoAssignRole "nullable"
+  String autoAssignUserId FK "nullable"
+  Boolean enableEscalation
+  Int escalationTimeoutMins "nullable"
+  String siteId FK "nullable"
+  String iconName "nullable"
+  String colorCode "nullable"
+  Boolean isActive
+  Int displayOrder "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rules" {
+  String id PK
+  String ruleName
+  String description "nullable"
+  String siteId FK "nullable"
+  String issueTypeId FK "nullable"
+  AndonSeverity triggerSeverity
+  Int triggerAfterMinutes
+  Int escalationLevel
+  String notifyUserIds
+  String notifyRoles
+  String notifyChannels
+  String assignToUserId FK "nullable"
+  String assignToRole "nullable"
+  Json conditions "nullable"
+  Boolean isActive
+  Int executionCount
+  DateTime lastExecutedAt "nullable"
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rule_results" {
+  String id PK
+  String alertId FK
+  String ruleId FK
+  DateTime executedAt
+  Int escalationLevel
+  Boolean success
+  String errorMessage "nullable"
+  Json actionsTaken
+  String notifiedUsers
+}
+"andon_configurations" {
+  String id PK
+  String configKey UK
+  Json configValue
+  String description "nullable"
+  String dataType
+  String category
+  Boolean isRequired
+  Json validationRules "nullable"
+  Json defaultValue "nullable"
+  Boolean isEncrypted
+  String accessLevel
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_site_configurations" {
+  String id PK
+  String siteId FK
+  String configKey
+  Json configValue
+  Boolean isOverride
+  Boolean inheritFromGlobal
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_notification_templates" {
+  String id PK
+  String templateKey UK
+  String templateName
+  String description "nullable"
+  String subject
+  String bodyTemplate
+  Json variables
+  String emailTemplate "nullable"
+  String smsTemplate "nullable"
+  String pushTemplate "nullable"
+  String siteId FK "nullable"
+  Boolean isActive
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_system_settings" {
+  String id PK
+  String siteId FK "nullable"
+  Boolean andonEnabled
+  Boolean escalationEnabled
+  Boolean notificationsEnabled
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean autoAssignEnabled
+  Int defaultResponseTimeMin "nullable"
+  Int maxEscalationLevels
+  Int baseEscalationDelayMin
+  Boolean enableMobileAccess
+  Boolean enableKioskMode
+  Boolean requireComments
+  Boolean allowAnonymousReports
+  Json integrationSettings "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
 "integration_configs" {
   String id PK
   String name UK
@@ -1726,6 +1901,7 @@ erDiagram
   String email "nullable"
   String employeeNumber "nullable"
   String department "nullable"
+  String departmentId FK "nullable"
   String jobTitle "nullable"
   Json skills "nullable"
   Json certifications "nullable"
@@ -2645,6 +2821,7 @@ erDiagram
   String requestorId
   String requestorName
   String requestorDept "nullable"
+  String requestorDeptId FK "nullable"
   DateTime requestDate
   String sponsorId "nullable"
   String sponsorName "nullable"
@@ -2700,6 +2877,7 @@ erDiagram
   String assignedToId "nullable"
   String assignedToName "nullable"
   String assignedToDept "nullable"
+  String assignedToDeptId FK "nullable"
   ECOTaskStatus status
   DateTime dueDate "nullable"
   DateTime startedAt "nullable"
@@ -4753,6 +4931,7 @@ erDiagram
   String requestorId "nullable"
   String requestorName
   String requestorDept "nullable"
+  String requestorDeptId FK "nullable"
   String requestorEmail "nullable"
   DateTime requestDate
   String status
@@ -4830,8 +5009,12 @@ erDiagram
 }
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
+"departments" }o--o| "departments" : parentDepartment
+"departments" }o--o| "sites" : site
+"departments" |o--o| "users" : manager
 "users" }o--o| "personnel_classes" : personnelClass
 "users" }o--o| "users" : supervisor
+"users" }o--o| "departments" : departmentRelation
 "personnel_classes" }o--o| "personnel_classes" : parentClass
 "personnel_qualifications" }o--o| "personnel_classes" : personnelClass
 "personnel_certifications" }o--|| "users" : personnel
@@ -4989,6 +5172,29 @@ erDiagram
 "inspection_records" }o--o| "serialized_parts" : serializedPart
 "program_download_logs" }o--o| "cnc_programs" : cncProgram
 "operation_gauge_requirements" }o--|| "measurement_equipment" : measurementEquipment
+"andon_alerts" }o--|| "andon_issue_types" : issueType
+"andon_alerts" }o--o| "sites" : site
+"andon_alerts" }o--o| "areas" : area
+"andon_alerts" }o--o| "work_centers" : workCenter
+"andon_alerts" }o--o| "equipment" : equipment
+"andon_alerts" }o--o| "work_orders" : workOrder
+"andon_alerts" }o--o| "operations" : operation
+"andon_alerts" }o--|| "users" : raisedBy
+"andon_alerts" }o--o| "users" : assignedTo
+"andon_alerts" }o--o| "users" : resolvedBy
+"andon_issue_types" }o--o| "users" : autoAssignUser
+"andon_issue_types" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "andon_issue_types" : issueType
+"andon_escalation_rules" }o--o| "users" : assignToUser
+"andon_escalation_rule_results" }o--|| "andon_alerts" : alert
+"andon_escalation_rule_results" }o--|| "andon_escalation_rules" : rule
+"andon_configurations" }o--|| "users" : lastModifiedByUser
+"andon_site_configurations" }o--|| "sites" : site
+"andon_site_configurations" }o--|| "users" : lastModifiedByUser
+"andon_notification_templates" }o--o| "sites" : site
+"andon_system_settings" |o--o| "sites" : site
+"andon_system_settings" }o--|| "users" : lastModifiedByUser
 "integration_logs" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--o| "parts" : part
@@ -5002,6 +5208,7 @@ erDiagram
 "erp_material_transactions" }o--o| "work_orders" : workOrder
 "erp_material_transactions" }o--o| "currencies" : currencyRef
 "personnel_info_exchanges" }o--|| "integration_configs" : config
+"personnel_info_exchanges" }o--o| "departments" : departmentRelation
 "equipment_data_collections" }o--|| "equipment" : equipment
 "equipment_data_collections" }o--o| "work_orders" : workOrder
 "equipment_commands" }o--|| "equipment" : equipment
@@ -5077,8 +5284,10 @@ erDiagram
 "workflow_history" }o--|| "workflow_instances" : workflowInstance
 "workflow_parallel_coordination" }o--|| "workflow_stage_instances" : stageInstance
 "engineering_change_orders" }o--o| "currencies" : costCurrencyRef
+"engineering_change_orders" }o--o| "departments" : requestorDepartment
 "eco_affected_documents" }o--|| "engineering_change_orders" : eco
 "eco_tasks" }o--|| "engineering_change_orders" : eco
+"eco_tasks" }o--o| "departments" : assignedDepartment
 "eco_attachments" }o--|| "engineering_change_orders" : eco
 "eco_history" }o--|| "engineering_change_orders" : eco
 "eco_crb_reviews" }o--|| "engineering_change_orders" : eco
@@ -5296,6 +5505,7 @@ erDiagram
 "icd_compliance_checks" }o--o| "parts" : part
 "icd_change_requests" }o--|| "interface_control_documents" : icd
 "icd_change_requests" }o--o| "engineering_change_orders" : relatedEco
+"icd_change_requests" }o--o| "departments" : requestorDepartment
 "locations" }o--o| "locations" : parentLocation
 "locations" }o--o| "sites" : site
 "locations" }o--o| "areas" : area
@@ -5341,6 +5551,22 @@ erDiagram
   - `createdAt`: 
   - `updatedAt`: 
 
+### `departments`
+
+**Properties**
+  - `id`: 
+  - `departmentCode`: 
+  - `departmentName`: 
+  - `description`: 
+  - `parentDepartmentId`: 
+  - `siteId`: 
+  - `costCenter`: 
+  - `budgetCode`: 
+  - `managerId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
 ### `users`
 
 **Properties**
@@ -5364,6 +5590,7 @@ erDiagram
   - `emergencyContact`: 
   - `emergencyPhone`: 
   - `department`: 
+  - `departmentId`: 
   - `supervisorId`: 
   - `costCenter`: 
   - `laborRate`: 
@@ -7021,6 +7248,182 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `createdAt`: 
   - `updatedAt`: 
 
+### `andon_alerts`
+
+**Properties**
+  - `id`: 
+  - `alertNumber`: 
+  - `title`: 
+  - `description`: 
+  - `issueTypeId`: 
+  - `severity`: 
+  - `priority`: 
+  - `siteId`: 
+  - `areaId`: 
+  - `workCenterId`: 
+  - `equipmentId`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `raisedById`: 
+  - `assignedToId`: 
+  - `status`: 
+  - `statusHistory`: 
+  - `currentEscalationLevel`: 
+  - `nextEscalationAt`: 
+  - `escalationHistory`: 
+  - `resolvedAt`: 
+  - `resolvedById`: 
+  - `resolutionNotes`: 
+  - `resolutionActionTaken`: 
+  - `responseTime`: 
+  - `resolutionTime`: 
+  - `metadata`: 
+  - `attachments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `andon_issue_types`
+
+**Properties**
+  - `id`: 
+  - `typeCode`: 
+  - `typeName`: 
+  - `description`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `requiresAttachment`: 
+  - `requiresWorkOrder`: 
+  - `requiresEquipment`: 
+  - `autoAssignRole`: 
+  - `autoAssignUserId`: 
+  - `enableEscalation`: 
+  - `escalationTimeoutMins`: 
+  - `siteId`: 
+  - `iconName`: 
+  - `colorCode`: 
+  - `isActive`: 
+  - `displayOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rules`
+
+**Properties**
+  - `id`: 
+  - `ruleName`: 
+  - `description`: 
+  - `siteId`: 
+  - `issueTypeId`: 
+  - `triggerSeverity`: 
+  - `triggerAfterMinutes`: 
+  - `escalationLevel`: 
+  - `notifyUserIds`: 
+  - `notifyRoles`: 
+  - `notifyChannels`: 
+  - `assignToUserId`: 
+  - `assignToRole`: 
+  - `conditions`: 
+  - `isActive`: 
+  - `executionCount`: 
+  - `lastExecutedAt`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rule_results`
+
+**Properties**
+  - `id`: 
+  - `alertId`: 
+  - `ruleId`: 
+  - `executedAt`: 
+  - `escalationLevel`: 
+  - `success`: 
+  - `errorMessage`: 
+  - `actionsTaken`: 
+  - `notifiedUsers`: 
+
+### `andon_configurations`
+
+**Properties**
+  - `id`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `description`: 
+  - `dataType`: 
+  - `category`: 
+  - `isRequired`: 
+  - `validationRules`: 
+  - `defaultValue`: 
+  - `isEncrypted`: 
+  - `accessLevel`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_site_configurations`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `isOverride`: 
+  - `inheritFromGlobal`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_notification_templates`
+
+**Properties**
+  - `id`: 
+  - `templateKey`: 
+  - `templateName`: 
+  - `description`: 
+  - `subject`: 
+  - `bodyTemplate`: 
+  - `variables`: 
+  - `emailTemplate`: 
+  - `smsTemplate`: 
+  - `pushTemplate`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_system_settings`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `andonEnabled`: 
+  - `escalationEnabled`: 
+  - `notificationsEnabled`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `autoAssignEnabled`: 
+  - `defaultResponseTimeMin`: 
+  - `maxEscalationLevels`: 
+  - `baseEscalationDelayMin`: 
+  - `enableMobileAccess`: 
+  - `enableKioskMode`: 
+  - `requireComments`: 
+  - `allowAnonymousReports`: 
+  - `integrationSettings`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
 ### `integration_configs`
 
 **Properties**
@@ -7208,6 +7611,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `email`: 
   - `employeeNumber`: 
   - `department`: 
+  - `departmentId`: 
   - `jobTitle`: 
   - `skills`: 
   - `certifications`: 
@@ -8232,6 +8636,7 @@ Engineering Change Order - Core ECO entity for formal change management
   - `requestorId`: 
   - `requestorName`: 
   - `requestorDept`: 
+  - `requestorDeptId`: 
   - `requestDate`: 
   - `sponsorId`: 
   - `sponsorName`: 
@@ -8293,6 +8698,7 @@ ECO Task - Implementation tasks for ECO completion
   - `assignedToId`: 
   - `assignedToName`: 
   - `assignedToDept`: 
+  - `assignedToDeptId`: 
   - `status`: 
   - `dueDate`: 
   - `startedAt`: 
@@ -10675,6 +11081,7 @@ ICD Change Requests - Requests for changes to existing ICDs
   - `requestorId`: 
   - `requestorName`: 
   - `requestorDept`: 
+  - `requestorDeptId`: 
   - `requestorEmail`: 
   - `requestDate`: 
   - `status`: 
