@@ -67,6 +67,9 @@ model Site {
   // Time Entry Management Relations (Issue #51)
   autoStopConfiguration     AutoStopConfiguration?
 
+  // Location Management Relations (Issue #207)
+  locations                 Location[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -84,6 +87,7 @@ model Area {
   equipment   Equipment[]
   workCenters WorkCenter[]
   stagingLocations StagingLocation[]
+  locations   Location[]
 
   @@index([siteId])
   @@map("areas")
@@ -446,6 +450,8 @@ model UnitOfMeasure {
   materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
   kitItems                    KitItem[]                   @relation("KitItemUOM")
   vendorKitItems              VendorKitItem[]             @relation("VendorKitItemUOM")
+  locationCapacityUnits       Location[]                  @relation("LocationCapacityUOM")
+  locationDimensionUnits      Location[]                  @relation("LocationDimensionUOM")
 
   @@index([code])
   @@index([unitType])
@@ -574,7 +580,8 @@ model MaterialLot {
   currentQuantity     Float
   unitOfMeasure       String
   unitOfMeasureId     String?              // FK to UnitOfMeasure
-  location            String?
+  location            String?              // Legacy location field (to be deprecated)
+  locationId          String?              // FK to Location
   warehouseId         String?
   manufactureDate     DateTime?
   receivedDate        DateTime
@@ -611,6 +618,7 @@ model MaterialLot {
   parentLot           MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
   childLots           MaterialLot[]          @relation("LotGenealogy")
   unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
+  locationRef         Location?              @relation(fields: [locationId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
   kitItems            KitItem[]
@@ -700,14 +708,18 @@ model MaterialStateHistory {
   inspectionId   String?
   changedById    String?
   changedAt      DateTime            @default(now())
-  fromLocation   String?
-  toLocation     String?
+  fromLocation   String?             // Legacy location field (to be deprecated)
+  fromLocationId String?             // FK to Location
+  toLocation     String?             // Legacy location field (to be deprecated)
+  toLocationId   String?             // FK to Location
   qualityNotes   String?
   notes          String?
   metadata       Json?
   createdAt      DateTime            @default(now())
   lot            MaterialLot         @relation(fields: [lotId], references: [id])
   unitOfMeasureRef UnitOfMeasure?     @relation("MaterialStateHistoryUOM", fields: [unitOfMeasureId], references: [id])
+  fromLocationRef  Location?          @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocationRef    Location?          @relation("ToLocation", fields: [toLocationId], references: [id])
 
   @@index([lotId])
   @@index([changedAt])
@@ -2081,7 +2093,8 @@ model EquipmentPerformanceLog {
 model Inventory {
   id            String                @id @default(cuid())
   partId        String
-  location      String
+  location      String               // Legacy location field (to be deprecated)
+  locationId    String?              // FK to Location
   lotNumber     String?
   quantity      Float
   unitOfMeasure String
@@ -2095,6 +2108,7 @@ model Inventory {
   part          Part                  @relation(fields: [partId], references: [id])
   transactions  MaterialTransaction[]
   unitOfMeasureRef UnitOfMeasure?      @relation("InventoryUOM", fields: [unitOfMeasureId], references: [id])
+  locationRef   Location?             @relation(fields: [locationId], references: [id])
   kitItems      KitItem[]
 
   @@index([partId])
@@ -2133,7 +2147,8 @@ model SerializedPart {
   workOrderId           String?
   lotNumber             String?
   status                String
-  currentLocation       String?
+  currentLocation       String?              // Legacy location field (to be deprecated)
+  currentLocationId     String?              // FK to Location
   manufactureDate       DateTime?
   shipDate              DateTime?
   customerInfo          String?
@@ -2144,6 +2159,7 @@ model SerializedPart {
   genealogy             PartGenealogy[]        @relation("ParentPart")
   qifMeasurementResults QIFMeasurementResult[]
   part                  Part                   @relation(fields: [partId], references: [id])
+  currentLocationRef    Location?              @relation(fields: [currentLocationId], references: [id])
 
   // Life-Limited Parts (LLP) Relationships
   llpLifeHistory        LLPLifeHistory[]
@@ -10018,4 +10034,99 @@ model ICDChangeRequest {
   @@index([requestDate])
   @@index([relatedEcoId])
   @@map("icd_change_requests")
+}
+
+// ============================================================================
+// LOCATION MANAGEMENT SYSTEM
+// ============================================================================
+
+/// Location hierarchy types for warehouse and manufacturing environments
+enum LocationType {
+  WAREHOUSE       // Top-level warehouse building
+  BUILDING        // Manufacturing/office building
+  FLOOR           // Floor within a building
+  ZONE            // Zone within a floor (e.g., Zone A, Zone B)
+  AISLE           // Aisle within a zone
+  ROW             // Row within an aisle
+  BIN             // Storage bin/slot
+  SHELF           // Shelf within a bin
+  WORKSTATION     // Manufacturing workstation
+  STORAGE_AREA    // General storage area
+  STAGING_AREA    // Material staging area
+  QUARANTINE_AREA // Quality quarantine area
+  SHIPPING_DOCK   // Shipping/outbound dock
+  RECEIVING_DOCK  // Receiving/inbound dock
+  INSPECTION_AREA // Quality inspection area
+  REWORK_AREA     // Rework/repair area
+  SCRAP_AREA      // Scrap holding area
+  TOOL_CRIB       // Tool storage area
+  OFFICE          // Office space
+  OTHER           // Other location types
+}
+
+/// Hierarchical location model for warehouse management and material tracking
+model Location {
+  id                    String       @id @default(cuid())
+  locationCode          String       @unique          // e.g., "WH-A-01-B-05"
+  locationName          String                        // e.g., "Warehouse A, Floor 1, Zone B, Bin 5"
+  description           String?                       // Additional description
+  locationType          LocationType                  // Type of location (warehouse, zone, bin, etc.)
+
+  // Hierarchical relationships
+  parentLocationId      String?
+  parentLocation        Location?    @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  childLocations        Location[]   @relation("LocationHierarchy")
+
+  // Site/Area integration
+  siteId                String?
+  site                  Site?        @relation(fields: [siteId], references: [id])
+  areaId                String?
+  area                  Area?        @relation(fields: [areaId], references: [id])
+
+  // Capacity management
+  capacityValue         Decimal?                      // Storage capacity value
+  capacityUnitOfMeasureId String?                     // Capacity unit (e.g., cubic feet, pallets)
+  capacityUnitOfMeasure UnitOfMeasure? @relation("LocationCapacityUOM", fields: [capacityUnitOfMeasureId], references: [id])
+  currentUtilization    Decimal?     @default(0)     // Current utilization percentage
+
+  // Physical dimensions
+  length                Decimal?                      // Length dimension
+  width                 Decimal?                      // Width dimension
+  height                Decimal?                      // Height dimension
+  dimensionUnitOfMeasureId String?                    // Dimension unit (e.g., feet, meters)
+  dimensionUnitOfMeasure UnitOfMeasure? @relation("LocationDimensionUOM", fields: [dimensionUnitOfMeasureId], references: [id])
+
+  // Operational attributes
+  isActive              Boolean      @default(true)   // Location is active/available
+  allowMixedParts       Boolean      @default(true)   // Allow different parts in same location
+  requiresEnvironmentalControl Boolean @default(false) // Special environmental requirements
+  temperature           Decimal?                      // Temperature requirement
+  humidity              Decimal?                      // Humidity requirement
+
+  // Contact and responsibility
+  contactPhone          String?                       // Contact phone for location
+  contactEmail          String?                       // Contact email for location
+
+  // Audit fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relations to entities using this location
+  materialLots          MaterialLot[]                 // Materials stored at this location
+  inventoryRecords      Inventory[]                   // Inventory records for this location
+  serializedParts       SerializedPart[]              // Serialized parts at this location
+
+  // Location change history (from/to relationships)
+  materialStateHistoryFrom MaterialStateHistory[] @relation("FromLocation")
+  materialStateHistoryTo   MaterialStateHistory[] @relation("ToLocation")
+
+  @@index([locationCode])
+  @@index([locationType])
+  @@index([parentLocationId])
+  @@index([siteId])
+  @@index([areaId])
+  @@index([isActive])
+  @@index([capacityUnitOfMeasureId])
+  @@index([dimensionUnitOfMeasureId])
+  @@map("locations")
 }
