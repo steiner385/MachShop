@@ -194,6 +194,8 @@ model User {
   kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
   shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
+  // OAuth/OIDC relationships
+  oidcSessions              OidcSession[]
 
   // Saviynt Identity Governance relationships
   saviyntUserMapping        SaviyntUserMapping?
@@ -7706,7 +7708,9 @@ enum VendorMetricPeriod {
   YEARLY
 }
 
-// Saviynt Identity Governance Integration Models
+// ============================================================================
+// Saviynt Identity Governance Integration Models (Issue #204)
+// ============================================================================
 
 model SaviyntUserMapping {
   id              String    @id @default(cuid())
@@ -7892,4 +7896,86 @@ enum SaviyntCertificationStatus {
   REJECTED
   EXPIRED
   CANCELLED
+}
+
+// ============================================================================
+// OAuth 2.0/OpenID Connect (OIDC) Integration (Issue #132)
+// ============================================================================
+
+/// OAuth 2.0/OpenID Connect Configuration
+/// Dedicated OIDC provider configuration separate from generic SSO
+model OidcConfig {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  clientId              String
+  clientSecret          String
+  issuer                String
+  discoveryUrl          String?
+  authorizationEndpoint String?
+  tokenEndpoint         String?
+  userinfoEndpoint      String?
+  jwksUri               String?
+  scopes                String[]    @default(["openid", "profile", "email"])
+  responseType          String      @default("code")
+  responseMode          String      @default("query")
+  usePkce               Boolean     @default(true)
+  claimsMapping         Json?
+  groupClaimsPath       String?
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relations
+  sessions              OidcSession[]
+  authStates            OidcAuthState[]
+
+  @@index([isActive])
+  @@map("oidc_configs")
+}
+
+/// OAuth User Sessions
+/// Track OIDC authentication sessions and tokens
+model OidcSession {
+  id                String     @id @default(cuid())
+  userId            String
+  sub               String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  tokenType         String     @default("Bearer")
+  expiresAt         DateTime?
+  refreshExpiresAt  DateTime?
+  configId          String
+  scopes            String[]
+  createdAt         DateTime   @default(now())
+
+  // Relations
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config            OidcConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("oidc_sessions")
+}
+
+/// Authorization State Tracking
+/// PKCE and CSRF protection for OAuth flows
+model OidcAuthState {
+  id            String     @id @default(cuid())
+  state         String     @unique
+  codeVerifier  String?
+  nonce         String?
+  redirectUri   String?
+  configId      String
+  expiresAt     DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+
+  // Relations
+  config        OidcConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([state])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("oidc_auth_states")
 }
