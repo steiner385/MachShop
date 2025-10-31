@@ -1,0 +1,429 @@
+/**
+ * Global CSS Variables and Styles
+ * MachShop Manufacturing Execution System
+ *
+ * This file defines CSS custom properties (variables) that make our color tokens
+ * available to CSS and provides global styles for consistent theming.
+ */
+
+:root {
+  /* ===== BASE COLOR TOKENS ===== */
+
+  /* Primary Brand Colors */
+  --color-primary-50: #e6f7ff;
+  --color-primary-100: #bae7ff;
+  --color-primary-200: #91d5ff;
+  --color-primary-300: #69c0ff;
+  --color-primary-400: #40a9ff;
+  --color-primary-500: #1890ff; /* Main primary */
+  --color-primary-600: #096dd9;
+  --color-primary-700: #0050b3;
+  --color-primary-800: #003a8c;
+  --color-primary-900: #002766;
+
+  /* Success Colors */
+  --color-success-50: #f6ffed;
+  --color-success-100: #d9f7be;
+  --color-success-200: #b7eb8f;
+  --color-success-300: #95de64;
+  --color-success-400: #73d13d;
+  --color-success-500: #52c41a; /* Main success */
+  --color-success-600: #389e0d;
+  --color-success-700: #237804;
+  --color-success-800: #135200;
+  --color-success-900: #092b00;
+
+  /* Error Colors */
+  --color-error-50: #fff2f0;
+  --color-error-100: #ffccc7;
+  --color-error-200: #ffa39e;
+  --color-error-300: #ff7875;
+  --color-error-400: #ff7875;
+  --color-error-500: #ff4d4f; /* Main error */
+  --color-error-600: #f5222d;
+  --color-error-700: #cf1322;
+  --color-error-800: #a8071a;
+  --color-error-900: #820014;
+
+  /* Warning Colors */
+  --color-warning-50: #fffbe6;
+  --color-warning-100: #fff1b8;
+  --color-warning-200: #ffe58f;
+  --color-warning-300: #ffd666;
+  --color-warning-400: #ffc53d;
+  --color-warning-500: #faad14; /* Main warning */
+  --color-warning-600: #d48806;
+  --color-warning-700: #ad6800;
+  --color-warning-800: #874d00;
+  --color-warning-900: #613400;
+
+  /* Info Colors */
+  --color-info-50: #f0f5ff;
+  --color-info-100: #d6e4ff;
+  --color-info-200: #adc6ff;
+  --color-info-300: #85a5ff;
+  --color-info-400: #597ef7;
+  --color-info-500: #2f54eb;
+  --color-info-600: #1d39c4;
+  --color-info-700: #10239e;
+  --color-info-800: #061178;
+  --color-info-900: #030852;
+
+  /* Purple/Secondary Brand */
+  --color-purple-50: #f9f0ff;
+  --color-purple-100: #efdbff;
+  --color-purple-200: #d3adf7;
+  --color-purple-300: #b37feb;
+  --color-purple-400: #9254de;
+  --color-purple-500: #722ed1; /* Main purple */
+  --color-purple-600: #531dab;
+  --color-purple-700: #391085;
+  --color-purple-800: #22075e;
+  --color-purple-900: #120338;
+
+  /* Neutral/Gray Scale */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #f0f0f0;
+  --color-neutral-300: #d9d9d9;
+  --color-neutral-400: #bfbfbf;
+  --color-neutral-500: #8c8c8c;
+  --color-neutral-600: #595959;
+  --color-neutral-700: #434343;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #1f1f1f;
+  --color-neutral-950: #141414;
+
+  /* Pure Colors */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* ===== SEMANTIC COLOR MAPPINGS (LIGHT THEME) ===== */
+
+  /* Background Colors */
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--color-neutral-50);
+  --bg-tertiary: var(--color-neutral-100);
+  --bg-elevated: var(--color-white);
+  --bg-inverse: var(--color-neutral-900);
+
+  /* Surface Colors */
+  --surface-primary: var(--color-white);
+  --surface-secondary: var(--color-neutral-50);
+  --surface-tertiary: var(--color-neutral-100);
+  --surface-inverse: var(--color-neutral-800);
+  --surface-overlay: rgba(0, 0, 0, 0.45);
+
+  /* Text Colors */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-500);
+  --text-disabled: var(--color-neutral-400);
+  --text-inverse: var(--color-white);
+  --text-link: var(--color-primary-500);
+  --text-link-hover: var(--color-primary-600);
+
+  /* Border Colors */
+  --border-primary: var(--color-neutral-300);
+  --border-secondary: var(--color-neutral-200);
+  --border-focus: var(--color-primary-500);
+  --border-error: var(--color-error-500);
+  --border-success: var(--color-success-500);
+  --border-warning: var(--color-warning-500);
+
+  /* Interactive States */
+  --interactive-primary-default: var(--color-primary-500);
+  --interactive-primary-hover: var(--color-primary-600);
+  --interactive-primary-active: var(--color-primary-700);
+  --interactive-primary-disabled: var(--color-neutral-300);
+
+  --interactive-secondary-default: var(--color-white);
+  --interactive-secondary-hover: var(--color-neutral-50);
+  --interactive-secondary-active: var(--color-neutral-100);
+  --interactive-secondary-disabled: var(--color-neutral-200);
+
+  --interactive-danger-default: var(--color-error-500);
+  --interactive-danger-hover: var(--color-error-600);
+  --interactive-danger-active: var(--color-error-700);
+  --interactive-danger-disabled: var(--color-neutral-300);
+
+  /* Status Colors */
+  --status-success: var(--color-success-500);
+  --status-success-bg: var(--color-success-50);
+  --status-success-border: var(--color-success-200);
+
+  --status-warning: var(--color-warning-500);
+  --status-warning-bg: var(--color-warning-50);
+  --status-warning-border: var(--color-warning-200);
+
+  --status-error: var(--color-error-500);
+  --status-error-bg: var(--color-error-50);
+  --status-error-border: var(--color-error-200);
+
+  --status-info: var(--color-info-500);
+  --status-info-bg: var(--color-info-50);
+  --status-info-border: var(--color-info-200);
+
+  /* Form Elements */
+  --form-input-bg: var(--color-white);
+  --form-input-border: var(--color-neutral-300);
+  --form-input-border-hover: var(--color-primary-500);
+  --form-input-border-focus: var(--color-primary-500);
+  --form-input-border-error: var(--color-error-500);
+  --form-input-text: var(--color-neutral-900);
+  --form-input-placeholder: var(--color-neutral-500);
+  --form-label-text: var(--color-neutral-700);
+
+  /* ===== MANUFACTURING DOMAIN COLORS ===== */
+
+  /* Equipment Status */
+  --equipment-running: var(--color-success-500);
+  --equipment-running-bg: var(--color-success-50);
+  --equipment-idle: var(--color-warning-500);
+  --equipment-idle-bg: var(--color-warning-50);
+  --equipment-maintenance: var(--color-info-500);
+  --equipment-maintenance-bg: var(--color-info-50);
+  --equipment-fault: var(--color-error-500);
+  --equipment-fault-bg: var(--color-error-50);
+  --equipment-offline: var(--color-neutral-500);
+  --equipment-offline-bg: var(--color-neutral-50);
+
+  /* Work Order Status */
+  --workorder-pending: var(--color-neutral-500);
+  --workorder-pending-bg: var(--color-neutral-50);
+  --workorder-in-progress: var(--color-primary-500);
+  --workorder-in-progress-bg: var(--color-primary-50);
+  --workorder-completed: var(--color-success-500);
+  --workorder-completed-bg: var(--color-success-50);
+  --workorder-on-hold: var(--color-warning-500);
+  --workorder-on-hold-bg: var(--color-warning-50);
+  --workorder-cancelled: var(--color-error-500);
+  --workorder-cancelled-bg: var(--color-error-50);
+
+  /* Quality Status */
+  --quality-pass: var(--color-success-500);
+  --quality-pass-bg: var(--color-success-50);
+  --quality-fail: var(--color-error-500);
+  --quality-fail-bg: var(--color-error-50);
+  --quality-review: var(--color-warning-500);
+  --quality-review-bg: var(--color-warning-50);
+  --quality-pending: var(--color-info-500);
+  --quality-pending-bg: var(--color-info-50);
+
+  /* Material Status */
+  --material-available: var(--color-success-500);
+  --material-available-bg: var(--color-success-50);
+  --material-allocated: var(--color-primary-500);
+  --material-allocated-bg: var(--color-primary-50);
+  --material-depleted: var(--color-error-500);
+  --material-depleted-bg: var(--color-error-50);
+  --material-expired: var(--color-warning-500);
+  --material-expired-bg: var(--color-warning-50);
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* ===== FOCUS STYLES ===== */
+  --focus-ring-color: var(--color-primary-500);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: var(--color-white);
+
+  /* ===== TYPOGRAPHY ===== */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+
+  /* ===== SPACING ===== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ===== BORDER RADIUS ===== */
+  --border-radius-xs: 2px;
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+}
+
+/* ===== DARK THEME OVERRIDES ===== */
+[data-theme="dark"] {
+  /* Background Colors */
+  --bg-primary: var(--color-neutral-900);
+  --bg-secondary: var(--color-neutral-800);
+  --bg-tertiary: var(--color-neutral-700);
+  --bg-elevated: var(--color-neutral-800);
+  --bg-inverse: var(--color-white);
+
+  /* Surface Colors */
+  --surface-primary: var(--color-neutral-800);
+  --surface-secondary: var(--color-neutral-700);
+  --surface-tertiary: var(--color-neutral-600);
+  --surface-inverse: var(--color-neutral-100);
+  --surface-overlay: rgba(0, 0, 0, 0.75);
+
+  /* Text Colors */
+  --text-primary: var(--color-neutral-100);
+  --text-secondary: var(--color-neutral-300);
+  --text-tertiary: var(--color-neutral-400);
+  --text-disabled: var(--color-neutral-500);
+  --text-inverse: var(--color-neutral-900);
+  --text-link: var(--color-primary-400);
+  --text-link-hover: var(--color-primary-300);
+
+  /* Border Colors */
+  --border-primary: var(--color-neutral-600);
+  --border-secondary: var(--color-neutral-700);
+  --border-focus: var(--color-primary-400);
+  --border-error: var(--color-error-400);
+  --border-success: var(--color-success-400);
+  --border-warning: var(--color-warning-400);
+
+  /* Interactive States */
+  --interactive-primary-hover: var(--color-primary-400);
+  --interactive-primary-active: var(--color-primary-600);
+  --interactive-primary-disabled: var(--color-neutral-600);
+
+  --interactive-secondary-default: var(--color-neutral-700);
+  --interactive-secondary-hover: var(--color-neutral-600);
+  --interactive-secondary-active: var(--color-neutral-500);
+
+  --interactive-danger-hover: var(--color-error-400);
+  --interactive-danger-active: var(--color-error-600);
+
+  /* Form Elements */
+  --form-input-bg: var(--color-neutral-800);
+  --form-input-border: var(--color-neutral-600);
+  --form-input-border-hover: var(--color-primary-400);
+  --form-input-border-focus: var(--color-primary-400);
+  --form-input-border-error: var(--color-error-400);
+  --form-input-text: var(--color-neutral-100);
+  --form-input-placeholder: var(--color-neutral-400);
+  --form-label-text: var(--color-neutral-200);
+
+  /* Shadows (darker for dark mode) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+
+  /* Focus ring offset for dark mode */
+  --focus-ring-offset: var(--color-neutral-900);
+}
+
+/* ===== GLOBAL UTILITY CLASSES ===== */
+
+/* Background utilities */
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-tertiary { background-color: var(--bg-tertiary); }
+
+/* Text utilities */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-disabled { color: var(--text-disabled); }
+
+/* Status utilities */
+.text-success { color: var(--status-success); }
+.text-warning { color: var(--status-warning); }
+.text-error { color: var(--status-error); }
+.text-info { color: var(--status-info); }
+
+.bg-success { background-color: var(--status-success-bg); }
+.bg-warning { background-color: var(--status-warning-bg); }
+.bg-error { background-color: var(--status-error-bg); }
+.bg-info { background-color: var(--status-info-bg); }
+
+/* Manufacturing status utilities */
+.equipment-running {
+  color: var(--equipment-running);
+  background-color: var(--equipment-running-bg);
+}
+.equipment-idle {
+  color: var(--equipment-idle);
+  background-color: var(--equipment-idle-bg);
+}
+.equipment-fault {
+  color: var(--equipment-fault);
+  background-color: var(--equipment-fault-bg);
+}
+
+.workorder-in-progress {
+  color: var(--workorder-in-progress);
+  background-color: var(--workorder-in-progress-bg);
+}
+.workorder-completed {
+  color: var(--workorder-completed);
+  background-color: var(--workorder-completed-bg);
+}
+
+/* Focus utilities */
+.focus-ring {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* ===== GLOBAL RESET AND BASE STYLES ===== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* Remove default focus styles for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-primary: var(--color-black);
+    --text-primary: var(--color-black);
+    --bg-primary: var(--color-white);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

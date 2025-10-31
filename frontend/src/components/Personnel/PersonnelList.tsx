@@ -33,6 +33,7 @@ import {
   COMPETENCY_LEVEL_LABELS,
 } from '@/types/personnel';
 import { personnelAPI } from '@/api/personnel';
+import { useTheme } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
@@ -40,6 +41,7 @@ const { Option } = Select;
 
 export const PersonnelList: React.FC = () => {
   const navigate = useNavigate();
+  const { colors } = useTheme();
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [filteredPersonnel, setFilteredPersonnel] = useState<Personnel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +127,7 @@ export const PersonnelList: React.FC = () => {
           <div style={{ fontWeight: 500 }}>
             {record.firstName} {record.lastName}
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.employeeNumber}</div>
+          <div style={{ fontSize: '12px', color: colors.text.secondary }}>{record.employeeNumber}</div>
         </div>
       ),
     },
@@ -244,7 +246,7 @@ export const PersonnelList: React.FC = () => {
           <TeamOutlined style={{ marginRight: 8 }} />
           Personnel Management
         </h1>
-        <p style={{ color: '#666', marginTop: '8px', fontSize: '16px' }}>
+        <p style={{ color: colors.text.secondary, marginTop: '8px', fontSize: '16px' }}>
           Comprehensive personnel management with skills, certifications, and work assignments tracking
         </p>
       </header>
@@ -260,7 +262,7 @@ export const PersonnelList: React.FC = () => {
                 value={stats.active}
                 suffix={`/ ${stats.total}`}
                 prefix={<TeamOutlined />}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: colors.interactive.primaryDefault }}
               />
             </Card>
           </Col>
@@ -270,7 +272,7 @@ export const PersonnelList: React.FC = () => {
                 title="Active Certifications"
                 value={stats.activeCertifications}
                 prefix={<SafetyCertificateOutlined />}
-                valueStyle={{ color: '#52c41a' }}
+                valueStyle={{ color: colors.status.success }}
               />
             </Card>
           </Col>
@@ -280,7 +282,7 @@ export const PersonnelList: React.FC = () => {
                 title="Expiring in 30 Days"
                 value={stats.expiringSoon}
                 prefix={<TrophyOutlined />}
-                valueStyle={{ color: stats.expiringSoon > 0 ? '#faad14' : '#52c41a' }}
+                valueStyle={{ color: stats.expiringSoon > 0 ? colors.status.warning : colors.status.success }}
               />
             </Card>
           </Col>
