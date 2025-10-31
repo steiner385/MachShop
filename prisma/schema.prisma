@@ -64,6 +64,9 @@ model Site {
   roleTemplateInstances     RoleTemplateInstance[]
   roleTemplateUsageLogs     RoleTemplateUsageLog[]
 
+  // Time Entry Management Relations (Issue #51)
+  autoStopConfiguration     AutoStopConfiguration?
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -220,6 +223,14 @@ model User {
   statusChanges             BuildRecordStatusHistory[]      @relation("StatusChangedBy")
   buildRecordSignatures     BuildRecordSignature[]          @relation("BuildRecordSigner")
   buildRecordInvalidatedSignatures BuildRecordSignature[]    @relation("BuildRecordSignatureInvalidator")
+
+  // Time Entry Management Relations (Issue #51)
+  timeEntryEditsCreated     TimeEntryEdit[]                 @relation("TimeEntryEditEditor")
+  timeEntryEditsApproved    TimeEntryEdit[]                 @relation("TimeEntryEditApprover")
+  timeEntryApprovals        TimeEntryApproval[]
+  timeEntryBatchesSubmitted TimeEntryBatch[]                @relation("TimeEntryBatchEmployee")
+  timeEntryBatchesApproved  TimeEntryBatch[]                @relation("TimeEntryBatchApprover")
+  timeEntryLocks            TimeEntryLock[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -4916,6 +4927,19 @@ model TimeTrackingConfiguration {
   autoStopFromMachine    Boolean                 @default(false)
   requireTimeApproval    Boolean                 @default(true)
   approvalFrequency      ApprovalFrequency       @default(DAILY)
+
+  // Time Entry Management Configuration (Issue #51)
+  operatorEditWindowHours Int                    @default(24)
+  supervisorEditWindowHours Int                  @default(168)
+  editReasonRequired     Boolean                 @default(true)
+  autoApproveEnabled     Boolean                 @default(true)
+  autoApproveDurationThreshold Int               @default(5)
+  autoApproveWithinShift Boolean                 @default(true)
+  autoApproveCostCodeOnly Boolean                @default(true)
+  approvalNotificationsEnabled Boolean           @default(true)
+  notificationEmail      Boolean                 @default(true)
+  notificationInApp      Boolean                 @default(true)
+
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   createdBy              String
@@ -4962,12 +4986,19 @@ model LaborTimeEntry {
   user                 User                @relation(fields: [userId], references: [id])
   workOrder            WorkOrder?          @relation(fields: [workOrderId], references: [id])
 
+  // Time Entry Management Relations (Issue #51)
+  edits                TimeEntryEdit[]
+  locks                TimeEntryLock[]
+  batch                TimeEntryBatch?     @relation(fields: [batchId], references: [id])
+  batchId              String?
+
   @@index([userId])
   @@index([workOrderId])
   @@index([operationId])
   @@index([status])
   @@index([clockInTime])
   @@index([timeType])
+  @@index([batchId])
   @@map("labor_time_entries")
 }
 
@@ -4996,6 +5027,10 @@ model MachineTimeEntry {
   equipment          Equipment           @relation(fields: [equipmentId], references: [id])
   operation          WorkOrderOperation? @relation(fields: [operationId], references: [id])
   workOrder          WorkOrder?          @relation(fields: [workOrderId], references: [id])
+
+  // Time Entry Management Relations (Issue #51)
+  edits              TimeEntryEdit[]
+  locks              TimeEntryLock[]
 
   @@index([equipmentId])
   @@index([workOrderId])
@@ -5047,6 +5082,153 @@ model TimeEntryValidationRule {
   @@index([ruleType])
   @@index([siteId])
   @@map("time_entry_validation_rules")
+}
+
+// ============================================================================
+// TIME ENTRY MANAGEMENT & APPROVALS (Issue #51)
+// ============================================================================
+
+/// Time Entry Edit History
+/// Tracks all modifications to time entries for audit and approval purposes
+model TimeEntryEdit {
+  id                String            @id @default(cuid())
+  timeEntryId       String
+  timeEntryType     TimeEntryType
+  editType          EditType
+  originalValues    Json
+  newValues         Json
+  changedFields     String[]
+  reason            String
+  reasonCategory    EditReasonCategory
+  editedBy          String
+  editedAt          DateTime          @default(now())
+  approvalRequired  Boolean           @default(false)
+  approvalStatus    ApprovalStatus?
+  approvedBy        String?
+  approvedAt        DateTime?
+  rejectionReason   String?
+  autoApproved      Boolean           @default(false)
+
+  // Relations
+  laborTimeEntry    LaborTimeEntry?   @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_edits_labor_fkey")
+  machineTimeEntry  MachineTimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_edits_machine_fkey")
+  editor            User              @relation("TimeEntryEditEditor", fields: [editedBy], references: [id])
+  approver          User?             @relation("TimeEntryEditApprover", fields: [approvedBy], references: [id])
+  approvals         TimeEntryApproval[]
+
+  @@index([timeEntryId])
+  @@index([timeEntryType])
+  @@index([editType])
+  @@index([editedBy])
+  @@index([editedAt])
+  @@index([approvalStatus])
+  @@index([approvalRequired])
+  @@map("time_entry_edits")
+}
+
+/// Time Entry Approval Workflow
+/// Manages the approval process for time entry modifications
+model TimeEntryApproval {
+  id                String           @id @default(cuid())
+  timeEntryEditId   String
+  approverUserId    String
+  status            ApprovalStatus
+  approvalNotes     String?
+  requestedChanges  String?
+  approvedAt        DateTime         @default(now())
+  notificationSent  Boolean          @default(false)
+  escalationLevel   Int              @default(0)
+  dueDate           DateTime?
+
+  // Relations
+  timeEntryEdit     TimeEntryEdit    @relation(fields: [timeEntryEditId], references: [id], onDelete: Cascade)
+  approver          User             @relation(fields: [approverUserId], references: [id])
+
+  @@index([timeEntryEditId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([approvedAt])
+  @@index([dueDate])
+  @@index([escalationLevel])
+  @@map("time_entry_approvals")
+}
+
+/// Time Entry Batch Management
+/// Groups time entries for batch approval (weekly/daily timesheets)
+model TimeEntryBatch {
+  id              String               @id @default(cuid())
+  batchNumber     String               @unique
+  employeeId      String
+  batchType       TimeEntryBatchType
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          TimeEntryBatchStatus @default(PENDING_APPROVAL)
+  submittedAt     DateTime?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  totalHours      Float                @default(0)
+  totalCost       Float                @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  // Relations
+  employee        User                 @relation("TimeEntryBatchEmployee", fields: [employeeId], references: [id])
+  approver        User?                @relation("TimeEntryBatchApprover", fields: [approvedBy], references: [id])
+  timeEntries     LaborTimeEntry[]
+
+  @@index([employeeId])
+  @@index([batchType])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@index([submittedAt])
+  @@map("time_entry_batches")
+}
+
+/// Auto-Stop Configuration
+/// Configures when and how to automatically stop time entries
+model AutoStopConfiguration {
+  id                    String           @id @default(cuid())
+  siteId                String           @unique
+  autoStopOnClockOut    Boolean          @default(true)
+  autoStopBehavior      AutoStopBehavior @default(STOP_ALL)
+  gracePeriodMinutes    Int              @default(5)
+  autoStopOnShiftEnd    Boolean          @default(true)
+  autoStopOnBreakStart  Boolean          @default(false)
+  warningMinutesBefore  Int              @default(5)
+  enableExternalSignals Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  // Relations
+  site                  Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@map("auto_stop_configurations")
+}
+
+/// Time Entry Lock Management
+/// Manages locked time entries that cannot be edited
+model TimeEntryLock {
+  id              String     @id @default(cuid())
+  timeEntryId     String     @unique
+  timeEntryType   TimeEntryType
+  lockedBy        String
+  lockedAt        DateTime   @default(now())
+  lockReason      String
+  lockType        LockType
+  unlockRequests  Json[]     @default([])
+
+  // Relations
+  laborTimeEntry  LaborTimeEntry?   @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_locks_labor_fkey")
+  machineTimeEntry MachineTimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_locks_machine_fkey")
+  locker          User              @relation(fields: [lockedBy], references: [id])
+
+  @@index([timeEntryId])
+  @@index([timeEntryType])
+  @@index([lockedBy])
+  @@index([lockType])
+  @@map("time_entry_locks")
 }
 
 /// SSO Provider Registry
@@ -6953,6 +7135,79 @@ enum TimeValidationRuleType {
   INVALID_TIME_RANGE
 }
 
+enum TimeEntryType {
+  LABOR
+  MACHINE
+}
+
+// ============================================================================
+// TIME ENTRY MANAGEMENT ENUMS (Issue #51)
+// ============================================================================
+
+enum EditType {
+  CREATED
+  MODIFIED
+  DELETED
+  SPLIT
+  MERGED
+  TRANSFERRED
+  LOCKED
+  UNLOCKED
+}
+
+enum EditReasonCategory {
+  CLOCK_FORGOT
+  WRONG_WORK_ORDER
+  WRONG_OPERATION
+  SYSTEM_ERROR
+  SUPERVISOR_DIRECTED
+  BREAK_ADJUSTMENT
+  OVERTIME_CORRECTION
+  PAYROLL_CORRECTION
+  OTHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFO_NEEDED
+  ESCALATED
+  AUTO_APPROVED
+}
+
+enum TimeEntryBatchType {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum TimeEntryBatchStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  LOCKED
+  EXPORTED
+}
+
+enum AutoStopBehavior {
+  STOP_ALL
+  STOP_DIRECT_ONLY
+  PROMPT_OPERATOR
+  DO_NOTHING
+}
+
+enum LockType {
+  MANUAL
+  PAYROLL_EXPORT
+  AUDIT_REVIEW
+  COMPLIANCE_HOLD
+  SYSTEM_MAINTENANCE
+}
+
 /// Types of security events that can be monitored
 enum SecurityEventType {
   AUTH_FAILURE
@@ -8249,6 +8504,8 @@ enum SignatureLevel {
   DEVIATION_APPROVAL  // Deviation approval signature
   QUALITY_RELEASE     // Quality release signature
   CUSTOMER_ACCEPTANCE // Customer acceptance signature
+}
+
 // Saviynt Identity Governance Integration Models (Issue #204)
 // ============================================================================
 
