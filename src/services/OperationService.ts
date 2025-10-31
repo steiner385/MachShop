@@ -14,6 +14,11 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/database';
 
+// Guard check for prisma instance
+if (!prisma) {
+  throw new Error('Database connection not available. Check DATABASE_URL environment variable and database server connectivity.');
+}
+
 export interface CreateOperationData {
   operationCode: string;
   operationName: string;
