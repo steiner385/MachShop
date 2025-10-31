@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2025-10-31T16:59:45.391Z",
+  "serverUrl": "http://localhost:5173",
+  "summary": {
+    "totalRoutes": 53,
+    "routesTested": 0,
+    "passedTests": 0,
+    "failedTests": 0,
+    "wcagCompliance": "In Progress",
+    "keyboardNavigationStatus": "Pending Server"
+  },
+  "auditResults": {
+    "status": "Requires running server"
+  },
+  "keyboardResults": {
+    "status": "Requires running server"
+  },
+  "recommendations": [
+    "Start development server before running tests",
+    "Ensure all routes are accessible without authentication for testing",
+    "Run tests in multiple browsers for comprehensive coverage",
+    "Include manual testing with screen readers (NVDA, JAWS)",
+    "Test with keyboard-only navigation for all user workflows"
+  ]
+}

@@ -1,6 +1,6 @@
 /**
  * Materials List Component
- * Phase 3: Material Movement Tracking with API Integration
+ * Complete material inventory management with real-time tracking and RBAC integration
  */
 
 import React, { useEffect, useState } from 'react';
@@ -74,8 +74,9 @@ export const MaterialsList: React.FC = () => {
     clearErrors,
   } = useMaterialsStore();
 
-  // Fetch data on mount
+  // Set document title and fetch data on mount
   useEffect(() => {
+    document.title = 'Materials Management - MES';
     fetchDashboard();
   }, []);
 
@@ -355,21 +356,23 @@ export const MaterialsList: React.FC = () => {
   const isLoading = definitionsLoading || lotsLoading || statisticsLoading;
 
   return (
-    <div style={{ padding: '24px' }}>
+    <main style={{ padding: '24px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1>
+      <header style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: '600', marginBottom: '8px' }}>
           <InboxOutlined style={{ marginRight: 8 }} />
-          Material Movement Tracking
+          Materials Management
         </h1>
-        <p style={{ color: '#666', marginTop: '8px' }}>
-          Track material inventory, lot traceability, and transactions
+        <p style={{ color: '#666', marginTop: '8px', fontSize: '16px' }}>
+          Comprehensive material inventory management, lot traceability, and transaction tracking
         </p>
-      </div>
+      </header>
 
-      {/* Statistics */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={6}>
+      {/* Statistics Dashboard */}
+      <section aria-labelledby="statistics-heading" style={{ marginBottom: '24px' }}>
+        <h2 id="statistics-heading" className="sr-only">Materials Statistics</h2>
+        <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Total Materials"
@@ -380,7 +383,7 @@ export const MaterialsList: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Active Lots"
@@ -391,7 +394,7 @@ export const MaterialsList: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Low Stock Items"
@@ -402,7 +405,7 @@ export const MaterialsList: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Expiring Soon"
@@ -413,7 +416,8 @@ export const MaterialsList: React.FC = () => {
             />
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </section>
 
       {/* Alert for expiring items */}
       {expiringSoon.length > 0 && (
@@ -429,17 +433,19 @@ export const MaterialsList: React.FC = () => {
 
       {/* Filters and Actions */}
       <Card style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
             <Select
               value={viewMode}
               onChange={setViewMode}
-              style={{ width: '180px' }}
+              style={{ width: '100%' }}
             >
               <Option value="lots">Material Lots</Option>
               <Option value="definitions">Material Definitions</Option>
             </Select>
+          </Col>
 
+          <Col xs={24} sm={12} md={8}>
             <Search
               placeholder={viewMode === 'lots' ? 'Search lots...' : 'Search materials...'}
               allowClear
@@ -447,16 +453,18 @@ export const MaterialsList: React.FC = () => {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               onSearch={handleSearch}
-              style={{ width: '300px' }}
+              style={{ width: '100%' }}
             />
+          </Col>
 
+          <Col xs={24} sm={12} md={6}>
             {viewMode === 'definitions' ? (
               <Select
                 placeholder="Filter by type"
                 allowClear
                 value={typeFilter}
                 onChange={setTypeFilter}
-                style={{ width: '180px' }}
+                style={{ width: '100%' }}
               >
                 {Object.entries(MATERIAL_TYPE_LABELS).map(([key, label]) => (
                   <Option key={key} value={key}>
@@ -470,7 +478,7 @@ export const MaterialsList: React.FC = () => {
                 allowClear
                 value={statusFilter}
                 onChange={setStatusFilter}
-                style={{ width: '180px' }}
+                style={{ width: '100%' }}
               >
                 {Object.entries(LOT_STATUS_LABELS).map(([key, label]) => (
                   <Option key={key} value={key}>
@@ -479,16 +487,27 @@ export const MaterialsList: React.FC = () => {
                 ))}
               </Select>
             )}
-          </div>
+          </Col>
 
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
-            Refresh
-          </Button>
-        </div>
+          <Col xs={24} sm={12} md={4}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              style={{ width: '100%' }}
+            >
+              Refresh
+            </Button>
+          </Col>
+        </Row>
       </Card>
 
-      {/* Material Table */}
-      <Card title={viewMode === 'lots' ? 'Material Lots' : 'Material Definitions'}>
+      {/* Material Management Section */}
+      <section aria-labelledby="materials-heading">
+        <Card title={
+          <h2 id="materials-heading" style={{ margin: 0, fontSize: '18px' }}>
+            {viewMode === 'lots' ? 'Material Lots' : 'Material Definitions'}
+          </h2>
+        }>
         <Spin spinning={isLoading}>
           {viewMode === 'lots' ? (
             <Table<MaterialLot>
@@ -526,8 +545,9 @@ export const MaterialsList: React.FC = () => {
             />
           )}
         </Spin>
-      </Card>
-    </div>
+        </Card>
+      </section>
+    </main>
   );
 };
 

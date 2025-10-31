@@ -1609,6 +1609,166 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"andon_alerts" {
+  String id PK
+  String alertNumber UK
+  String title
+  String description "nullable"
+  String issueTypeId FK
+  AndonSeverity severity
+  AndonPriority priority
+  String siteId FK "nullable"
+  String areaId FK "nullable"
+  String workCenterId FK "nullable"
+  String equipmentId FK "nullable"
+  String workOrderId FK "nullable"
+  String operationId FK "nullable"
+  String raisedById FK
+  String assignedToId FK "nullable"
+  AndonAlertStatus status
+  Json statusHistory
+  Int currentEscalationLevel
+  DateTime nextEscalationAt "nullable"
+  Json escalationHistory
+  DateTime resolvedAt "nullable"
+  String resolvedById FK "nullable"
+  String resolutionNotes "nullable"
+  String resolutionActionTaken "nullable"
+  Int responseTime "nullable"
+  Int resolutionTime "nullable"
+  Json metadata "nullable"
+  Json attachments
+  DateTime createdAt
+  DateTime updatedAt
+}
+"andon_issue_types" {
+  String id PK
+  String typeCode UK
+  String typeName
+  String description "nullable"
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean requiresAttachment
+  Boolean requiresWorkOrder
+  Boolean requiresEquipment
+  String autoAssignRole "nullable"
+  String autoAssignUserId FK "nullable"
+  Boolean enableEscalation
+  Int escalationTimeoutMins "nullable"
+  String siteId FK "nullable"
+  String iconName "nullable"
+  String colorCode "nullable"
+  Boolean isActive
+  Int displayOrder "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rules" {
+  String id PK
+  String ruleName
+  String description "nullable"
+  String siteId FK "nullable"
+  String issueTypeId FK "nullable"
+  AndonSeverity triggerSeverity
+  Int triggerAfterMinutes
+  Int escalationLevel
+  String notifyUserIds
+  String notifyRoles
+  String notifyChannels
+  String assignToUserId FK "nullable"
+  String assignToRole "nullable"
+  Json conditions "nullable"
+  Boolean isActive
+  Int executionCount
+  DateTime lastExecutedAt "nullable"
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rule_results" {
+  String id PK
+  String alertId FK
+  String ruleId FK
+  DateTime executedAt
+  Int escalationLevel
+  Boolean success
+  String errorMessage "nullable"
+  Json actionsTaken
+  String notifiedUsers
+}
+"andon_configurations" {
+  String id PK
+  String configKey UK
+  Json configValue
+  String description "nullable"
+  String dataType
+  String category
+  Boolean isRequired
+  Json validationRules "nullable"
+  Json defaultValue "nullable"
+  Boolean isEncrypted
+  String accessLevel
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_site_configurations" {
+  String id PK
+  String siteId FK
+  String configKey
+  Json configValue
+  Boolean isOverride
+  Boolean inheritFromGlobal
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_notification_templates" {
+  String id PK
+  String templateKey UK
+  String templateName
+  String description "nullable"
+  String subject
+  String bodyTemplate
+  Json variables
+  String emailTemplate "nullable"
+  String smsTemplate "nullable"
+  String pushTemplate "nullable"
+  String siteId FK "nullable"
+  Boolean isActive
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_system_settings" {
+  String id PK
+  String siteId FK "nullable"
+  Boolean andonEnabled
+  Boolean escalationEnabled
+  Boolean notificationsEnabled
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean autoAssignEnabled
+  Int defaultResponseTimeMin "nullable"
+  Int maxEscalationLevels
+  Int baseEscalationDelayMin
+  Boolean enableMobileAccess
+  Boolean enableKioskMode
+  Boolean requireComments
+  Boolean allowAnonymousReports
+  Json integrationSettings "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
 "integration_configs" {
   String id PK
   String name UK
@@ -4963,7 +5123,7 @@ erDiagram
 "areas" }o--|| "sites" : site
 "departments" }o--o| "departments" : parentDepartment
 "departments" }o--o| "sites" : site
-"departments" }o--o| "users" : manager
+"departments" |o--o| "users" : manager
 "users" }o--o| "personnel_classes" : personnelClass
 "users" }o--o| "users" : supervisor
 "users" }o--o| "departments" : departmentRelation
@@ -5129,6 +5289,29 @@ erDiagram
 "inspection_records" }o--o| "serialized_parts" : serializedPart
 "program_download_logs" }o--o| "cnc_programs" : cncProgram
 "operation_gauge_requirements" }o--|| "measurement_equipment" : measurementEquipment
+"andon_alerts" }o--|| "andon_issue_types" : issueType
+"andon_alerts" }o--o| "sites" : site
+"andon_alerts" }o--o| "areas" : area
+"andon_alerts" }o--o| "work_centers" : workCenter
+"andon_alerts" }o--o| "equipment" : equipment
+"andon_alerts" }o--o| "work_orders" : workOrder
+"andon_alerts" }o--o| "operations" : operation
+"andon_alerts" }o--|| "users" : raisedBy
+"andon_alerts" }o--o| "users" : assignedTo
+"andon_alerts" }o--o| "users" : resolvedBy
+"andon_issue_types" }o--o| "users" : autoAssignUser
+"andon_issue_types" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "andon_issue_types" : issueType
+"andon_escalation_rules" }o--o| "users" : assignToUser
+"andon_escalation_rule_results" }o--|| "andon_alerts" : alert
+"andon_escalation_rule_results" }o--|| "andon_escalation_rules" : rule
+"andon_configurations" }o--|| "users" : lastModifiedByUser
+"andon_site_configurations" }o--|| "sites" : site
+"andon_site_configurations" }o--|| "users" : lastModifiedByUser
+"andon_notification_templates" }o--o| "sites" : site
+"andon_system_settings" |o--o| "sites" : site
+"andon_system_settings" }o--|| "users" : lastModifiedByUser
 "integration_logs" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--o| "parts" : part
@@ -7232,6 +7415,182 @@ Enhanced maintenance work order model for comprehensive maintenance management (
   - `resolvedAt`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `andon_alerts`
+
+**Properties**
+  - `id`: 
+  - `alertNumber`: 
+  - `title`: 
+  - `description`: 
+  - `issueTypeId`: 
+  - `severity`: 
+  - `priority`: 
+  - `siteId`: 
+  - `areaId`: 
+  - `workCenterId`: 
+  - `equipmentId`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `raisedById`: 
+  - `assignedToId`: 
+  - `status`: 
+  - `statusHistory`: 
+  - `currentEscalationLevel`: 
+  - `nextEscalationAt`: 
+  - `escalationHistory`: 
+  - `resolvedAt`: 
+  - `resolvedById`: 
+  - `resolutionNotes`: 
+  - `resolutionActionTaken`: 
+  - `responseTime`: 
+  - `resolutionTime`: 
+  - `metadata`: 
+  - `attachments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `andon_issue_types`
+
+**Properties**
+  - `id`: 
+  - `typeCode`: 
+  - `typeName`: 
+  - `description`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `requiresAttachment`: 
+  - `requiresWorkOrder`: 
+  - `requiresEquipment`: 
+  - `autoAssignRole`: 
+  - `autoAssignUserId`: 
+  - `enableEscalation`: 
+  - `escalationTimeoutMins`: 
+  - `siteId`: 
+  - `iconName`: 
+  - `colorCode`: 
+  - `isActive`: 
+  - `displayOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rules`
+
+**Properties**
+  - `id`: 
+  - `ruleName`: 
+  - `description`: 
+  - `siteId`: 
+  - `issueTypeId`: 
+  - `triggerSeverity`: 
+  - `triggerAfterMinutes`: 
+  - `escalationLevel`: 
+  - `notifyUserIds`: 
+  - `notifyRoles`: 
+  - `notifyChannels`: 
+  - `assignToUserId`: 
+  - `assignToRole`: 
+  - `conditions`: 
+  - `isActive`: 
+  - `executionCount`: 
+  - `lastExecutedAt`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rule_results`
+
+**Properties**
+  - `id`: 
+  - `alertId`: 
+  - `ruleId`: 
+  - `executedAt`: 
+  - `escalationLevel`: 
+  - `success`: 
+  - `errorMessage`: 
+  - `actionsTaken`: 
+  - `notifiedUsers`: 
+
+### `andon_configurations`
+
+**Properties**
+  - `id`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `description`: 
+  - `dataType`: 
+  - `category`: 
+  - `isRequired`: 
+  - `validationRules`: 
+  - `defaultValue`: 
+  - `isEncrypted`: 
+  - `accessLevel`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_site_configurations`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `isOverride`: 
+  - `inheritFromGlobal`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_notification_templates`
+
+**Properties**
+  - `id`: 
+  - `templateKey`: 
+  - `templateName`: 
+  - `description`: 
+  - `subject`: 
+  - `bodyTemplate`: 
+  - `variables`: 
+  - `emailTemplate`: 
+  - `smsTemplate`: 
+  - `pushTemplate`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_system_settings`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `andonEnabled`: 
+  - `escalationEnabled`: 
+  - `notificationsEnabled`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `autoAssignEnabled`: 
+  - `defaultResponseTimeMin`: 
+  - `maxEscalationLevels`: 
+  - `baseEscalationDelayMin`: 
+  - `enableMobileAccess`: 
+  - `enableKioskMode`: 
+  - `requireComments`: 
+  - `allowAnonymousReports`: 
+  - `integrationSettings`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
 
 ### `integration_configs`
 
