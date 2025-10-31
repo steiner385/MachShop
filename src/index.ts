@@ -21,6 +21,7 @@ import { csrfProtection } from './middleware/csrf';
 import authRoutes from './routes/auth';
 import workOrderRoutes from './routes/workOrders';
 import qualityRoutes from './routes/quality';
+import causeCodeRoutes from './routes/causeCode';
 import materialRoutes from './routes/materials';
 import traceabilityRoutes from './routes/traceability';
 import equipmentRoutes from './routes/equipment';
@@ -246,6 +247,8 @@ apiRouter.use('/search', authMiddleware, searchRoutes);
 apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
 apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);
+// GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
+apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
 apiRouter.use('/materials', authMiddleware, materialRoutes);
 apiRouter.use('/traceability', authMiddleware, traceabilityRoutes);
 apiRouter.use('/equipment', authMiddleware, equipmentRoutes);
