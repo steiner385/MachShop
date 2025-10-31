@@ -1529,7 +1529,7 @@ issues:
     business_value: 8
     effort_estimate: 7
     blocks: [41, 43, 44, 45]
-    notes: "Foundation for configurable shop floor execution"
+    notes: "IN PROGRESS - Phase 1 (Foundation) completed in PR #311. Database models (5 new tables), WorkflowConfigurationService with inheritance logic, and core API endpoints implemented. Supports three configurable modes (STRICT/FLEXIBLE/HYBRID). Remaining: routing/WO overrides APIs, admin UI, test suite, WorkOrderExecutionService integration. Estimated 4-5 weeks total, currently 15-20% complete."
 
   - number: 41
     title: "Flexible Workflow Enforcement Engine"
