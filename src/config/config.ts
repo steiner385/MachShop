@@ -73,6 +73,28 @@ const envSchema = joi.object({
   INFLUXDB_TOKEN: joi.string().allow(''),
   INFLUXDB_ORG: joi.string().default('mes'),
   INFLUXDB_BUCKET: joi.string().default('manufacturing'),
+
+  // CyberArk PAM configuration
+  CYBERARK_ENABLED: joi.boolean().default(false),
+  CYBERARK_URL: joi.string().uri().when('CYBERARK_ENABLED', {
+    is: true,
+    then: joi.required(),
+    otherwise: joi.optional().allow('')
+  }),
+  CYBERARK_ACCOUNT: joi.string().when('CYBERARK_ENABLED', {
+    is: true,
+    then: joi.required(),
+    otherwise: joi.optional().allow('')
+  }),
+  CYBERARK_AUTHENTICATOR: joi.string().default('authn'),
+  CYBERARK_API_KEY: joi.string().allow(''),
+  CYBERARK_USERNAME: joi.string().allow(''),
+  CYBERARK_PASSWORD: joi.string().allow(''),
+  CYBERARK_CLIENT_CERT_PATH: joi.string().allow(''),
+  CYBERARK_CLIENT_KEY_PATH: joi.string().allow(''),
+  CYBERARK_CA_CERT_PATH: joi.string().allow(''),
+  CYBERARK_CACHE_TTL: joi.number().min(60000).default(300000), // 5 minutes default
+  CYBERARK_TIMEOUT: joi.number().min(1000).default(30000), // 30 seconds default
 }).unknown(true);
 
 // Validate environment variables
@@ -182,6 +204,22 @@ export const config = {
     org: envVars.INFLUXDB_ORG,
     bucket: envVars.INFLUXDB_BUCKET,
   },
+
+  // CyberArk PAM configuration
+  cyberArk: {
+    enabled: envVars.CYBERARK_ENABLED,
+    url: envVars.CYBERARK_URL,
+    account: envVars.CYBERARK_ACCOUNT,
+    authenticator: envVars.CYBERARK_AUTHENTICATOR,
+    apiKey: envVars.CYBERARK_API_KEY,
+    username: envVars.CYBERARK_USERNAME,
+    password: envVars.CYBERARK_PASSWORD,
+    clientCertPath: envVars.CYBERARK_CLIENT_CERT_PATH,
+    clientKeyPath: envVars.CYBERARK_CLIENT_KEY_PATH,
+    caCertPath: envVars.CYBERARK_CA_CERT_PATH,
+    cacheTtl: envVars.CYBERARK_CACHE_TTL,
+    timeout: envVars.CYBERARK_TIMEOUT,
+  },
 };
 
 // Configuration validation for production
@@ -191,9 +229,23 @@ if (config.env === 'production') {
     'JWT_SECRET',
     'SESSION_SECRET',
   ];
-  
+
+  // Add CyberArk requirements if enabled
+  if (config.cyberArk.enabled) {
+    requiredProdConfig.push('CYBERARK_URL', 'CYBERARK_ACCOUNT');
+
+    // Require at least one authentication method
+    const hasApiKey = !!config.cyberArk.apiKey;
+    const hasCredentials = !!(config.cyberArk.username && config.cyberArk.password);
+    const hasCertificates = !!(config.cyberArk.clientCertPath && config.cyberArk.clientKeyPath);
+
+    if (!hasApiKey && !hasCredentials && !hasCertificates) {
+      throw new Error('CyberArk authentication method required in production (API key, credentials, or certificates)');
+    }
+  }
+
   const missingConfig = requiredProdConfig.filter(key => !process.env[key]);
-  
+
   if (missingConfig.length > 0) {
     throw new Error(`Missing required production configuration: ${missingConfig.join(', ')}`);
   }
