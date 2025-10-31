@@ -12,6 +12,7 @@ import dotenv from 'dotenv';
 import { DatabaseService } from './services/database.service';
 import { TestDataGenerator } from './utils/test-data';
 import { Logger } from './utils/logger';
+import testDataRoutes from './routes/testData';
 import {
   WorkOrder,
   InventoryItem,
@@ -590,6 +591,9 @@ app.post('/api/admin/reset', async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 });
+
+// Register test data routes
+app.use('/api/test-data', testDataRoutes);
 
 // ============================================================================
 // ERROR HANDLING
