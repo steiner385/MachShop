@@ -79,7 +79,7 @@ export default defineConfig({
       },
       // All other API requests - route to monolith backend
       '/api': {
-        target: 'http://localhost:3001',
+        target: process.env.API_SERVICE_URL || 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },
