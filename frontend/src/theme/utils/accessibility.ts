@@ -5,6 +5,9 @@
 
 import { baseColors } from '../tokens/colors';
 import { lightTheme, darkTheme } from '../tokens/semantic';
+import { typography } from '../tokens/typography';
+import { validateHeadingHierarchy } from './typography';
+import type { HeadingValidationResult } from './typography';
 
 // WCAG 2.1 AA contrast ratio requirements
 const WCAG_AA_NORMAL = 4.5;
@@ -236,6 +239,125 @@ export function suggestAccessibleColor(
 }
 
 /**
+ * Typography accessibility validation
+ */
+export interface TypographyAccessibilityReport {
+  isCompliant: boolean;
+  fontSizeIssues: Array<{
+    element: string;
+    currentSize: string;
+    minimumSize: string;
+    issue: string;
+  }>;
+  headingHierarchy: HeadingValidationResult;
+  lineHeightIssues: Array<{
+    element: string;
+    currentLineHeight: string;
+    recommendedLineHeight: string;
+    issue: string;
+  }>;
+}
+
+export function validateTypographyAccessibility(
+  headings: Array<{ level: number; text: string; fontSize?: string; lineHeight?: string }> = []
+): TypographyAccessibilityReport {
+  const fontSizeIssues: TypographyAccessibilityReport['fontSizeIssues'] = [];
+  const lineHeightIssues: TypographyAccessibilityReport['lineHeightIssues'] = [];
+
+  // Validate heading hierarchy
+  const headingHierarchy = validateHeadingHierarchy(headings);
+
+  // Check font sizes against WCAG minimums
+  headings.forEach((heading) => {
+    if (heading.fontSize) {
+      const sizePx = parseFloat(heading.fontSize) * (heading.fontSize.includes('rem') ? 16 : 1);
+      const minSize = parseFloat(typography.validation.minimumSizes.body);
+
+      if (sizePx < minSize) {
+        fontSizeIssues.push({
+          element: `h${heading.level}`,
+          currentSize: heading.fontSize,
+          minimumSize: `${minSize}px`,
+          issue: `Font size ${heading.fontSize} is below WCAG minimum of ${minSize}px`
+        });
+      }
+    }
+
+    // Check line height for readability
+    if (heading.lineHeight) {
+      const lineHeight = parseFloat(heading.lineHeight);
+      const recommendedMinimum = 1.25; // WCAG recommendation for headings
+
+      if (lineHeight < recommendedMinimum) {
+        lineHeightIssues.push({
+          element: `h${heading.level}`,
+          currentLineHeight: heading.lineHeight,
+          recommendedLineHeight: recommendedMinimum.toString(),
+          issue: `Line height ${heading.lineHeight} is below recommended minimum of ${recommendedMinimum}`
+        });
+      }
+    }
+  });
+
+  return {
+    isCompliant: fontSizeIssues.length === 0 && lineHeightIssues.length === 0 && headingHierarchy.isValid,
+    fontSizeIssues,
+    headingHierarchy,
+    lineHeightIssues
+  };
+}
+
+/**
+ * Comprehensive accessibility validation
+ */
+export interface ComprehensiveAccessibilityReport {
+  colors: ThemeAccessibilityReport;
+  typography: TypographyAccessibilityReport;
+  manufacturing: ThemeAccessibilityReport;
+  summary: {
+    overallCompliant: boolean;
+    colorCompliant: boolean;
+    typographyCompliant: boolean;
+    manufacturingCompliant: boolean;
+    totalIssues: number;
+  };
+}
+
+export function validateCompleteAccessibility(
+  theme: 'light' | 'dark' = 'light',
+  headings: Array<{ level: number; text: string; fontSize?: string; lineHeight?: string }> = []
+): ComprehensiveAccessibilityReport {
+  const colors = validateThemeAccessibility(theme);
+  const typography = validateTypographyAccessibility(headings);
+  const manufacturing = validateManufacturingColors();
+
+  const colorCompliant = colors.summary.aaCompliant;
+  const typographyCompliant = typography.isCompliant;
+  const manufacturingCompliant = manufacturing.summary.aaCompliant;
+  const overallCompliant = colorCompliant && typographyCompliant && manufacturingCompliant;
+
+  const totalIssues =
+    colors.summary.failing +
+    typography.fontSizeIssues.length +
+    typography.lineHeightIssues.length +
+    typography.headingHierarchy.violations.length +
+    manufacturing.summary.failing;
+
+  return {
+    colors,
+    typography,
+    manufacturing,
+    summary: {
+      overallCompliant,
+      colorCompliant,
+      typographyCompliant,
+      manufacturingCompliant,
+      totalIssues
+    }
+  };
+}
+
+/**
  * Manufacturing domain accessibility checks
  */
 export function validateManufacturingColors(): ThemeAccessibilityReport {
@@ -303,4 +425,6 @@ export const accessibility = {
   validateThemeAccessibility,
   validateManufacturingColors,
   suggestAccessibleColor,
+  validateTypographyAccessibility,
+  validateCompleteAccessibility,
 };

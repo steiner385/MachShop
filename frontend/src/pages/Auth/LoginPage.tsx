@@ -102,7 +102,7 @@ const LoginPage: React.FC = () => {
         <div className={styles.loginContainer}>
           {/* Header */}
           <div className={styles.loginHeader}>
-            <Title level={2} className={styles.loginTitle}>
+            <Title level={1} className={styles.loginTitle}>
               Manufacturing Execution System
             </Title>
             <Text type="secondary" className={styles.loginSubtitle}>
@@ -114,7 +114,7 @@ const LoginPage: React.FC = () => {
           <Card className={styles.loginCard}>
             <div className={styles.cardHeader}>
               <LoginOutlined className={styles.loginIcon} />
-              <Title level={3}>Sign In</Title>
+              <Title level={2}>Sign In</Title>
               <Text type="secondary">
                 Enter your credentials to access the system
               </Text>
@@ -218,7 +218,7 @@ const LoginPage: React.FC = () => {
             <Card className={styles.demoCard} size="small">
               <div className={styles.demoHeader}>
                 <ExperimentOutlined className={styles.demoIcon} />
-                <Title level={4} style={{ margin: 0 }}>Development Mode - Demo Credentials</Title>
+                <Title level={3} style={{ margin: 0 }}>Development Mode - Demo Credentials</Title>
               </div>
               <Alert
                 message={DEMO_WARNING}

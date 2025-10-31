@@ -6,10 +6,12 @@ A comprehensive design system and theme management solution for the MachShop Man
 
 The MachShop theme system provides:
 - **Standardized color palette** with semantic meanings
+- **Typography hierarchy system** with WCAG-compliant font scales
 - **Dark/light mode support** with automatic switching
 - **Manufacturing domain-specific colors** for equipment, work orders, and quality states
+- **Semantic heading hierarchy enforcement** to prevent accessibility violations
 - **WCAG 2.1 AA accessibility compliance** with built-in validation
-- **TypeScript integration** for type-safe color usage
+- **TypeScript integration** for type-safe design token usage
 - **Ant Design integration** for consistent component theming
 
 ## 📁 Project Structure
@@ -18,11 +20,13 @@ The MachShop theme system provides:
 src/theme/
 ├── tokens/
 │   ├── colors.ts          # Base color palette and domain colors
-│   └── semantic.ts        # Semantic color mappings for light/dark themes
+│   ├── semantic.ts        # Semantic color and typography mappings for light/dark themes
+│   └── typography.ts      # Typography scale, heading hierarchy, and font tokens
 ├── hooks/
 │   └── useTheme.tsx       # React hooks for theme management
 ├── utils/
-│   └── accessibility.ts  # WCAG compliance validation utilities
+│   ├── accessibility.ts  # WCAG compliance validation utilities
+│   └── typography.ts     # Typography utilities and hierarchy validation
 ├── antd.ts               # Ant Design theme configuration
 ├── globalStyles.css      # CSS custom properties and utility classes
 └── index.ts              # Main entry point
@@ -80,6 +84,84 @@ function MyComponent() {
 .success-badge {
   color: var(--status-success);
   background-color: var(--status-success-bg);
+}
+```
+
+## 📝 Typography System
+
+### Heading Hierarchy
+
+The typography system enforces semantic heading hierarchy to ensure WCAG 2.1 AA compliance:
+
+```typescript
+import { useTheme, getHeadingStyle } from '@/theme';
+
+function MyComponent() {
+  const { colors } = useTheme();
+
+  return (
+    <div>
+      {/* Main page title - always use h1 */}
+      <Title level={1}>Main Page Title</Title>
+
+      {/* Major sections - use h2 */}
+      <Title level={2}>Section Heading</Title>
+
+      {/* Subsections - use h3 */}
+      <Title level={3}>Subsection Heading</Title>
+
+      {/* Detail levels - use h4+ as needed */}
+      <Title level={4}>Detail Heading</Title>
+    </div>
+  );
+}
+```
+
+### Typography Utilities
+
+```typescript
+import {
+  getTypographyStyle,
+  validateHeadingHierarchy,
+  manufacturingTypographyHelpers
+} from '@/theme';
+
+// Get typography styles for different content types
+const headingStyle = getTypographyStyle('h1');
+const bodyStyle = getTypographyStyle('body');
+const captionStyle = getTypographyStyle('caption');
+
+// Manufacturing-specific typography
+const equipmentCode = manufacturingTypographyHelpers.formatEquipmentCode('EQ-001');
+const serialNumber = manufacturingTypographyHelpers.formatSerialNumber('SN123456789');
+
+// Validate heading hierarchy for accessibility
+const headings = [
+  { level: 1, text: 'Main Title' },
+  { level: 2, text: 'Section Title' },
+  { level: 3, text: 'Subsection Title' }
+];
+
+const validation = validateHeadingHierarchy(headings);
+if (!validation.isValid) {
+  console.warn('Heading hierarchy violations:', validation.violations);
+}
+```
+
+### Responsive Typography
+
+```css
+/* Automatically responsive using CSS custom properties */
+.heading {
+  font-size: var(--font-size-heading-1);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-bold);
+}
+
+@media (max-width: 768px) {
+  .heading {
+    font-size: var(--font-size-heading-2); /* Automatically scales down */
+  }
 }
 ```
 
@@ -215,6 +297,19 @@ console.log(check.ratio);  // 21 (excellent contrast)
 // Validate entire theme
 const report = accessibility.validateThemeAccessibility('light');
 console.log(report.summary.aaCompliant); // true
+
+// Validate typography accessibility
+const headings = [
+  { level: 1, text: 'Main Title', fontSize: '2.25rem', lineHeight: '1.25' },
+  { level: 2, text: 'Section', fontSize: '1.875rem', lineHeight: '1.25' }
+];
+const typographyReport = accessibility.validateTypographyAccessibility(headings);
+console.log(typographyReport.isCompliant); // true
+console.log(typographyReport.headingHierarchy.violations); // []
+
+// Comprehensive accessibility validation
+const fullReport = accessibility.validateCompleteAccessibility('light', headings);
+console.log(fullReport.summary.overallCompliant); // true
 
 // Get accessible color suggestions
 const suggestions = accessibility.suggestAccessibleColor('#ffffff', '#1890ff');

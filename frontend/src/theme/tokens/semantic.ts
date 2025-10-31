@@ -1,13 +1,14 @@
 /**
- * Semantic Color Tokens
- * Context-aware color mappings for the MachShop MES application
+ * Semantic Design Tokens
+ * Context-aware color and typography mappings for the MachShop MES application
  *
- * This file maps base color tokens to semantic meanings and use cases.
+ * This file maps base design tokens to semantic meanings and use cases.
  * It provides a layer of abstraction between design tokens and implementation,
  * making it easier to maintain consistency and implement theme variations.
  */
 
 import { baseColors, domainColors, accessibilityColors } from './colors';
+import { typography, headingHierarchy, contentTypography } from './typography';
 
 // Light theme semantic colors (default)
 export const lightTheme = {
@@ -109,6 +110,16 @@ export const lightTheme = {
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   },
+
+  // Typography tokens for light theme
+  typography: {
+    // Heading hierarchy
+    headings: headingHierarchy,
+    // Content typography
+    content: contentTypography,
+    // Accessibility requirements
+    accessibility: typography.accessibility,
+  },
 } as const;
 
 // Dark theme semantic colors
@@ -207,6 +218,16 @@ export const darkTheme = {
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+  },
+
+  // Typography tokens for dark theme (same as light theme)
+  typography: {
+    // Heading hierarchy
+    headings: headingHierarchy,
+    // Content typography
+    content: contentTypography,
+    // Accessibility requirements
+    accessibility: typography.accessibility,
   },
 } as const;
 

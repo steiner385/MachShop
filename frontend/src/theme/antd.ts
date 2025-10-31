@@ -10,6 +10,7 @@ import { theme } from 'antd';
 import type { ThemeConfig } from 'antd';
 import { baseColors, domainColors } from './tokens/colors';
 import { lightTheme, darkTheme } from './tokens/semantic';
+import { typographyScale, headingHierarchy } from './tokens/typography';
 
 // Base Ant Design theme configuration
 const baseAntdTheme: ThemeConfig = {
@@ -97,17 +98,17 @@ const baseAntdTheme: ThemeConfig = {
     colorLinkActive: lightTheme.text.linkHover,
     colorLinkHover: lightTheme.text.linkHover,
 
-    // Typography
+    // Typography - Using our typography scale
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-    fontSize: 14,
-    fontSizeHeading1: 38,
-    fontSizeHeading2: 30,
-    fontSizeHeading3: 24,
-    fontSizeHeading4: 20,
-    fontSizeHeading5: 16,
-    fontSizeLG: 16,
-    fontSizeSM: 12,
-    fontSizeXL: 20,
+    fontSize: parseFloat(typographyScale.fontSize.base) * 16, // Convert rem to px (1rem = 16px)
+    fontSizeHeading1: parseFloat(headingHierarchy.h1.fontSize) * 16, // 2.25rem = 36px
+    fontSizeHeading2: parseFloat(headingHierarchy.h2.fontSize) * 16, // 1.875rem = 30px
+    fontSizeHeading3: parseFloat(headingHierarchy.h3.fontSize) * 16, // 1.5rem = 24px
+    fontSizeHeading4: parseFloat(headingHierarchy.h4.fontSize) * 16, // 1.25rem = 20px
+    fontSizeHeading5: parseFloat(headingHierarchy.h5.fontSize) * 16, // 1.125rem = 18px
+    fontSizeLG: parseFloat(typographyScale.fontSize.lg) * 16, // 1.125rem = 18px
+    fontSizeSM: parseFloat(typographyScale.fontSize.sm) * 16, // 0.875rem = 14px
+    fontSizeXL: parseFloat(typographyScale.fontSize.xl) * 16, // 1.25rem = 20px
 
     // Spacing and sizing
     sizeUnit: 4,

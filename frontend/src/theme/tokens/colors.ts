@@ -188,7 +188,7 @@ export type AccessibilityColorKey = keyof typeof accessibilityColors;
 // Helper function to get color values
 export const getColor = (
   category: BaseColorKey,
-  shade: BaseColorShade = '500'
+  shade: BaseColorShade = 500
 ): string => {
   return baseColors[category][shade];
 };

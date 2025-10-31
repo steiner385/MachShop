@@ -6,15 +6,26 @@
  * single entry point for the theme system.
  */
 
-// Core color tokens
+// Core design tokens
 export * from './tokens/colors';
 export * from './tokens/semantic';
+export * from './tokens/typography';
 
 // Ant Design integration
 export * from './antd';
 
 // React hooks and components
 export * from './hooks/useTheme';
+
+// Utility functions
+export * from './utils/accessibility';
+export {
+  validateHeadingHierarchy,
+  manufacturingTypographyHelpers,
+  responsiveTypography,
+  accessibilityHelpers,
+  debugTypography
+} from './utils/typography';
 
 // Re-export commonly used items with convenient names
 export { baseColors as colors } from './tokens/colors';

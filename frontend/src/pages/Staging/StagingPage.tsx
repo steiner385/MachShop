@@ -82,7 +82,7 @@ export const StagingPage: React.FC = () => {
       ),
       children: (
         <Card style={{ padding: 24, textAlign: 'center', minHeight: 400 }}>
-          <Title level={4}>Staging Analytics</Title>
+          <Title level={2}>Staging Analytics</Title>
           <Text type="secondary">
             Advanced analytics and reporting for staging operations coming soon.
             This will include performance trends, optimization insights, and predictive analytics.
@@ -97,7 +97,7 @@ export const StagingPage: React.FC = () => {
       {/* Page Header */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <Title level={2} style={{ margin: 0 }}>
+          <Title level={1} style={{ margin: 0 }}>
             Staging Management
           </Title>
           <Text type="secondary">
