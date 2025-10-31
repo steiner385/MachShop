@@ -83,6 +83,9 @@ import adminPermissionsRoutes from './routes/admin/permissions';
 import adminRolePermissionsRoutes from './routes/admin/role-permissions';
 import adminUserRolesRoutes from './routes/admin/user-roles';
 
+// ✅ GITHUB ISSUE #126: Time-Based Permission Grants (Temporal Permissions) Routes
+import adminTemporalRolesRoutes from './routes/admin/temporal-roles';
+
 // GitHub Issue #134: Unified SSO Management System Routes
 import ssoRoutes from './routes/sso';
 import ssoAdminRoutes from './routes/ssoAdmin';
@@ -291,6 +294,9 @@ apiRouter.use('/admin/roles', authMiddleware, adminRolesRoutes);
 apiRouter.use('/admin/permissions', authMiddleware, adminPermissionsRoutes);
 apiRouter.use('/admin/role-permissions', authMiddleware, adminRolePermissionsRoutes);
 apiRouter.use('/admin/user-roles', authMiddleware, adminUserRolesRoutes);
+
+// ✅ GITHUB ISSUE #126: Time-Based Permission Grants (Temporal Permissions) API Routes
+apiRouter.use('/admin/temporal-roles', authMiddleware, adminTemporalRolesRoutes);
 
 // GitHub Issue #134: Unified SSO Management System Admin Routes
 apiRouter.use('/admin/sso', authMiddleware, ssoAdminRoutes);
