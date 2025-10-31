@@ -267,10 +267,9 @@ export class QualityService {
       throw new Error('Disposition reason is required');
     }
 
-    // Validate disposition based on severity
-    if (ncr.severity === NCRSeverity.CRITICAL && disposition === NCRDisposition.USE_AS_IS) {
-      throw new Error('Critical NCRs cannot be dispositioned as USE_AS_IS');
-    }
+    // ✅ GITHUB ISSUE #55: Hardcoded disposition restrictions removed (lines 271-272)
+    // Disposition validation is now config-based via NCRDispositionService
+    // This allows per-site/per-severity customization of allowed dispositions
 
     const updatedNCR: NonConformanceReport = {
       ...ncr,
