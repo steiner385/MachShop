@@ -366,12 +366,336 @@ test.describe('Keyboard Navigation - Critical Routes', () => {
 });
 
 /**
- * Test suite: Complex component keyboard support
+ * Test suite: Enhanced components with keyboard navigation
  */
-test.describe('Keyboard Navigation - Complex Components', () => {
+test.describe('Keyboard Navigation - Enhanced Components', () => {
   test.beforeEach(async ({ page }) => {
     page.setDefaultTimeout(45000);
     page.setDefaultNavigationTimeout(45000);
+  });
+
+  test('should support keyboard navigation: Global Search', async ({ page }) => {
+    await authenticateForTesting(page);
+
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+
+    const issues: string[] = [];
+
+    // Look for global search component
+    const searchInput = await page.$('[data-testid="global-search"], [aria-label*="search"], input[placeholder*="search"]');
+
+    if (searchInput) {
+      // Focus search input
+      await searchInput.focus();
+
+      // Type a search query
+      await page.keyboard.type('work');
+      await page.waitForTimeout(1000); // Wait for debounced search
+
+      // Test arrow key navigation in search results
+      const resultsVisible = await page.isVisible('[role="listbox"], [id*="search-results"]');
+
+      if (resultsVisible) {
+        // Test down arrow navigation
+        await page.press('body', 'ArrowDown');
+        await page.waitForTimeout(100);
+
+        // Test up arrow navigation
+        await page.press('body', 'ArrowUp');
+        await page.waitForTimeout(100);
+
+        // Test Enter to select
+        await page.press('body', 'Enter');
+        await page.waitForTimeout(500);
+
+        // Test Escape to close results
+        await searchInput.focus();
+        await page.keyboard.type('test');
+        await page.waitForTimeout(500);
+        await page.press('body', 'Escape');
+        await page.waitForTimeout(300);
+
+        const resultsStillVisible = await page.isVisible('[role="listbox"], [id*="search-results"]');
+        if (resultsStillVisible) {
+          issues.push('Search results do not close with Escape key');
+        }
+
+        // Test Ctrl+K shortcut to clear/focus search
+        await page.press('body', 'Control+k');
+        await page.waitForTimeout(300);
+
+        const searchValue = await searchInput.inputValue();
+        if (searchValue.length > 0) {
+          issues.push('Ctrl+K shortcut does not clear search');
+        }
+      }
+    } else {
+      issues.push('Global search component not found');
+    }
+
+    const result: KeyboardTestResult = {
+      route: 'Global Search',
+      testType: 'Enhanced Search Navigation',
+      passed: issues.length === 0,
+      issues,
+      timestamp: new Date().toISOString()
+    };
+
+    keyboardTestResults.push(result);
+
+    expect(result.passed,
+      `Global search keyboard navigation issues: ${result.issues.join(', ')}`
+    ).toBe(true);
+  });
+
+  test('should support keyboard navigation: Approval Task Queue', async ({ page }) => {
+    await authenticateForTesting(page);
+
+    // Navigate to approvals page
+    await page.goto('/approvals', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3000);
+
+    const issues: string[] = [];
+
+    // Look for approval task table
+    const table = await page.$('.ant-table, [role="grid"], [aria-label*="task"]');
+
+    if (table) {
+      // Test arrow key navigation through table rows
+      await page.press('body', 'ArrowDown');
+      await page.waitForTimeout(200);
+
+      await page.press('body', 'ArrowUp');
+      await page.waitForTimeout(200);
+
+      // Test Space key for row selection
+      await page.press('body', 'Space');
+      await page.waitForTimeout(300);
+
+      // Test Ctrl+A for select all
+      await page.press('body', 'Control+a');
+      await page.waitForTimeout(300);
+
+      // Test Escape to clear selection
+      await page.press('body', 'Escape');
+      await page.waitForTimeout(300);
+
+      // Test F5 to refresh
+      await page.press('body', 'F5');
+      await page.waitForTimeout(1000);
+
+      // Test Ctrl+Enter for bulk approve (if items selected)
+      await page.press('body', 'ArrowDown');
+      await page.press('body', 'Space'); // Select a row
+      await page.waitForTimeout(300);
+
+      // Note: We won't actually execute bulk approve in tests
+      // Just verify the shortcut is captured
+      const bulkApproveButton = await page.$('[aria-label*="Bulk approve"], button:has-text("Approve Selected")');
+      if (!bulkApproveButton) {
+        console.log('Note: Bulk approve functionality may require selected tasks');
+      }
+
+    } else {
+      issues.push('Approval task table not found or not accessible');
+    }
+
+    const result: KeyboardTestResult = {
+      route: 'Approval Task Queue',
+      testType: 'Enhanced Table Navigation',
+      passed: issues.length === 0,
+      issues,
+      timestamp: new Date().toISOString()
+    };
+
+    keyboardTestResults.push(result);
+
+    expect(result.passed,
+      `Approval task queue keyboard navigation issues: ${result.issues.join(', ')}`
+    ).toBe(true);
+  });
+
+  test('should support keyboard navigation: Draggable Steps Table', async ({ page }) => {
+    await authenticateForTesting(page);
+
+    // Navigate to routing creation/editing page
+    await page.goto('/routings/create', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3000);
+
+    const issues: string[] = [];
+
+    // Look for draggable steps table
+    const stepsTable = await page.$('[aria-label*="Routing steps table"], .ant-table');
+
+    if (stepsTable) {
+      // First, we need to add some steps to test navigation
+      // Look for "Add Step" button
+      const addStepButton = await page.$('button:has-text("Add Step"), button:has-text("Add"), [aria-label*="Add step"]');
+
+      if (addStepButton) {
+        // Add a step for testing
+        await addStepButton.click();
+        await page.waitForTimeout(1000);
+
+        // Look for and fill any required form fields
+        const operationSelect = await page.$('select, .ant-select');
+        if (operationSelect) {
+          await operationSelect.click();
+          await page.waitForTimeout(500);
+          await page.press('body', 'ArrowDown');
+          await page.press('body', 'Enter');
+          await page.waitForTimeout(500);
+        }
+
+        // Save the step
+        const saveButton = await page.$('button:has-text("Save"), button:has-text("OK"), button[type="submit"]');
+        if (saveButton) {
+          await saveButton.click();
+          await page.waitForTimeout(1000);
+        }
+
+        // Now test keyboard navigation in the steps table
+        await page.press('body', 'ArrowDown');
+        await page.waitForTimeout(200);
+
+        await page.press('body', 'ArrowUp');
+        await page.waitForTimeout(200);
+
+        // Test Alt+Up/Down for reordering (if multiple steps exist)
+        const stepRows = await page.$$('.ant-table-tbody tr');
+        if (stepRows.length > 1) {
+          await page.press('body', 'Alt+ArrowDown');
+          await page.waitForTimeout(500);
+
+          await page.press('body', 'Alt+ArrowUp');
+          await page.waitForTimeout(500);
+        }
+
+        // Test F2 for editing current step
+        await page.press('body', 'F2');
+        await page.waitForTimeout(1000);
+
+        // Close edit modal if opened
+        await page.press('body', 'Escape');
+        await page.waitForTimeout(500);
+
+        // Test Enter key for editing
+        await page.press('body', 'Enter');
+        await page.waitForTimeout(1000);
+        await page.press('body', 'Escape');
+        await page.waitForTimeout(500);
+
+      } else {
+        console.log('Note: Add Step button not found - table may be read-only or require different setup');
+      }
+
+    } else {
+      issues.push('Draggable steps table not found');
+    }
+
+    const result: KeyboardTestResult = {
+      route: 'Draggable Steps Table',
+      testType: 'Enhanced Drag-Drop Table Navigation',
+      passed: issues.length === 0,
+      issues,
+      timestamp: new Date().toISOString()
+    };
+
+    keyboardTestResults.push(result);
+
+    expect(result.passed,
+      `Draggable steps table keyboard navigation issues: ${result.issues.join(', ')}`
+    ).toBe(true);
+  });
+
+  test('should support keyboard navigation: Work Order Create Modal', async ({ page }) => {
+    await authenticateForTesting(page);
+
+    await page.goto('/workorders', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2000);
+
+    const issues: string[] = [];
+
+    // Look for "Create Work Order" button
+    const createButton = await page.$('button:has-text("Create"), button:has-text("Add"), button:has-text("New")');
+
+    if (createButton) {
+      // Open modal with keyboard
+      await createButton.focus();
+      await page.press('body', 'Enter');
+      await page.waitForTimeout(1000);
+
+      // Check if modal opened
+      const modalVisible = await page.isVisible('.ant-modal, [role="dialog"]');
+
+      if (modalVisible) {
+        // Test Tab navigation through form fields
+        await page.press('body', 'Tab');
+        await page.waitForTimeout(100);
+
+        // Test Alt+P shortcut to focus part number
+        await page.press('body', 'Alt+p');
+        await page.waitForTimeout(300);
+
+        const partFieldFocused = await page.evaluate(() => {
+          const activeElement = document.activeElement;
+          return activeElement?.getAttribute('data-testid') === 'part-number-select' ||
+                 activeElement?.closest('[data-testid="part-number-select"]') !== null;
+        });
+
+        if (!partFieldFocused) {
+          issues.push('Alt+P shortcut does not focus part number field');
+        }
+
+        // Test Alt+Q shortcut to focus quantity
+        await page.press('body', 'Alt+q');
+        await page.waitForTimeout(300);
+
+        const quantityFieldFocused = await page.evaluate(() => {
+          const activeElement = document.activeElement;
+          return activeElement?.getAttribute('data-testid') === 'quantity-input' ||
+                 activeElement?.closest('[data-testid="quantity-input"]') !== null;
+        });
+
+        if (!quantityFieldFocused) {
+          issues.push('Alt+Q shortcut does not focus quantity field');
+        }
+
+        // Test Ctrl+Enter shortcut to submit (we'll cancel instead of actually submitting)
+        await page.press('body', 'Control+Enter');
+        await page.waitForTimeout(500);
+
+        // Test Escape to close modal
+        await page.press('body', 'Escape');
+        await page.waitForTimeout(500);
+
+        const modalStillVisible = await page.isVisible('.ant-modal, [role="dialog"]');
+        if (modalStillVisible) {
+          issues.push('Modal does not close with Escape key');
+        }
+
+      } else {
+        issues.push('Work order create modal did not open');
+      }
+    } else {
+      issues.push('Create work order button not found');
+    }
+
+    const result: KeyboardTestResult = {
+      route: 'Work Order Create Modal',
+      testType: 'Enhanced Modal Navigation',
+      passed: issues.length === 0,
+      issues,
+      timestamp: new Date().toISOString()
+    };
+
+    keyboardTestResults.push(result);
+
+    expect(result.passed,
+      `Work order create modal keyboard navigation issues: ${result.issues.join(', ')}`
+    ).toBe(true);
   });
 
   test('should support keyboard navigation: ReactFlow Routing Editor', async ({ page }) => {

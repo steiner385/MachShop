@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal, Form, Input, InputNumber, DatePicker, Select, Alert, message } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 // import { workOrderAPI } from '@/services/workOrderApi';
 import { useSite } from '@/contexts/SiteContext';
+import { useFocusManagement } from '../../hooks/useFocusManagement';
+import { useKeyboardHandler } from '../../hooks/useKeyboardHandler';
+import { useComponentShortcuts } from '../../contexts/KeyboardShortcutContext';
+import { announceToScreenReader } from '../../utils/ariaUtils';
 
 const { Option } = Select;
 // const { TextArea } = Input;
@@ -36,11 +40,92 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
   const [loadingParts, setLoadingParts] = useState(false);
   const { currentSite } = useSite();
 
+  // Refs for focus management
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus management for modal
+  const { focusFirst, focusElement } = useFocusManagement({
+    containerRef: modalRef,
+    enableFocusTrap: visible,
+    restoreFocus: true,
+    autoFocus: true,
+  });
+
+  // Keyboard handler for modal actions
+  const { keyboardProps } = useKeyboardHandler({
+    enableActivation: false,
+    enableEscape: true,
+    onEscape: (event) => {
+      // Check if form has been modified
+      const hasFormData = form.isFieldsTouched();
+      if (hasFormData) {
+        if (window.confirm('Are you sure you want to cancel? Any entered information will be lost.')) {
+          handleCancel();
+        }
+      } else {
+        handleCancel();
+      }
+      event.preventDefault();
+    },
+  });
+
+  // Register keyboard shortcuts for work order creation
+  useComponentShortcuts('work-order-create', [
+    {
+      description: 'Submit work order',
+      keys: 'Ctrl+Enter',
+      handler: () => {
+        if (!submitting) {
+          form.submit();
+        }
+      },
+      category: 'workorder',
+      priority: 3,
+    },
+    {
+      description: 'Focus part number field',
+      keys: 'Alt+P',
+      handler: () => {
+        const partField = modalRef.current?.querySelector('[data-testid="part-number-select"]') as HTMLElement;
+        if (partField) {
+          focusElement(partField);
+        }
+      },
+      category: 'workorder',
+      priority: 2,
+    },
+    {
+      description: 'Focus quantity field',
+      keys: 'Alt+Q',
+      handler: () => {
+        const quantityField = modalRef.current?.querySelector('[data-testid="quantity-input"]') as HTMLElement;
+        if (quantityField) {
+          focusElement(quantityField);
+        }
+      },
+      category: 'workorder',
+      priority: 2,
+    },
+  ]);
+
   useEffect(() => {
     if (visible) {
       loadParts();
     }
   }, [visible]);
+
+  // Enhanced focus management when modal opens
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => {
+        // Focus the first form field when modal opens
+        const firstField = modalRef.current?.querySelector('input, .ant-select-selector') as HTMLElement;
+        if (firstField) {
+          focusElement(firstField);
+        }
+      }, 100);
+    }
+  }, [visible, focusElement]);
 
   const loadParts = async () => {
     setLoadingParts(true);
@@ -78,6 +163,10 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
 
   const handleSubmit = async (values: any) => {
     setSubmitting(true);
+
+    // Announce submission start
+    announceToScreenReader('Creating work order, please wait...', 'POLITE');
+
     try {
       const token = localStorage.getItem('token');
 
@@ -106,22 +195,28 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
       }
 
       const newWorkOrder = await response.json();
-      message.success(`Work order ${newWorkOrder.workOrderNumber} created successfully`);
+      const successMessage = `Work order ${newWorkOrder.workOrderNumber} created successfully`;
+      message.success(successMessage);
+      announceToScreenReader(successMessage, 'POLITE');
+
       form.resetFields();
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error('Failed to create work order:', error);
-      message.error(error.message || 'Failed to create work order');
+      const errorMessage = error.message || 'Failed to create work order';
+      message.error(errorMessage);
+      announceToScreenReader(`Error: ${errorMessage}`, 'ASSERTIVE');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     form.resetFields();
+    announceToScreenReader('Work order creation cancelled', 'POLITE');
     onClose();
-  };
+  }, [form, onClose]);
 
   return (
     <Modal
@@ -133,6 +228,18 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
       width={600}
       okText="Create Work Order"
       cancelText="Cancel"
+      modalRender={(modal) => (
+        <div
+          ref={modalRef}
+          {...keyboardProps}
+          role="dialog"
+          aria-labelledby="work-order-create-title"
+          aria-describedby="work-order-create-description"
+          aria-modal="true"
+        >
+          {modal}
+        </div>
+      )}
     >
       <Alert
         message="Create from Customer Order"
@@ -161,6 +268,8 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
               (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
             }
             data-testid="part-number-select"
+            aria-label="Select part number for work order"
+            aria-describedby="part-number-hint"
           >
             {parts.map((part) => (
               <Option key={part.partNumber} value={part.partNumber}>
@@ -187,6 +296,8 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
             style={{ width: '100%' }}
             min={1}
             data-testid="quantity-input"
+            aria-label="Enter quantity to produce"
+            aria-describedby="quantity-hint"
           />
         </Form.Item>
 
@@ -195,7 +306,12 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
           label="Priority"
           rules={[{ required: true, message: 'Please select priority' }]}
         >
-          <Select placeholder="Select priority" data-testid="priority-select">
+          <Select
+            placeholder="Select priority"
+            data-testid="priority-select"
+            aria-label="Select work order priority level"
+            aria-describedby="priority-hint"
+          >
             <Option value="LOW">Low</Option>
             <Option value="NORMAL">Normal</Option>
             <Option value="HIGH">High</Option>
@@ -210,6 +326,8 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
           <Input
             placeholder="Enter customer order number (optional)"
             data-testid="customer-order-input"
+            aria-label="Enter customer order number"
+            aria-describedby="customer-order-hint"
           />
         </Form.Item>
 
@@ -222,9 +340,34 @@ export const WorkOrderCreate: React.FC<WorkOrderCreateProps> = ({
             placeholder="Select due date (optional)"
             format="YYYY-MM-DD"
             data-testid="due-date-picker"
+            aria-label="Select work order due date"
+            aria-describedby="due-date-hint"
           />
         </Form.Item>
       </Form>
+
+      {/* Hidden ARIA hints for screen readers */}
+      <div id="work-order-create-title" style={{ display: 'none' }}>
+        Create Work Order
+      </div>
+      <div id="work-order-create-description" style={{ display: 'none' }}>
+        Create a new work order modal. Use Ctrl+Enter to submit, Alt+P to focus part number, Alt+Q to focus quantity, Escape to cancel.
+      </div>
+      <div id="part-number-hint" style={{ display: 'none' }}>
+        Select the part number to manufacture. Use Alt+P to quickly focus this field.
+      </div>
+      <div id="quantity-hint" style={{ display: 'none' }}>
+        Enter the quantity to produce. Use Alt+Q to quickly focus this field.
+      </div>
+      <div id="priority-hint" style={{ display: 'none' }}>
+        Select the work order priority: Low, Normal, High, or Urgent.
+      </div>
+      <div id="customer-order-hint" style={{ display: 'none' }}>
+        Optional customer order number for tracking purposes.
+      </div>
+      <div id="due-date-hint" style={{ display: 'none' }}>
+        Optional due date for work order completion.
+      </div>
     </Modal>
   );
 };
