@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  covalent-surrogate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: covalent-surrogate
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      LOG_LEVEL: INFO
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    networks:
+      - machshop-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  machshop-network:
+    driver: bridge
