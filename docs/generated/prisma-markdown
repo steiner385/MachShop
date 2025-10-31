@@ -3925,6 +3925,22 @@ erDiagram
   DateTime expiresAt
   DateTime createdAt
 }
+"saml_configs" {
+  String id PK
+  String name UK
+  String entityId UK
+  String ssoUrl
+  String sloUrl "nullable"
+  String idpMetadataUrl "nullable"
+  String idpMetadata "nullable"
+  String certificate
+  String privateKey
+  Boolean signRequests
+  Boolean signAssertions
+  Boolean encryptAssertions
+  String nameIdFormat
+  Json attributeMapping "nullable"
+  Int clockTolerance
 "part_interchangeability_groups" {
   String id PK
   String name UK
@@ -3981,6 +3997,27 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"saml_sessions" {
+  String id PK
+  String userId FK
+  String sessionIndex "nullable"
+  String nameId
+  String nameIdFormat
+  String assertionId UK
+  String configId FK
+  Json attributes "nullable"
+  DateTime expiresAt "nullable"
+  DateTime createdAt
+}
+"saml_auth_requests" {
+  String id PK
+  String requestId UK
+  String relayState "nullable"
+  String destination
+  DateTime issueInstant
+  String configId FK
+  DateTime expiresAt
+  DateTime createdAt
 "work_order_part_substitutions" {
   String id PK
   String workOrderId FK
@@ -4365,6 +4402,9 @@ erDiagram
 "oidc_sessions" }o--|| "users" : user
 "oidc_sessions" }o--|| "oidc_configs" : config
 "oidc_auth_states" }o--|| "oidc_configs" : config
+"saml_sessions" }o--|| "users" : user
+"saml_sessions" }o--|| "saml_configs" : config
+"saml_auth_requests" }o--|| "saml_configs" : config
 "part_interchangeability_groups" }o--|| "users" : creator
 "part_substitutions" }o--|| "part_interchangeability_groups" : group
 "part_substitutions" }o--|| "parts" : primaryPart
@@ -8817,6 +8857,9 @@ PKCE and CSRF protection for OAuth flows
   - `expiresAt`: 
   - `createdAt`: 
 
+### `saml_configs`
+SAML 2.0 Configuration
+Dedicated SAML provider configuration for enterprise SSO
 ### `part_interchangeability_groups`
 Part Interchangeability Groups
 Groups of parts that can be substituted for each other under specific conditions
@@ -8824,6 +8867,19 @@ Groups of parts that can be substituted for each other under specific conditions
 **Properties**
   - `id`: 
   - `name`: 
+  - `entityId`: 
+  - `ssoUrl`: 
+  - `sloUrl`: 
+  - `idpMetadataUrl`: 
+  - `idpMetadata`: 
+  - `certificate`: 
+  - `privateKey`: 
+  - `signRequests`: 
+  - `signAssertions`: 
+  - `encryptAssertions`: 
+  - `nameIdFormat`: 
+  - `attributeMapping`: 
+  - `clockTolerance`: 
   - `description`: 
   - `groupType`: 
   - `category`: 
@@ -8885,6 +8941,35 @@ Engineering approval process for declaring part interchangeability
   - `createdAt`: 
   - `updatedAt`: 
 
+### `saml_sessions`
+SAML User Sessions
+Track SAML authentication sessions and assertions
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `sessionIndex`: 
+  - `nameId`: 
+  - `nameIdFormat`: 
+  - `assertionId`: 
+  - `configId`: 
+  - `attributes`: 
+  - `expiresAt`: 
+  - `createdAt`: 
+
+### `saml_auth_requests`
+SAML Authentication Request Tracking
+Track outgoing SAML AuthnRequests for security and correlation
+
+**Properties**
+  - `id`: 
+  - `requestId`: 
+  - `relayState`: 
+  - `destination`: 
+  - `issueInstant`: 
+  - `configId`: 
+  - `expiresAt`: 
+  - `createdAt`: 
 ### `work_order_part_substitutions`
 Work Order Part Substitution Log
 Track actual substitutions made during production

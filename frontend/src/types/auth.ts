@@ -19,6 +19,34 @@ export interface LoginRequest {
   rememberMe?: boolean;
 }
 
+export interface SamlAuthRequest {
+  email?: string;
+  configId?: string;
+  returnUrl?: string;
+  relayState?: string;
+}
+
+export interface SamlProviderInfo {
+  id: string;
+  name: string;
+  entityId: string;
+  isActive: boolean;
+  loginUrl: string;
+}
+
+export interface SamlDiscoveryResponse {
+  success: boolean;
+  data: {
+    recommended: SamlProviderInfo[];
+    alternatives: SamlProviderInfo[];
+    discoveryInfo: {
+      confidence: number;
+      matchedRule?: string;
+      fallbackUsed: boolean;
+    } | null;
+  };
+}
+
 export interface LoginResponse {
   message: string;
   token: string;
