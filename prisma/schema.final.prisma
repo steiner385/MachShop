@@ -2,11 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator erd {
-  provider = "prisma-erd-generator"
-  output   = "../docs/erd.md"
-  theme    = "default"
-}
+// Temporarily disabled due to JSON parsing issue in CI
+// TODO: Re-enable after ERD generator JSON parsing issue is resolved
+// generator erd {
+//   provider = "prisma-erd-generator"
+//   output   = "../docs/erd.md"
+//   theme    = "default"
+// }
 
 datasource db {
   provider = "postgresql"

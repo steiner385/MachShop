@@ -1,0 +1,1377 @@
+{
+  "summary": {
+    "totalFields": 5301,
+    "documentedFields": 5301,
+    "coveragePercentage": 100,
+    "generatedAt": "2025-10-31T17:24:48.339Z",
+    "achievement": "100% Coverage Achieved!"
+  },
+  "breakdown": {
+    "byCategory": {
+      "Identity": {
+        "total": 253,
+        "documented": 253,
+        "percentage": 100
+      },
+      "Audit": {
+        "total": 344,
+        "documented": 344,
+        "percentage": 100
+      },
+      "Personnel": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "Relationships": {
+        "total": 700,
+        "documented": 700,
+        "percentage": 100
+      },
+      "Other": {
+        "total": 2822,
+        "documented": 2822,
+        "percentage": 100
+      },
+      "Quality": {
+        "total": 37,
+        "documented": 37,
+        "percentage": 100
+      },
+      "Status": {
+        "total": 380,
+        "documented": 380,
+        "percentage": 100
+      },
+      "Temporal": {
+        "total": 452,
+        "documented": 452,
+        "percentage": 100
+      },
+      "Traceability": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "Documentation": {
+        "total": 126,
+        "documented": 126,
+        "percentage": 100
+      },
+      "Manufacturing": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "Measurements": {
+        "total": 56,
+        "documented": 56,
+        "percentage": 100
+      },
+      "Business Logic": {
+        "total": 22,
+        "documented": 22,
+        "percentage": 100
+      },
+      "Configuration": {
+        "total": 35,
+        "documented": 35,
+        "percentage": 100
+      },
+      "Financial": {
+        "total": 2,
+        "documented": 2,
+        "percentage": 100
+      }
+    },
+    "byPriority": {
+      "critical": {
+        "total": 632,
+        "documented": 632,
+        "percentage": 100
+      },
+      "high": {
+        "total": 2019,
+        "documented": 2019,
+        "percentage": 100
+      },
+      "medium": {
+        "total": 333,
+        "documented": 333,
+        "percentage": 100
+      },
+      "low": {
+        "total": 2317,
+        "documented": 2317,
+        "percentage": 100
+      }
+    },
+    "byTable": {
+      "User": {
+        "total": 145,
+        "documented": 145,
+        "percentage": 100
+      },
+      "MaterialLot": {
+        "total": 56,
+        "documented": 56,
+        "percentage": 100
+      },
+      "WorkOrder": {
+        "total": 51,
+        "documented": 51,
+        "percentage": 100
+      },
+      "Equipment": {
+        "total": 47,
+        "documented": 47,
+        "percentage": 100
+      },
+      "MaterialDefinition": {
+        "total": 46,
+        "documented": 46,
+        "percentage": 100
+      },
+      "ERPMaterialTransaction": {
+        "total": 35,
+        "documented": 35,
+        "percentage": 100
+      },
+      "Site": {
+        "total": 31,
+        "documented": 31,
+        "percentage": 100
+      },
+      "EquipmentPerformanceLog": {
+        "total": 30,
+        "documented": 30,
+        "percentage": 100
+      },
+      "MaterialStateHistory": {
+        "total": 28,
+        "documented": 28,
+        "percentage": 100
+      },
+      "EquipmentCommand": {
+        "total": 24,
+        "documented": 24,
+        "percentage": 100
+      },
+      "MeasurementEquipment": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "EquipmentMaterialMovement": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "WorkOrderPartSubstitution": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "EquipmentDataCollection": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "WorkOrderOperation": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "MaterialSublot": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "MaintenanceWorkOrder": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "MaterialClass": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "MaterialProperty": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "MaterialOperationSpecification": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "MaterialLotGenealogy": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "PartSiteAvailability": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "EquipmentOperationSpecification": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "EquipmentStateHistory": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "UserWorkstationPreference": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "WorkOrderStatusHistory": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "MaterialTransaction": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "UserSiteRole": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "QualityPlan": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "EquipmentCapability": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "UserNotification": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "UserSessionLog": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "SaviyntUserMapping": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "UserRole": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "EquipmentLog": {
+        "total": 8,
+        "documented": 8,
+        "percentage": 100
+      },
+      "BuildRecordOperation": {
+        "total": 55,
+        "documented": 55,
+        "percentage": 100
+      },
+      "Operation": {
+        "total": 44,
+        "documented": 44,
+        "percentage": 100
+      },
+      "InspectionPlan": {
+        "total": 42,
+        "documented": 42,
+        "percentage": 100
+      },
+      "Routing": {
+        "total": 31,
+        "documented": 31,
+        "percentage": 100
+      },
+      "OperationParameter": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "RoutingStep": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "RoutingTemplate": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "QualityInspection": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "RoleTemplate": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "VendorKitInspection": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "PhysicalAssetOperationSpecification": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "RoutingOperation": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "InspectionExecution": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "Role": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "RoleTemplateInstance": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "OperationDependency": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "PersonnelOperationSpecification": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "InspectionRecord": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "PermissionUsageLog": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "PermissionChangeLog": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "RoleTemplateUsageLog": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "SamplingInspectionResult": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "InspectionCharacteristic": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "RoutingStepParameter": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "Permission": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "SaviyntRoleMapping": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "RoutingStepDependency": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "RoleTemplatePermission": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "InspectionStep": {
+        "total": 8,
+        "documented": 8,
+        "percentage": 100
+      },
+      "OperationGaugeRequirement": {
+        "total": 7,
+        "documented": 7,
+        "percentage": 100
+      },
+      "RolePermission": {
+        "total": 7,
+        "documented": 7,
+        "percentage": 100
+      },
+      "InterfaceControlDocument": {
+        "total": 43,
+        "documented": 43,
+        "percentage": 100
+      },
+      "BuildRecordDocument": {
+        "total": 35,
+        "documented": 35,
+        "percentage": 100
+      },
+      "SupplierCommunication": {
+        "total": 29,
+        "documented": 29,
+        "percentage": 100
+      },
+      "DocumentComment": {
+        "total": 25,
+        "documented": 25,
+        "percentage": 100
+      },
+      "LLPCertification": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "SaviyntAccessCertification": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "DocumentTemplate": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "DocumentAnnotation": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ECOAffectedDocument": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "PersonnelCertification": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "PersonnelSkillAssignment": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "DocumentEditSession": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "DocumentActivity": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "PersonnelSkill": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "DocumentSubscription": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "Part": {
+        "total": 75,
+        "documented": 75,
+        "percentage": 100
+      },
+      "ToolDrawing": {
+        "total": 60,
+        "documented": 60,
+        "percentage": 100
+      },
+      "EngineeringChangeOrder": {
+        "total": 55,
+        "documented": 55,
+        "percentage": 100
+      },
+      "BuildDeviation": {
+        "total": 55,
+        "documented": 55,
+        "percentage": 100
+      },
+      "BuildRecord": {
+        "total": 50,
+        "documented": 50,
+        "percentage": 100
+      },
+      "StoredFile": {
+        "total": 47,
+        "documented": 47,
+        "percentage": 100
+      },
+      "StandardOperatingProcedure": {
+        "total": 46,
+        "documented": 46,
+        "percentage": 100
+      },
+      "Kit": {
+        "total": 46,
+        "documented": 46,
+        "percentage": 100
+      },
+      "SetupSheet": {
+        "total": 42,
+        "documented": 42,
+        "percentage": 100
+      },
+      "ScheduleEntry": {
+        "total": 41,
+        "documented": 41,
+        "percentage": 100
+      },
+      "BuildRecordPhoto": {
+        "total": 41,
+        "documented": 41,
+        "percentage": 100
+      },
+      "ProductionPerformanceActual": {
+        "total": 39,
+        "documented": 39,
+        "percentage": 100
+      },
+      "UnitOfMeasure": {
+        "total": 38,
+        "documented": 38,
+        "percentage": 100
+      },
+      "KitItem": {
+        "total": 38,
+        "documented": 38,
+        "percentage": 100
+      },
+      "ICDChangeRequest": {
+        "total": 38,
+        "documented": 38,
+        "percentage": 100
+      },
+      "WorkPerformance": {
+        "total": 37,
+        "documented": 37,
+        "percentage": 100
+      },
+      "LaborTimeEntry": {
+        "total": 37,
+        "documented": 37,
+        "percentage": 100
+      },
+      "TorqueEvent": {
+        "total": 37,
+        "documented": 37,
+        "percentage": 100
+      },
+      "ExpeditRequest": {
+        "total": 37,
+        "documented": 37,
+        "percentage": 100
+      },
+      "WorkInstruction": {
+        "total": 36,
+        "documented": 36,
+        "percentage": 100
+      },
+      "TorqueSpecification": {
+        "total": 36,
+        "documented": 36,
+        "percentage": 100
+      },
+      "Location": {
+        "total": 35,
+        "documented": 35,
+        "percentage": 100
+      },
+      "ProductionScheduleRequest": {
+        "total": 34,
+        "documented": 34,
+        "percentage": 100
+      },
+      "ShortageResolution": {
+        "total": 32,
+        "documented": 32,
+        "percentage": 100
+      },
+      "PersonnelInfoExchange": {
+        "total": 31,
+        "documented": 31,
+        "percentage": 100
+      },
+      "StorageMetrics": {
+        "total": 31,
+        "documented": 31,
+        "percentage": 100
+      },
+      "TimeTrackingConfiguration": {
+        "total": 31,
+        "documented": 31,
+        "percentage": 100
+      },
+      "SamplingPlan": {
+        "total": 30,
+        "documented": 30,
+        "percentage": 100
+      },
+      "StagingLocation": {
+        "total": 30,
+        "documented": 30,
+        "percentage": 100
+      },
+      "VendorKit": {
+        "total": 30,
+        "documented": 30,
+        "percentage": 100
+      },
+      "InterfaceRequirement": {
+        "total": 30,
+        "documented": 30,
+        "percentage": 100
+      },
+      "ICDComplianceCheck": {
+        "total": 29,
+        "documented": 29,
+        "percentage": 100
+      },
+      "ProductionSchedule": {
+        "total": 28,
+        "documented": 28,
+        "percentage": 100
+      },
+      "ProcessDataCollection": {
+        "total": 28,
+        "documented": 28,
+        "percentage": 100
+      },
+      "QIFMeasurementResult": {
+        "total": 28,
+        "documented": 28,
+        "percentage": 100
+      },
+      "BOMItem": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "NCR": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "CNCProgram": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "SPCConfiguration": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "BuildRecordSignature": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "PartShortageAnalytics": {
+        "total": 27,
+        "documented": 27,
+        "percentage": 100
+      },
+      "ScheduleConstraint": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "ProductionVariance": {
+        "total": 26,
+        "documented": 26,
+        "percentage": 100
+      },
+      "ElectronicSignature": {
+        "total": 25,
+        "documented": 25,
+        "percentage": 100
+      },
+      "BackupSchedule": {
+        "total": 25,
+        "documented": 25,
+        "percentage": 100
+      },
+      "SerializedPart": {
+        "total": 24,
+        "documented": 24,
+        "percentage": 100
+      },
+      "QIFMeasurementPlan": {
+        "total": 24,
+        "documented": 24,
+        "percentage": 100
+      },
+      "MachineTimeEntry": {
+        "total": 24,
+        "documented": 24,
+        "percentage": 100
+      },
+      "FAICharacteristic": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "ReviewAssignment": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "Vendor": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "PartSubstitution": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "InterchangeabilityApproval": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "Currency": {
+        "total": 23,
+        "documented": 23,
+        "percentage": 100
+      },
+      "TimeEntryEdit": {
+        "total": 22,
+        "documented": 22,
+        "percentage": 100
+      },
+      "KitShortageAlert": {
+        "total": 22,
+        "documented": 22,
+        "percentage": 100
+      },
+      "VendorKitItem": {
+        "total": 22,
+        "documented": 22,
+        "percentage": 100
+      },
+      "Department": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "ProductSpecification": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "ProductConfiguration": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "ProgramLoadAuthorization": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "IntegrationConfig": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "QIFCharacteristic": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "ECOTask": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "BackupHistory": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "LLPAlert": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "OidcConfig": {
+        "total": 21,
+        "documented": 21,
+        "percentage": 100
+      },
+      "ProductionScheduleResponse": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "WorkflowStage": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "FileAccessLog": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "LLPLifeHistory": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "SamlConfig": {
+        "total": 20,
+        "documented": 20,
+        "percentage": 100
+      },
+      "DispatchLog": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "Inventory": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "FAIReport": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "SPCRuleViolation": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "WorkflowAssignment": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "MultipartUpload": {
+        "total": 19,
+        "documented": 19,
+        "percentage": 100
+      },
+      "QIFMeasurement": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "WorkflowParallelCoordination": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ECOCRBReview": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "FileVersion": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "TimeEntryBatch": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ICDPartConsumption": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ICDHistory": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ICDAttachment": {
+        "total": 18,
+        "documented": 18,
+        "percentage": 100
+      },
+      "ConfigurationOption": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "WorkCenter": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "QualityCharacteristic": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "IntegrationLog": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "WorkflowMetrics": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "SaviyntSyncLog": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "PartInterchangeabilityGroup": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "InterchangeabilityAuditLog": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "ICDPartImplementation": {
+        "total": 17,
+        "documented": 17,
+        "percentage": 100
+      },
+      "ParameterLimits": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "WorkInstructionMedia": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "ExportTemplate": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "WorkflowInstance": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "SecurityEvent": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "ICDVersion": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "ExchangeRate": {
+        "total": 16,
+        "documented": 16,
+        "percentage": 100
+      },
+      "PersonnelAvailability": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "ParameterFormula": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "ProductLifecycle": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "WorkInstructionStep": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "SetupExecution": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "WorkflowDefinition": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "WorkflowStageInstance": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "WorkflowTask": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "TemporalAccessLog": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "IndirectCostCode": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "SsoProvider": {
+        "total": 15,
+        "documented": 15,
+        "percentage": 100
+      },
+      "PersonnelQualification": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "ParameterGroup": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "WorkInstructionStepExecution": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "WorkflowRule": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "AuthenticationEvent": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "TorqueSequence": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "OidcSession": {
+        "total": 14,
+        "documented": 14,
+        "percentage": 100
+      },
+      "Area": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "PersonnelClass": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "ScheduleStateHistory": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "WorkInstructionExecution": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "ToolMaintenanceRecord": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "WorkstationDisplayConfig": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "WorkflowHistory": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "WorkflowTemplate": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "ConflictResolution": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "AuditReport": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "BuildRecordStatusHistory": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "ICDRelation": {
+        "total": 13,
+        "documented": 13,
+        "percentage": 100
+      },
+      "PersonnelWorkCenterAssignment": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "ProgramDownloadLog": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "DataCollectionFieldTemplate": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "SOPAudit": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "ToolCalibrationRecord": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "ECOAttachment": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "ECOHistory": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "TimeEntryApproval": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "AutoStopConfiguration": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "SaviyntWebhookEvent": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "SamlSession": {
+        "total": 12,
+        "documented": 12,
+        "percentage": 100
+      },
+      "AuditLog": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "SetupStep": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "SOPAcknowledgment": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "ToolUsageLog": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "CRBConfiguration": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "TimeEntryLock": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "VendorKitHistory": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "VendorPerformanceMetric": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "ExpeditStatusHistory": {
+        "total": 11,
+        "documented": 11,
+        "percentage": 100
+      },
+      "WorkUnit": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "Alert": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "SOPStep": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "WorkflowDelegation": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "BackupEntry": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "TimeEntryValidationRule": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "SsoSession": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "KitStatusHistory": {
+        "total": 10,
+        "documented": 10,
+        "percentage": 100
+      },
+      "Enterprise": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "QualityMeasurement": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "PartGenealogy": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "SetupParameter": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "SetupTool": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "OidcAuthState": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "SamlAuthRequest": {
+        "total": 9,
+        "documented": 9,
+        "percentage": 100
+      },
+      "ECORelation": {
+        "total": 8,
+        "documented": 8,
+        "percentage": 100
+      },
+      "HomeRealmDiscovery": {
+        "total": 8,
+        "documented": 8,
+        "percentage": 100
+      },
+      "SaviyntConfiguration": {
+        "total": 8,
+        "documented": 8,
+        "percentage": 100
+      },
+      "WorkInstructionRelation": {
+        "total": 7,
+        "documented": 7,
+        "percentage": 100
+      },
+      "CommentReaction": {
+        "total": 7,
+        "documented": 7,
+        "percentage": 100
+      }
+    }
+  }
+}

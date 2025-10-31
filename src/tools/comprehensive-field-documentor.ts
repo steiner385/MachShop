@@ -95,7 +95,7 @@ export class ComprehensiveFieldDocumentor {
     const prioritizedFields = await this.prioritizeFieldDocumentation(gapAnalysis);
 
     // Step 4: Generate comprehensive documentation
-    await this.generateFieldDocumentation(prioritizedFields);
+    await this.processFieldDocumentation(prioritizedFields);
 
     // Step 5: Validate 100% coverage
     await this.validateFullCoverage();
@@ -811,7 +811,7 @@ export class ComprehensiveFieldDocumentor {
     return relatedFields;
   }
 
-  private async generateFieldDocumentation(prioritizedFields: FieldDocumentation[]): Promise<void> {
+  private async processFieldDocumentation(prioritizedFields: FieldDocumentation[]): Promise<void> {
     console.log('📝 Generating comprehensive field documentation...');
 
     // Group fields by table for better organization
