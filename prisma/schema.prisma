@@ -90,6 +90,9 @@ model Site {
   // Serial Number Format Configuration Relations (Issue #149)
   serialNumberFormatConfigs SerialNumberFormatConfig[]
 
+  // NCR Workflow Configuration Relations (Issue #55)
+  ncrWorkflowConfigs NCRWorkflowConfig[] @relation("NCRWorkflowConfigs")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -2134,17 +2137,153 @@ model NCR {
   correctiveAction String?
   preventiveAction String?
   closedAt         DateTime?
+
+  // ✅ ISSUE #55: Enhanced NCR Workflow - Phase 1-2
+  // Disposition fields
+  disposition      NCRDisposition?
+  dispositionJustification String?
+  dispositionApprovedBy String?
+  dispositionApprovedAt DateTime?
+
+  // CTP (Continue to Process) fields
+  ctpAuthorized    Boolean? @default(false)
+  ctpApprovedBy    String?
+  ctpApprovedAt    DateTime?
+  ctpJustification String?
+  ctpConditions    String?
+  ctpOperations    String?            // JSON array of operations material proceeded through
+
+  // DDR (Delayed Disposition) fields
+  ddrExpectedDate  DateTime?
+  ddrPendingItems  String?            // JSON array of pending items with status
+  ddrEscalated     Boolean? @default(false)
+  ddrEscalatedAt   DateTime?
+
+  // MRB (Material Review Board) fields
+  mrbRequired      Boolean? @default(false)
+  mrbMeetingDate   DateTime?
+  mrbAttendees     String?            // JSON array of user IDs
+  mrbDecision      String?
+  mrbVotes         String?            // JSON array of {userId, vote, comments}
+  mrbMinutes       String?            // Meeting minutes or attachment link
+
+  // Cost tracking fields
+  estimatedCost    Decimal?           @db.Decimal(15, 2)
+  actualCost       Decimal?           @db.Decimal(15, 2)
+  scrapCost        Decimal?           @db.Decimal(15, 2)
+  reworkCost       Decimal?           @db.Decimal(15, 2)
+
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  // Relations
   assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
   inspection       QualityInspection? @relation(fields: [inspectionId], references: [id])
   site             Site?              @relation(fields: [siteId], references: [id])
   workOrder        WorkOrder?         @relation(fields: [workOrderId], references: [id])
   rootCause        CauseCode?         @relation("RootCause", fields: [rootCauseId], references: [id])
+
+  // Workflow relations (Issue #55)
+  stateHistory     NCRStateHistory[]
+  approvalRequests NCRApprovalRequest[]
   buildDeviations  BuildDeviation[]
 
   @@map("ncrs")
+}
+
+/// ✅ ISSUE #55: NCR State History - Track all state transitions
+model NCRStateHistory {
+  id              String   @id @default(cuid())
+  ncrId           String
+  fromState       NCRStatus?
+  toState         NCRStatus
+  changedBy       String
+  changeReason    String?
+  approvalRequired Boolean
+  approvedBy      String?
+  approvedAt      DateTime?
+  timestamp       DateTime @default(now())
+
+  // Relations
+  ncr             NCR      @relation(fields: [ncrId], references: [id], onDelete: Cascade)
+
+  @@index([ncrId])
+  @@index([timestamp])
+  @@map("ncr_state_history")
+}
+
+/// ✅ ISSUE #55: NCR Approval Requests - Track pending approvals
+model NCRApprovalRequest {
+  id              String   @id @default(cuid())
+  ncrId           String
+  requestType     NCRApprovalRequestType
+  requestedBy     String
+  requestedAt     DateTime @default(now())
+  approverUserId  String
+  status          NCRApprovalStatus
+  approvalNotes   String?
+  approvedAt      DateTime?
+  dueDate         DateTime?
+  escalated       Boolean  @default(false)
+  escalatedAt     DateTime?
+
+  // Relations
+  ncr             NCR      @relation(fields: [ncrId], references: [id], onDelete: Cascade)
+
+  @@index([ncrId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("ncr_approval_requests")
+}
+
+/// ✅ ISSUE #55: NCR Workflow Configuration - Per-site and per-severity workflow rules
+model NCRWorkflowConfig {
+  id                        String   @id @default(cuid())
+  siteId                    String?
+  severityLevel             NCRSeverity?  // null = applies to all severity levels
+
+  // State configuration (JSON serialized)
+  enabledStates             String        // JSON array of enabled states
+  initialState              NCRStatus
+  stateTransitions          String        // JSON: {fromState: [allowedToStates]}
+  requiredFieldsByState     String?       // JSON: {state: [requiredFields]}
+
+  // CTP configuration
+  ctpEnabled                Boolean       @default(true)
+  ctpApprovalRole           String?       // Role required to approve CTP
+  ctpPreventFinalShip       Boolean       @default(true)
+
+  // DDR configuration
+  ddrEnabled                Boolean       @default(true)
+  ddrAutoTriggerHours       Int?          // Auto-DDR if no disposition after X hours
+  ddrEscalationThreshold    Int           @default(24)  // Hours before escalation
+
+  // MRB configuration
+  mrbEnabled                Boolean       @default(true)
+  mrbValueThreshold         Decimal?      @db.Decimal(15, 2)  // Trigger if cost > $X
+  mrbTriggerConditions      String?       // JSON array of conditions
+  mrbRequiredAttendees      String?       // JSON array of role IDs
+  mrbVotingMethod           NCRMRBVotingMethod @default(UNANIMOUS)
+
+  // Disposition rules (JSON serialized)
+  allowedDispositions       String        // JSON array of allowed dispositions
+  dispositionApprovalRules  String?       // JSON: {disposition: {minRole, requiresMRB}}
+
+  // Metadata
+  isActive                  Boolean       @default(true)
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  createdBy                 String
+
+  // Relations
+  site                      Site?         @relation("NCRWorkflowConfigs", fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, severityLevel])
+  @@index([siteId])
+  @@index([severityLevel])
+  @@map("ncr_workflow_configs")
 }
 
 model Equipment {
@@ -6969,10 +7108,66 @@ enum NCRSeverity {
 }
 
 enum NCRStatus {
+  // Basic states
+  DRAFT
+  SUBMITTED
+
+  // Investigation states
+  UNDER_INVESTIGATION
+  CONTAINMENT
+
+  // Disposition states
+  PENDING_DISPOSITION
+
+  // Advanced dispositions
+  CTP // Continue to Process
+  DDR // Delayed Disposition Required
+  MRB // Material Review Board
+
+  // Final states
+  CORRECTIVE_ACTION
+  VERIFICATION
+  CLOSED
+  CANCELLED
+
+  // Legacy support (deprecated)
   OPEN
   IN_REVIEW
-  CORRECTIVE_ACTION
-  CLOSED
+  DISPOSITION_SET
+}
+
+enum NCRDisposition {
+  REWORK
+  REPAIR
+  SCRAP
+  USE_AS_IS
+  RETURN_TO_SUPPLIER
+  SORT_AND_SEGREGATE
+  RETURN_TO_STOCK
+  ENGINEER_USE_ONLY
+}
+
+enum NCRApprovalRequestType {
+  STATE_TRANSITION
+  DISPOSITION
+  CTP_AUTHORIZATION
+  MRB_DECISION
+  CLOSURE
+}
+
+enum NCRApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DELEGATED
+  EXPIRED
+}
+
+enum NCRMRBVotingMethod {
+  UNANIMOUS
+  MAJORITY
+  CHAIR_DECIDES
+  NO_VOTE
 }
 
 enum EquipmentClass {
