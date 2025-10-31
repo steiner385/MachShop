@@ -306,6 +306,42 @@ export class MaterialService {
   }
 
   /**
+   * Get material lot by persistent UUID (MBE traceability)
+   * Supports NIST AMS 300-12 compliant UUID-based lookup
+   */
+  async getMaterialLotByPersistentUuid(persistentUuid: string) {
+    // Import UUID utilities for validation
+    const { normalizePersistentUUID } = await import('../utils/uuidUtils');
+
+    const normalizedUuid = normalizePersistentUUID(persistentUuid);
+
+    return this.prisma.materialLot.findFirst({
+      where: { persistentUuid: normalizedUuid },
+      include: {
+        material: {
+          include: {
+            materialClass: true,
+            properties: true,
+          },
+        },
+        parentLot: true,
+        childLots: true,
+        sublots: true,
+        stateHistory: {
+          orderBy: { changedAt: 'desc' },
+          take: 10,
+        },
+        genealogyAsParent: {
+          include: { childLot: true },
+        },
+        genealogyAsChild: {
+          include: { parentLot: true },
+        },
+      },
+    });
+  }
+
+  /**
    * Get material lot by lot number
    */
   async getMaterialLotByLotNumber(lotNumber: string) {

@@ -22,6 +22,8 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
+import UUIDDisplay from '../../components/Common/UUIDDisplay';
+import { isValidUUID } from '../../utils/uuidUtils';
 
 const { Title } = Typography;
 
@@ -234,12 +236,27 @@ const WorkOrderDetails: React.FC = () => {
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: 24
       }}>
-        <Title level={2} style={{ margin: 0 }}>
-          Work Order {workOrder.workOrderNumber || workOrder.id}
-        </Title>
+        <div>
+          <Title level={2} style={{ margin: 0, marginBottom: 8 }}>
+            Work Order {workOrder.workOrderNumber || workOrder.id}
+          </Title>
+          {workOrder.persistentUuid && isValidUUID(workOrder.persistentUuid) && (
+            <UUIDDisplay
+              uuid={workOrder.persistentUuid}
+              entityType="WorkOrder"
+              variant="inline"
+              showStandardFormats={true}
+              options={{
+                showCopy: true,
+                showTooltip: true,
+                truncate: true
+              }}
+            />
+          )}
+        </div>
         <Space>
           <Button icon={<EditOutlined />}>
             Edit
@@ -265,6 +282,21 @@ const WorkOrderDetails: React.FC = () => {
                   {workOrder.status.replace('_', ' ')}
                 </Tag>
               </Descriptions.Item>
+              {workOrder.persistentUuid && isValidUUID(workOrder.persistentUuid) && (
+                <Descriptions.Item label="Persistent UUID" span={2}>
+                  <UUIDDisplay
+                    uuid={workOrder.persistentUuid}
+                    entityType="WorkOrder"
+                    variant="inline"
+                    showStandardFormats={true}
+                    options={{
+                      showCopy: true,
+                      showTooltip: true,
+                      truncate: false
+                    }}
+                  />
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Part Number">
                 {workOrder.partNumber}
               </Descriptions.Item>

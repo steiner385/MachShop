@@ -191,6 +191,60 @@ async getPartByPartNumber(partNumber: string, includeRelations: boolean = true) 
 }
 
 /**
+ * Get part by persistent UUID (MBE traceability)
+ * Supports NIST AMS 300-12 compliant UUID-based lookup
+ */
+async getPartByPersistentUuid(persistentUuid: string, includeRelations: boolean = true) {
+  // Import UUID utilities for validation
+  const { normalizePersistentUUID } = await import('../utils/uuidUtils');
+
+  const normalizedUuid = normalizePersistentUUID(persistentUuid);
+
+  const part = await this.prisma.part.findFirst({
+    where: { persistentUuid: normalizedUuid },
+    include: includeRelations ? {
+      specifications: true,
+      configurations: {
+        include: {
+          options: true,
+        },
+      },
+      lifecycleHistory: {
+        orderBy: { transitionDate: 'desc' },
+        take: 10,
+      },
+      bomItems: {
+        include: {
+          componentPart: true,
+          operation: true,
+        },
+      },
+      componentItems: {
+        include: {
+          parentPart: true,
+        },
+      },
+      serializedParts: {
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      },
+      qualityPlans: true,
+      routings: {
+        where: { isActive: true },
+        take: 5,
+      },
+      unitOfMeasureRef: true,
+    } : undefined,
+  });
+
+  if (!part) {
+    throw new Error(`Part with persistent UUID ${persistentUuid} not found`);
+  }
+
+  return part;
+}
+
+/**
  * Get all parts with optional filters
  */
 async getAllParts(filters: {

@@ -76,6 +76,45 @@ router.get('/part-number/:partNumber', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/v1/products/uuid/:persistentUuid
+ * Get part by persistent UUID (MBE traceability)
+ */
+router.get('/uuid/:persistentUuid', async (req: Request, res: Response) => {
+  try {
+    const { persistentUuid } = req.params;
+
+    // Validate UUID format
+    if (!persistentUuid || persistentUuid.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Persistent UUID is required'
+      });
+    }
+
+    // Import UUID utilities
+    const { isValidPersistentUUID } = await import('../utils/uuidUtils');
+
+    if (!isValidPersistentUUID(persistentUuid)) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid UUID format - must be a valid UUID v4 for MBE compliance'
+      });
+    }
+
+    const includeRelations = req.query.includeRelations !== 'false';
+    const part = await ProductService.getPartByPersistentUuid(persistentUuid, includeRelations);
+    res.json(part);
+  } catch (error: any) {
+    console.error('Error fetching part by persistent UUID:', error);
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: error.message });
+    }
+  }
+});
+
+/**
  * GET /api/v1/products
  * Get all parts with optional filters
  */
