@@ -5353,6 +5353,55 @@ erDiagram
   DateTime updatedAt
   String createdBy
 }
+"cause_code_hierarchy_configs" {
+  String id PK
+  String siteId UK "nullable"
+  Int numberOfLevels
+  Json levelNames
+  Boolean isActive
+  String createdBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"cause_codes" {
+  String id PK
+  String code
+  String name
+  String description "nullable"
+  Int level
+  String parentCauseCodeId FK "nullable"
+  String scope
+  String siteId "nullable"
+  String status
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  Boolean capaRequired
+  Json notificationRecipients "nullable"
+  Int displayOrder "nullable"
+  Int version
+  String createdBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"cause_code_history" {
+  String id PK
+  String causeCodeId FK
+  Int version
+  String changeType
+  Json changedFields
+  String changeReason "nullable"
+  String changedBy
+  DateTime changedAt
+}
+"ncr_cause_mappings" {
+  String id PK
+  String ncrId
+  String causeCodeId FK
+  Boolean isPrimary
+  Int attribution "nullable"
+  String additionalNotes "nullable"
+  DateTime createdAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -5890,6 +5939,9 @@ erDiagram
 "work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
 "workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
 "operation_workflow_configurations" |o--|| "operations" : operation
+"cause_codes" }o--o| "cause_codes" : parent
+"cause_code_history" }o--|| "cause_codes" : causeCode
+"ncr_cause_mappings" }o--|| "cause_codes" : causeCode
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 ```
@@ -11958,6 +12010,71 @@ Granular configuration control per operation type
   - `createdAt`: 
   - `updatedAt`: 
   - `createdBy`: 
+
+### `cause_code_hierarchy_configs`
+Cause Code Hierarchy Configuration (Issue #54)
+Defines the hierarchical structure of cause codes per site
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `numberOfLevels`: 
+  - `levelNames`: 
+  - `isActive`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `cause_codes`
+Cause Code (Issue #54)
+Standardized reasons for nonconformance with hierarchical structure
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `level`: 
+  - `parentCauseCodeId`: 
+  - `scope`: 
+  - `siteId`: 
+  - `status`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `capaRequired`: 
+  - `notificationRecipients`: 
+  - `displayOrder`: 
+  - `version`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `cause_code_history`
+Cause Code History (Issue #54)
+Audit trail for all changes to cause codes
+
+**Properties**
+  - `id`: 
+  - `causeCodeId`: 
+  - `version`: 
+  - `changeType`: 
+  - `changedFields`: 
+  - `changeReason`: 
+  - `changedBy`: 
+  - `changedAt`: 
+
+### `ncr_cause_mappings`
+NCR Cause Mapping (Issue #54)
+Links cause codes to NCRs with support for multiple causes per NCR
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `causeCodeId`: 
+  - `isPrimary`: 
+  - `attribution`: 
+  - `additionalNotes`: 
+  - `createdAt`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)

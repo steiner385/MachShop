@@ -402,3 +402,151 @@ export interface NonConformanceReportEnhanced extends NonConformanceReport {
   lastModifiedBy: string;
   lastModifiedAt: Date;
 }
+
+// ============================================================================
+// ✅ GITHUB ISSUE #54: Hierarchical Cause Code System - Phase 1-2
+// ============================================================================
+
+/**
+ * Scope of cause code (global vs site-specific)
+ */
+export enum CauseCodeScope {
+  GLOBAL = 'GLOBAL',
+  SITE_SPECIFIC = 'SITE_SPECIFIC'
+}
+
+/**
+ * Status of a cause code (active, inactive, deprecated)
+ */
+export enum CauseCodeStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  DEPRECATED = 'DEPRECATED'
+}
+
+/**
+ * Type of change made to cause code (for audit trail)
+ */
+export enum CauseCodeChangeType {
+  CREATED = 'CREATED',
+  MODIFIED = 'MODIFIED',
+  DEPRECATED = 'DEPRECATED',
+  RESTORED = 'RESTORED',
+  DELETED = 'DELETED'
+}
+
+/**
+ * Cause code hierarchy configuration (per site)
+ * Defines the number of levels and naming for hierarchical cause codes
+ */
+export interface CauseCodeHierarchyConfig {
+  id: string;
+  siteId?: string;                    // null = global configuration
+  numberOfLevels: number;             // 2-10 levels
+  levelNames: string[];               // ["Category", "Subcategory", "Specific Cause", ...]
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Cause code - standardized reason for nonconformance
+ * Supports hierarchical structure with parent-child relationships
+ */
+export interface CauseCode {
+  id: string;
+  code: string;                       // e.g., "MAT-001", "PROC-005"
+  name: string;                       // e.g., "Material Defect", "Operator Error"
+  description?: string;
+  level: number;                      // 1, 2, 3, etc. (based on hierarchy config)
+  parentCauseCodeId?: string;         // null for level 1
+  scope: CauseCodeScope;
+  siteId?: string;                    // null = global scope
+  status: CauseCodeStatus;
+  effectiveDate?: Date;               // When this code becomes active
+  expirationDate?: Date;              // When this code expires
+  capaRequired: boolean;              // Whether CAPA (Corrective Action) is required
+  notificationRecipients?: string[];  // Email addresses to notify when used
+  displayOrder?: number;              // For ordering in UI
+  version: number;                    // Version number for tracking changes
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Cause code history entry (audit trail for changes)
+ */
+export interface CauseCodeHistory {
+  id: string;
+  causeCodeId: string;
+  version: number;
+  changeType: CauseCodeChangeType;
+  changedFields: Record<string, { oldValue: any; newValue: any }>;
+  changeReason?: string;
+  changedBy: string;
+  changedAt: Date;
+}
+
+/**
+ * Mapping of cause codes to NCRs
+ * Supports multiple causes per NCR with primary/contributing distinction
+ */
+export interface NCRCauseMapping {
+  id: string;
+  ncrId: string;
+  causeCodeId: string;
+  isPrimary: boolean;                 // Primary vs contributing cause
+  attribution?: number;               // 0-100 percentage (for weighted attribution)
+  additionalNotes?: string;           // Additional context for this cause
+  createdAt: Date;
+}
+
+/**
+ * Hierarchical cause code node (includes children for tree display)
+ */
+export interface CauseCodeNode extends CauseCode {
+  children?: CauseCodeNode[];
+  isExpanded?: boolean;               // UI state for tree expansion
+  childCount?: number;                // Number of child nodes
+}
+
+/**
+ * Result of cause code hierarchy validation
+ */
+export interface CauseCodeHierarchyValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Search result for cause code queries
+ */
+export interface CauseCodeSearchResult {
+  id: string;
+  code: string;
+  name: string;
+  level: number;
+  scope: CauseCodeScope;
+  siteId?: string;
+  status: CauseCodeStatus;
+  hierarchyPath: string;              // e.g., "Material > Defects > Dimensional"
+  matchedField: 'code' | 'name' | 'description';
+  relevanceScore: number;             // 0-100 for ranking
+}
+
+/**
+ * NCR with cause mappings (for display/editing)
+ */
+export interface NonConformanceReportWithCauses extends NonConformanceReport {
+  // Backward compatibility: keep free-text root cause
+  rootCause?: string;
+
+  // New structured cause tracking (Phase 1-2)
+  causeMappings: NCRCauseMapping[];
+
+  // Related cause codes (for quick reference)
+  causeCodeDetails?: CauseCode[];
+}

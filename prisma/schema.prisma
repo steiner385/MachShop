@@ -11513,3 +11513,98 @@ model OperationWorkflowConfiguration {
   @@index([operationId])
   @@map("operation_workflow_configurations")
 }
+
+// ============================================================================
+// ✅ GITHUB ISSUE #54: Hierarchical Cause Code System - Phase 1-2
+// ============================================================================
+
+/// Cause Code Hierarchy Configuration (Issue #54)
+/// Defines the hierarchical structure of cause codes per site
+model CauseCodeHierarchyConfig {
+  id                String   @id @default(cuid())
+  siteId            String?  // null = global configuration
+  numberOfLevels    Int      // 2-10 levels
+  levelNames        Json     // ["Category", "Subcategory", "Specific Cause"]
+  isActive          Boolean  @default(true)
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([siteId])
+  @@map("cause_code_hierarchy_configs")
+}
+
+/// Cause Code (Issue #54)
+/// Standardized reasons for nonconformance with hierarchical structure
+model CauseCode {
+  id                    String   @id @default(cuid())
+  code                  String   // e.g., "MAT-001", "PROC-005"
+  name                  String
+  description           String?
+  level                 Int      // 1, 2, 3, etc.
+  parentCauseCodeId     String?
+  scope                 String   // 'GLOBAL' or 'SITE_SPECIFIC'
+  siteId                String?  // null for global scope
+  status                String   // 'ACTIVE', 'INACTIVE', 'DEPRECATED'
+  effectiveDate         DateTime?
+  expirationDate        DateTime?
+  capaRequired          Boolean  @default(false)
+  notificationRecipients Json?   // Array of email addresses
+  displayOrder          Int?
+  version               Int      @default(1)
+  createdBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  parent                CauseCode?  @relation("CauseCodeHierarchy", fields: [parentCauseCodeId], references: [id])
+  children              CauseCode[] @relation("CauseCodeHierarchy")
+  ncrMappings           NCRCauseMapping[]
+  history               CauseCodeHistory[]
+
+  @@unique([code, scope, siteId])
+  @@index([parentCauseCodeId])
+  @@index([level])
+  @@index([status])
+  @@map("cause_codes")
+}
+
+/// Cause Code History (Issue #54)
+/// Audit trail for all changes to cause codes
+model CauseCodeHistory {
+  id                String   @id @default(cuid())
+  causeCodeId       String
+  version           Int
+  changeType        String   // 'CREATED', 'MODIFIED', 'DEPRECATED', 'RESTORED', 'DELETED'
+  changedFields     Json     // {fieldName: {oldValue, newValue}}
+  changeReason      String?
+  changedBy         String
+  changedAt         DateTime @default(now())
+
+  // Relations
+  causeCode         CauseCode @relation(fields: [causeCodeId], references: [id], onDelete: Cascade)
+
+  @@index([causeCodeId])
+  @@index([changedAt])
+  @@map("cause_code_history")
+}
+
+/// NCR Cause Mapping (Issue #54)
+/// Links cause codes to NCRs with support for multiple causes per NCR
+model NCRCauseMapping {
+  id                String   @id @default(cuid())
+  ncrId             String
+  causeCodeId       String
+  isPrimary         Boolean  @default(false)
+  attribution       Int?     // 0-100 percentage
+  additionalNotes   String?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  causeCode         CauseCode @relation(fields: [causeCodeId], references: [id])
+
+  @@unique([ncrId, causeCodeId])
+  @@index([ncrId])
+  @@index([causeCodeId])
+  @@map("ncr_cause_mappings")
+}
