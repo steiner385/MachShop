@@ -126,6 +126,9 @@ import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
 import erpSurrogateRoutes from './routes/erp-surrogate';
 import errorSimulationRoutes from './routes/error-simulation';
 
+// GitHub Issue #31: Data Migration - Import Template System Routes
+import migrationTemplatesRoutes from './routes/migration/templates';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -339,6 +342,9 @@ apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeability
 // ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
 apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
 apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
+
+// GitHub Issue #31: Data Migration - Import Template System API Routes
+apiRouter.use('/migration/templates', authMiddleware, migrationTemplatesRoutes);
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
