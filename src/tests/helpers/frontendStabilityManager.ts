@@ -15,9 +15,11 @@
 
 import { ChildProcess, spawn } from 'child_process';
 import { setTimeout as sleep } from 'timers/promises';
-import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+
+// Using Node.js built-in fetch (available in Node.js 18+)
+const fetch = globalThis.fetch;
 
 export interface FrontendHealthMetrics {
   status: 'healthy' | 'degraded' | 'critical' | 'offline';
