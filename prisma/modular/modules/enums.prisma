@@ -1,21 +1,23 @@
-generator client {
-  provider = "prisma-client-js"
-
-generator erd {
-  provider = "prisma-erd-generator"
-  output   = "../docs/erd.md"
-  theme    = "default"
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-
-
-
 // ====================================================================
 // ENUMS MODULE
 // Enumeration definitions used across the application
 // ====================================================================
+//
+// This module contains all enumeration types used throughout the MES system.
+// Enums are defined here to ensure consistency across all modules and to
+// provide a central location for managing enumeration values.
+//
+// Categories include:
+// - Personnel qualifications and certifications
+// - Material and inventory classifications
+// - Operations and routing definitions
+// - Quality and compliance statuses
+// - Equipment and asset categorizations
+// - ICD system interface types and statuses
+//
+// The enums are organized by functional area for easier maintenance and
+// reference. Each enum includes comprehensive value sets to support the
+// manufacturing execution system requirements.
 
 enum QualificationType {
   CERTIFICATION
@@ -1238,4 +1240,78 @@ enum RoleTemplateAction {
   PERMISSIONS_MODIFIED
   USER_ASSIGNED
   USER_REMOVED
+}
+
+// ============================================================================
+// ICD SYSTEM ENUMS (Issue #224)
+// ============================================================================
+
+/// Interface Control Document Status Lifecycle
+enum ICDStatus {
+  DRAFT           // Initial creation, not yet released
+  UNDER_REVIEW    // Technical review in progress
+  PENDING_APPROVAL // Awaiting approval from stakeholders
+  APPROVED        // Approved and active
+  RELEASED        // Released for production use
+  SUPERSEDED      // Replaced by newer version
+  OBSOLETE        // No longer valid
+  WITHDRAWN       // Removed due to issues
+}
+
+/// Interface Type Categories per ASME Y14.24
+enum InterfaceType {
+  MECHANICAL      // Physical connections, mounting, dimensions, loads
+  ELECTRICAL      // Connectors, signals, power, grounding
+  FLUID           // Hydraulic and pneumatic connections
+  PNEUMATIC       // Air/gas connections
+  THERMAL         // Heat transfer, cooling interfaces
+  DATA            // Communication protocols, data formats
+  OPTICAL         // Fiber optic, laser interfaces
+  STRUCTURAL      // Load bearing, attachment points
+  ENVIRONMENTAL   // Sealing, contamination control
+  SOFTWARE        // API, protocol interfaces
+}
+
+/// Interface Direction/Flow
+enum InterfaceDirection {
+  BIDIRECTIONAL   // Two-way interface
+  INPUT_ONLY      // Receives only
+  OUTPUT_ONLY     // Provides only
+  CONFIGURABLE    // Direction can be configured
+}
+
+/// Interface Criticality Level
+enum InterfaceCriticality {
+  CRITICAL        // Safety/mission critical
+  MAJOR           // Significant impact if failed
+  MINOR           // Limited impact
+  INFORMATIONAL   // Non-critical monitoring
+}
+
+/// Interface Verification Method
+enum VerificationMethod {
+  ANALYSIS        // Mathematical/analytical verification
+  INSPECTION      // Visual/dimensional inspection
+  TEST            // Physical testing required
+  DEMONSTRATION   // Functional demonstration
+  SIMILARITY      // Similar to proven interface
+}
+
+/// Interface Compliance Status
+enum ComplianceStatus {
+  COMPLIANT       // Meets all requirements
+  NON_COMPLIANT   // Fails requirements
+  CONDITIONALLY_COMPLIANT // Meets with conditions
+  UNDER_EVALUATION // Compliance being assessed
+  NOT_APPLICABLE  // Requirements don't apply
+}
+
+/// Effectivity Type for Interface Changes
+enum InterfaceEffectivityType {
+  IMMEDIATE       // Effective immediately
+  SERIAL_NUMBER   // Effective at specific serial
+  DATE            // Effective at specific date
+  LOT_NUMBER      // Effective for specific lot
+  WORK_ORDER      // Effective for specific work order
+  CONFIGURATION   // Effective for configuration
 }
