@@ -1,32 +1,37 @@
 version: '3.8'
 
 services:
-  oracle-ebs:
+  oracle-ebs-surrogate:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: oracle-ebs-surrogate
+    container_name: oracle-ebs-surrogate-dev
     ports:
-      - "${PORT:-3002}:3002"
+      - "3002:3002"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3002
-      DB_PATH: /app/data
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_PATH: /app/data/oracle-ebs.db
+      LOG_LEVEL: debug
     volumes:
-      - ./data:/app/data
       - ./src:/app/src
-      - /app/node_modules
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
-    restart: unless-stopped
+      - ./dist:/app/dist
+      - oracle-ebs-data:/app/data
     networks:
-      - machshop-network
+      - oracle-ebs-network
+    restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  oracle-ebs-data:
+    driver: local
 
 networks:
-  machshop-network:
+  oracle-ebs-network:
     driver: bridge
