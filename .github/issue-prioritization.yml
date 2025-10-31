@@ -787,7 +787,7 @@ issues:
     business_value: 8
     effort_estimate: 8
     blocks: []
-    notes: "Automatic time tracking from equipment"
+    notes: "COMPLETED - Machine-based time tracking with multi-protocol signal processing and flexible cost calculation - Implemented in PR #325"
 
   - number: 51
     title: "Time Entry Management & Approvals"
