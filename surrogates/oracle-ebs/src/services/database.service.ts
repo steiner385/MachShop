@@ -203,6 +203,71 @@ export class DatabaseService {
       )
     `);
 
+    // Work Order Transitions Table (Phase 2)
+    await run(`
+      CREATE TABLE IF NOT EXISTS work_order_transitions (
+        id TEXT PRIMARY KEY,
+        work_order_id TEXT NOT NULL,
+        from_status TEXT NOT NULL,
+        to_status TEXT NOT NULL,
+        transition_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (work_order_id) REFERENCES work_orders(id)
+      )
+    `);
+
+    // Transaction Results Table (Phase 2 - for rollback tracking)
+    await run(`
+      CREATE TABLE IF NOT EXISTS transaction_results (
+        id TEXT PRIMARY KEY,
+        transaction_id TEXT UNIQUE NOT NULL,
+        part_number TEXT NOT NULL,
+        old_balance REAL,
+        new_balance REAL,
+        transaction_type TEXT,
+        success INTEGER,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (transaction_id) REFERENCES inventory_transactions(id),
+        FOREIGN KEY (part_number) REFERENCES inventory_items(part_number)
+      )
+    `);
+
+    // Update inventory_transactions table for Phase 2
+    await run(`
+      CREATE TABLE IF NOT EXISTS inventory_transactions_v2 (
+        id TEXT PRIMARY KEY,
+        part_number TEXT NOT NULL,
+        transaction_type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        unit TEXT,
+        work_order_id TEXT,
+        reference_number TEXT,
+        notes TEXT,
+        transaction_date TEXT NOT NULL,
+        idempotency_key TEXT UNIQUE,
+        rolled_back INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (part_number) REFERENCES inventory_items(part_number)
+      )
+    `);
+
+    // Backflush Records Table (Phase 2)
+    await run(`
+      CREATE TABLE IF NOT EXISTS backflush_records (
+        id TEXT PRIMARY KEY,
+        work_order_id TEXT NOT NULL,
+        part_number TEXT NOT NULL,
+        quantity_issued REAL,
+        labor_hours REAL,
+        labor_cost REAL,
+        material_cost REAL,
+        backflush_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (work_order_id) REFERENCES work_orders(id),
+        FOREIGN KEY (part_number) REFERENCES inventory_items(part_number)
+      )
+    `);
+
     logger.info('All database tables created successfully');
   }
 
