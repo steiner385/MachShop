@@ -1,4 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { config } from '../config/config';
+import { databaseFactory, getDatabase, getLegacyDatabase } from './databaseFactory';
+import { logger } from '../utils/logger';
 
 declare global {
   var __prisma: PrismaClient | undefined;
@@ -87,41 +90,127 @@ function getLogConfig() {
   }
 }
 
-// In test mode, always create a fresh instance to respect DATABASE_URL changes
-// In development/production, use singleton pattern to prevent multiple instances
-let prismaInstance: PrismaClient;
+// Database initialization with CyberArk PAM integration support
+let prismaInstance: PrismaClient | null = null;
 
-if (process.env.NODE_ENV === 'test') {
-  // Always create fresh instance in test mode
-  prismaInstance = new PrismaClient({
-    datasources: {
-      db: {
-        url: getDatabaseUrl()
-      }
-    },
-    log: getLogConfig() as any
-  });
-} else {
-  // Use singleton pattern in development/production
-  prismaInstance = global.__prisma || new PrismaClient({
-    datasources: {
-      db: {
-        url: getDatabaseUrl()
-      }
-    },
-    log: getLogConfig() as any
-  });
+/**
+ * Get the Prisma database client
+ *
+ * If CyberArk is enabled, this will use dynamic credential retrieval.
+ * Otherwise, it falls back to the legacy DATABASE_URL approach.
+ */
+async function initializePrisma(): Promise<PrismaClient> {
+  if (prismaInstance) {
+    return prismaInstance;
+  }
 
-  if (process.env.NODE_ENV === 'development') {
-    global.__prisma = prismaInstance;
+  try {
+    if (config.cyberArk.enabled) {
+      logger.info('[Database] Initializing database connection with CyberArk PAM integration');
+      prismaInstance = await getDatabase();
+    } else {
+      logger.info('[Database] Initializing database connection with legacy DATABASE_URL');
+      prismaInstance = getLegacyDatabaseConnection();
+    }
+
+    return prismaInstance;
+  } catch (error) {
+    logger.error('[Database] Failed to initialize database connection:', error);
+    throw error;
   }
 }
 
-export const prisma = prismaInstance;
+/**
+ * Legacy database connection for backward compatibility
+ */
+function getLegacyDatabaseConnection(): PrismaClient {
+  if (config.cyberArk.enabled) {
+    // This should not happen, but provide clear error message
+    throw new Error('Cannot use legacy database connection when CyberArk is enabled');
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    // Always create fresh instance in test mode
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: getDatabaseUrl()
+        }
+      },
+      log: getLogConfig() as any
+    });
+  } else {
+    // Use singleton pattern in development/production
+    const instance = global.__prisma || new PrismaClient({
+      datasources: {
+        db: {
+          url: getDatabaseUrl()
+        }
+      },
+      log: getLogConfig() as any
+    });
+
+    if (process.env.NODE_ENV === 'development') {
+      global.__prisma = instance;
+    }
+
+    return instance;
+  }
+}
+
+// For immediate synchronous access (backward compatibility)
+// This will work when CyberArk is disabled or in test mode
+let synchronousPrismaInstance: PrismaClient | null = null;
+
+if (!config.cyberArk.enabled || process.env.NODE_ENV === 'test') {
+  try {
+    synchronousPrismaInstance = getLegacyDatabaseConnection();
+  } catch (error) {
+    logger.warn('[Database] Failed to create synchronous database instance:', error);
+  }
+}
+
+// Export the synchronous instance for backward compatibility
+// When CyberArk is enabled, this will be null and consumers should use getPrisma()
+export const prisma = synchronousPrismaInstance;
+
+/**
+ * Get Prisma client (async version - recommended)
+ *
+ * This function supports both CyberArk and legacy configurations.
+ * Use this in new code or when CyberArk integration is enabled.
+ */
+export async function getPrisma(): Promise<PrismaClient> {
+  return initializePrisma();
+}
+
+/**
+ * Get Prisma client for a specific service (microservices architecture)
+ *
+ * This is only available when CyberArk is enabled and provides
+ * service-specific database connections with dedicated credentials.
+ */
+export async function getPrismaForService(serviceName: string): Promise<PrismaClient> {
+  if (!config.cyberArk.enabled) {
+    throw new Error('Service-specific database connections require CyberArk integration to be enabled');
+  }
+
+  return databaseFactory.createConnection(serviceName);
+}
 
 // Graceful shutdown
 process.on('beforeExit', async () => {
-  await prisma.$disconnect();
+  try {
+    if (prismaInstance) {
+      await prismaInstance.$disconnect();
+    }
+    if (synchronousPrismaInstance && synchronousPrismaInstance !== prismaInstance) {
+      await synchronousPrismaInstance.$disconnect();
+    }
+  } catch (error) {
+    logger.warn('[Database] Error during graceful shutdown:', error);
+  }
 });
 
-export default prisma;
+// Default export for backward compatibility
+export default prismaInstance || synchronousPrismaInstance;
