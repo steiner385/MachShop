@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 interface ComprehensiveFieldDoc {
   name: string;
@@ -38,6 +39,29 @@ class ComprehensiveDocumentationIntegrator {
   private comprehensiveDocsPath = './docs/generated/complete-field-documentation.json';
   private outputPath = './prisma/schema.final.prisma';
 
+  /**
+   * Atomically writes content to a file to prevent race conditions
+   */
+  private async writeFileAtomically(filePath: string, content: string): Promise<void> {
+    const tempFile = `${filePath}.tmp.${crypto.randomBytes(8).toString('hex')}`;
+
+    try {
+      // Write to temporary file first
+      await fs.promises.writeFile(tempFile, content, 'utf8');
+
+      // Atomically move temp file to final location
+      await fs.promises.rename(tempFile, filePath);
+    } catch (error) {
+      // Clean up temp file if something went wrong
+      try {
+        await fs.promises.unlink(tempFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+      throw error;
+    }
+  }
+
   async integrateComprehensiveDocumentation(): Promise<void> {
     console.log('🚀 Integrating Comprehensive Field Documentation into Prisma Schema');
     console.log('📊 Using 100% coverage documentation system\n');
@@ -53,8 +77,8 @@ class ComprehensiveDocumentationIntegrator {
     // Integrate documentation
     const documentedSchema = await this.integrateDocumentation(schemaContent, comprehensiveData);
 
-    // Write final schema
-    await fs.promises.writeFile(this.outputPath, documentedSchema, 'utf8');
+    // Write final schema (atomic write to prevent race conditions)
+    await this.writeFileAtomically(this.outputPath, documentedSchema);
     console.log(`✅ Comprehensive documentation integrated successfully!`);
     console.log(`📄 Final schema saved to: ${this.outputPath}`);
     console.log(`📈 Coverage: ${comprehensiveData.summary.coverageLevel} field documentation\n`);
