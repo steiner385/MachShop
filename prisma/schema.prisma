@@ -194,6 +194,14 @@ model User {
   kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
   shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
+
+  // Expedite workflow relationships
+  expeditRequestsCreated    ExpeditRequest[]                @relation("ExpeditRequestedBy")
+  expeditRequestsApproved   ExpeditRequest[]                @relation("ExpeditApprovedBy")
+  supplierCommunicationsSent SupplierCommunication[]
+  shortageResolutionsCreated ShortageResolution[]
+  expeditStatusChanges      ExpeditStatusHistory[]
+
   // OAuth/OIDC relationships
   oidcSessions              OidcSession[]
   // SAML relationships
@@ -1038,6 +1046,12 @@ model Part {
   kitItems                   KitItem[]
   shortageAlerts             KitShortageAlert[]
   vendorKitItems             VendorKitItem[]
+
+  // Expedite workflow relationships
+  expeditRequests            ExpeditRequest[]
+  supplierCommunications     SupplierCommunication[]
+  alternativePartResolutions ShortageResolution[]         @relation("AlternativePartUsed")
+  partShortageAnalytics      PartShortageAnalytics[]
 
   @@index([productType])
   @@index([lifecycleState])
@@ -6790,6 +6804,16 @@ enum NotificationType {
   COMMENT_RESOLVED
   DEADLINE_APPROACHING
   REVIEW_COMPLETED
+  // Kit shortage and expedite notifications
+  MATERIAL_SHORTAGE_DETECTED
+  EXPEDITE_REQUEST_CREATED
+  EXPEDITE_REQUEST_APPROVED
+  EXPEDITE_REQUEST_REJECTED
+  SUPPLIER_RESPONSE_RECEIVED
+  MATERIAL_ARRIVAL_EXPECTED
+  CRITICAL_SHORTAGE_ALERT
+  SHORTAGE_RESOLVED
+  PARTIAL_KIT_RELEASED
 }
 
 /// Conflict resolution type options
@@ -7779,6 +7803,10 @@ model KitShortageAlert {
   assignedTo      User?            @relation("ShortageAssigned", fields: [assignedToId], references: [id])
   resolvedBy      User?            @relation("ShortageResolved", fields: [resolvedById], references: [id])
 
+  // New expedite workflow relationships
+  expeditRequests ExpeditRequest[]
+  resolutionRecord ShortageResolution?
+
   @@index([kitId])
   @@index([status])
   @@index([priority])
@@ -7878,6 +7906,12 @@ model Vendor {
   // Relationships
   vendorKits            VendorKit[]
   performanceMetrics    VendorPerformanceMetric[]
+
+  // Expedite workflow relationships
+  expeditRequests       ExpeditRequest[]
+  supplierCommunications SupplierCommunication[]
+  preferredSupplierAnalytics PartShortageAnalytics[] @relation("PreferredSupplier")
+  bestPerformingAnalytics PartShortageAnalytics[]    @relation("BestPerformingSupplier")
 
   @@index([code])
   @@index([isActive])
@@ -8113,6 +8147,340 @@ enum VendorMetricPeriod {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+// ====================================================================
+// KIT SHORTAGE & EXPEDITE WORKFLOW MODELS
+// Supporting automatic shortage detection, notification, and expedite workflow
+// ====================================================================
+
+model ExpeditRequest {
+  id                    String               @id @default(cuid())
+  shortageAlertId       String?              // Link to original shortage alert
+  partId                String
+  requiredQuantity      Float
+  urgencyLevel          ExpeditUrgency       @default(NORMAL)
+  requestedByDate       DateTime
+
+  // Request details
+  justification         String
+  impactAssessment      String?              // Business impact description
+  costImpact            Float?               // Estimated cost of delay
+  alternativesSuggested String[]             // List of alternative parts considered
+
+  // Request lifecycle
+  status                ExpeditStatus        @default(REQUESTED)
+  requestedById         String
+  approvedById          String?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  rejectionReason       String?
+
+  // Supplier coordination
+  vendorId              String?
+  vendorResponse        String?
+  vendorCommitmentDate  DateTime?
+  estimatedDeliveryDate DateTime?
+  actualDeliveryDate    DateTime?
+
+  // Cost tracking
+  expediteFee           Float?
+  totalCost             Float?
+  approvedCost          Float?
+
+  // Resolution
+  resolvedAt            DateTime?
+  resolution            ExpeditResolution?
+  resolutionNotes       String?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  shortageAlert         KitShortageAlert?    @relation(fields: [shortageAlertId], references: [id])
+  part                  Part                 @relation(fields: [partId], references: [id])
+  requestedBy           User                 @relation("ExpeditRequestedBy", fields: [requestedById], references: [id])
+  approvedBy            User?                @relation("ExpeditApprovedBy", fields: [approvedById], references: [id])
+  vendor                Vendor?              @relation(fields: [vendorId], references: [id])
+
+  // Child relationships
+  communications        SupplierCommunication[]
+  statusHistory         ExpeditStatusHistory[]
+  resolutions           ShortageResolution[]
+
+  @@index([shortageAlertId])
+  @@index([partId])
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([requestedByDate])
+  @@index([vendorId])
+  @@map("expedite_requests")
+}
+
+model SupplierCommunication {
+  id                    String               @id @default(cuid())
+  expeditRequestId      String?              // Optional: for expedite-related communication
+  vendorId              String
+  partId                String?              // Part this communication relates to
+
+  // Communication details
+  communicationType     CommunicationType
+  direction             CommunicationDirection
+  subject               String
+  message               String
+  priority              CommunicationPriority @default(NORMAL)
+
+  // Contact information
+  contactName           String?
+  contactEmail          String?
+  contactPhone          String?
+
+  // Response tracking
+  responseRequired      Boolean              @default(false)
+  responseDeadline      DateTime?
+  responseReceived      Boolean              @default(false)
+  responseDate          DateTime?
+  responseMessage       String?
+
+  // Delivery tracking
+  deliveryCommitment    DateTime?            // Supplier's delivery commitment
+  confirmationReceived  Boolean              @default(false)
+
+  // Status
+  status                CommunicationStatus  @default(SENT)
+
+  // Audit
+  sentById              String?
+  sentAt                DateTime?
+  readAt                DateTime?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  expeditRequest        ExpeditRequest?      @relation(fields: [expeditRequestId], references: [id])
+  vendor                Vendor               @relation(fields: [vendorId], references: [id])
+  part                  Part?                @relation(fields: [partId], references: [id])
+  sentBy                User?                @relation(fields: [sentById], references: [id])
+
+  @@index([expeditRequestId])
+  @@index([vendorId])
+  @@index([partId])
+  @@index([status])
+  @@index([sentAt])
+  @@index([responseDeadline])
+  @@map("supplier_communications")
+}
+
+model ShortageResolution {
+  id                    String               @id @default(cuid())
+  shortageAlertId       String               @unique // Each shortage can only have one resolution
+  expeditRequestId      String?              // If resolved via expedite
+
+  // Resolution details
+  resolutionType        ResolutionType_      // How the shortage was resolved
+  resolutionDate        DateTime             @default(now())
+  resolvedById          String
+
+  // Alternative part usage
+  alternativePartId     String?              // If resolved using alternative part
+  substitutionApproved  Boolean              @default(false)
+  substitutionReason    SubstitutionReason?
+  engineeringApproval   String?              // Engineering approval reference
+
+  // Partial kit handling
+  partialKitReleased    Boolean              @default(false)
+  partialQuantity       Float?               // Quantity released in partial kit
+  blockedOperations     String[]             // Operations blocked by shortage
+
+  // Supply resolution
+  supplierUsed          String?              // Supplier that resolved shortage
+  actualDeliveryDate    DateTime?
+  quantityReceived      Float?
+  receivedCondition     String?              // GOOD, DAMAGED, PARTIAL, etc.
+
+  // Cost impact
+  expediteCost          Float?
+  totalAdditionalCost   Float?
+  laborImpactHours      Float?               // Labor hours lost due to shortage
+
+  // Quality tracking
+  qualityImpact         Boolean              @default(false)
+  qualityNotes          String?
+
+  // Lessons learned
+  rootCause             String?
+  preventiveActions     String?
+  supplierFeedback      String?
+
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  shortageAlert         KitShortageAlert     @relation(fields: [shortageAlertId], references: [id])
+  expeditRequest        ExpeditRequest?      @relation(fields: [expeditRequestId], references: [id])
+  alternativePart       Part?                @relation("AlternativePartUsed", fields: [alternativePartId], references: [id])
+  resolvedBy            User                 @relation(fields: [resolvedById], references: [id])
+
+  @@index([shortageAlertId])
+  @@index([expeditRequestId])
+  @@index([resolutionType])
+  @@index([resolutionDate])
+  @@index([alternativePartId])
+  @@map("shortage_resolutions")
+}
+
+model ExpeditStatusHistory {
+  id                    String               @id @default(cuid())
+  expeditRequestId      String
+  fromStatus            ExpeditStatus?
+  toStatus              ExpeditStatus
+  changedById           String?
+  reason                String?
+  notes                 String?
+  metadata              Json?                // Additional context data
+  changedAt             DateTime             @default(now())
+
+  // Relationships
+  expeditRequest        ExpeditRequest       @relation(fields: [expeditRequestId], references: [id])
+  changedBy             User?                @relation(fields: [changedById], references: [id])
+
+  @@index([expeditRequestId])
+  @@index([changedAt])
+  @@map("expedite_status_history")
+}
+
+model PartShortageAnalytics {
+  id                    String               @id @default(cuid())
+  partId                String
+  analysisDate          DateTime             @default(now())
+
+  // Shortage frequency
+  totalShortages        Int                  @default(0)
+  shortagesLast30Days   Int                  @default(0)
+  shortagesLast90Days   Int                  @default(0)
+  averageShortageQuantity Float?
+
+  // Lead time analysis
+  averageLeadTimeDays   Float?
+  supplierCount         Int                  @default(0)
+  preferredSupplierId   String?
+
+  // Cost impact
+  totalExpediteCosts    Float?
+  averageExpediteCost   Float?
+  totalLaborImpactHours Float?
+
+  // Resolution patterns
+  mostCommonResolution  ResolutionType_?
+  averageResolutionDays Float?
+  alternativePartsUsed  String[]             // List of alternative part IDs used
+
+  // Supplier performance
+  bestPerformingSupplierId String?
+  supplierOnTimeRate    Float?               // Best supplier's on-time delivery %
+
+  // Recommendations
+  recommendedAction     String?              // AUTO_REORDER, INCREASE_SAFETY_STOCK, etc.
+  recommendedSafetyStock Float?
+  recommendedLeadTime   Int?                 // Days
+
+  // Next analysis
+  nextAnalysisDate      DateTime?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  part                  Part                 @relation(fields: [partId], references: [id])
+  preferredSupplier     Vendor?              @relation("PreferredSupplier", fields: [preferredSupplierId], references: [id])
+  bestPerformingSupplier Vendor?             @relation("BestPerformingSupplier", fields: [bestPerformingSupplierId], references: [id])
+
+  @@index([partId])
+  @@index([analysisDate])
+  @@index([totalShortages])
+  @@index([shortagesLast30Days])
+  @@map("part_shortage_analytics")
+}
+
+// ====================================================================
+// KIT SHORTAGE & EXPEDITE WORKFLOW ENUMS
+// ====================================================================
+
+enum ExpeditUrgency {
+  LOW               // Standard expedite request
+  NORMAL            // Normal urgency
+  HIGH              // High priority
+  CRITICAL          // Critical path impact
+  EMERGENCY         // Emergency/safety impact
+}
+
+enum ExpeditStatus {
+  REQUESTED         // Initial request created
+  PENDING_APPROVAL  // Awaiting management approval
+  APPROVED          // Approved for expedite
+  REJECTED          // Request rejected
+  VENDOR_CONTACTED  // Supplier has been contacted
+  VENDOR_RESPONDED  // Supplier responded with commitment
+  IN_TRANSIT        // Material in transit
+  DELIVERED         // Material delivered
+  RESOLVED          // Shortage resolved
+  CANCELLED         // Request cancelled
+}
+
+enum ExpeditResolution {
+  DELIVERED_ON_TIME     // Expedite successful, delivered on time
+  DELIVERED_LATE        // Delivered but late
+  ALTERNATIVE_USED      // Resolved using alternative part
+  PARTIAL_DELIVERY      // Partial delivery resolved shortage
+  CANCELLED_NOT_NEEDED  // Cancelled as no longer needed
+  CANCELLED_TOO_LATE    // Cancelled as delivery too late
+  VENDOR_UNABLE        // Vendor unable to expedite
+}
+
+enum CommunicationType {
+  EMAIL
+  PHONE_CALL
+  SMS
+  PORTAL_MESSAGE
+  FAX
+  LETTER
+  VIDEO_CALL
+  IN_PERSON
+}
+
+enum CommunicationDirection {
+  OUTBOUND    // We sent to supplier
+  INBOUND     // Supplier sent to us
+}
+
+enum CommunicationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum CommunicationStatus {
+  DRAFT       // Being composed
+  SENT        // Sent to supplier
+  DELIVERED   // Confirmed delivered
+  READ        // Confirmed read by supplier
+  RESPONDED   // Supplier responded
+  FAILED      // Failed to deliver
+  EXPIRED     // Response deadline expired
+}
+
+enum ResolutionType_ {
+  EXPEDITE_DELIVERED    // Resolved via expedited delivery
+  ALTERNATIVE_PART      // Resolved using alternative part
+  PARTIAL_KIT_RELEASE   // Resolved via partial kit release
+  RESCHEDULED           // Work order rescheduled
+  CANCELLED             // Work order cancelled
+  SUPPLIER_CHANGED      // Different supplier used
+  INVENTORY_FOUND       // Material found in other location
+  ENGINEERING_WAIVER    // Engineering waiver granted
 }
 
 // BUILD RECORD & ELECTRONIC BUILD BOOK ENUMS
@@ -8605,6 +8973,8 @@ model SamlAuthRequest {
   @@index([configId])
   @@index([expiresAt])
   @@map("saml_auth_requests")
+}
+
 // Part Interchangeability & Substitution Group Framework (Issue #223)
 
 /// Part Interchangeability Groups
