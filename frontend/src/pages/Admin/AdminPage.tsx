@@ -30,7 +30,9 @@ import {
   ExclamationCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
-  CloseOutlined
+  CloseOutlined,
+  SwitcherOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 
 // Import RBAC Admin Components
@@ -41,6 +43,9 @@ import UserRoleAssignmentPage from './UserRoleAssignmentPage';
 
 // Import Azure AD Admin Components
 import AzureADPage from './AzureADPage';
+
+// Import Workflow Configuration Components
+import { SiteConfigurationPage, OverrideManagement } from './WorkflowConfiguration';
 
 const { Title, Text } = Typography;
 
@@ -184,6 +189,24 @@ const AdminPage: React.FC = () => {
       category: 'feature',
       icon: <ApiOutlined />,
       keywords: ['system', 'configuration', 'settings', 'integrations', 'advanced options', 'coming soon']
+    },
+    {
+      id: 'workflow-configuration',
+      title: 'Workflow Configuration',
+      description: 'Manage site-level workflow enforcement modes and overrides',
+      moduleKey: 'workflow-configuration',
+      category: 'module',
+      icon: <SwitcherOutlined />,
+      keywords: ['workflow', 'configuration', 'enforcement', 'modes', 'strict', 'flexible', 'hybrid', 'overrides']
+    },
+    {
+      id: 'override-management',
+      title: 'Configuration Overrides',
+      description: 'Manage routing and work order configuration overrides',
+      moduleKey: 'override-management',
+      category: 'module',
+      icon: <FileTextOutlined />,
+      keywords: ['overrides', 'routing', 'work order', 'configuration', 'approval', 'exceptions']
     }
   ];
 
@@ -332,6 +355,23 @@ const AdminPage: React.FC = () => {
       icon: <CloudOutlined />,
       label: 'Azure AD Integration',
     },
+    {
+      key: 'workflow',
+      icon: <SwitcherOutlined />,
+      label: 'Workflow Management',
+      children: [
+        {
+          key: 'workflow-configuration',
+          icon: <FileTextOutlined />,
+          label: 'Site Configuration',
+        },
+        {
+          key: 'override-management',
+          icon: <FileTextOutlined />,
+          label: 'Configuration Overrides',
+        },
+      ],
+    },
   ];
 
   const renderContent = () => {
@@ -388,6 +428,22 @@ const AdminPage: React.FC = () => {
             <ModuleErrorBoundary moduleName="Azure AD Integration">
               <Suspense fallback={<Spin size="large" tip="Loading Azure AD Integration..." />}>
                 <AzureADPage />
+              </Suspense>
+            </ModuleErrorBoundary>
+          );
+        case 'workflow-configuration':
+          return (
+            <ModuleErrorBoundary moduleName="Workflow Configuration">
+              <Suspense fallback={<Spin size="large" tip="Loading Workflow Configuration..." />}>
+                <SiteConfigurationPage siteId="DEFAULT_SITE" />
+              </Suspense>
+            </ModuleErrorBoundary>
+          );
+        case 'override-management':
+          return (
+            <ModuleErrorBoundary moduleName="Override Management">
+              <Suspense fallback={<Spin size="large" tip="Loading Override Management..." />}>
+                <OverrideManagement siteId="DEFAULT_SITE" />
               </Suspense>
             </ModuleErrorBoundary>
           );
