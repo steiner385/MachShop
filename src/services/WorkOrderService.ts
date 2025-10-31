@@ -405,6 +405,39 @@ export class WorkOrderService {
   }
 
   /**
+   * Get work order by persistent UUID (MBE traceability)
+   * Supports NIST AMS 300-12 compliant UUID-based lookup
+   */
+  async getWorkOrderByPersistentUuid(persistentUuid: string): Promise<WorkOrder | null> {
+    // Import UUID utilities for validation
+    const { normalizePersistentUUID } = await import('../utils/uuidUtils');
+
+    const normalizedUuid = normalizePersistentUUID(persistentUuid);
+
+    const workOrder = await prisma.workOrder.findFirst({
+      where: { persistentUuid: normalizedUuid },
+      include: {
+        part: true,
+        createdBy: true,
+        assignedTo: true,
+        operations: {
+          include: {
+            routingOperation: true
+          }
+        },
+        qualityInspections: {
+          include: {
+            inspector: true,
+            plan: true
+          }
+        }
+      }
+    });
+
+    return workOrder ? this.transformToWorkOrder(workOrder) : null;
+  }
+
+  /**
    * Updates work order status and quantities
    */
   async updateWorkOrderProgress(
