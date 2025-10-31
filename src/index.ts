@@ -22,6 +22,7 @@ import authRoutes from './routes/auth';
 import workOrderRoutes from './routes/workOrders';
 import qualityRoutes from './routes/quality';
 import causeCodeRoutes from './routes/causeCode';
+import complianceRoutes from './routes/compliance';
 import materialRoutes from './routes/materials';
 import traceabilityRoutes from './routes/traceability';
 import equipmentRoutes from './routes/equipment';
@@ -249,6 +250,8 @@ apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);
 // GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
 apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
+// GitHub Issue #102: QMS Compliance Framework - Document Control & Training
+apiRouter.use('/compliance', authMiddleware, complianceRoutes);
 apiRouter.use('/materials', authMiddleware, materialRoutes);
 apiRouter.use('/traceability', authMiddleware, traceabilityRoutes);
 apiRouter.use('/equipment', authMiddleware, equipmentRoutes);

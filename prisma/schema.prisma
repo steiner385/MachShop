@@ -344,6 +344,15 @@ model User {
   andonSiteConfigurations   AndonSiteConfiguration[]
   andonSystemSettings       AndonSystemSettings[]
 
+  // QMS Compliance Framework Relations (Issue #102)
+  documentsApprovedBy       ControlledDocument[]            @relation("DocumentApprovedBy")
+  documentDistribution      ControlledDocument[]            @relation("DocumentDistribution")
+  documentsCreated          ControlledDocument[]            @relation("DocumentCreatedBy")
+  documentApprovalsGiven    DocumentApproval[]
+  coursesCreated            TrainingCourse[]                @relation("CourseCreatedBy")
+  trainingRecordsAsTrainee  TrainingRecord[]                @relation("TrainingRecordTrainee")
+  trainingRecordsAsInstructor TrainingRecord[]              @relation("TrainingRecordInstructor")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -11607,4 +11616,257 @@ model OperationWorkflowConfiguration {
 
   @@index([operationId])
   @@map("operation_workflow_configurations")
+}
+
+// ============================================================================
+// QUALITY MANAGEMENT SYSTEM COMPLIANCE FRAMEWORK (Issue #102)
+// Phase 1: Document Control & Training & Competency
+// ============================================================================
+
+/// QMS Document Type enumeration for classification
+enum QMSDocumentType {
+  QUALITY_MANUAL      // QMS top-level manual
+  PROCEDURE           // Process procedures
+  QMS_WORK_INSTRUCTION // Detailed work instructions
+  FORM                // Blank forms
+  SPECIFICATION       // Product/process specifications
+  PLAN                // Quality plans, inspection plans
+  RECORD              // Filled-out forms/records
+  EXTERNAL            // Customer specs, standards
+}
+
+/// Document Status enumeration for lifecycle management
+enum QMSDocumentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ACTIVE
+  OBSOLETE
+  ARCHIVED
+}
+
+/// Course Type enumeration for training delivery method
+enum CourseType {
+  CLASSROOM           // In-person classroom
+  ONLINE              // E-learning
+  ON_THE_JOB          // OJT/shadowing
+  EXTERNAL            // External training provider
+  CERTIFICATION       // Certification program
+}
+
+/// Question Type enumeration for competency test questions
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+}
+
+/// Controlled Document - Core document management model (ISO 9001 Clause 7.5)
+model ControlledDocument {
+  id                  String   @id @default(cuid())
+  documentNumber      String   @unique      // Unique identifier
+  title               String                // Document title
+  description         String?               // Detailed description
+
+  // Document type and classification
+  documentType        QMSDocumentType
+  category            String?               // Procedure, Work Instruction, Form, etc.
+
+  // Revision control
+  revision            String   @default("A")
+  revisionDate        DateTime @default(now())
+  effectiveDate       DateTime?
+
+  // Status lifecycle
+  status              QMSDocumentStatus @default(DRAFT)
+
+  // File management
+  fileUrl             String                // URL to document file
+  fileName            String                // Original filename
+
+  // Approval workflow
+  approvals           DocumentApproval[]
+  approvedBy          User?     @relation("DocumentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedById        String?
+  approvedAt          DateTime?
+
+  // Review schedule (ISO 9001 requirement)
+  reviewFrequency     Int?                  // Months between reviews
+  nextReviewDate      DateTime?
+  lastReviewDate      DateTime?
+
+  // Distribution control
+  distributionList    User[]    @relation("DocumentDistribution")
+  isControlled        Boolean   @default(true)
+
+  // Parent/child relationships for revision tracking
+  parentDocument      ControlledDocument? @relation("DocumentRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  parentDocumentId    String?
+  childRevisions      ControlledDocument[] @relation("DocumentRevisions")
+
+  // Training linkage (docs can be associated with training courses)
+  trainingCourses     TrainingCourse[] @relation("DocumentTrainingCourses")
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([documentNumber])
+  @@index([documentType])
+  @@index([status])
+  @@index([approvedById])
+  @@index([reviewFrequency])
+  @@index([nextReviewDate])
+  @@map("controlled_documents")
+}
+
+/// Document Approval - Approval workflow step
+model DocumentApproval {
+  id                  String   @id @default(cuid())
+  document            ControlledDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId          String
+
+  // Approver role and user
+  approverRole        String                // e.g., "Quality Manager", "Technical Authority"
+  approver            User     @relation(fields: [approverId], references: [id])
+  approverId          String
+
+  // Workflow sequencing
+  sequence            Int                   // Order in approval chain
+  status              ApprovalStatus @default(PENDING)
+
+  // Timeline
+  requestedAt         DateTime @default(now())
+  reviewedAt          DateTime?
+  comments            String?               // Optional approval comments
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([approverId])
+  @@index([status])
+  @@map("document_approvals")
+}
+
+/// Training Course - Course definition and management
+model TrainingCourse {
+  id                  String   @id @default(cuid())
+  courseNumber        String   @unique     // Course identifier
+  courseName          String                // Course title
+  description         String?               // Course description
+
+  // Course content
+  objectives          String?               // Learning objectives
+  duration            Int?                  // Duration in minutes
+  courseType          CourseType
+
+  // Course materials
+  documents           ControlledDocument[] @relation("DocumentTrainingCourses")
+  materials           String?               // Links to videos, presentations, etc.
+
+  // Competency requirements
+  requiredForRoles    String[]              // JSON array of required job roles
+  competencyTest      CompetencyTest?
+
+  // Status
+  isActive            Boolean   @default(true)
+
+  // Training records
+  trainingRecords     TrainingRecord[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("CourseCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([courseNumber])
+  @@index([courseType])
+  @@index([isActive])
+  @@map("training_courses")
+}
+
+/// Competency Test - Test/assessment associated with training
+model CompetencyTest {
+  id                  String   @id @default(cuid())
+  trainingCourse      TrainingCourse @relation(fields: [trainingCourseId], references: [id], onDelete: Cascade)
+  trainingCourseId    String   @unique
+
+  testName            String                // Test name
+  passingScore        Int                   // Passing percentage (0-100)
+  questions           TestQuestion[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([trainingCourseId])
+  @@map("competency_tests")
+}
+
+/// Test Question - Individual question in competency test
+model TestQuestion {
+  id                  String   @id @default(cuid())
+  test                CompetencyTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId              String
+
+  questionText        String                // Question content
+  questionType        QuestionType
+  correctAnswer       String                // Correct answer
+  possibleAnswers     String[]              // Array of possible answers for multiple choice
+  points              Int      @default(1)  // Points for this question
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([testId])
+  @@map("test_questions")
+}
+
+/// Training Record - Record of training completion for individual
+model TrainingRecord {
+  id                  String   @id @default(cuid())
+  trainingCourse      TrainingCourse @relation(fields: [trainingCourseId], references: [id])
+  trainingCourseId    String
+
+  // Trainee and instructor
+  trainee             User     @relation("TrainingRecordTrainee", fields: [traineeId], references: [id])
+  traineeId           String
+  instructor          User?    @relation("TrainingRecordInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  instructorId        String?
+
+  // Training details
+  trainingDate        DateTime
+  completionDate      DateTime?
+
+  // Competency assessment
+  testScore           Int?                  // Test percentage score
+  passed              Boolean?              // Pass/fail status
+  certificationDate   DateTime?             // Date certification was awarded
+  expirationDate      DateTime?             // Date certification expires
+
+  // Effectiveness evaluation
+  effectivenessScore  Int?                  // 1-5 rating
+  effectivenessNotes  String?
+
+  // Documentation
+  certificateUrl      String?               // URL to certificate
+  notes               String?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([trainingCourseId])
+  @@index([traineeId])
+  @@index([trainingDate])
+  @@index([expirationDate])
+  @@index([passed])
+  @@map("training_records")
 }
