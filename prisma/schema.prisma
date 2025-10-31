@@ -492,7 +492,7 @@ model MaterialProperty {
 
 model MaterialLot {
   id                  String                 @id @default(cuid())
-  persistentUuid      String                 @unique @default(uuid()) // Material traceability UUID for supply chain tracking
+  persistentUuid      String?                @default(uuid()) // Material traceability UUID for supply chain tracking
   lotNumber           String                 @unique
   materialId          String
   supplierLotNumber   String?
@@ -647,7 +647,7 @@ model MaterialStateHistory {
 
 model Operation {
   id                        String                                @id @default(cuid())
-  persistentUuid            String                                @unique @default(uuid()) // Operation UUID for manufacturing process traceability
+  persistentUuid            String?                               @default(uuid()) // Operation UUID for manufacturing process traceability
   description               String?
   siteId                    String?
   isStandardOperation       Boolean                               @default(false)
@@ -912,7 +912,7 @@ model PhysicalAssetOperationSpecification {
 
 model Part {
   id                         String                      @id @default(cuid())
-  persistentUuid             String                      @unique @default(uuid()) // MBE/STEP/Traceability UUID for NIST AMS 300-12 compliance
+  persistentUuid             String?                     @default(uuid()) // MBE/STEP/Traceability UUID for NIST AMS 300-12 compliance
   partNumber                 String                      @unique
   partName                   String
   description                String?
@@ -1152,7 +1152,7 @@ model ProductLifecycle {
 
 model WorkOrder {
   id                           String                        @id @default(cuid())
-  persistentUuid               String                        @unique @default(uuid()) // Work order lifecycle UUID for MBE compliance
+  persistentUuid               String?                       @default(uuid()) // Work order lifecycle UUID for MBE compliance
   workOrderNumber              String                        @unique
   partId                       String
   partNumber                   String?
@@ -1206,7 +1206,7 @@ model WorkOrder {
 
 model Routing {
   id              String                @id @default(cuid())
-  persistentUuid  String                @unique @default(uuid()) // Routing UUID for manufacturing process sequencing
+  persistentUuid  String?               @default(uuid()) // Routing UUID for manufacturing process sequencing
   routingNumber   String                @unique
   partId          String?
   siteId          String?
@@ -2021,7 +2021,7 @@ model MaterialTransaction {
 
 model SerializedPart {
   id                    String                 @id @default(cuid())
-  persistentUuid        String                 @unique @default(uuid()) // Aerospace traceability UUID for lifecycle tracking
+  persistentUuid        String?                @default(uuid()) // Aerospace traceability UUID for lifecycle tracking
   serialNumber          String                 @unique
   partId                String
   workOrderId           String?
@@ -2050,7 +2050,7 @@ model SerializedPart {
 
 model PartGenealogy {
   id               String         @id @default(cuid())
-  persistentUuid   String         @unique @default(uuid()) // Part assembly UUID for genealogy traceability
+  persistentUuid   String?        @unique @default(uuid()) // Part assembly UUID for genealogy traceability
   parentPartId     String
   componentPartId  String
   assemblyDate     DateTime?

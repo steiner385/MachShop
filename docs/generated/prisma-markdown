@@ -244,6 +244,7 @@ erDiagram
 }
 "material_lots" {
   String id PK
+  String persistentUuid "nullable"
   String lotNumber UK
   String materialId FK
   String supplierLotNumber "nullable"
@@ -347,6 +348,7 @@ erDiagram
 }
 "operations" {
   String id PK
+  String persistentUuid "nullable"
   String description "nullable"
   String siteId FK "nullable"
   Boolean isStandardOperation
@@ -521,6 +523,7 @@ erDiagram
 }
 "parts" {
   String id PK
+  String persistentUuid "nullable"
   String partNumber UK
   String partName
   String description "nullable"
@@ -578,6 +581,7 @@ erDiagram
 }
 "bom_items" {
   String id PK
+  String persistentUuid UK
   String parentPartId FK
   String componentPartId FK
   Float quantity
@@ -677,6 +681,7 @@ erDiagram
 }
 "work_orders" {
   String id PK
+  String persistentUuid "nullable"
   String workOrderNumber UK
   String partId FK
   String partNumber "nullable"
@@ -700,6 +705,7 @@ erDiagram
 }
 "routings" {
   String id PK
+  String persistentUuid "nullable"
   String routingNumber UK
   String partId FK "nullable"
   String siteId FK "nullable"
@@ -1226,6 +1232,7 @@ erDiagram
 }
 "serialized_parts" {
   String id PK
+  String persistentUuid "nullable"
   String serialNumber UK
   String partId FK
   String workOrderId "nullable"
@@ -1240,6 +1247,7 @@ erDiagram
 }
 "part_genealogy" {
   String id PK
+  String persistentUuid UK "nullable"
   String parentPartId FK
   String componentPartId FK
   DateTime assemblyDate "nullable"
@@ -4135,6 +4143,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `lotNumber`: 
   - `materialId`: 
   - `supplierLotNumber`: 
@@ -4246,6 +4255,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `description`: 
   - `siteId`: 
   - `isStandardOperation`: 
@@ -4440,6 +4450,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `partNumber`: 
   - `partName`: 
   - `description`: 
@@ -4501,6 +4512,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `parentPartId`: 
   - `componentPartId`: 
   - `quantity`: 
@@ -4610,6 +4622,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `workOrderNumber`: 
   - `partId`: 
   - `partNumber`: 
@@ -4635,6 +4648,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `routingNumber`: 
   - `partId`: 
   - `siteId`: 
@@ -5219,6 +5233,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `serialNumber`: 
   - `partId`: 
   - `workOrderId`: 
@@ -5235,6 +5250,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
 
 **Properties**
   - `id`: 
+  - `persistentUuid`: 
   - `parentPartId`: 
   - `componentPartId`: 
   - `assemblyDate`: 
