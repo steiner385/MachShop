@@ -482,7 +482,7 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Personnel Management (Navigation UI Sprint 1 - Placeholder) */}
+        {/* Personnel Management - Complete personnel management interface */}
         <Route
           path="/personnel"
           element={
