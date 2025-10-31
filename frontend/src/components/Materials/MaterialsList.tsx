@@ -1,6 +1,6 @@
 /**
  * Materials List Component
- * Phase 3: Material Movement Tracking with API Integration
+ * Complete material inventory management with real-time tracking and RBAC integration
  */
 
 import React, { useEffect, useState } from 'react';
@@ -74,8 +74,9 @@ export const MaterialsList: React.FC = () => {
     clearErrors,
   } = useMaterialsStore();
 
-  // Fetch data on mount
+  // Set document title and fetch data on mount
   useEffect(() => {
+    document.title = 'Materials Management - MES';
     fetchDashboard();
   }, []);
 
@@ -355,20 +356,22 @@ export const MaterialsList: React.FC = () => {
   const isLoading = definitionsLoading || lotsLoading || statisticsLoading;
 
   return (
-    <div style={{ padding: '24px' }}>
+    <main style={{ padding: '24px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1>
+      <header style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: '600', marginBottom: '8px' }}>
           <InboxOutlined style={{ marginRight: 8 }} />
-          Material Movement Tracking
+          Materials Management
         </h1>
-        <p style={{ color: '#666', marginTop: '8px' }}>
-          Track material inventory, lot traceability, and transactions
+        <p style={{ color: '#666', marginTop: '8px', fontSize: '16px' }}>
+          Comprehensive material inventory management, lot traceability, and transaction tracking
         </p>
-      </div>
+      </header>
 
-      {/* Statistics */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
+      {/* Statistics Dashboard */}
+      <section aria-labelledby="statistics-heading" style={{ marginBottom: '24px' }}>
+        <h2 id="statistics-heading" className="sr-only">Materials Statistics</h2>
+        <Row gutter={16}>
         <Col span={6}>
           <Card>
             <Statistic
@@ -413,7 +416,8 @@ export const MaterialsList: React.FC = () => {
             />
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </section>
 
       {/* Alert for expiring items */}
       {expiringSoon.length > 0 && (
@@ -487,8 +491,13 @@ export const MaterialsList: React.FC = () => {
         </div>
       </Card>
 
-      {/* Material Table */}
-      <Card title={viewMode === 'lots' ? 'Material Lots' : 'Material Definitions'}>
+      {/* Material Management Section */}
+      <section aria-labelledby="materials-heading">
+        <Card title={
+          <h2 id="materials-heading" style={{ margin: 0, fontSize: '18px' }}>
+            {viewMode === 'lots' ? 'Material Lots' : 'Material Definitions'}
+          </h2>
+        }>
         <Spin spinning={isLoading}>
           {viewMode === 'lots' ? (
             <Table<MaterialLot>
@@ -526,8 +535,9 @@ export const MaterialsList: React.FC = () => {
             />
           )}
         </Spin>
-      </Card>
-    </div>
+        </Card>
+      </section>
+    </main>
   );
 };
 

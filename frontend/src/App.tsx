@@ -50,7 +50,7 @@ import IntegrationLogs from '@/pages/Integration/IntegrationLogs';
 // Sprint 3 Demo Page
 import Sprint3Demo from '@/pages/Sprint3Demo/Sprint3Demo';
 
-// Navigation UI Improvement - Sprint 1 Placeholder Pages
+// Navigation UI Improvement - Complete Page Implementations
 import SchedulingPage from '@/pages/Production/SchedulingPage';
 import ScheduleDetailPage from '@/pages/Production/ScheduleDetailPage';
 import TeamWorkQueue from '@/pages/Production/TeamWorkQueue';
@@ -444,7 +444,7 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Materials Management (Navigation UI Sprint 1 - Placeholder) */}
+        {/* Materials Management - Complete inventory management interface */}
         <Route
           path="/materials"
           element={
