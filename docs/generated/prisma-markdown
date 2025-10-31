@@ -3685,6 +3685,337 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"vendors" {
+  String id PK
+  String code UK
+  String name
+  String contactEmail "nullable"
+  String contactPhone "nullable"
+  String address "nullable"
+  Float qualityRating
+  Float onTimeDeliveryRate
+  String certifications
+  String approvedParts
+  Boolean isActive
+  Boolean preferredVendor
+  DateTime contractStartDate "nullable"
+  DateTime contractEndDate "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kits" {
+  String id PK
+  String vendorId FK
+  String vendorKitNumber
+  String kitId FK "nullable"
+  String requestId UK
+  String partNumbers
+  Int quantityOrdered
+  Int quantityReceived
+  Float unitCost "nullable"
+  Float totalCost "nullable"
+  String currency
+  VendorKitStatus status
+  VendorKitPriority priority
+  DateTime requiredDate
+  DateTime promisedDate "nullable"
+  DateTime actualShipDate "nullable"
+  DateTime actualReceiveDate "nullable"
+  String trackingNumber "nullable"
+  String shippingMethod "nullable"
+  String deliveryNotes "nullable"
+  String qualityRequirements "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_items" {
+  String id PK
+  String vendorKitId FK
+  String partId FK
+  String partNumber
+  String description "nullable"
+  Float quantityOrdered
+  Float quantityReceived
+  String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
+  Float unitCost "nullable"
+  Float totalCost "nullable"
+  String lotNumber "nullable"
+  String serialNumbers
+  Boolean certificationRequired
+  Boolean inspectionRequired
+  VendorKitItemStatus status
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_inspections" {
+  String id PK
+  String vendorKitId FK
+  String inspectorId FK "nullable"
+  VendorInspectionType inspectionType
+  DateTime inspectionDate
+  VendorInspectionResult result
+  Int conformingQuantity
+  Int nonConformingQuantity
+  String notes "nullable"
+  Boolean correctionRequired
+  String correctionNotes "nullable"
+  Boolean certificatesReceived
+  String attachments
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_history" {
+  String id PK
+  String vendorKitId FK
+  String userId FK "nullable"
+  VendorKitAction action
+  VendorKitStatus fromStatus "nullable"
+  VendorKitStatus toStatus "nullable"
+  String notes "nullable"
+  DateTime timestamp
+  Json metadata "nullable"
+}
+"vendor_performance_metrics" {
+  String id PK
+  String vendorId FK
+  VendorMetricType metricType
+  DateTime metricPeriod
+  VendorMetricPeriod periodType
+  Float value
+  Float target "nullable"
+  String unit "nullable"
+  String notes "nullable"
+  DateTime calculatedAt
+}
+"saviynt_user_mappings" {
+  String id PK
+  String userId FK
+  String saviyntUserId UK
+  String saviyntUsername UK
+  DateTime provisionedAt
+  DateTime lastSyncAt "nullable"
+  SaviyntSyncStatus syncStatus
+  Json attributes "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"saviynt_role_mappings" {
+  String id PK
+  String roleId FK
+  String saviyntRoleId
+  String saviyntRoleName
+  SaviyntMappingType mappingType
+  Json conditions "nullable"
+  Boolean isActive
+  DateTime lastSyncAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"saviynt_sync_logs" {
+  String id PK
+  SaviyntSyncType syncType
+  SaviyntEntityType entityType
+  String entityId "nullable"
+  String saviyntEntityId "nullable"
+  SaviyntOperation operation
+  SaviyntSyncStatus status
+  Json requestPayload "nullable"
+  Json responsePayload "nullable"
+  String errorMessage "nullable"
+  String errorCode "nullable"
+  Int retryCount
+  DateTime startedAt
+  DateTime completedAt "nullable"
+  Int duration "nullable"
+  String triggeredBy
+  String syncBatchId "nullable"
+}
+"saviynt_webhook_events" {
+  String id PK
+  String eventType
+  String eventSubtype "nullable"
+  SaviyntEntityType entityType
+  String entityId
+  Json eventPayload
+  DateTime processedAt "nullable"
+  SaviyntSyncStatus processingStatus
+  String errorMessage "nullable"
+  String mesEntityId "nullable"
+  Int retryCount
+  DateTime receivedAt
+}
+"saviynt_access_certifications" {
+  String id PK
+  String certificationId UK
+  String campaignName
+  String certificationName
+  SaviyntEntityType entityType
+  String entityId
+  String saviyntEntityId
+  String accessType
+  Json accessDetails
+  String certifier
+  String certifierType
+  SaviyntCertificationStatus status
+  DateTime dueDate
+  DateTime certifiedAt "nullable"
+  String certifiedBy "nullable"
+  String certificationDecision "nullable"
+  String comments "nullable"
+  Float riskScore "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"saviynt_configurations" {
+  String id PK
+  String configKey UK
+  Json configValue
+  String description "nullable"
+  Boolean isEncrypted
+  String lastModifiedBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oidc_configs" {
+  String id PK
+  String name UK
+  String clientId
+  String clientSecret
+  String issuer
+  String discoveryUrl "nullable"
+  String authorizationEndpoint "nullable"
+  String tokenEndpoint "nullable"
+  String userinfoEndpoint "nullable"
+  String jwksUri "nullable"
+  String scopes
+  String responseType
+  String responseMode
+  Boolean usePkce
+  Json claimsMapping "nullable"
+  String groupClaimsPath "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oidc_sessions" {
+  String id PK
+  String userId FK
+  String sub
+  String accessToken "nullable"
+  String refreshToken "nullable"
+  String idToken "nullable"
+  String tokenType
+  DateTime expiresAt "nullable"
+  DateTime refreshExpiresAt "nullable"
+  String configId FK
+  String scopes
+  DateTime createdAt
+}
+"oidc_auth_states" {
+  String id PK
+  String state UK
+  String codeVerifier "nullable"
+  String nonce "nullable"
+  String redirectUri "nullable"
+  String configId FK
+  DateTime expiresAt
+  DateTime createdAt
+}
+"part_interchangeability_groups" {
+  String id PK
+  String name UK
+  String description "nullable"
+  InterchangeabilityType groupType
+  String category "nullable"
+  String engineeringBasis "nullable"
+  String complianceStandard "nullable"
+  DateTime effectiveDate
+  DateTime obsoleteDate "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy FK
+}
+"part_substitutions" {
+  String id PK
+  String groupId FK
+  String primaryPartId FK
+  String substitutePartId FK
+  SubstitutionType substitutionType
+  SubstitutionDirection direction
+  Int priority
+  DateTime effectiveDate
+  DateTime obsoleteDate "nullable"
+  Float quantityRatio
+  String notes "nullable"
+  String engineeringJustification "nullable"
+  String testingReference "nullable"
+  String restrictionConditions "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy FK
+}
+"interchangeability_approvals" {
+  String id PK
+  String groupId FK
+  String partId FK "nullable"
+  InterchangeabilityApprovalType approvalType
+  ApprovalStatus status
+  String requestedBy FK
+  String approvedBy FK "nullable"
+  DateTime approvalDate "nullable"
+  String rejectionReason "nullable"
+  String engineeringEvidence "nullable"
+  String riskAssessment "nullable"
+  String complianceNotes "nullable"
+  Json attachments "nullable"
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  String comments "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"work_order_part_substitutions" {
+  String id PK
+  String workOrderId FK
+  String operationId FK "nullable"
+  String originalPartId FK
+  String substitutedPartId FK
+  String substitutionRuleId FK "nullable"
+  Float quantity
+  SubstitutionReason reason
+  String justification "nullable"
+  String approvedBy FK "nullable"
+  DateTime substitutionDate
+  String notes "nullable"
+  String serialNumbers
+  Json auditTrail "nullable"
+  String createdBy FK
+  DateTime createdAt
+}
+"interchangeability_audit_logs" {
+  String id PK
+  String groupId FK "nullable"
+  String substitutionId "nullable"
+  String approvalId "nullable"
+  AuditAction action
+  String entityType
+  String entityId
+  Json previousValues "nullable"
+  Json newValues "nullable"
+  String reason "nullable"
+  String performedBy FK
+  DateTime performedAt
+  String ipAddress "nullable"
+  String userAgent "nullable"
+  String sessionId "nullable"
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "users" }o--o| "personnel_classes" : personnelClass
@@ -4019,6 +4350,39 @@ erDiagram
 "kit_shortage_alerts" }o--|| "parts" : part
 "kit_shortage_alerts" }o--o| "users" : assignedTo
 "kit_shortage_alerts" }o--o| "users" : resolvedBy
+"vendor_kits" }o--|| "vendors" : vendor
+"vendor_kits" }o--o| "kits" : kit
+"vendor_kit_items" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_items" }o--|| "parts" : part
+"vendor_kit_items" }o--o| "units_of_measure" : unitOfMeasureRef
+"vendor_kit_inspections" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_inspections" }o--o| "users" : inspector
+"vendor_kit_history" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_history" }o--o| "users" : user
+"vendor_performance_metrics" }o--|| "vendors" : vendor
+"saviynt_user_mappings" |o--|| "users" : user
+"saviynt_role_mappings" }o--|| "roles" : role
+"oidc_sessions" }o--|| "users" : user
+"oidc_sessions" }o--|| "oidc_configs" : config
+"oidc_auth_states" }o--|| "oidc_configs" : config
+"part_interchangeability_groups" }o--|| "users" : creator
+"part_substitutions" }o--|| "part_interchangeability_groups" : group
+"part_substitutions" }o--|| "parts" : primaryPart
+"part_substitutions" }o--|| "parts" : substitutePart
+"part_substitutions" }o--|| "users" : creator
+"interchangeability_approvals" }o--|| "part_interchangeability_groups" : group
+"interchangeability_approvals" }o--o| "parts" : part
+"interchangeability_approvals" }o--|| "users" : requester
+"interchangeability_approvals" }o--o| "users" : approver
+"work_order_part_substitutions" }o--|| "work_orders" : workOrder
+"work_order_part_substitutions" }o--o| "operations" : operation
+"work_order_part_substitutions" }o--|| "parts" : originalPart
+"work_order_part_substitutions" }o--|| "parts" : substitutedPart
+"work_order_part_substitutions" }o--o| "part_substitutions" : substitutionRule
+"work_order_part_substitutions" }o--o| "users" : approver
+"work_order_part_substitutions" }o--|| "users" : creator
+"interchangeability_audit_logs" }o--o| "part_interchangeability_groups" : group
+"interchangeability_audit_logs" }o--|| "users" : performer
 ```
 
 ### `enterprises`
@@ -8176,3 +8540,390 @@ LLP certification document storage and management
   - `resolution`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `vendors`
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `contactEmail`: 
+  - `contactPhone`: 
+  - `address`: 
+  - `qualityRating`: 
+  - `onTimeDeliveryRate`: 
+  - `certifications`: 
+  - `approvedParts`: 
+  - `isActive`: 
+  - `preferredVendor`: 
+  - `contractStartDate`: 
+  - `contractEndDate`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kits`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `vendorKitNumber`: 
+  - `kitId`: 
+  - `requestId`: 
+  - `partNumbers`: 
+  - `quantityOrdered`: 
+  - `quantityReceived`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `currency`: 
+  - `status`: 
+  - `priority`: 
+  - `requiredDate`: 
+  - `promisedDate`: 
+  - `actualShipDate`: 
+  - `actualReceiveDate`: 
+  - `trackingNumber`: 
+  - `shippingMethod`: 
+  - `deliveryNotes`: 
+  - `qualityRequirements`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_items`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `partId`: 
+  - `partNumber`: 
+  - `description`: 
+  - `quantityOrdered`: 
+  - `quantityReceived`: 
+  - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `lotNumber`: 
+  - `serialNumbers`: 
+  - `certificationRequired`: 
+  - `inspectionRequired`: 
+  - `status`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_inspections`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `inspectorId`: 
+  - `inspectionType`: 
+  - `inspectionDate`: 
+  - `result`: 
+  - `conformingQuantity`: 
+  - `nonConformingQuantity`: 
+  - `notes`: 
+  - `correctionRequired`: 
+  - `correctionNotes`: 
+  - `certificatesReceived`: 
+  - `attachments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_history`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `userId`: 
+  - `action`: 
+  - `fromStatus`: 
+  - `toStatus`: 
+  - `notes`: 
+  - `timestamp`: 
+  - `metadata`: 
+
+### `vendor_performance_metrics`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `metricType`: 
+  - `metricPeriod`: 
+  - `periodType`: 
+  - `value`: 
+  - `target`: 
+  - `unit`: 
+  - `notes`: 
+  - `calculatedAt`: 
+
+### `saviynt_user_mappings`
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `saviyntUserId`: 
+  - `saviyntUsername`: 
+  - `provisionedAt`: 
+  - `lastSyncAt`: 
+  - `syncStatus`: 
+  - `attributes`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `saviynt_role_mappings`
+
+**Properties**
+  - `id`: 
+  - `roleId`: 
+  - `saviyntRoleId`: 
+  - `saviyntRoleName`: 
+  - `mappingType`: 
+  - `conditions`: 
+  - `isActive`: 
+  - `lastSyncAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `saviynt_sync_logs`
+
+**Properties**
+  - `id`: 
+  - `syncType`: 
+  - `entityType`: 
+  - `entityId`: 
+  - `saviyntEntityId`: 
+  - `operation`: 
+  - `status`: 
+  - `requestPayload`: 
+  - `responsePayload`: 
+  - `errorMessage`: 
+  - `errorCode`: 
+  - `retryCount`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `duration`: 
+  - `triggeredBy`: 
+  - `syncBatchId`: 
+
+### `saviynt_webhook_events`
+
+**Properties**
+  - `id`: 
+  - `eventType`: 
+  - `eventSubtype`: 
+  - `entityType`: 
+  - `entityId`: 
+  - `eventPayload`: 
+  - `processedAt`: 
+  - `processingStatus`: 
+  - `errorMessage`: 
+  - `mesEntityId`: 
+  - `retryCount`: 
+  - `receivedAt`: 
+
+### `saviynt_access_certifications`
+
+**Properties**
+  - `id`: 
+  - `certificationId`: 
+  - `campaignName`: 
+  - `certificationName`: 
+  - `entityType`: 
+  - `entityId`: 
+  - `saviyntEntityId`: 
+  - `accessType`: 
+  - `accessDetails`: 
+  - `certifier`: 
+  - `certifierType`: 
+  - `status`: 
+  - `dueDate`: 
+  - `certifiedAt`: 
+  - `certifiedBy`: 
+  - `certificationDecision`: 
+  - `comments`: 
+  - `riskScore`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `saviynt_configurations`
+
+**Properties**
+  - `id`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `description`: 
+  - `isEncrypted`: 
+  - `lastModifiedBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oidc_configs`
+OAuth 2.0/OpenID Connect Configuration
+Dedicated OIDC provider configuration separate from generic SSO
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `clientId`: 
+  - `clientSecret`: 
+  - `issuer`: 
+  - `discoveryUrl`: 
+  - `authorizationEndpoint`: 
+  - `tokenEndpoint`: 
+  - `userinfoEndpoint`: 
+  - `jwksUri`: 
+  - `scopes`: 
+  - `responseType`: 
+  - `responseMode`: 
+  - `usePkce`: 
+  - `claimsMapping`: 
+  - `groupClaimsPath`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oidc_sessions`
+OAuth User Sessions
+Track OIDC authentication sessions and tokens
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `sub`: 
+  - `accessToken`: 
+  - `refreshToken`: 
+  - `idToken`: 
+  - `tokenType`: 
+  - `expiresAt`: 
+  - `refreshExpiresAt`: 
+  - `configId`: 
+  - `scopes`: 
+  - `createdAt`: 
+
+### `oidc_auth_states`
+Authorization State Tracking
+PKCE and CSRF protection for OAuth flows
+
+**Properties**
+  - `id`: 
+  - `state`: 
+  - `codeVerifier`: 
+  - `nonce`: 
+  - `redirectUri`: 
+  - `configId`: 
+  - `expiresAt`: 
+  - `createdAt`: 
+
+### `part_interchangeability_groups`
+Part Interchangeability Groups
+Groups of parts that can be substituted for each other under specific conditions
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `description`: 
+  - `groupType`: 
+  - `category`: 
+  - `engineeringBasis`: 
+  - `complianceStandard`: 
+  - `effectiveDate`: 
+  - `obsoleteDate`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `part_substitutions`
+Part Substitution Rules
+Specific substitution relationships between parts within interchangeability groups
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `primaryPartId`: 
+  - `substitutePartId`: 
+  - `substitutionType`: 
+  - `direction`: 
+  - `priority`: 
+  - `effectiveDate`: 
+  - `obsoleteDate`: 
+  - `quantityRatio`: 
+  - `notes`: 
+  - `engineeringJustification`: 
+  - `testingReference`: 
+  - `restrictionConditions`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `interchangeability_approvals`
+Interchangeability Approval Workflow
+Engineering approval process for declaring part interchangeability
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `partId`: 
+  - `approvalType`: 
+  - `status`: 
+  - `requestedBy`: 
+  - `approvedBy`: 
+  - `approvalDate`: 
+  - `rejectionReason`: 
+  - `engineeringEvidence`: 
+  - `riskAssessment`: 
+  - `complianceNotes`: 
+  - `attachments`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `comments`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `work_order_part_substitutions`
+Work Order Part Substitution Log
+Track actual substitutions made during production
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `originalPartId`: 
+  - `substitutedPartId`: 
+  - `substitutionRuleId`: 
+  - `quantity`: 
+  - `reason`: 
+  - `justification`: 
+  - `approvedBy`: 
+  - `substitutionDate`: 
+  - `notes`: 
+  - `serialNumbers`: 
+  - `auditTrail`: 
+  - `createdBy`: 
+  - `createdAt`: 
+
+### `interchangeability_audit_logs`
+Interchangeability Audit Log
+Comprehensive audit trail for all interchangeability-related changes
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `substitutionId`: 
+  - `approvalId`: 
+  - `action`: 
+  - `entityType`: 
+  - `entityId`: 
+  - `previousValues`: 
+  - `newValues`: 
+  - `reason`: 
+  - `performedBy`: 
+  - `performedAt`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `sessionId`: 
