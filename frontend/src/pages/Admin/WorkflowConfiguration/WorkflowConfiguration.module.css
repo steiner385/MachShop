@@ -1,0 +1,150 @@
+/**
+ * Workflow Configuration Styles
+ * Created for GitHub Issue #40 - Site-Level Workflow Configuration System
+ */
+
+.modeCard {
+  transition: all 0.3s ease;
+}
+
+.modeCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ruleSection {
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.ruleSectionStrict {
+  background-color: #fff1f0;
+  border-left: 3px solid #ff4d4f;
+}
+
+.ruleSectionFlexible {
+  background-color: #fffbe6;
+  border-left: 3px solid #faad14;
+}
+
+.ruleSectionHybrid {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+
+.configPreview {
+  background-color: #f6f8fb;
+  padding: 16px;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+.previewItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.previewItem:last-child {
+  border-bottom: none;
+}
+
+.previewItemLabel {
+  font-weight: 500;
+  color: #262626;
+}
+
+.previewItemValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historyTimeline {
+  padding: 16px;
+}
+
+.historyItem {
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  background-color: #fafafa;
+}
+
+.historyItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.historyItemTime {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.changesSummary {
+  background-color: #f6f8fb;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.overrideCard {
+  border-left: 3px solid #faad14;
+  background-color: #fffbe6;
+}
+
+.overrideCardApproved {
+  border-left: 3px solid #52c41a;
+  background-color: #f6ffed;
+}
+
+.overrideCardPending {
+  border-left: 3px solid #1890ff;
+  background-color: #e6f7ff;
+}
+
+.modeIcon {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.modeTitle {
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.useCase {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #262626;
+}
+
+.useCaseIcon {
+  margin-right: 8px;
+}
+
+@media (max-width: 768px) {
+  .modeCard {
+    margin-bottom: 16px;
+  }
+
+  .previewItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .previewItemValue {
+    margin-top: 8px;
+  }
+}
