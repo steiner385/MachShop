@@ -3941,6 +3941,58 @@ erDiagram
   String nameIdFormat
   Json attributeMapping "nullable"
   Int clockTolerance
+"part_interchangeability_groups" {
+  String id PK
+  String name UK
+  String description "nullable"
+  InterchangeabilityType groupType
+  String category "nullable"
+  String engineeringBasis "nullable"
+  String complianceStandard "nullable"
+  DateTime effectiveDate
+  DateTime obsoleteDate "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy FK
+}
+"part_substitutions" {
+  String id PK
+  String groupId FK
+  String primaryPartId FK
+  String substitutePartId FK
+  SubstitutionType substitutionType
+  SubstitutionDirection direction
+  Int priority
+  DateTime effectiveDate
+  DateTime obsoleteDate "nullable"
+  Float quantityRatio
+  String notes "nullable"
+  String engineeringJustification "nullable"
+  String testingReference "nullable"
+  String restrictionConditions "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy FK
+}
+"interchangeability_approvals" {
+  String id PK
+  String groupId FK
+  String partId FK "nullable"
+  InterchangeabilityApprovalType approvalType
+  ApprovalStatus status
+  String requestedBy FK
+  String approvedBy FK "nullable"
+  DateTime approvalDate "nullable"
+  String rejectionReason "nullable"
+  String engineeringEvidence "nullable"
+  String riskAssessment "nullable"
+  String complianceNotes "nullable"
+  Json attachments "nullable"
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  String comments "nullable"
   Boolean isActive
   DateTime createdAt
   DateTime updatedAt
@@ -3966,6 +4018,40 @@ erDiagram
   String configId FK
   DateTime expiresAt
   DateTime createdAt
+"work_order_part_substitutions" {
+  String id PK
+  String workOrderId FK
+  String operationId FK "nullable"
+  String originalPartId FK
+  String substitutedPartId FK
+  String substitutionRuleId FK "nullable"
+  Float quantity
+  SubstitutionReason reason
+  String justification "nullable"
+  String approvedBy FK "nullable"
+  DateTime substitutionDate
+  String notes "nullable"
+  String serialNumbers
+  Json auditTrail "nullable"
+  String createdBy FK
+  DateTime createdAt
+}
+"interchangeability_audit_logs" {
+  String id PK
+  String groupId FK "nullable"
+  String substitutionId "nullable"
+  String approvalId "nullable"
+  AuditAction action
+  String entityType
+  String entityId
+  Json previousValues "nullable"
+  Json newValues "nullable"
+  String reason "nullable"
+  String performedBy FK
+  DateTime performedAt
+  String ipAddress "nullable"
+  String userAgent "nullable"
+  String sessionId "nullable"
 }
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
@@ -4319,6 +4405,24 @@ erDiagram
 "saml_sessions" }o--|| "users" : user
 "saml_sessions" }o--|| "saml_configs" : config
 "saml_auth_requests" }o--|| "saml_configs" : config
+"part_interchangeability_groups" }o--|| "users" : creator
+"part_substitutions" }o--|| "part_interchangeability_groups" : group
+"part_substitutions" }o--|| "parts" : primaryPart
+"part_substitutions" }o--|| "parts" : substitutePart
+"part_substitutions" }o--|| "users" : creator
+"interchangeability_approvals" }o--|| "part_interchangeability_groups" : group
+"interchangeability_approvals" }o--o| "parts" : part
+"interchangeability_approvals" }o--|| "users" : requester
+"interchangeability_approvals" }o--o| "users" : approver
+"work_order_part_substitutions" }o--|| "work_orders" : workOrder
+"work_order_part_substitutions" }o--o| "operations" : operation
+"work_order_part_substitutions" }o--|| "parts" : originalPart
+"work_order_part_substitutions" }o--|| "parts" : substitutedPart
+"work_order_part_substitutions" }o--o| "part_substitutions" : substitutionRule
+"work_order_part_substitutions" }o--o| "users" : approver
+"work_order_part_substitutions" }o--|| "users" : creator
+"interchangeability_audit_logs" }o--o| "part_interchangeability_groups" : group
+"interchangeability_audit_logs" }o--|| "users" : performer
 ```
 
 ### `enterprises`
@@ -8756,6 +8860,9 @@ PKCE and CSRF protection for OAuth flows
 ### `saml_configs`
 SAML 2.0 Configuration
 Dedicated SAML provider configuration for enterprise SSO
+### `part_interchangeability_groups`
+Part Interchangeability Groups
+Groups of parts that can be substituted for each other under specific conditions
 
 **Properties**
   - `id`: 
@@ -8773,6 +8880,63 @@ Dedicated SAML provider configuration for enterprise SSO
   - `nameIdFormat`: 
   - `attributeMapping`: 
   - `clockTolerance`: 
+  - `description`: 
+  - `groupType`: 
+  - `category`: 
+  - `engineeringBasis`: 
+  - `complianceStandard`: 
+  - `effectiveDate`: 
+  - `obsoleteDate`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `part_substitutions`
+Part Substitution Rules
+Specific substitution relationships between parts within interchangeability groups
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `primaryPartId`: 
+  - `substitutePartId`: 
+  - `substitutionType`: 
+  - `direction`: 
+  - `priority`: 
+  - `effectiveDate`: 
+  - `obsoleteDate`: 
+  - `quantityRatio`: 
+  - `notes`: 
+  - `engineeringJustification`: 
+  - `testingReference`: 
+  - `restrictionConditions`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `interchangeability_approvals`
+Interchangeability Approval Workflow
+Engineering approval process for declaring part interchangeability
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `partId`: 
+  - `approvalType`: 
+  - `status`: 
+  - `requestedBy`: 
+  - `approvedBy`: 
+  - `approvalDate`: 
+  - `rejectionReason`: 
+  - `engineeringEvidence`: 
+  - `riskAssessment`: 
+  - `complianceNotes`: 
+  - `attachments`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `comments`: 
   - `isActive`: 
   - `createdAt`: 
   - `updatedAt`: 
@@ -8806,3 +8970,45 @@ Track outgoing SAML AuthnRequests for security and correlation
   - `configId`: 
   - `expiresAt`: 
   - `createdAt`: 
+### `work_order_part_substitutions`
+Work Order Part Substitution Log
+Track actual substitutions made during production
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `originalPartId`: 
+  - `substitutedPartId`: 
+  - `substitutionRuleId`: 
+  - `quantity`: 
+  - `reason`: 
+  - `justification`: 
+  - `approvedBy`: 
+  - `substitutionDate`: 
+  - `notes`: 
+  - `serialNumbers`: 
+  - `auditTrail`: 
+  - `createdBy`: 
+  - `createdAt`: 
+
+### `interchangeability_audit_logs`
+Interchangeability Audit Log
+Comprehensive audit trail for all interchangeability-related changes
+
+**Properties**
+  - `id`: 
+  - `groupId`: 
+  - `substitutionId`: 
+  - `approvalId`: 
+  - `action`: 
+  - `entityType`: 
+  - `entityId`: 
+  - `previousValues`: 
+  - `newValues`: 
+  - `reason`: 
+  - `performedBy`: 
+  - `performedAt`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `sessionId`: 
