@@ -113,6 +113,10 @@ import vendorKitRoutes from './routes/vendorKits';
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System Routes
+import maintenanceRoutes from './routes/maintenance';
+import downtimeRoutes from './routes/downtime';
+
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 import maximoSurrogateRoutes from './routes/maximo-surrogate';
 import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
@@ -328,6 +332,10 @@ apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
 apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
+
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
+apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
+apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
 
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 // Note: No auth middleware for testing surrogates to enable CI/CD testing without authentication

@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 interface FieldDocumentation {
   fieldName: string;
@@ -80,6 +81,29 @@ export class ComprehensiveFieldDocumentor {
     this.initializeManufacturingFieldKnowledge();
   }
 
+  /**
+   * Atomically writes content to a file to prevent race conditions
+   */
+  private async writeFileAtomically(filePath: string, content: string): Promise<void> {
+    const tempFile = `${filePath}.tmp.${crypto.randomBytes(8).toString('hex')}`;
+
+    try {
+      // Write to temporary file first
+      await fs.promises.writeFile(tempFile, content, 'utf8');
+
+      // Atomically move temp file to final location
+      await fs.promises.rename(tempFile, filePath);
+    } catch (error) {
+      // Clean up temp file if something went wrong
+      try {
+        await fs.promises.unlink(tempFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+      throw error;
+    }
+  }
+
   async documentAllFields(): Promise<void> {
     console.log('🏭 Starting comprehensive field documentation for 100% coverage...\n');
     console.log('📊 Target: Document all 3,486 missing fields across 186 tables\n');
@@ -95,7 +119,7 @@ export class ComprehensiveFieldDocumentor {
     const prioritizedFields = await this.prioritizeFieldDocumentation(gapAnalysis);
 
     // Step 4: Generate comprehensive documentation
-    await this.generateFieldDocumentation(prioritizedFields);
+    await this.processFieldDocumentation(prioritizedFields);
 
     // Step 5: Validate 100% coverage
     await this.validateFullCoverage();
@@ -811,7 +835,7 @@ export class ComprehensiveFieldDocumentor {
     return relatedFields;
   }
 
-  private async generateFieldDocumentation(prioritizedFields: FieldDocumentation[]): Promise<void> {
+  private async processFieldDocumentation(prioritizedFields: FieldDocumentation[]): Promise<void> {
     console.log('📝 Generating comprehensive field documentation...');
 
     // Group fields by table for better organization
@@ -886,11 +910,10 @@ export class ComprehensiveFieldDocumentor {
       }))
     };
 
-    // Export to JSON
-    await fs.promises.writeFile(
+    // Export to JSON (atomic write to prevent race conditions)
+    await this.writeFileAtomically(
       './docs/generated/comprehensive-field-documentation.json',
-      JSON.stringify(enhancedMetadata, null, 2),
-      'utf8'
+      JSON.stringify(enhancedMetadata, null, 2)
     );
 
     // Generate Markdown documentation
@@ -977,10 +1000,9 @@ export class ComprehensiveFieldDocumentor {
       }
     }
 
-    await fs.promises.writeFile(
+    await this.writeFileAtomically(
       './docs/generated/comprehensive-field-documentation.md',
-      markdown,
-      'utf8'
+      markdown
     );
   }
 
@@ -1023,10 +1045,9 @@ export class ComprehensiveFieldDocumentor {
       }
     }
 
-    await fs.promises.writeFile(
+    await this.writeFileAtomically(
       './docs/generated/comprehensive-field-documentation.csv',
-      csv,
-      'utf8'
+      csv
     );
   }
 
@@ -1068,10 +1089,9 @@ export class ComprehensiveFieldDocumentor {
       }
     };
 
-    await fs.promises.writeFile(
+    await this.writeFileAtomically(
       './docs/generated/final-coverage-report.json',
-      JSON.stringify(coverageReport, null, 2),
-      'utf8'
+      JSON.stringify(coverageReport, null, 2)
     );
 
     console.log(`   📄 Final coverage report: ./docs/generated/final-coverage-report.json`);
