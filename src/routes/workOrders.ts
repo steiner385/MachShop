@@ -163,6 +163,52 @@ router.get('/:id',
 );
 
 /**
+ * GET /api/v1/work-orders/uuid/:persistentUuid
+ * Get work order by persistent UUID (MBE traceability)
+ */
+router.get('/uuid/:persistentUuid',
+  requireProductionAccess,
+  requireSiteAccess,
+  asyncHandler(async (req, res) => {
+    const { persistentUuid } = req.params;
+
+    // Validate UUID format
+    if (!persistentUuid || persistentUuid.trim() === '') {
+      throw new ValidationError('Persistent UUID is required');
+    }
+
+    // Import UUID utilities
+    const { isValidPersistentUUID } = await import('../utils/uuidUtils');
+
+    if (!isValidPersistentUUID(persistentUuid)) {
+      throw new ValidationError('Invalid UUID format - must be a valid UUID v4 for MBE compliance');
+    }
+
+    const workOrder = await workOrderService.getWorkOrderByPersistentUuid(persistentUuid);
+    if (!workOrder) {
+      throw new NotFoundError('Work order not found');
+    }
+
+    // Add calculated fields
+    const workOrderWithMetrics = {
+      ...workOrder,
+      completionPercentage: workOrderService.calculateCompletionPercentage(workOrder),
+      isOverdue: workOrderService.isOverdue(workOrder),
+      estimatedCompletion: workOrderService.calculateEstimatedCompletion(workOrder, 5)
+    };
+
+    logger.info('Work order retrieved by UUID', {
+      userId: req.user?.id,
+      persistentUuid,
+      workOrderId: workOrder.id,
+      workOrderNumber: workOrder.workOrderNumber
+    });
+
+    res.status(200).json(workOrderWithMetrics);
+  })
+);
+
+/**
  * @route POST /api/v1/workorders
  * @desc Create new work order
  * @access Private

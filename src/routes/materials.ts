@@ -354,6 +354,47 @@ router.get('/lots/number/:lotNumber',
 );
 
 /**
+ * @route GET /api/v1/materials/lots/uuid/:persistentUuid
+ * @desc Get material lot by persistent UUID (MBE traceability)
+ * @access Private
+ */
+router.get('/lots/uuid/:persistentUuid',
+  requireProductionAccess,
+  asyncHandler(async (req, res) => {
+    const { persistentUuid } = req.params;
+
+    // Validate UUID format
+    if (!persistentUuid || persistentUuid.trim() === '') {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Persistent UUID is required'
+      });
+    }
+
+    // Import UUID utilities
+    const { isValidPersistentUUID } = await import('../utils/uuidUtils');
+
+    if (!isValidPersistentUUID(persistentUuid)) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid UUID format - must be a valid UUID v4 for MBE compliance'
+      });
+    }
+
+    const lot = await MaterialService.getMaterialLotByPersistentUuid(persistentUuid);
+
+    if (!lot) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'Material lot not found'
+      });
+    }
+
+    return res.status(200).json(lot);
+  })
+);
+
+/**
  * @route PUT /api/v1/materials/lots/:id
  * @desc Update material lot
  * @access Private
