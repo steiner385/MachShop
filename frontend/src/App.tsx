@@ -70,6 +70,13 @@ import RoutingEditPage from '@/pages/Routing/RoutingEditPage';
 import RoutingDetailPage from '@/pages/Routing/RoutingDetailPage';
 import RoutingTemplatesPage from '@/pages/Routing/RoutingTemplatesPage';
 
+// Kit Management (GitHub Issue #229)
+import KitsPage from '@/pages/Kits/KitsPage';
+import KitAnalyticsPage from '@/pages/Kits/KitAnalyticsPage';
+
+// Staging Management (GitHub Issue #229)
+import StagingPage from '@/pages/Staging/StagingPage';
+
 const { Content } = Layout;
 
 const App: React.FC = () => {
@@ -443,6 +450,34 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute permissions={['materials.read']}>
               <MaterialsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Kit Management (GitHub Issue #229: Kitting & Material Staging System) */}
+        <Route
+          path="/kits"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Manufacturing Engineer', 'Material Coordinator', 'Plant Manager']}>
+              <KitsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/kits/analytics"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Manufacturing Engineer', 'Material Coordinator', 'Plant Manager']}>
+              <KitAnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Staging Management (GitHub Issue #229: Kitting & Material Staging System) */}
+        <Route
+          path="/staging"
+          element={
+            <ProtectedRoute roles={['Production Planner', 'Manufacturing Engineer', 'Material Coordinator', 'Plant Manager']}>
+              <StagingPage />
             </ProtectedRoute>
           }
         />

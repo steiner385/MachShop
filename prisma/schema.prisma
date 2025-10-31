@@ -80,6 +80,7 @@ model Area {
   site        Site         @relation(fields: [siteId], references: [id])
   equipment   Equipment[]
   workCenters WorkCenter[]
+  stagingLocations StagingLocation[]
 
   @@index([siteId])
   @@map("areas")
@@ -181,6 +182,18 @@ model User {
   torqueEventOperations     TorqueEvent[]                   @relation("TorqueEventOperator")
   torqueEventSupervisions   TorqueEvent[]                   @relation("TorqueEventSupervisor")
   torqueEventReworks        TorqueEvent[]                   @relation("TorqueEventRework")
+
+  // Kitting System relationships
+  kitsCreated               Kit[]                           @relation("KitCreatedBy")
+  kitsStaged                Kit[]                           @relation("KitStagedBy")
+  kitsIssued                Kit[]                           @relation("KitIssuedBy")
+  vendorKitInspections      VendorKitInspection[]
+  vendorKitHistory          VendorKitHistory[]
+  kitsReceived              Kit[]                           @relation("KitIssuedTo")
+  kitsReturned              Kit[]                           @relation("KitReturnedBy")
+  kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
+  shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
+  shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -375,6 +388,8 @@ model UnitOfMeasure {
   scheduleConstraints         ScheduleConstraint[]        @relation("ScheduleConstraintUOM")
   inventories                 Inventory[]                 @relation("InventoryUOM")
   materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
+  kitItems                    KitItem[]                   @relation("KitItemUOM")
+  vendorKitItems              VendorKitItem[]             @relation("VendorKitItemUOM")
 
   @@index([code])
   @@index([unitType])
@@ -542,6 +557,7 @@ model MaterialLot {
   unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
+  kitItems            KitItem[]
 
   @@index([materialId])
   @@index([lotNumber])
@@ -688,6 +704,7 @@ model Operation {
   routingSteps              RoutingStep[]
   samplingPlans             SamplingPlan[]
   torqueSpecifications      TorqueSpecification[]
+  kits                      Kit[]
 
   @@index([parentOperationId])
   @@index([persistentUuid])
@@ -972,6 +989,11 @@ model Part {
   llpCertificationRequired   Boolean                     @default(false)
   llpNotes                   String?                     // LLP-specific notes
 
+  // Kitting System relationships
+  kitItems                   KitItem[]
+  shortageAlerts             KitShortageAlert[]
+  vendorKitItems             VendorKitItem[]
+
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
@@ -1035,6 +1057,7 @@ model BOMItem {
   operation           Operation? @relation(fields: [operationId], references: [id])
   parentPart          Part       @relation("ParentPart", fields: [parentPartId], references: [id])
   unitOfMeasureRef    UnitOfMeasure? @relation("BOMItemUOM", fields: [unitOfMeasureId], references: [id])
+  kitItems            KitItem[]
 
   @@index([parentPartId])
   @@index([componentPartId])
@@ -1199,6 +1222,7 @@ model WorkOrder {
   site                         Site?                         @relation(fields: [siteId], references: [id])
   workPerformance              WorkPerformance[]
   torqueEvents                 TorqueEvent[]
+  kits                         Kit[]
 
   @@index([persistentUuid])
   @@map("work_orders")
@@ -1990,6 +2014,7 @@ model Inventory {
   part          Part                  @relation(fields: [partId], references: [id])
   transactions  MaterialTransaction[]
   unitOfMeasureRef UnitOfMeasure?      @relation("InventoryUOM", fields: [unitOfMeasureId], references: [id])
+  kitItems      KitItem[]
 
   @@index([partId])
   @@index([location])
@@ -7091,4 +7116,586 @@ model LLPCertification {
   @@index([expirationDate])
   @@index([isActive])
   @@map("llp_certifications")
+}
+
+// =============================================================================
+// KITTING & MATERIAL STAGING SYSTEM
+// =============================================================================
+
+model Kit {
+  id                 String           @id @default(cuid())
+  kitNumber          String           @unique
+  kitName            String?
+  workOrderId        String
+  operationId        String?
+  assemblyStage      String?          // Fan, Compressor, Combustor, Turbine, Integration
+  workCellId         String?
+  status             KitStatus        @default(PLANNED)
+  priority           KitPriority      @default(NORMAL)
+
+  // Staging information
+  stagingLocationId  String?
+  stagedAt           DateTime?
+  stagedById         String?
+
+  // Issue tracking
+  issuedAt           DateTime?
+  issuedById         String?
+  issuedToId         String?
+
+  // Consumption tracking
+  isPartiallyConsumed Boolean         @default(false)
+  completionPercent   Float?          @default(0)
+
+  // Return processing
+  returnedAt         DateTime?
+  returnedById       String?
+  returnReason       String?
+
+  // Vendor kitting
+  isVendorKit        Boolean          @default(false)
+  vendorId           String?
+  vendorKitNumber    String?
+  vendorReceivedAt   DateTime?
+
+  // Planning and generation
+  autoGenerated      Boolean          @default(false)
+  generatedFromBOM   Boolean          @default(false)
+  scrapFactor        Float?           @default(0.05)  // 5% default scrap allowance
+
+  // Scheduling
+  requiredByDate     DateTime?
+  plannedStageDate   DateTime?
+  plannedIssueDate   DateTime?
+
+  // Audit and compliance
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  createdById        String
+
+  // Relationships
+  workOrder          WorkOrder        @relation(fields: [workOrderId], references: [id])
+  operation          Operation?       @relation(fields: [operationId], references: [id])
+  stagingLocation    StagingLocation? @relation(fields: [stagingLocationId], references: [id])
+  createdBy          User             @relation("KitCreatedBy", fields: [createdById], references: [id])
+  stagedBy           User?            @relation("KitStagedBy", fields: [stagedById], references: [id])
+  issuedBy           User?            @relation("KitIssuedBy", fields: [issuedById], references: [id])
+  issuedTo           User?            @relation("KitIssuedTo", fields: [issuedToId], references: [id])
+  returnedBy         User?            @relation("KitReturnedBy", fields: [returnedById], references: [id])
+
+  // Child relationships
+  kitItems           KitItem[]
+  statusHistory      KitStatusHistory[]
+  shortageAlerts     KitShortageAlert[]
+  vendorKits         VendorKit[]
+
+  @@index([workOrderId])
+  @@index([status])
+  @@index([stagingLocationId])
+  @@index([requiredByDate])
+  @@index([operationId])
+  @@map("kits")
+}
+
+model KitItem {
+  id                 String            @id @default(cuid())
+  kitId              String
+  partId             String?           // For parts
+  materialLotId      String?           // For specific material lots
+  inventoryId        String?           // For general inventory
+  toolId             String?           // For tools and equipment
+
+  // Quantity information
+  requiredQuantity   Float
+  stagedQuantity     Float             @default(0)
+  issuedQuantity     Float             @default(0)
+  consumedQuantity   Float             @default(0)
+  returnedQuantity   Float             @default(0)
+  shortageQuantity   Float             @default(0)
+
+  unitOfMeasure      String
+  unitOfMeasureId    String?           // FK to UnitOfMeasure
+
+  // BOM reference
+  bomItemId          String?           // Reference to source BOM item
+  sequence           Int?              // Picking sequence
+  findNumber         String?           // Engineering find number
+  referenceDesignator String?          // Component reference
+
+  // Status tracking
+  status             KitItemStatus     @default(PLANNED)
+  isPicked           Boolean           @default(false)
+  isStaged           Boolean           @default(false)
+  isIssued           Boolean           @default(false)
+
+  // Location tracking
+  pickLocationId     String?
+  stagedLocationId   String?
+
+  // Special handling
+  isCritical         Boolean           @default(false)
+  isHazardous        Boolean           @default(false)
+  specialInstructions String?
+
+  // Vendor information
+  preferredSupplierId String?
+  supplierPartNumber  String?
+
+  // Audit
+  notes              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  // Relationships
+  kit                Kit               @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  part               Part?             @relation(fields: [partId], references: [id])
+  materialLot        MaterialLot?      @relation(fields: [materialLotId], references: [id])
+  inventory          Inventory?        @relation(fields: [inventoryId], references: [id])
+  bomItem            BOMItem?          @relation(fields: [bomItemId], references: [id])
+  unitOfMeasureRef   UnitOfMeasure?    @relation("KitItemUOM", fields: [unitOfMeasureId], references: [id])
+
+  @@index([kitId])
+  @@index([partId])
+  @@index([status])
+  @@index([isPicked])
+  @@index([isStaged])
+  @@map("kit_items")
+}
+
+model StagingLocation {
+  id                 String              @id @default(cuid())
+  locationCode       String              @unique
+  locationName       String
+  description        String?
+
+  // Physical characteristics
+  areaId             String?
+  zoneCode           String?
+  coordinates        String?             // Physical coordinates (x,y,z or GPS)
+  maxCapacity        Int?                // Max number of kits
+  currentOccupancy   Int                 @default(0)
+
+  // Location type and capabilities
+  locationType       StagingLocationType @default(GENERAL)
+  securityLevel      SecurityLevel       @default(STANDARD)
+  hasClimateControl  Boolean             @default(false)
+  hasSecurityCamera  Boolean             @default(false)
+  hasAccessControl   Boolean             @default(false)
+
+  // Work cell proximity
+  nearWorkCells      String[]            // Array of work cell IDs for optimization
+  proximityScore     Float?              // Distance-based scoring for assignment
+
+  // Environmental conditions
+  temperatureMin     Float?
+  temperatureMax     Float?
+  humidityMax        Float?
+  isCleanRoom        Boolean             @default(false)
+  esdProtected       Boolean             @default(false)
+
+  // Operational status
+  isActive           Boolean             @default(true)
+  isAvailable        Boolean             @default(true)
+  maintenanceMode    Boolean             @default(false)
+
+  // Barcode/RFID integration
+  barcodeId          String?
+  rfidTagId          String?
+
+  // Audit
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  // Relationships
+  area               Area?               @relation(fields: [areaId], references: [id])
+  kits               Kit[]
+
+  @@index([areaId])
+  @@index([locationType])
+  @@index([isActive])
+  @@index([isAvailable])
+  @@map("staging_locations")
+}
+
+model KitStatusHistory {
+  id              String      @id @default(cuid())
+  kitId           String
+  fromStatus      KitStatus?
+  toStatus        KitStatus
+  changedAt       DateTime    @default(now())
+  changedById     String
+  reason          String?
+  notes           String?
+
+  kit             Kit         @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  changedBy       User        @relation("KitStatusChanged", fields: [changedById], references: [id])
+
+  @@index([kitId])
+  @@index([changedAt])
+  @@map("kit_status_history")
+}
+
+model KitShortageAlert {
+  id              String           @id @default(cuid())
+  kitId           String
+  kitItemId       String?
+  partId          String
+  shortageQuantity Float
+  requiredByDate  DateTime?
+  priority        AlertPriority    @default(NORMAL)
+  status          AlertStatus      @default(OPEN)
+
+  // Alert details
+  alertMessage    String
+  actionRequired  String?
+  assignedToId    String?
+
+  // Resolution
+  resolvedAt      DateTime?
+  resolvedById    String?
+  resolution      String?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  kit             Kit              @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  part            Part             @relation(fields: [partId], references: [id])
+  assignedTo      User?            @relation("ShortageAssigned", fields: [assignedToId], references: [id])
+  resolvedBy      User?            @relation("ShortageResolved", fields: [resolvedById], references: [id])
+
+  @@index([kitId])
+  @@index([status])
+  @@index([priority])
+  @@index([requiredByDate])
+  @@map("kit_shortage_alerts")
+}
+
+// Kitting System Enums
+enum KitStatus {
+  PLANNED           // Kit created but not yet staged
+  STAGING           // Being picked and staged
+  STAGED            // Ready for issue at staging location
+  ISSUED            // Issued to production
+  PARTIAL           // Partially consumed
+  CONSUMED          // Fully consumed
+  RETURNED          // Returned unused materials
+  CANCELLED         // Kit cancelled
+  ON_HOLD           // Temporarily on hold
+}
+
+enum KitPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum KitItemStatus {
+  PLANNED           // Item identified but not yet picked
+  PICKING           // Being picked from inventory
+  PICKED            // Picked and ready for staging
+  STAGED            // Staged at kit location
+  ISSUED            // Issued with kit
+  CONSUMED          // Used in production
+  RETURNED          // Returned unused
+  SHORT             // Shortage identified
+  SUBSTITUTED       // Substituted with alternate part
+}
+
+enum StagingLocationType {
+  GENERAL           // General purpose staging
+  CLEAN_ROOM        // Clean room environment
+  HAZMAT            // Hazardous materials
+  TOOL_CRIB         // Tool and equipment staging
+  VENDOR_KIT        // Vendor-supplied kits
+  QUARANTINE        // Quarantine area
+  HIGH_VALUE        // High-value items
+  BULK_MATERIAL     // Bulk materials
+}
+
+enum SecurityLevel {
+  OPEN              // Open access
+  STANDARD          // Standard security
+  RESTRICTED        // Restricted access
+  CLASSIFIED        // Classified/secure area
+}
+
+enum AlertPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+// Vendor Kitting Support Models (GitHub Issue #229)
+
+model Vendor {
+  id                    String                     @id @default(cuid())
+  code                  String                     @unique
+  name                  String
+  contactEmail          String?
+  contactPhone          String?
+  address               String?
+  qualityRating         Float                      @default(0.0) // 0-100 scale
+  onTimeDeliveryRate    Float                      @default(0.0) // 0-100 percentage
+  certifications        String[]                   // AS9100, NADCAP, etc.
+  approvedParts         String[]                   // Approved part numbers
+  isActive              Boolean                    @default(true)
+  preferredVendor       Boolean                    @default(false)
+  contractStartDate     DateTime?
+  contractEndDate       DateTime?
+  notes                 String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKits            VendorKit[]
+  performanceMetrics    VendorPerformanceMetric[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([preferredVendor])
+  @@map("vendors")
+}
+
+model VendorKit {
+  id                    String                     @id @default(cuid())
+  vendorId              String
+  vendorKitNumber       String                     // Vendor's internal kit ID
+  kitId                 String?                    // Link to internal Kit if applicable
+  requestId             String                     @unique // Unique request identifier
+  partNumbers           String[]                   // Parts included in this vendor kit
+  quantityOrdered       Int
+  quantityReceived      Int                        @default(0)
+  unitCost              Float?
+  totalCost             Float?
+  currency              String                     @default("USD")
+  status                VendorKitStatus            @default(REQUESTED)
+  priority              VendorKitPriority          @default(NORMAL)
+  requiredDate          DateTime
+  promisedDate          DateTime?
+  actualShipDate        DateTime?
+  actualReceiveDate     DateTime?
+  trackingNumber        String?
+  shippingMethod        String?
+  deliveryNotes         String?
+  qualityRequirements   String?                    // Special quality or certification requirements
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendor                Vendor                     @relation(fields: [vendorId], references: [id])
+  kit                   Kit?                       @relation(fields: [kitId], references: [id])
+  items                 VendorKitItem[]
+  inspections           VendorKitInspection[]
+  history               VendorKitHistory[]
+
+  @@index([vendorId])
+  @@index([kitId])
+  @@index([status])
+  @@index([requiredDate])
+  @@index([requestId])
+  @@map("vendor_kits")
+}
+
+model VendorKitItem {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  partId                String
+  partNumber            String                     // Vendor's part number (may differ from internal)
+  description           String?
+  quantityOrdered       Float
+  quantityReceived      Float                      @default(0)
+  unitOfMeasure         String
+  unitOfMeasureId       String?
+  unitCost              Float?
+  totalCost             Float?
+  lotNumber             String?
+  serialNumbers         String[]                   // For serialized parts
+  certificationRequired Boolean                    @default(false)
+  inspectionRequired    Boolean                    @default(false)
+  status                VendorKitItemStatus        @default(ORDERED)
+  notes                 String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  part                  Part                       @relation(fields: [partId], references: [id])
+  unitOfMeasureRef      UnitOfMeasure?             @relation("VendorKitItemUOM", fields: [unitOfMeasureId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([partId])
+  @@index([status])
+  @@index([unitOfMeasureId])
+  @@map("vendor_kit_items")
+}
+
+model VendorKitInspection {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  inspectorId           String?
+  inspectionType        VendorInspectionType
+  inspectionDate        DateTime                   @default(now())
+  result                VendorInspectionResult
+  conformingQuantity    Int                        @default(0)
+  nonConformingQuantity Int                        @default(0)
+  notes                 String?
+  correctionRequired    Boolean                    @default(false)
+  correctionNotes       String?
+  certificatesReceived  Boolean                    @default(false)
+  attachments           String[]                   // File paths or URLs
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  inspector             User?                      @relation(fields: [inspectorId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([inspectorId])
+  @@index([inspectionDate])
+  @@index([result])
+  @@map("vendor_kit_inspections")
+}
+
+model VendorKitHistory {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  userId                String?
+  action                VendorKitAction
+  fromStatus            VendorKitStatus?
+  toStatus              VendorKitStatus?
+  notes                 String?
+  timestamp             DateTime                   @default(now())
+  metadata              Json?                      // Additional context data
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  user                  User?                      @relation(fields: [userId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("vendor_kit_history")
+}
+
+model VendorPerformanceMetric {
+  id                    String                     @id @default(cuid())
+  vendorId              String
+  metricType            VendorMetricType
+  metricPeriod          DateTime                   // Start of measurement period
+  periodType            VendorMetricPeriod         @default(MONTHLY)
+  value                 Float
+  target                Float?
+  unit                  String?                    // %, days, count, etc.
+  notes                 String?
+  calculatedAt          DateTime                   @default(now())
+
+  // Relationships
+  vendor                Vendor                     @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@index([metricType])
+  @@index([metricPeriod])
+  @@index([periodType])
+  @@map("vendor_performance_metrics")
+}
+
+// Vendor Kitting Enums
+
+enum VendorKitStatus {
+  REQUESTED
+  ACKNOWLEDGED
+  IN_PRODUCTION
+  SHIPPED
+  RECEIVED
+  INSPECTING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum VendorKitPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  EXPEDITE
+}
+
+enum VendorKitItemStatus {
+  ORDERED
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  RECEIVED
+  INSPECTED
+  ACCEPTED
+  REJECTED
+}
+
+enum VendorInspectionType {
+  RECEIVING
+  FIRST_ARTICLE
+  SAMPLING
+  FULL_INSPECTION
+  CERTIFICATION_REVIEW
+  DIMENSIONAL
+  MATERIAL_VERIFICATION
+}
+
+enum VendorInspectionResult {
+  PASS
+  PASS_WITH_DEVIATION
+  FAIL
+  PENDING
+  WAIVED
+}
+
+enum VendorKitAction {
+  CREATED
+  REQUESTED
+  ACKNOWLEDGED
+  PRODUCTION_STARTED
+  SHIPPED
+  RECEIVED
+  INSPECTION_STARTED
+  INSPECTION_COMPLETED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  STATUS_UPDATED
+  NOTES_ADDED
+}
+
+enum VendorMetricType {
+  ON_TIME_DELIVERY
+  QUALITY_RATING
+  COST_PERFORMANCE
+  LEAD_TIME
+  DEFECT_RATE
+  DELIVERY_PERFORMANCE
+  RESPONSIVENESS
+  CERTIFICATION_COMPLIANCE
+}
+
+enum VendorMetricPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }

@@ -138,6 +138,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           permissions: [PERMISSIONS.MATERIALS_READ],
         },
         {
+          key: '/kits',
+          icon: <ApartmentOutlined />,
+          label: 'Kit Management',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.MANUFACTURING_ENGINEER, ROLES.PLANT_MANAGER],
+          children: [
+            {
+              key: '/kits',
+              label: 'Kit Dashboard',
+            },
+            {
+              key: '/kits/analytics',
+              label: 'Analytics & Reports',
+            },
+          ],
+        },
+        {
+          key: '/staging',
+          icon: <ControlOutlined />,
+          label: 'Staging Dashboard',
+          roles: [ROLES.PRODUCTION_PLANNER, ROLES.MANUFACTURING_ENGINEER, ROLES.PLANT_MANAGER],
+        },
+        {
           key: '/traceability',
           icon: <QrcodeOutlined />,
           label: 'Traceability',

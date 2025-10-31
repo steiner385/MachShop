@@ -98,6 +98,11 @@ import roleTemplateRoutes from './routes/roleTemplates';
 // ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability
 import llpRoutes from './routes/llp';
 
+// ✅ GITHUB ISSUE #229: Kitting & Material Staging System Routes
+import kitRoutes from './routes/api/kits';
+import stagingRoutes from './routes/api/staging';
+import vendorKitRoutes from './routes/vendorKits';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -290,6 +295,11 @@ apiRouter.use('/role-templates', authMiddleware, roleTemplateRoutes);
 
 // ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability API Routes
 apiRouter.use('/llp', authMiddleware, llpRoutes);
+
+// ✅ GITHUB ISSUE #229: Kitting & Material Staging System API Routes
+apiRouter.use('/kits', authMiddleware, kitRoutes);
+apiRouter.use('/staging', authMiddleware, stagingRoutes);
+apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
