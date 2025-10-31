@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import activityService, { ActivityInput, ActivityFilters, ActivitySummary, UserActivitySummary } from '../../services/ActivityService';
-import { prisma } from '../../lib/prisma';
-import { AppError } from '../../middleware/errorHandler';
 import { ActivityType } from '@prisma/client';
 
-// Mock prisma
-vi.mock('../../lib/prisma', () => ({
-  prisma: {
+// Mock the database module - create mock inside the factory function
+vi.mock('../../lib/database', () => ({
+  default: {
     documentActivity: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -16,6 +13,14 @@ vi.mock('../../lib/prisma', () => ({
     $disconnect: vi.fn(),
   },
 }));
+
+import activityService, { ActivityInput, ActivityFilters, ActivitySummary, UserActivitySummary } from '../../services/ActivityService';
+import { AppError } from '../../middleware/errorHandler';
+import prisma from '../../lib/database';
+
+// Get reference to the mocked prisma for easy access in tests
+const mockPrisma = prisma as any;
+
 
 // Mock logger
 vi.mock('../../utils/logger', () => ({
@@ -33,31 +38,6 @@ vi.mock('../../middleware/errorHandler', () => ({
       super(message);
       this.name = 'AppError';
     }
-  },
-}));
-
-// Mock PrismaClient constructor
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => ({
-    documentActivity: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      deleteMany: vi.fn(),
-    },
-    $disconnect: vi.fn(),
-    $on: vi.fn(),
-  })),
-  ActivityType: {
-    DOCUMENT_CREATED: 'DOCUMENT_CREATED',
-    DOCUMENT_UPDATED: 'DOCUMENT_UPDATED',
-    DOCUMENT_APPROVED: 'DOCUMENT_APPROVED',
-    DOCUMENT_REJECTED: 'DOCUMENT_REJECTED',
-    COMMENT_ADDED: 'COMMENT_ADDED',
-    ANNOTATION_ADDED: 'ANNOTATION_ADDED',
-    REVIEW_ASSIGNED: 'REVIEW_ASSIGNED',
-    REVIEW_COMPLETED: 'REVIEW_COMPLETED',
-    USER_ACCESSED: 'USER_ACCESSED',
   },
 }));
 
@@ -106,12 +86,12 @@ describe('ActivityService', () => {
         userName: 'John Doe',
       };
 
-      (prisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
+      (mockPrisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
 
       const result = await activityService.logActivity(input);
 
       expect(result).toEqual(mockActivity);
-      expect(prisma.documentActivity.create).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.create).toHaveBeenCalledWith({
         data: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -141,12 +121,12 @@ describe('ActivityService', () => {
         metadata: { key: 'value' },
       };
 
-      (prisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
+      (mockPrisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
 
       const result = await activityService.logActivity(input);
 
       expect(result).toEqual(mockActivity);
-      expect(prisma.documentActivity.create).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.create).toHaveBeenCalledWith({
         data: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -172,7 +152,7 @@ describe('ActivityService', () => {
         userName: 'John Doe',
       };
 
-      (prisma.documentActivity.create as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.create as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.logActivity(input)).rejects.toThrow(AppError);
     });
@@ -203,12 +183,12 @@ describe('ActivityService', () => {
     ];
 
     it('should get document activities without filters', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getDocumentActivities('work-instruction', 'doc-1');
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -224,12 +204,12 @@ describe('ActivityService', () => {
         activityTypes: [ActivityType.DOCUMENT_CREATED],
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivities[0]]);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivities[0]]);
 
       const result = await activityService.getDocumentActivities('work-instruction', 'doc-1', filters);
 
       expect(result).toEqual([mockActivities[0]]);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -246,12 +226,12 @@ describe('ActivityService', () => {
         userId: 'user-1',
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivities[0]]);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivities[0]]);
 
       const result = await activityService.getDocumentActivities('work-instruction', 'doc-1', filters);
 
       expect(result).toEqual([mockActivities[0]]);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -269,12 +249,12 @@ describe('ActivityService', () => {
         createdBefore: new Date('2023-12-31'),
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getDocumentActivities('work-instruction', 'doc-1', filters);
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -295,12 +275,12 @@ describe('ActivityService', () => {
         offset: 20,
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getDocumentActivities('work-instruction', 'doc-1', filters);
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -312,7 +292,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.getDocumentActivities('work-instruction', 'doc-1'))
         .rejects.toThrow(AppError);
@@ -333,12 +313,12 @@ describe('ActivityService', () => {
     ];
 
     it('should get user activities without filters', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getUserActivities('user-1');
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
         },
@@ -353,12 +333,12 @@ describe('ActivityService', () => {
         documentType: 'work-instruction',
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getUserActivities('user-1', filters);
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           documentType: 'work-instruction',
@@ -370,7 +350,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.getUserActivities('user-1'))
         .rejects.toThrow(AppError);
@@ -409,7 +389,7 @@ describe('ActivityService', () => {
     ];
 
     it('should generate document activity summary', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getDocumentActivitySummary('work-instruction', 'doc-1');
 
@@ -439,12 +419,12 @@ describe('ActivityService', () => {
         end: new Date('2023-12-31'),
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getDocumentActivitySummary('work-instruction', 'doc-1', timeRange);
 
       expect(result.totalActivities).toBe(3);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -458,7 +438,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.getDocumentActivitySummary('work-instruction', 'doc-1'))
         .rejects.toThrow(AppError);
@@ -486,7 +466,7 @@ describe('ActivityService', () => {
     ];
 
     it('should generate user activity summary', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getUserActivitySummary('user-1');
 
@@ -506,7 +486,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.getUserActivitySummary('user-1'))
         .rejects.toThrow(AppError);
@@ -525,12 +505,12 @@ describe('ActivityService', () => {
     ];
 
     it('should get global activity feed without filters', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getGlobalActivityFeed();
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {},
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -544,12 +524,12 @@ describe('ActivityService', () => {
         limit: 10,
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const result = await activityService.getGlobalActivityFeed(filters);
 
       expect(result).toEqual(mockActivities);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
         },
@@ -560,7 +540,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.getGlobalActivityFeed())
         .rejects.toThrow(AppError);
@@ -766,7 +746,7 @@ describe('ActivityService', () => {
 
   describe('logUserAccessed', () => {
     it('should log user access when no recent access exists', async () => {
-      (prisma.documentActivity.findFirst as any).mockResolvedValueOnce(null);
+      (mockPrisma.documentActivity.findFirst as any).mockResolvedValueOnce(null);
 
       const mockActivity = {
         id: 'activity-1',
@@ -786,7 +766,7 @@ describe('ActivityService', () => {
       const result = await activityService.logUserAccessed('work-instruction', 'doc-1', 'user-1', 'John Doe');
 
       expect(result).toEqual(mockActivity);
-      expect(prisma.documentActivity.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findFirst).toHaveBeenCalledWith({
         where: {
           documentType: 'work-instruction',
           documentId: 'doc-1',
@@ -809,7 +789,7 @@ describe('ActivityService', () => {
         createdAt: new Date(),
       };
 
-      (prisma.documentActivity.findFirst as any).mockResolvedValueOnce(recentAccess);
+      (mockPrisma.documentActivity.findFirst as any).mockResolvedValueOnce(recentAccess);
 
       const result = await activityService.logUserAccessed('work-instruction', 'doc-1', 'user-1', 'John Doe');
 
@@ -819,12 +799,12 @@ describe('ActivityService', () => {
 
   describe('cleanupOldActivities', () => {
     it('should cleanup old activities with default retention', async () => {
-      (prisma.documentActivity.deleteMany as any).mockResolvedValueOnce({ count: 100 });
+      (mockPrisma.documentActivity.deleteMany as any).mockResolvedValueOnce({ count: 100 });
 
       const result = await activityService.cleanupOldActivities();
 
       expect(result).toBe(100);
-      expect(prisma.documentActivity.deleteMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.deleteMany).toHaveBeenCalledWith({
         where: {
           createdAt: {
             lt: expect.any(Date),
@@ -834,7 +814,7 @@ describe('ActivityService', () => {
     });
 
     it('should cleanup old activities with custom retention', async () => {
-      (prisma.documentActivity.deleteMany as any).mockResolvedValueOnce({ count: 50 });
+      (mockPrisma.documentActivity.deleteMany as any).mockResolvedValueOnce({ count: 50 });
 
       const result = await activityService.cleanupOldActivities(30);
 
@@ -842,7 +822,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.deleteMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.deleteMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(activityService.cleanupOldActivities())
         .rejects.toThrow(AppError);
@@ -878,7 +858,7 @@ describe('ActivityService', () => {
     ];
 
     it('should get activity statistics without document type filter', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities);
 
       const timeRange = {
         start: new Date('2023-01-01'),
@@ -909,7 +889,7 @@ describe('ActivityService', () => {
     });
 
     it('should get activity statistics with document type filter', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities.filter(a => a.documentType === 'work-instruction'));
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce(mockActivities.filter(a => a.documentType === 'work-instruction'));
 
       const timeRange = {
         start: new Date('2023-01-01'),
@@ -919,7 +899,7 @@ describe('ActivityService', () => {
       const result = await activityService.getActivityStatistics(timeRange, 'work-instruction');
 
       expect(result.totalActivities).toBe(2);
-      expect(prisma.documentActivity.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.documentActivity.findMany).toHaveBeenCalledWith({
         where: {
           createdAt: {
             gte: timeRange.start,
@@ -939,7 +919,7 @@ describe('ActivityService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (prisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
+      (mockPrisma.documentActivity.findMany as any).mockRejectedValueOnce(new Error('DB Error'));
 
       const timeRange = {
         start: new Date('2023-01-01'),
@@ -965,7 +945,7 @@ describe('ActivityService', () => {
 
   describe('edge cases', () => {
     it('should handle empty activity arrays in summary generation', async () => {
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce([]);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce([]);
 
       const result = await activityService.getDocumentActivitySummary('work-instruction', 'doc-1');
 
@@ -993,7 +973,7 @@ describe('ActivityService', () => {
         createdAt: new Date(),
       };
 
-      (prisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivity]);
+      (mockPrisma.documentActivity.findMany as any).mockResolvedValueOnce([mockActivity]);
 
       const result = await activityService.getDocumentActivities('work-instruction', specialId);
 
@@ -1012,7 +992,7 @@ describe('ActivityService', () => {
       };
 
       const mockActivity = { ...input, id: 'activity-1', createdAt: new Date(), updatedAt: new Date() };
-      (prisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
+      (mockPrisma.documentActivity.create as any).mockResolvedValueOnce(mockActivity);
 
       const result = await activityService.logActivity(input);
 

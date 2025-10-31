@@ -6,16 +6,14 @@
  * Following ISA-95 Part 3 specification for production performance reporting
  */
 
-import { PrismaClient, B2MMessageStatus } from '@prisma/client';
+import { B2MMessageStatus } from '@prisma/client';
+import prisma from '../lib/database';
 import { ProductionPerformanceActualInput, ProductionPerformanceExportResult } from '../types/b2m';
 import B2MMessageBuilder from './B2MMessageBuilder';
 import { v4 as uuidv4 } from 'uuid';
 
 export class ProductionPerformanceExportService {
-  private prisma: PrismaClient;
-
-  constructor(prismaClient?: PrismaClient) {
-    this.prisma = prismaClient || new PrismaClient();
+  constructor() {
   }
 
   /**
@@ -31,7 +29,7 @@ export class ProductionPerformanceExportService {
 
     try {
       // Get work order with all performance data
-      const workOrder = await this.prisma.workOrder.findUnique({
+      const workOrder = await prisma.workOrder.findUnique({
         where: { id: workOrderId },
         include: {
           part: true,
@@ -73,7 +71,7 @@ export class ProductionPerformanceExportService {
       }
 
       // Get integration config
-      const config = await this.prisma.integrationConfig.findUnique({
+      const config = await prisma.integrationConfig.findUnique({
         where: { id: configId },
       });
 
@@ -236,7 +234,7 @@ export class ProductionPerformanceExportService {
         messagePayload: isa95Message,
       };
 
-      const performanceActual = await this.prisma.productionPerformanceActual.create({
+      const performanceActual = await prisma.productionPerformanceActual.create({
         data: {
           ...actualInput,
           status: 'PENDING',
@@ -249,7 +247,7 @@ export class ProductionPerformanceExportService {
 
       // TODO: Send to ERP via IntegrationManager (to be implemented in future PR)
       // For now, mark as PROCESSED (would be SENT after actual transmission)
-      await this.prisma.productionPerformanceActual.update({
+      await prisma.productionPerformanceActual.update({
         where: { id: performanceActual.id },
         data: {
           status: 'PROCESSED',
@@ -275,7 +273,7 @@ export class ProductionPerformanceExportService {
    * Get production performance export status
    */
   async getExportStatus(messageId: string) {
-    const performanceActual = await this.prisma.productionPerformanceActual.findUnique({
+    const performanceActual = await prisma.productionPerformanceActual.findUnique({
       where: { messageId },
       include: {
         workOrder: {
@@ -310,7 +308,7 @@ export class ProductionPerformanceExportService {
    * Get all production performance exports for a work order
    */
   async getWorkOrderExports(workOrderId: string) {
-    const exports = await this.prisma.productionPerformanceActual.findMany({
+    const exports = await prisma.productionPerformanceActual.findMany({
       where: { workOrderId },
       orderBy: { createdAt: 'desc' },
     });
@@ -330,7 +328,7 @@ export class ProductionPerformanceExportService {
    * Retry failed export
    */
   async retryExport(messageId: string, createdBy: string) {
-    const performanceActual = await this.prisma.productionPerformanceActual.findUnique({
+    const performanceActual = await prisma.productionPerformanceActual.findUnique({
       where: { messageId },
     });
 
@@ -343,7 +341,7 @@ export class ProductionPerformanceExportService {
     }
 
     // Reset status to PENDING for retry
-    await this.prisma.productionPerformanceActual.update({
+    await prisma.productionPerformanceActual.update({
       where: { messageId },
       data: {
         status: 'PENDING',

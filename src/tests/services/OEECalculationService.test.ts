@@ -1,50 +1,32 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { PrismaClient, PerformancePeriodType, EquipmentState } from '@prisma/client';
+import { PerformancePeriodType, EquipmentState } from '@prisma/client';
 import OEECalculationService from '../../services/OEECalculationService';
 
-// Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     equipmentStateHistory: {
       findMany: vi.fn(),
     },
     equipmentPerformanceLog: {
       create: vi.fn(),
-      findMany: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
     equipment: {
       update: vi.fn(),
+      findFirst: vi.fn(),
     },
-  };
+  },
+}));
 
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-    PerformancePeriodType: {
-      HOUR: 'HOUR',
-      SHIFT: 'SHIFT',
-      DAY: 'DAY',
-      WEEK: 'WEEK',
-      MONTH: 'MONTH',
-    },
-    EquipmentState: {
-      IDLE: 'IDLE',
-      RUNNING: 'RUNNING',
-      BLOCKED: 'BLOCKED',
-      STARVED: 'STARVED',
-      FAULT: 'FAULT',
-      MAINTENANCE: 'MAINTENANCE',
-      SETUP: 'SETUP',
-      EMERGENCY: 'EMERGENCY',
-    },
-  };
-});
+import prisma from '../../lib/database';
 
 describe('OEECalculationService', () => {
   let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
+    mockPrisma = prisma as any;
     vi.clearAllMocks();
   });
 

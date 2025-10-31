@@ -6,9 +6,12 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { PrismaClient, WorkflowType, WorkflowStatus, StageStatus, StageOutcome, ApprovalAction, AssignmentType, ApprovalType } from '@prisma/client';
+import { WorkflowType, WorkflowStatus, StageStatus, StageOutcome, ApprovalAction, AssignmentType, ApprovalType } from '@prisma/client';
 import { WorkflowEngineService } from '@/services/WorkflowEngineService';
 import { ElectronicSignatureService } from '@/services/ElectronicSignatureService';
+
+// Import the database module for mocking
+import prisma from '../../lib/database';
 
 // Mock logger to avoid config validation issues
 vi.mock('@/utils/logger', () => ({
@@ -23,9 +26,9 @@ vi.mock('@/utils/logger', () => ({
 // Mock ElectronicSignatureService
 vi.mock('@/services/ElectronicSignatureService');
 
-// Mock Prisma Client with comprehensive workflow tables
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     // Workflow core tables
     workflowDefinition: {
       create: vi.fn(),
@@ -83,57 +86,8 @@ vi.mock('@prisma/client', () => {
     },
     // Transaction support
     $transaction: vi.fn(),
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
-    WorkflowType: {
-      QUALITY_REVIEW: 'QUALITY_REVIEW',
-      CHANGE_CONTROL: 'CHANGE_CONTROL',
-      DOCUMENT_APPROVAL: 'DOCUMENT_APPROVAL',
-      PRODUCTION_APPROVAL: 'PRODUCTION_APPROVAL',
-    },
-    WorkflowStatus: {
-      PENDING: 'PENDING',
-      IN_PROGRESS: 'IN_PROGRESS',
-      COMPLETED: 'COMPLETED',
-      CANCELLED: 'CANCELLED',
-      REJECTED: 'REJECTED',
-    },
-    StageStatus: {
-      PENDING: 'PENDING',
-      IN_PROGRESS: 'IN_PROGRESS',
-      COMPLETED: 'COMPLETED',
-      SKIPPED: 'SKIPPED',
-      ESCALATED: 'ESCALATED',
-    },
-    StageOutcome: {
-      APPROVED: 'APPROVED',
-      REJECTED: 'REJECTED',
-      CHANGES_REQUESTED: 'CHANGES_REQUESTED',
-      DELEGATED: 'DELEGATED',
-      SKIPPED: 'SKIPPED',
-    },
-    ApprovalAction: {
-      APPROVED: 'APPROVED',
-      REJECTED: 'REJECTED',
-      CHANGES_REQUESTED: 'CHANGES_REQUESTED',
-      DELEGATED: 'DELEGATED',
-    },
-    AssignmentType: {
-      REQUIRED: 'REQUIRED',
-      OPTIONAL: 'OPTIONAL',
-      BACKUP: 'BACKUP',
-    },
-    ApprovalType: {
-      UNANIMOUS: 'UNANIMOUS',
-      MAJORITY: 'MAJORITY',
-      THRESHOLD: 'THRESHOLD',
-      MINIMUM: 'MINIMUM',
-      ANY: 'ANY',
-    },
-  };
-});
+  },
+}));
 
 describe('WorkflowEngineService', () => {
   let workflowEngineService: WorkflowEngineService;
@@ -144,8 +98,8 @@ describe('WorkflowEngineService', () => {
     // Reset all mocks
     vi.clearAllMocks();
 
-    mockPrisma = new PrismaClient();
-    workflowEngineService = new WorkflowEngineService(mockPrisma);
+    mockPrisma = prisma as any;
+    workflowEngineService = new WorkflowEngineService();
 
     // Mock signature service
     mockSignatureService = {
@@ -158,7 +112,7 @@ describe('WorkflowEngineService', () => {
     (workflowEngineService as any).signatureService = mockSignatureService;
 
     // Setup transaction mock to execute the callback
-    mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+    (mockPrisma.$transaction as any).mockImplementation(async (callback: any) => {
       return await callback(mockPrisma);
     });
   });

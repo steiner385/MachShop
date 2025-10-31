@@ -1,5 +1,4 @@
 import {
-  PrismaClient,
   User,
   PersonnelClass,
   PersonnelQualification,
@@ -13,6 +12,7 @@ import {
   AvailabilityType,
   Prisma,
 } from '@prisma/client';
+import prisma from '../lib/database';
 import { ValidationError, NotFoundError, ConflictError } from '../middleware/errorHandler';
 
 // Extended User type with personnel relations
@@ -93,10 +93,7 @@ export interface CreateAvailabilityData {
 }
 
 export class PersonnelService {
-  private prisma: PrismaClient;
-
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+  constructor() {
   }
 
   /**
@@ -142,7 +139,7 @@ export class PersonnelService {
         }
       : undefined;
 
-    return this.prisma.user.findMany({
+    return prisma.user.findMany({
       where,
       include,
       orderBy: { employeeNumber: 'asc' },
@@ -153,7 +150,7 @@ export class PersonnelService {
    * Get personnel by ID with full relations
    */
   async getPersonnelById(id: string): Promise<PersonnelWithRelations | null> {
-    return this.prisma.user.findUnique({
+    return prisma.user.findUnique({
       where: { id },
       include: {
         personnelClass: true,
@@ -188,7 +185,7 @@ export class PersonnelService {
    * Get personnel by employee number
    */
   async getPersonnelByEmployeeNumber(employeeNumber: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
+    return prisma.user.findUnique({
       where: { employeeNumber },
     });
   }
@@ -223,7 +220,7 @@ export class PersonnelService {
 
     // Validate personnel class if changing
     if (data.personnelClassId) {
-      const personnelClass = await this.prisma.personnelClass.findUnique({
+      const personnelClass = await prisma.personnelClass.findUnique({
         where: { id: data.personnelClassId },
       });
       if (!personnelClass) {
@@ -239,7 +236,7 @@ export class PersonnelService {
       }
     }
 
-    return this.prisma.user.update({
+    return prisma.user.update({
       where: { id },
       data,
     });
@@ -272,7 +269,7 @@ export class PersonnelService {
     let current = personnel;
 
     while (current.supervisorId) {
-      const supervisor = await this.prisma.user.findUnique({
+      const supervisor = await prisma.user.findUnique({
         where: { id: current.supervisorId },
       });
       if (!supervisor) break;
@@ -299,7 +296,7 @@ export class PersonnelService {
    * Get subordinates recursively
    */
   private async getSubordinatesRecursive(personnelId: string): Promise<User[]> {
-    const directReports = await this.prisma.user.findMany({
+    const directReports = await prisma.user.findMany({
       where: { supervisorId: personnelId },
     });
 
@@ -321,7 +318,7 @@ export class PersonnelService {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
-    return this.prisma.personnelCertification.findMany({
+    return prisma.personnelCertification.findMany({
       where: {
         status: 'ACTIVE',
         expirationDate: {
@@ -343,7 +340,7 @@ export class PersonnelService {
   async getExpiredCertifications(): Promise<PersonnelCertification[]> {
     const today = new Date();
 
-    return this.prisma.personnelCertification.findMany({
+    return prisma.personnelCertification.findMany({
       where: {
         status: 'ACTIVE',
         expirationDate: {
@@ -369,7 +366,7 @@ export class PersonnelService {
     }
 
     // Validate qualification exists
-    const qualification = await this.prisma.personnelQualification.findUnique({
+    const qualification = await prisma.personnelQualification.findUnique({
       where: { id: data.qualificationId },
     });
     if (!qualification) {
@@ -377,7 +374,7 @@ export class PersonnelService {
     }
 
     // Check for existing certification
-    const existing = await this.prisma.personnelCertification.findUnique({
+    const existing = await prisma.personnelCertification.findUnique({
       where: {
         personnelId_qualificationId: {
           personnelId: data.personnelId,
@@ -392,7 +389,7 @@ export class PersonnelService {
       );
     }
 
-    return this.prisma.personnelCertification.create({
+    return prisma.personnelCertification.create({
       data: {
         personnelId: data.personnelId,
         qualificationId: data.qualificationId,
@@ -418,7 +415,7 @@ export class PersonnelService {
     certificationId: string,
     status: CertificationStatus
   ): Promise<PersonnelCertification> {
-    const certification = await this.prisma.personnelCertification.findUnique({
+    const certification = await prisma.personnelCertification.findUnique({
       where: { id: certificationId },
     });
 
@@ -426,7 +423,7 @@ export class PersonnelService {
       throw new NotFoundError(`Certification with ID ${certificationId} not found`);
     }
 
-    return this.prisma.personnelCertification.update({
+    return prisma.personnelCertification.update({
       where: { id: certificationId },
       data: { status },
     });
@@ -441,7 +438,7 @@ export class PersonnelService {
       throw new NotFoundError(`Personnel with ID ${personnelId} not found`);
     }
 
-    return this.prisma.personnelSkillAssignment.findMany({
+    return prisma.personnelSkillAssignment.findMany({
       where: { personnelId },
       include: {
         skill: true,
@@ -461,7 +458,7 @@ export class PersonnelService {
     }
 
     // Validate skill exists
-    const skill = await this.prisma.personnelSkill.findUnique({
+    const skill = await prisma.personnelSkill.findUnique({
       where: { id: data.skillId },
     });
     if (!skill) {
@@ -469,7 +466,7 @@ export class PersonnelService {
     }
 
     // Check for existing assignment
-    const existing = await this.prisma.personnelSkillAssignment.findUnique({
+    const existing = await prisma.personnelSkillAssignment.findUnique({
       where: {
         personnelId_skillId: {
           personnelId: data.personnelId,
@@ -480,7 +477,7 @@ export class PersonnelService {
 
     if (existing) {
       // Update existing assignment
-      return this.prisma.personnelSkillAssignment.update({
+      return prisma.personnelSkillAssignment.update({
         where: { id: existing.id },
         data: {
           competencyLevel: data.competencyLevel,
@@ -498,7 +495,7 @@ export class PersonnelService {
     }
 
     // Create new assignment
-    return this.prisma.personnelSkillAssignment.create({
+    return prisma.personnelSkillAssignment.create({
       data: {
         personnelId: data.personnelId,
         skillId: data.skillId,
@@ -541,7 +538,7 @@ export class PersonnelService {
       where.competencyLevel = { in: allowedLevels };
     }
 
-    const assignments = await this.prisma.personnelSkillAssignment.findMany({
+    const assignments = await prisma.personnelSkillAssignment.findMany({
       where,
       include: {
         personnel: {
@@ -569,7 +566,7 @@ export class PersonnelService {
     }
 
     // Validate work center exists
-    const workCenter = await this.prisma.workCenter.findUnique({
+    const workCenter = await prisma.workCenter.findUnique({
       where: { id: data.workCenterId },
     });
     if (!workCenter) {
@@ -577,7 +574,7 @@ export class PersonnelService {
     }
 
     // Check for existing assignment
-    const existing = await this.prisma.personnelWorkCenterAssignment.findUnique({
+    const existing = await prisma.personnelWorkCenterAssignment.findUnique({
       where: {
         personnelId_workCenterId: {
           personnelId: data.personnelId,
@@ -594,7 +591,7 @@ export class PersonnelService {
 
     // If this is primary, unset other primary assignments for this personnel
     if (data.isPrimary) {
-      await this.prisma.personnelWorkCenterAssignment.updateMany({
+      await prisma.personnelWorkCenterAssignment.updateMany({
         where: {
           personnelId: data.personnelId,
           isPrimary: true,
@@ -603,7 +600,7 @@ export class PersonnelService {
       });
     }
 
-    return this.prisma.personnelWorkCenterAssignment.create({
+    return prisma.personnelWorkCenterAssignment.create({
       data: {
         personnelId: data.personnelId,
         workCenterId: data.workCenterId,
@@ -623,7 +620,7 @@ export class PersonnelService {
    * Get personnel assigned to work center
    */
   async getPersonnelByWorkCenter(workCenterId: string): Promise<User[]> {
-    const assignments = await this.prisma.personnelWorkCenterAssignment.findMany({
+    const assignments = await prisma.personnelWorkCenterAssignment.findMany({
       where: {
         workCenterId,
         endDate: null, // Only active assignments
@@ -661,7 +658,7 @@ export class PersonnelService {
       throw new ValidationError('End date/time must be after start date/time');
     }
 
-    return this.prisma.personnelAvailability.create({
+    return prisma.personnelAvailability.create({
       data: {
         personnelId: data.personnelId,
         availabilityType: data.availabilityType,
@@ -689,7 +686,7 @@ export class PersonnelService {
     startDate: Date,
     endDate: Date
   ): Promise<PersonnelAvailability[]> {
-    return this.prisma.personnelAvailability.findMany({
+    return prisma.personnelAvailability.findMany({
       where: {
         personnelId,
         OR: [

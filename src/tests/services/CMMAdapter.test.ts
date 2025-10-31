@@ -8,28 +8,10 @@ vi.mock('axios');
 const mockedAxios = axios as any;
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
-    qIFMeasurementPlan: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-    },
-    qIFCharacteristic: {
-      createMany: vi.fn(),
-    },
-    qIFMeasurementResult: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-    },
-    qIFMeasurement: {
-      createMany: vi.fn(),
-    },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
+}));
 
 // Mock QIFService
 vi.mock('../../services/QIFService', () => {
@@ -61,7 +43,6 @@ describe('CMMAdapter', () => {
   };
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
 
     mockAxiosInstance = {
       get: vi.fn(),

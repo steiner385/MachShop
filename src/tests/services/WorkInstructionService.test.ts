@@ -4,7 +4,7 @@ import { WorkInstructionService } from '../../services/WorkInstructionService';
 import { WorkInstructionStatus } from '../../types/workInstruction';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   const mockPrismaClient = {
     workInstruction: {
       create: vi.fn(),

@@ -19,21 +19,28 @@ import { CovalentAdapter } from '../../services/CovalentAdapter';
 import { ShopFloorConnectAdapter } from '../../services/ShopFloorConnectAdapter';
 import { IndysoftAdapter } from '../../services/IndysoftAdapter';
 
-// Mock axios
-const mockedAxios = {
-  create: vi.fn(),
-  post: vi.fn(),
-  get: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  interceptors: {
-    request: { use: vi.fn() },
-    response: { use: vi.fn() },
-  },
-};
-
+// Mock axios - avoid hoisting issues by putting everything directly in mock
 vi.mock('axios', () => ({
-  default: mockedAxios,
+  default: {
+    create: vi.fn(() => ({
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      interceptors: {
+        request: { use: vi.fn() },
+        response: { use: vi.fn() },
+      },
+    })),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  },
 }));
 
 // Mock crypto for authorization ID generation
@@ -49,8 +56,10 @@ describe('PredatorDNCAdapter', () => {
   let mockCovalentAdapter: Partial<CovalentAdapter>;
   let mockSFCAdapter: Partial<ShopFloorConnectAdapter>;
   let mockIndysoftAdapter: Partial<IndysoftAdapter>;
+  let mockedAxios: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    mockedAxios = (await import('axios')).default;
     config = {
       baseUrl: 'https://test-dnc.predator.com',
       username: 'test-user',

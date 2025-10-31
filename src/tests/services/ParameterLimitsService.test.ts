@@ -2,33 +2,24 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ParameterLimitsService } from '../../services/ParameterLimitsService';
 import { ParameterLimits } from '@prisma/client';
 
-// Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     parameterLimits: {
       upsert: vi.fn(),
       findUnique: vi.fn(),
-      delete: vi.fn(),
       findMany: vi.fn(),
+      delete: vi.fn(),
     },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+  },
+}));
 
 describe('ParameterLimitsService', () => {
   let limitsService: ParameterLimitsService;
   let mockPrisma: any;
 
-  beforeEach(() => {
-    mockPrisma = new PrismaClient();
+  beforeEach(async () => {
+    mockPrisma = (await import('../../lib/database')).default;
     limitsService = new ParameterLimitsService();
     vi.clearAllMocks();
   });

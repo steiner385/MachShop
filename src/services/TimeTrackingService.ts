@@ -6,7 +6,6 @@
  * GitHub Issue #46: Time Tracking Infrastructure
  */
 
-import { PrismaClient } from '@prisma/client';
 import {
   TimeType,
   TimeEntrySource,
@@ -18,8 +17,7 @@ import {
   TimeTrackingConfiguration,
   IndirectCostCode,
 } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/database';
 
 export interface ClockInRequest {
   userId: string;

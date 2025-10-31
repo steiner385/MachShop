@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { ProductionScheduleSyncService } from '../../services/ProductionScheduleSyncService';
 import { ProductionScheduleService } from '../../services/ProductionScheduleService';
+import prisma from '../../lib/database';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+vi.mock('../../lib/database', () => ({
+  default: {
     integrationConfig: {
       findUnique: vi.fn(),
     },
@@ -35,31 +36,8 @@ vi.mock('@prisma/client', () => {
     workOrder: {
       create: vi.fn(),
     },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
-    B2MMessageStatus: {
-      PENDING: 'PENDING',
-      PROCESSED: 'PROCESSED',
-      SENT: 'SENT',
-      FAILED: 'FAILED',
-      ACCEPTED: 'ACCEPTED',
-      REJECTED: 'REJECTED',
-    },
-    ScheduleType: {
-      MASTER: 'MASTER',
-      DETAILED: 'DETAILED',
-      DISPATCH: 'DISPATCH',
-    },
-    SchedulePriority: {
-      LOW: 'LOW',
-      NORMAL: 'NORMAL',
-      HIGH: 'HIGH',
-      URGENT: 'URGENT',
-    },
-  };
-});
+  },
+}));
 
 describe('ProductionScheduleSyncService', () => {
   let service: ProductionScheduleSyncService;
@@ -67,7 +45,7 @@ describe('ProductionScheduleSyncService', () => {
   let mockScheduleService: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
+    mockPrisma = prisma;
     mockScheduleService = {
       createSchedule: vi.fn(),
       addScheduleEntry: vi.fn(),

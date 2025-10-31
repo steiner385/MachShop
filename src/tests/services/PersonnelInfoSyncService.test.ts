@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrismaClient, PersonnelActionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
 import { PersonnelInfoSyncService } from '../../services/PersonnelInfoSyncService';
+import mockPrisma from '../../lib/database';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+vi.mock('../../lib/database', () => ({
+  default: {
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -21,38 +22,14 @@ vi.mock('@prisma/client', () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
-    PersonnelActionType: {
-      CREATE: 'CREATE',
-      UPDATE: 'UPDATE',
-      DELETE: 'DELETE',
-      DEACTIVATE: 'DEACTIVATE',
-      QUERY: 'QUERY',
-    },
-    B2MMessageStatus: {
-      PENDING: 'PENDING',
-      PROCESSED: 'PROCESSED',
-      SENT: 'SENT',
-      CONFIRMED: 'CONFIRMED',
-      FAILED: 'FAILED',
-    },
-    IntegrationDirection: {
-      INBOUND: 'INBOUND',
-      OUTBOUND: 'OUTBOUND',
-    },
-  };
-});
+  },
+}));
 
 describe('PersonnelInfoSyncService', () => {
   let service: PersonnelInfoSyncService;
-  let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    service = new PersonnelInfoSyncService(mockPrisma);
+    service = new PersonnelInfoSyncService();
     vi.clearAllMocks();
   });
 
