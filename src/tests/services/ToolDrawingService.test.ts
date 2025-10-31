@@ -27,14 +27,17 @@ const mockPrisma = {
     create: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
+    count: vi.fn(),
   },
   toolCalibrationRecord: {
     create: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
   },
   toolUsageLog: {
     create: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
   },
   $transaction: vi.fn(),
 } as any;

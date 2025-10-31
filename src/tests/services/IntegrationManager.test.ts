@@ -183,24 +183,11 @@ vi.mock('../../services/CMMAdapter', () => ({
   })),
 }));
 
-// Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
-    integrationConfig: {
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-    integrationLog: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-  };
-
+// Mock @prisma/client enums
+vi.mock('@prisma/client', async () => {
+  const actual = await vi.importActual('@prisma/client');
   return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
+    ...actual,
     IntegrationType: {
       ERP: 'ERP',
       PLM: 'PLM',
@@ -215,6 +202,23 @@ vi.mock('@prisma/client', () => {
     },
   };
 });
+
+// Mock Prisma Client
+vi.mock('../../lib/database', () => ({
+  default: {
+    integrationConfig: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    integrationLog: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+  },
+}));
 
 describe('IntegrationManager', () => {
   let manager: IntegrationManager;
@@ -265,8 +269,10 @@ describe('IntegrationManager', () => {
     updatedAt: new Date(),
   };
 
-  beforeEach(() => {
-    mockPrisma = new PrismaClient();
+  beforeEach(async () => {
+    // Import the mocked database
+    const { default: prisma } = await import('../../lib/database');
+    mockPrisma = prisma;
     manager = new IntegrationManager(mockPrisma, 'test-encryption-key');
     vi.clearAllMocks();
   });

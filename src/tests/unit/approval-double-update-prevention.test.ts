@@ -35,32 +35,10 @@ vi.mock('../../services/UnifiedApprovalIntegration', () => {
 });
 
 // Mock Prisma
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
-    workInstruction: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-    fAIReport: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-    qualityProcess: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-    document: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-    },
-  };
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
+}));
 
 describe('Approval Double Update Prevention Tests', () => {
   let workInstructionService: WorkInstructionService;

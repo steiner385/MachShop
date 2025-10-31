@@ -1,9 +1,10 @@
-import { PrismaClient, StorageClass } from '@prisma/client';
+import { StorageClass } from '@prisma/client';
 import { CloudStorageService } from './CloudStorageService';
 import { FileDeduplicationService } from './FileDeduplicationService';
 import { FileVersioningService } from './FileVersioningService';
 import { CDNIntegrationService } from './CDNIntegrationService';
 import { logger } from '../utils/logger';
+import prisma from '../lib/database';
 
 export interface StorageMetrics {
   timestamp: Date;
@@ -115,14 +116,12 @@ export interface AlertResult {
  * Provides comprehensive analytics, monitoring, and alerting for storage systems
  */
 export class StorageAnalyticsService {
-  private prisma: PrismaClient;
   private cloudStorageService: CloudStorageService;
   private deduplicationService: FileDeduplicationService;
   private versioningService: FileVersioningService;
   private cdnService: CDNIntegrationService;
 
   constructor() {
-    this.prisma = new PrismaClient();
     this.cloudStorageService = new CloudStorageService();
     this.deduplicationService = new FileDeduplicationService();
     this.versioningService = new FileVersioningService();
@@ -202,7 +201,7 @@ export class StorageAnalyticsService {
       const stats = await this.cloudStorageService.getStorageStatistics();
 
       // Get storage class distribution
-      const storageClassStats = await this.prisma.storedFile.groupBy({
+      const storageClassStats = await prisma.storedFile.groupBy({
         by: ['storageClass'],
         _count: { id: true },
         _sum: { fileSize: true },
@@ -303,7 +302,7 @@ export class StorageAnalyticsService {
    */
   async getAccessPatterns(startDate: Date, endDate: Date): Promise<AccessPatterns> {
     try {
-      const accessLogs = await this.prisma.fileAccessLog.findMany({
+      const accessLogs = await prisma.fileAccessLog.findMany({
         where: {
           accessedAt: {
             gte: startDate,
@@ -334,7 +333,7 @@ export class StorageAnalyticsService {
       const accessesByDay: Record<string, number> = {};
 
       accessLogs.forEach(log => {
-        const hour = log.accessedAt.getHours();
+        const hour = log.accessedAt.getUTCHours();
         const day = log.accessedAt.toISOString().split('T')[0];
 
         accessesByTimeOfDay[hour.toString()]++;
@@ -391,7 +390,7 @@ export class StorageAnalyticsService {
       // This is a simplified implementation
       // In practice, you would track actual upload/download times and speeds
 
-      const accessLogs = await this.prisma.fileAccessLog.findMany({
+      const accessLogs = await prisma.fileAccessLog.findMany({
         where: {
           accessedAt: {
             gte: startDate,
@@ -504,7 +503,7 @@ export class StorageAnalyticsService {
       const metrics = await this.getStorageMetrics();
 
       // Store metrics in database for historical tracking
-      await this.prisma.storageMetrics.create({
+      await prisma.storageMetrics.create({
         data: {
           timestamp: metrics.timestamp,
           totalFiles: metrics.totalFiles,

@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WorkOrderExecutionService } from '../../services/WorkOrderExecutionService';
-import type { PrismaClient, WorkOrderStatus, WorkPerformanceType, VarianceType } from '@prisma/client';
+import type { WorkOrderStatus, WorkPerformanceType, VarianceType } from '@prisma/client';
+import prisma from '../../lib/database';
 
-// Mock Prisma Client with actual enums preserved
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     workOrder: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -41,57 +40,17 @@ vi.mock('@prisma/client', async () => {
       findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
-  };
+  },
+}));
 
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+const mockPrisma = prisma as any;
 
 describe('WorkOrderExecutionService', () => {
   let executionService: WorkOrderExecutionService;
-  let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = {
-      workOrder: {
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        count: vi.fn(),
-      },
-      dispatchLog: {
-        create: vi.fn(),
-        count: vi.fn(),
-      },
-      workOrderStatusHistory: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-      workPerformance: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-        groupBy: vi.fn(),
-        aggregate: vi.fn(),
-      },
-      productionVariance: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-        aggregate: vi.fn(),
-      },
-      workCenter: {
-        findUnique: vi.fn(),
-      },
-      user: {
-        findUnique: vi.fn(),
-      },
-      $transaction: vi.fn(),
-    };
 
-    executionService = new WorkOrderExecutionService(mockPrisma as unknown as PrismaClient);
+    executionService = new WorkOrderExecutionService();
     vi.clearAllMocks();
   });
 

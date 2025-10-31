@@ -209,9 +209,16 @@ describe('BackupLifecycleService', () => {
       const mockSchedule = {
         id: 'schedule-456',
         name: 'Disabled Backup',
-        enabled: false,
+        isActive: false,
         cronExpression: '0 2 * * *',
-        configuration: disabledConfig,
+        bucketName: 'backup-bucket',
+        retentionDays: 30,
+        enableCompression: true,
+        enableEncryption: true,
+        crossRegionReplication: false,
+        backupBucket: 'backup-bucket',
+        frequency: 'CUSTOM',
+        createdById: 'user-123',
       };
 
       mockPrisma.backupSchedule.create.mockResolvedValue(mockSchedule);
@@ -248,11 +255,26 @@ describe('BackupLifecycleService', () => {
     const mockSchedule = {
       id: 'schedule-123',
       name: 'Test Backup',
+      bucketName: 'test-bucket',
+      isActive: true,
+      retentionDays: 30,
+      enableCompression: true,
+      enableEncryption: true,
+      crossRegionReplication: false,
+      backupBucket: 'test-bucket',
+      frequency: 'CUSTOM',
+      cronExpression: '0 2 * * *',
+      createdById: 'user-123',
       configuration: {
-        incrementalBackup: false,
+        enabled: true,
+        schedule: '0 2 * * *',
+        retentionDays: 30,
         compression: true,
         encryption: true,
+        incrementalBackup: false,
+        crossRegionReplication: false,
         backupBucket: 'test-bucket',
+        excludePatterns: ['*.tmp', '*.log'],
       },
     };
 
@@ -433,6 +455,7 @@ describe('BackupLifecycleService', () => {
     it('should handle backup with compression disabled', async () => {
       const noCompressionSchedule = {
         ...mockSchedule,
+        enableCompression: false,
         configuration: {
           ...mockSchedule.configuration,
           compression: false,
@@ -700,7 +723,7 @@ describe('BackupLifecycleService', () => {
       {
         id: 'schedule-123',
         retentionDays: 30,
-        enabled: true,
+        isActive: true,
       },
     ];
 
@@ -739,7 +762,7 @@ describe('BackupLifecycleService', () => {
       const result = await backupService.cleanupOldBackups();
 
       expect(mockPrisma.backupSchedule.findMany).toHaveBeenCalledWith({
-        where: { enabled: true },
+        where: { isActive: true },
       });
 
       expect(mockPrisma.backupHistory.findMany).toHaveBeenCalledWith({
@@ -828,7 +851,15 @@ describe('BackupLifecycleService', () => {
         id: 'schedule-123',
         name: 'Test Backup',
         cronExpression: 'invalid-cron',
-        enabled: true,
+        isActive: true,
+        bucketName: 'backup-bucket',
+        retentionDays: 30,
+        enableCompression: true,
+        enableEncryption: true,
+        crossRegionReplication: false,
+        backupBucket: 'backup-bucket',
+        frequency: 'CUSTOM',
+        createdById: 'user-123',
       });
 
       // The service should still create the schedule but may fail on cron scheduling
@@ -844,9 +875,26 @@ describe('BackupLifecycleService', () => {
     it('should handle empty file list during backup', async () => {
       const mockSchedule = {
         id: 'schedule-123',
+        bucketName: 'test-bucket',
+        isActive: true,
+        retentionDays: 30,
+        enableCompression: true,
+        enableEncryption: true,
+        crossRegionReplication: false,
+        backupBucket: 'test-bucket',
+        frequency: 'CUSTOM',
+        cronExpression: '0 2 * * *',
+        createdById: 'user-123',
         configuration: {
-          incrementalBackup: false,
+          enabled: true,
+          schedule: '0 2 * * *',
+          retentionDays: 30,
           compression: true,
+          encryption: true,
+          incrementalBackup: false,
+          crossRegionReplication: false,
+          backupBucket: 'test-bucket',
+          excludePatterns: ['*.tmp', '*.log'],
         },
       };
 
@@ -923,7 +971,7 @@ describe('BackupLifecycleService', () => {
       const mockSchedule = {
         id: 'schedule-123',
         cronExpression: '0 2 * * *',
-        enabled: true,
+        isActive: true,
         name: 'Test Backup',
       };
 

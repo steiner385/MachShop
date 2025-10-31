@@ -4,7 +4,7 @@ import { ElectronicSignatureService } from '@/services/ElectronicSignatureServic
 import bcrypt from 'bcrypt';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   const mockPrismaClient = {
     electronicSignature: {
       create: vi.fn(),

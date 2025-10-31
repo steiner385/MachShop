@@ -1,4 +1,5 @@
-import { PrismaClient, DocumentAnnotation, AnnotationType } from '@prisma/client';
+import { DocumentAnnotation, AnnotationType } from '@prisma/client';
+import prisma from '../lib/database';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 
@@ -51,26 +52,7 @@ export interface AnnotationWithComments extends DocumentAnnotation {
  * Annotation Service - Manages visual annotations on documents and media
  */
 class AnnotationService {
-  private prisma: PrismaClient;
-
   constructor() {
-    this.prisma = new PrismaClient({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'event', level: 'error' },
-        { emit: 'event', level: 'info' },
-        { emit: 'event', level: 'warn' },
-      ],
-    });
-
-    // Log Prisma events
-    this.prisma.$on('query', (e) => {
-      logger.debug('Prisma Query', { query: e.query, params: e.params, duration: e.duration });
-    });
-
-    this.prisma.$on('error', (e) => {
-      logger.error('Prisma Error', { error: e.message, target: e.target });
-    });
   }
 
   /**
@@ -88,7 +70,7 @@ class AnnotationService {
       // Validate annotation data based on type
       this.validateAnnotationData(input.annotationType, input.annotationData);
 
-      const annotation = await this.prisma.documentAnnotation.create({
+      const annotation = await prisma.documentAnnotation.create({
         data: {
           documentType: input.documentType,
           documentId: input.documentId,
@@ -111,6 +93,9 @@ class AnnotationService {
       return annotation;
     } catch (error: any) {
       logger.error('Failed to create annotation', { error: error.message, input });
+      if (error instanceof AppError) {
+        throw error; // Preserve existing AppError with specific message
+      }
       throw new AppError('Failed to create annotation', 500, 'ANNOTATION_CREATE_FAILED', error);
     }
   }
@@ -123,7 +108,7 @@ class AnnotationService {
       logger.info('Updating annotation', { annotationId, userId });
 
       // Verify the annotation exists and user has permission to update
-      const existingAnnotation = await this.prisma.documentAnnotation.findUnique({
+      const existingAnnotation = await prisma.documentAnnotation.findUnique({
         where: { id: annotationId }
       });
 
@@ -140,7 +125,7 @@ class AnnotationService {
         this.validateAnnotationData(existingAnnotation.annotationType, updates.annotationData);
       }
 
-      const updatedAnnotation = await this.prisma.documentAnnotation.update({
+      const updatedAnnotation = await prisma.documentAnnotation.update({
         where: { id: annotationId },
         data: updates,
       });
@@ -149,6 +134,9 @@ class AnnotationService {
       return updatedAnnotation;
     } catch (error: any) {
       logger.error('Failed to update annotation', { error: error.message, annotationId });
+      if (error instanceof AppError) {
+        throw error; // Preserve existing AppError with specific message
+      }
       throw new AppError('Failed to update annotation', 500, 'ANNOTATION_UPDATE_FAILED', error);
     }
   }
@@ -161,7 +149,7 @@ class AnnotationService {
       logger.info('Deleting annotation', { annotationId, userId });
 
       // Verify the annotation exists and user has permission to delete
-      const existingAnnotation = await this.prisma.documentAnnotation.findUnique({
+      const existingAnnotation = await prisma.documentAnnotation.findUnique({
         where: { id: annotationId }
       });
 
@@ -173,13 +161,16 @@ class AnnotationService {
         throw new AppError('Not authorized to delete this annotation', 403, 'UNAUTHORIZED');
       }
 
-      await this.prisma.documentAnnotation.delete({
+      await prisma.documentAnnotation.delete({
         where: { id: annotationId }
       });
 
       logger.info('Annotation deleted successfully', { annotationId });
     } catch (error: any) {
       logger.error('Failed to delete annotation', { error: error.message, annotationId });
+      if (error instanceof AppError) {
+        throw error; // Preserve existing AppError with specific message
+      }
       throw new AppError('Failed to delete annotation', 500, 'ANNOTATION_DELETE_FAILED', error);
     }
   }
@@ -216,7 +207,7 @@ class AnnotationService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const annotations = await this.prisma.documentAnnotation.findMany({
+      const annotations = await prisma.documentAnnotation.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: filters.limit,
@@ -226,7 +217,7 @@ class AnnotationService {
       // Get comment counts for each annotation
       const annotationsWithComments: AnnotationWithComments[] = await Promise.all(
         annotations.map(async (annotation) => {
-          const commentCount = await this.prisma.documentComment.count({
+          const commentCount = await prisma.documentComment.count({
             where: {
               documentType: annotation.documentType,
               documentId: annotation.documentId,
@@ -276,7 +267,7 @@ class AnnotationService {
     try {
       logger.info('Resolving annotation', { annotationId });
 
-      const resolvedAnnotation = await this.prisma.documentAnnotation.update({
+      const resolvedAnnotation = await prisma.documentAnnotation.update({
         where: { id: annotationId },
         data: {
           isResolved: true,
@@ -301,7 +292,7 @@ class AnnotationService {
     annotationsByAuthor: Record<string, number>;
   }> {
     try {
-      const annotations = await this.prisma.documentAnnotation.findMany({
+      const annotations = await prisma.documentAnnotation.findMany({
         where: { documentType, documentId },
         select: {
           annotationType: true,
@@ -458,7 +449,7 @@ class AnnotationService {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

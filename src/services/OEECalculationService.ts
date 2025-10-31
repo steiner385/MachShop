@@ -1,6 +1,5 @@
-import { PrismaClient, EquipmentPerformanceLog, PerformancePeriodType, EquipmentState } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { EquipmentPerformanceLog, PerformancePeriodType, EquipmentState } from '@prisma/client';
+import prisma from '../lib/database';
 
 export interface OEEMetrics {
   availability: number; // 0-100%

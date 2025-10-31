@@ -1,34 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import prisma from '../../lib/database';
 
-// Create mock prisma instance
-const mockPrisma = {
-  userWorkstationPreference: {
-    findUnique: vi.fn(),
-    create: vi.fn(),
-    upsert: vi.fn(),
-    findMany: vi.fn(),
-  },
-  workstationDisplayConfig: {
-    findUnique: vi.fn(),
-    create: vi.fn(),
-    upsert: vi.fn(),
-  },
-  $disconnect: vi.fn(),
-};
-
-// Mock PrismaClient constructor
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => mockPrisma),
-  LayoutMode: {
-    SPLIT_VERTICAL: 'SPLIT_VERTICAL',
-    SPLIT_HORIZONTAL: 'SPLIT_HORIZONTAL',
-    FULLSCREEN: 'FULLSCREEN',
-  },
-  PanelPosition: {
-    LEFT: 'LEFT',
-    RIGHT: 'RIGHT',
-    TOP: 'TOP',
-    BOTTOM: 'BOTTOM',
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
+    userWorkstationPreference: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
+      findMany: vi.fn(),
+    },
+    workstationDisplayConfig: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
+    },
+    $disconnect: vi.fn(),
   },
 }));
 
@@ -45,8 +32,10 @@ import { LayoutMode, PanelPosition } from '@prisma/client';
 
 describe('UserPreferenceService', () => {
   let userPreferenceService: UserPreferenceService;
+  let mockPrisma: any;
 
   beforeEach(() => {
+    mockPrisma = prisma as any;
     userPreferenceService = new UserPreferenceService();
     vi.clearAllMocks();
   });
@@ -783,7 +772,21 @@ describe('UserPreferenceService', () => {
 
     it('should handle special characters in IDs', async () => {
       const specialId = 'ws-123-äöü-@#$%';
-      const mockUser = { userId: 'user-äöü', workstationId: specialId };
+      const mockUser = {
+        id: 'pref-special-123',
+        userId: 'user-äöü',
+        workstationId: specialId,
+        layoutMode: LayoutMode.SPLIT_VERTICAL,
+        splitRatio: 0.6,
+        panelPosition: PanelPosition.LEFT,
+        autoAdvanceSteps: false,
+        showStepTimer: true,
+        compactMode: false,
+        useSecondMonitor: false,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       (mockPrisma.userWorkstationPreference.findUnique as any).mockResolvedValueOnce(mockUser);
 

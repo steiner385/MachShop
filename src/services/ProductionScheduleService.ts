@@ -14,13 +14,12 @@
  * This service implements ISA-95 Part 2 Section 4: Production Scheduling
  */
 
-import { PrismaClient, ScheduleState, SchedulePriority, ConstraintType, Prisma } from '@prisma/client';
+import { ScheduleState, SchedulePriority, ConstraintType, Prisma } from '@prisma/client';
+import prisma from '../lib/database';
 
 export class ProductionScheduleService {
-  private prisma: PrismaClient;
 
-  constructor(prismaClient?: PrismaClient) {
-    this.prisma = prismaClient || new PrismaClient();
+  constructor() {
   }
 
 // ============================================================================
@@ -44,7 +43,7 @@ export class ProductionScheduleService {
   notes?: string;
   metadata?: any;
 }) {
-  const schedule = await this.prisma.productionSchedule.create({
+  const schedule = await prisma.productionSchedule.create({
     data: {
       ...data,
       state: 'FORECAST', // Always start in FORECAST state
@@ -66,7 +65,7 @@ export class ProductionScheduleService {
   });
 
   // Create initial state history record
-  await this.prisma.scheduleStateHistory.create({
+  await prisma.scheduleStateHistory.create({
     data: {
       scheduleId: schedule.id,
       previousState: null,
@@ -80,7 +79,7 @@ export class ProductionScheduleService {
   });
 
   // Refetch schedule with state history included
-  const scheduleWithHistory = await this.prisma.productionSchedule.findUnique({
+  const scheduleWithHistory = await prisma.productionSchedule.findUnique({
     where: { id: schedule.id },
     include: {
       entries: {
@@ -110,7 +109,7 @@ export class ProductionScheduleService {
   }
 
   const cleanId = id.trim();
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id: cleanId },
     include: includeRelations ? {
       site: true,
@@ -150,7 +149,7 @@ export class ProductionScheduleService {
   }
 
   const cleanScheduleNumber = scheduleNumber.trim();
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { scheduleNumber: cleanScheduleNumber },
     include: includeRelations ? {
       site: true,
@@ -221,7 +220,7 @@ export class ProductionScheduleService {
     where.isFeasible = filters.isFeasible;
   }
 
-  const schedules = await this.prisma.productionSchedule.findMany({
+  const schedules = await prisma.productionSchedule.findMany({
     where,
     include: includeRelations ? {
       site: true,
@@ -261,7 +260,7 @@ export class ProductionScheduleService {
   metadata: any;
 }>) {
   // Check if schedule is locked
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id },
     select: { isLocked: true, state: true },
   });
@@ -274,7 +273,7 @@ export class ProductionScheduleService {
     throw new Error('Cannot update locked schedule that is not in FORECAST state');
   }
 
-  const updatedSchedule = await this.prisma.productionSchedule.update({
+  const updatedSchedule = await prisma.productionSchedule.update({
     where: { id },
     data,
     include: {
@@ -293,7 +292,7 @@ export class ProductionScheduleService {
    * Delete schedule (soft delete by locking)
    */
   async deleteSchedule(id: string, hardDelete: boolean = false) {
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id },
     select: { state: true, dispatchedCount: true },
   });
@@ -308,12 +307,12 @@ export class ProductionScheduleService {
   }
 
   if (hardDelete) {
-    await this.prisma.productionSchedule.delete({
+    await prisma.productionSchedule.delete({
       where: { id },
     });
     return { message: 'Production schedule permanently deleted', id };
   } else {
-    await this.prisma.productionSchedule.update({
+    await prisma.productionSchedule.update({
       where: { id },
       data: { isLocked: true, notes: 'Schedule locked for deletion' },
     });
@@ -348,7 +347,7 @@ export class ProductionScheduleService {
   metadata?: any;
 }) {
   // Get current schedule
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id: scheduleId },
     select: { state: true, isLocked: true, totalEntries: true },
   });
@@ -368,7 +367,7 @@ export class ProductionScheduleService {
   // Determine entry number (next available)
   const entryNumber = schedule.totalEntries + 1;
 
-  const entry = await this.prisma.scheduleEntry.create({
+  const entry = await prisma.scheduleEntry.create({
     data: {
       scheduleId,
       entryNumber,
@@ -388,7 +387,7 @@ export class ProductionScheduleService {
   });
 
   // Update schedule total entries count
-  await this.prisma.productionSchedule.update({
+  await prisma.productionSchedule.update({
     where: { id: scheduleId },
     data: { totalEntries: { increment: 1 } },
   });
@@ -400,7 +399,7 @@ export class ProductionScheduleService {
    * Get all entries for a schedule
    */
   async getScheduleEntries(scheduleId: string, includeConstraints: boolean = true) {
-  const entries = await this.prisma.scheduleEntry.findMany({
+  const entries = await prisma.scheduleEntry.findMany({
     where: { scheduleId },
     include: {
       part: true,
@@ -439,7 +438,7 @@ export class ProductionScheduleService {
   metadata: any;
 }>) {
   // Check if entry is already dispatched
-  const entry = await this.prisma.scheduleEntry.findUnique({
+  const entry = await prisma.scheduleEntry.findUnique({
     where: { id: entryId },
     select: { isDispatched: true, scheduleId: true },
   });
@@ -452,7 +451,7 @@ export class ProductionScheduleService {
     throw new Error('Cannot update dispatched schedule entry');
   }
 
-  const updatedEntry = await this.prisma.scheduleEntry.update({
+  const updatedEntry = await prisma.scheduleEntry.update({
     where: { id: entryId },
     data,
     include: {
@@ -470,7 +469,7 @@ export class ProductionScheduleService {
    * Cancel schedule entry
    */
   async cancelScheduleEntry(entryId: string, reason: string, cancelledBy?: string) {
-  const entry = await this.prisma.scheduleEntry.findUnique({
+  const entry = await prisma.scheduleEntry.findUnique({
     where: { id: entryId },
     select: { isDispatched: true, scheduleId: true },
   });
@@ -483,7 +482,7 @@ export class ProductionScheduleService {
     throw new Error('Cannot cancel dispatched schedule entry');
   }
 
-  const cancelledEntry = await this.prisma.scheduleEntry.update({
+  const cancelledEntry = await prisma.scheduleEntry.update({
     where: { id: entryId },
     data: {
       isCancelled: true,
@@ -520,7 +519,7 @@ export class ProductionScheduleService {
   notes?: string;
   metadata?: any;
 }) {
-  const constraint = await this.prisma.scheduleConstraint.create({
+  const constraint = await prisma.scheduleConstraint.create({
     data: {
       entryId,
       ...data,
@@ -539,7 +538,7 @@ export class ProductionScheduleService {
    * Get all constraints for a schedule entry
    */
   async getEntryConstraints(entryId: string) {
-  const constraints = await this.prisma.scheduleConstraint.findMany({
+  const constraints = await prisma.scheduleConstraint.findMany({
     where: { entryId },
     orderBy: [
       { isViolated: 'desc' },
@@ -571,7 +570,7 @@ export class ProductionScheduleService {
   notes: string;
   metadata: any;
 }>) {
-  const constraint = await this.prisma.scheduleConstraint.update({
+  const constraint = await prisma.scheduleConstraint.update({
     where: { id: constraintId },
     data,
   });
@@ -583,7 +582,7 @@ export class ProductionScheduleService {
    * Resolve constraint violation
    */
   async resolveConstraint(constraintId: string, resolvedBy: string, resolutionNotes: string) {
-  const constraint = await this.prisma.scheduleConstraint.update({
+  const constraint = await prisma.scheduleConstraint.update({
     where: { id: constraintId },
     data: {
       isResolved: true,
@@ -601,7 +600,7 @@ export class ProductionScheduleService {
    * Check constraint violation
    */
   async checkConstraintViolation(constraintId: string) {
-  const constraint = await this.prisma.scheduleConstraint.findUnique({
+  const constraint = await prisma.scheduleConstraint.findUnique({
     where: { id: constraintId },
   });
 
@@ -662,7 +661,7 @@ export class ProductionScheduleService {
 
   // Update constraint if violation status changed
   if (isViolated !== constraint.isViolated) {
-    await this.prisma.scheduleConstraint.update({
+    await prisma.scheduleConstraint.update({
       where: { id: constraintId },
       data: {
         isViolated,
@@ -691,7 +690,7 @@ export class ProductionScheduleService {
   metadata?: any;
 }) {
   // Get current schedule state
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id: scheduleId },
     select: { state: true, totalEntries: true, isLocked: true },
   });
@@ -722,7 +721,7 @@ export class ProductionScheduleService {
   }
 
   // Create state history record
-  const stateHistory = await this.prisma.scheduleStateHistory.create({
+  const stateHistory = await prisma.scheduleStateHistory.create({
     data: {
       scheduleId,
       previousState: schedule.state,
@@ -738,7 +737,7 @@ export class ProductionScheduleService {
   });
 
   // Update schedule state
-  await this.prisma.productionSchedule.update({
+  await prisma.productionSchedule.update({
     where: { id: scheduleId },
     data: {
       state: data.newState,
@@ -755,7 +754,7 @@ export class ProductionScheduleService {
    * Get state history for schedule
    */
   async getScheduleStateHistory(scheduleId: string) {
-  const history = await this.prisma.scheduleStateHistory.findMany({
+  const history = await prisma.scheduleStateHistory.findMany({
     where: { scheduleId },
     orderBy: { transitionDate: 'desc' },
   });
@@ -771,7 +770,7 @@ export class ProductionScheduleService {
    * Apply priority-based sequencing to schedule entries
    */
   async applyPrioritySequencing(scheduleId: string) {
-  const entries = await this.prisma.scheduleEntry.findMany({
+  const entries = await prisma.scheduleEntry.findMany({
     where: { scheduleId, isCancelled: false },
     orderBy: [
       { priority: 'desc' },
@@ -782,7 +781,7 @@ export class ProductionScheduleService {
 
   // Update sequence numbers based on priority
   for (let i = 0; i < entries.length; i++) {
-    await this.prisma.scheduleEntry.update({
+    await prisma.scheduleEntry.update({
       where: { id: entries[i].id },
       data: { sequenceNumber: i + 1 },
     });
@@ -795,7 +794,7 @@ export class ProductionScheduleService {
    * Apply Earliest Due Date (EDD) sequencing
    */
   async applyEDDSequencing(scheduleId: string) {
-  const entries = await this.prisma.scheduleEntry.findMany({
+  const entries = await prisma.scheduleEntry.findMany({
     where: { scheduleId, isCancelled: false },
     orderBy: [
       { customerDueDate: 'asc' },
@@ -805,7 +804,7 @@ export class ProductionScheduleService {
 
   // Update sequence numbers based on due dates
   for (let i = 0; i < entries.length; i++) {
-    await this.prisma.scheduleEntry.update({
+    await prisma.scheduleEntry.update({
       where: { id: entries[i].id },
       data: { sequenceNumber: i + 1 },
     });
@@ -818,7 +817,7 @@ export class ProductionScheduleService {
    * Check schedule feasibility (capacity, materials, dates)
    */
   async checkScheduleFeasibility(scheduleId: string) {
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id: scheduleId },
     include: {
       entries: {
@@ -848,7 +847,7 @@ export class ProductionScheduleService {
   }
 
   // Update schedule feasibility
-  await this.prisma.productionSchedule.update({
+  await prisma.productionSchedule.update({
     where: { id: scheduleId },
     data: {
       isFeasible,
@@ -870,7 +869,7 @@ export class ProductionScheduleService {
    * Dispatch schedule entry (create work order)
    */
   async dispatchScheduleEntry(entryId: string, dispatchedBy: string) {
-  const entry = await this.prisma.scheduleEntry.findUnique({
+  const entry = await prisma.scheduleEntry.findUnique({
     where: { id: entryId },
     include: {
       part: true,
@@ -896,7 +895,7 @@ export class ProductionScheduleService {
   }
 
   // Look up user by username to get user ID for foreign key constraint
-  const user = await this.prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { username: dispatchedBy }
   });
 
@@ -905,7 +904,7 @@ export class ProductionScheduleService {
   }
 
   // Create work order from schedule entry
-  const workOrder = await this.prisma.workOrder.create({
+  const workOrder = await prisma.workOrder.create({
     data: {
       workOrderNumber: `WO-${entry.schedule.scheduleNumber}-${entry.entryNumber}`,
       partId: entry.partId,
@@ -921,7 +920,7 @@ export class ProductionScheduleService {
   });
 
   // Update schedule entry
-  const updatedEntry = await this.prisma.scheduleEntry.update({
+  const updatedEntry = await prisma.scheduleEntry.update({
     where: { id: entryId },
     data: {
       isDispatched: true,
@@ -934,7 +933,7 @@ export class ProductionScheduleService {
   });
 
   // Update schedule dispatched count
-  await this.prisma.productionSchedule.update({
+  await prisma.productionSchedule.update({
     where: { id: entry.scheduleId },
     data: {
       dispatchedCount: { increment: 1 },
@@ -960,7 +959,7 @@ export class ProductionScheduleService {
    * Dispatch all entries in schedule
    */
   async dispatchAllEntries(scheduleId: string, dispatchedBy: string) {
-  const schedule = await this.prisma.productionSchedule.findUnique({
+  const schedule = await prisma.productionSchedule.findUnique({
     where: { id: scheduleId },
     include: {
       entries: {
@@ -1021,22 +1020,22 @@ export class ProductionScheduleService {
     resolvedConstraints,
     stateTransitions,
   ] = await Promise.all([
-    this.prisma.productionSchedule.count(),
-    this.prisma.productionSchedule.groupBy({
+    prisma.productionSchedule.count(),
+    prisma.productionSchedule.groupBy({
       by: ['state'],
       _count: true,
     }),
-    this.prisma.productionSchedule.groupBy({
+    prisma.productionSchedule.groupBy({
       by: ['priority'],
       _count: true,
     }),
-    this.prisma.scheduleEntry.count(),
-    this.prisma.scheduleEntry.count({ where: { isDispatched: true } }),
-    this.prisma.scheduleEntry.count({ where: { isCancelled: true } }),
-    this.prisma.scheduleConstraint.count(),
-    this.prisma.scheduleConstraint.count({ where: { isViolated: true } }),
-    this.prisma.scheduleConstraint.count({ where: { isResolved: true } }),
-    this.prisma.scheduleStateHistory.count(),
+    prisma.scheduleEntry.count(),
+    prisma.scheduleEntry.count({ where: { isDispatched: true } }),
+    prisma.scheduleEntry.count({ where: { isCancelled: true } }),
+    prisma.scheduleConstraint.count(),
+    prisma.scheduleConstraint.count({ where: { isViolated: true } }),
+    prisma.scheduleConstraint.count({ where: { isResolved: true } }),
+    prisma.scheduleStateHistory.count(),
   ]);
 
   return {
@@ -1072,7 +1071,7 @@ export class ProductionScheduleService {
    * Get schedules by state
    */
   async getSchedulesByState(state: ScheduleState) {
-  const schedules = await this.prisma.productionSchedule.findMany({
+  const schedules = await prisma.productionSchedule.findMany({
     where: { state },
     include: {
       site: true,
@@ -1111,7 +1110,7 @@ export class ProductionScheduleService {
     };
   }
 
-  const entries = await this.prisma.scheduleEntry.findMany({
+  const entries = await prisma.scheduleEntry.findMany({
     where,
     include: {
       part: true,

@@ -14,7 +14,7 @@
     "e2e:server": "NODE_ENV=test tsx src/index.ts",
     "e2e:frontend": "cd frontend && npm run dev:e2e",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "NODE_ENV=test vitest run",
     "test:env": "NODE_ENV=test vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

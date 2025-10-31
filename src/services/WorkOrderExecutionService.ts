@@ -9,7 +9,8 @@
  * - Production response reporting
  */
 
-import { PrismaClient, WorkOrderStatus, WorkPerformanceType, VarianceType } from '@prisma/client';
+import { WorkOrderStatus, WorkPerformanceType, VarianceType } from '@prisma/client';
+import prisma from '../lib/database';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -108,10 +109,7 @@ const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
 // ============================================================================
 
 export class WorkOrderExecutionService {
-  private prisma: PrismaClient;
-
-  constructor(prismaClient?: PrismaClient) {
-    this.prisma = prismaClient || new PrismaClient();
+  constructor() {
   }
 
   // ============================================================================
@@ -126,7 +124,7 @@ export class WorkOrderExecutionService {
     const { workOrderId, dispatchedBy, ...dispatchData } = data;
 
     // Verify work order exists and is in CREATED status
-    const workOrder = await this.prisma.workOrder.findUnique({
+    const workOrder = await prisma.workOrder.findUnique({
       where: { id: workOrderId },
       include: { part: true, site: true }
     });
@@ -154,7 +152,7 @@ export class WorkOrderExecutionService {
 
     // Validate assignedToId if provided
     if (dispatchData.assignedToId) {
-      const assignedUser = await this.prisma.user.findUnique({
+      const assignedUser = await prisma.user.findUnique({
         where: { id: dispatchData.assignedToId }
       });
       if (!assignedUser) {
@@ -165,7 +163,7 @@ export class WorkOrderExecutionService {
 
     // Validate workCenterId if provided
     if (dispatchData.workCenterId) {
-      const workCenter = await this.prisma.workCenter.findUnique({
+      const workCenter = await prisma.workCenter.findUnique({
         where: { id: dispatchData.workCenterId }
       });
       if (!workCenter) {
@@ -175,7 +173,7 @@ export class WorkOrderExecutionService {
     }
 
     // Create dispatch log and transition status in a transaction
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Create dispatch log
       const dispatchLog = await tx.dispatchLog.create({
         data: {
@@ -219,7 +217,7 @@ export class WorkOrderExecutionService {
    * Get work orders ready for dispatch (CREATED status, no blockers)
    */
   async getWorkOrdersReadyForDispatch(siteId?: string) {
-    const workOrders = await this.prisma.workOrder.findMany({
+    const workOrders = await prisma.workOrder.findMany({
       where: {
         status: 'CREATED',
         ...(siteId ? { siteId } : {})
@@ -269,7 +267,7 @@ export class WorkOrderExecutionService {
     const cleanWorkOrderId = workOrderId.trim();
 
     // Get current work order
-    const workOrder = await this.prisma.workOrder.findUnique({
+    const workOrder = await prisma.workOrder.findUnique({
       where: { id: cleanWorkOrderId },
       include: { part: true }
     });
@@ -306,7 +304,7 @@ export class WorkOrderExecutionService {
     }
 
     // Perform transition in transaction
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Update work order status
       const updatedWorkOrder = await tx.workOrder.update({
         where: { id: workOrderId },
@@ -342,7 +340,7 @@ export class WorkOrderExecutionService {
    * Get status history for a work order
    */
   async getWorkOrderStatusHistory(workOrderId: string) {
-    const history = await this.prisma.workOrderStatusHistory.findMany({
+    const history = await prisma.workOrderStatusHistory.findMany({
       where: { workOrderId },
       orderBy: { transitionDate: 'asc' }
     });
@@ -354,7 +352,7 @@ export class WorkOrderExecutionService {
    * Get work orders by status
    */
   async getWorkOrdersByStatus(status: WorkOrderStatus, siteId?: string) {
-    const workOrders = await this.prisma.workOrder.findMany({
+    const workOrders = await prisma.workOrder.findMany({
       where: {
         status,
         ...(siteId ? { siteId } : {})
@@ -398,7 +396,7 @@ export class WorkOrderExecutionService {
     const cleanWorkOrderId = workOrderId.trim();
 
     // Verify work order exists and is in progress or completed
-    const workOrder = await this.prisma.workOrder.findUnique({
+    const workOrder = await prisma.workOrder.findUnique({
       where: { id: cleanWorkOrderId },
       include: { part: true }
     });
@@ -435,7 +433,7 @@ export class WorkOrderExecutionService {
     }
 
     // Create performance record
-    const performanceRecord = await this.prisma.workPerformance.create({
+    const performanceRecord = await prisma.workPerformance.create({
       data: {
         workOrderId: cleanWorkOrderId,
         performanceType,
@@ -464,7 +462,7 @@ export class WorkOrderExecutionService {
    * Get all performance records for a work order
    */
   async getWorkPerformanceRecords(workOrderId: string, performanceType?: WorkPerformanceType) {
-    const records = await this.prisma.workPerformance.findMany({
+    const records = await prisma.workPerformance.findMany({
       where: {
         workOrderId,
         ...(performanceType ? { performanceType } : {})
@@ -499,7 +497,7 @@ export class WorkOrderExecutionService {
     const isFavorable = variance >= 0;
     const costImpact = Math.abs(variance) * 50; // Assume $50/hr labor rate
 
-    await this.prisma.productionVariance.create({
+    await prisma.productionVariance.create({
       data: {
         workOrderId,
         varianceType: 'EFFICIENCY',
@@ -531,7 +529,7 @@ export class WorkOrderExecutionService {
     const isFavorable = variance >= 0;
     const costImpact = unitCost ? Math.abs(variance) * unitCost : undefined;
 
-    await this.prisma.productionVariance.create({
+    await prisma.productionVariance.create({
       data: {
         workOrderId,
         varianceType: 'MATERIAL',
@@ -563,7 +561,7 @@ export class WorkOrderExecutionService {
     const variancePercent = variance;
     const isFavorable = variance >= 0;
 
-    await this.prisma.productionVariance.create({
+    await prisma.productionVariance.create({
       data: {
         workOrderId,
         varianceType: 'YIELD',
@@ -583,7 +581,7 @@ export class WorkOrderExecutionService {
    * Get all variances for a work order
    */
   async getProductionVariances(workOrderId: string, varianceType?: VarianceType) {
-    const variances = await this.prisma.productionVariance.findMany({
+    const variances = await prisma.productionVariance.findMany({
       where: {
         workOrderId,
         ...(varianceType ? { varianceType } : {})
@@ -605,7 +603,7 @@ export class WorkOrderExecutionService {
 
     const cleanWorkOrderId = workOrderId.trim();
 
-    const workOrder = await this.prisma.workOrder.findUnique({
+    const workOrder = await prisma.workOrder.findUnique({
       where: { id: cleanWorkOrderId },
       include: {
         workPerformance: true,
@@ -660,7 +658,7 @@ export class WorkOrderExecutionService {
    * Get real-time execution dashboard statistics
    */
   async getExecutionDashboard(siteId?: string) {
-    const workOrders = await this.prisma.workOrder.findMany({
+    const workOrders = await prisma.workOrder.findMany({
       where: siteId ? { siteId } : {}
     });
 
@@ -686,7 +684,7 @@ export class WorkOrderExecutionService {
     const todayEnd = new Date(today);
     todayEnd.setHours(23, 59, 59, 999);
 
-    const dispatchLogsToday = await this.prisma.dispatchLog.count({
+    const dispatchLogsToday = await prisma.dispatchLog.count({
       where: {
         dispatchedAt: {
           gte: today,
@@ -695,7 +693,7 @@ export class WorkOrderExecutionService {
       }
     });
 
-    const workOrdersStartedToday = await this.prisma.workOrder.count({
+    const workOrdersStartedToday = await prisma.workOrder.count({
       where: {
         startedAt: {
           gte: today,
@@ -704,7 +702,7 @@ export class WorkOrderExecutionService {
       }
     });
 
-    const workOrdersCompletedToday = await this.prisma.workOrder.count({
+    const workOrdersCompletedToday = await prisma.workOrder.count({
       where: {
         completedAt: {
           gte: today,
@@ -714,33 +712,33 @@ export class WorkOrderExecutionService {
     });
 
     // Performance summary
-    const totalPerformanceRecords = await this.prisma.workPerformance.count();
-    const performanceByType = await this.prisma.workPerformance.groupBy({
+    const totalPerformanceRecords = await prisma.workPerformance.count();
+    const performanceByType = await prisma.workPerformance.groupBy({
       by: ['performanceType'],
       _count: true
     });
 
     // Performance stats aggregation
-    const laborPerformance = await this.prisma.workPerformance.aggregate({
+    const laborPerformance = await prisma.workPerformance.aggregate({
       where: { performanceType: 'LABOR' },
       _sum: { laborHours: true }
     });
 
-    const downtimePerformance = await this.prisma.workPerformance.aggregate({
+    const downtimePerformance = await prisma.workPerformance.aggregate({
       where: { performanceType: 'DOWNTIME' },
       _sum: { downtimeMinutes: true }
     });
 
     // Variance summary
-    const totalVariances = await this.prisma.productionVariance.count();
-    const favorableVariances = await this.prisma.productionVariance.count({
+    const totalVariances = await prisma.productionVariance.count();
+    const favorableVariances = await prisma.productionVariance.count({
       where: { isFavorable: true }
     });
-    const unfavorableVariances = await this.prisma.productionVariance.count({
+    const unfavorableVariances = await prisma.productionVariance.count({
       where: { isFavorable: false }
     });
 
-    const varianceCostImpact = await this.prisma.productionVariance.aggregate({
+    const varianceCostImpact = await prisma.productionVariance.aggregate({
       _sum: { costImpact: true }
     });
 

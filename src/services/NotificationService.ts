@@ -1,4 +1,5 @@
-import { PrismaClient, UserNotification, NotificationType, NotificationChannel, NotificationStatus } from '@prisma/client';
+import { UserNotification, NotificationType, NotificationChannel, NotificationStatus } from '@prisma/client';
+import prisma from '../lib/database';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 
@@ -58,26 +59,7 @@ export interface NotificationStats {
  * Notification Service - Manages user notifications and preferences
  */
 class NotificationService {
-  private prisma: PrismaClient;
-
   constructor() {
-    this.prisma = new PrismaClient({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'event', level: 'error' },
-        { emit: 'event', level: 'info' },
-        { emit: 'event', level: 'warn' },
-      ],
-    });
-
-    // Log Prisma events
-    this.prisma.$on('query', (e) => {
-      logger.debug('Prisma Query', { query: e.query, params: e.params, duration: e.duration });
-    });
-
-    this.prisma.$on('error', (e) => {
-      logger.error('Prisma Error', { error: e.message, target: e.target });
-    });
   }
 
   /**
@@ -91,7 +73,7 @@ class NotificationService {
         title: input.title
       });
 
-      const notification = await this.prisma.userNotification.create({
+      const notification = await prisma.userNotification.create({
         data: {
           userId: input.userId,
           type: input.type,
@@ -178,7 +160,7 @@ class NotificationService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const notifications = await this.prisma.userNotification.findMany({
+      const notifications = await prisma.userNotification.findMany({
         where: whereClause,
         orderBy: [
           { priority: 'desc' },
@@ -203,7 +185,7 @@ class NotificationService {
     try {
       logger.info('Marking notification as read', { notificationId, userId });
 
-      const notification = await this.prisma.userNotification.findFirst({
+      const notification = await prisma.userNotification.findFirst({
         where: { id: notificationId, userId }
       });
 
@@ -211,7 +193,7 @@ class NotificationService {
         throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
-      const updatedNotification = await this.prisma.userNotification.update({
+      const updatedNotification = await prisma.userNotification.update({
         where: { id: notificationId },
         data: {
           isRead: true,
@@ -234,7 +216,7 @@ class NotificationService {
     try {
       logger.info('Marking all notifications as read', { userId });
 
-      const result = await this.prisma.userNotification.updateMany({
+      const result = await prisma.userNotification.updateMany({
         where: {
           userId,
           isRead: false,
@@ -264,7 +246,7 @@ class NotificationService {
     try {
       logger.info('Deleting notification', { notificationId, userId });
 
-      const notification = await this.prisma.userNotification.findFirst({
+      const notification = await prisma.userNotification.findFirst({
         where: { id: notificationId, userId }
       });
 
@@ -272,7 +254,7 @@ class NotificationService {
         throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
-      await this.prisma.userNotification.delete({
+      await prisma.userNotification.delete({
         where: { id: notificationId }
       });
 
@@ -288,7 +270,7 @@ class NotificationService {
    */
   async getNotificationStats(userId: string): Promise<NotificationStats> {
     try {
-      const notifications = await this.prisma.userNotification.findMany({
+      const notifications = await prisma.userNotification.findMany({
         where: {
           userId,
           OR: [
@@ -581,7 +563,7 @@ class NotificationService {
     try {
       logger.info('Cleaning up expired notifications');
 
-      const result = await this.prisma.userNotification.deleteMany({
+      const result = await prisma.userNotification.deleteMany({
         where: {
           expiresAt: {
             lt: new Date()
@@ -624,7 +606,7 @@ class NotificationService {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

@@ -1,1 +1,2 @@
 - please record our preference for thoughtful merging and conflict resolution for future sessions
+- there is no need to define DATABASE_URL or JWT_SECRET in the command line when running tests

@@ -5,31 +5,16 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { PrismaClient, RoleTemplateCategory } from '@prisma/client';
+import { RoleTemplateCategory } from '@prisma/client';
 import { ManufacturingRoleTemplatesInitializer } from '../../services/ManufacturingRoleTemplatesInitializer';
 import { RoleTemplateService } from '../../services/RoleTemplateService';
 
 // Mock dependencies
 vi.mock('../../services/RoleTemplateService');
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
-    permission: {
-      findMany: vi.fn(),
-    },
-    roleTemplate: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      count: vi.fn(),
-    },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
+}));
 
 describe('ManufacturingRoleTemplatesInitializer', () => {
   let initializer: ManufacturingRoleTemplatesInitializer;
@@ -63,7 +48,6 @@ describe('ManufacturingRoleTemplatesInitializer', () => {
 
   beforeEach(() => {
     const { PrismaClient } = require('@prisma/client');
-    mockPrisma = new PrismaClient();
 
     mockRoleTemplateService = {
       createRoleTemplate: vi.fn()

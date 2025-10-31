@@ -1,13 +1,12 @@
 import * as dotenv from 'dotenv';
 import * as joi from 'joi';
 
-// Load environment variables - respect existing environment variables in test mode
-// In test mode, global-setup.ts sets DATABASE_URL dynamically, so don't override it
-if (process.env.NODE_ENV !== 'test' || !process.env.DATABASE_URL) {
-  dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
-} else {
-  console.log('[Config] Test mode: Preserving dynamic environment variables from global setup');
-}
+// Load environment variables based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' :
+                process.env.NODE_ENV === 'development' ? '.env.development' :
+                '.env';
+
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || envFile });
 
 // Configuration schema validation
 const envSchema = joi.object({

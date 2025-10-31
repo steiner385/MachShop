@@ -13,11 +13,12 @@ import {
   DependencyTimingType,
 } from '../../types/routing';
 
-// Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
+// Import the database module
+import prisma from '../../lib/database';
 
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     routing: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('@prisma/client', async () => {
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     routingStepDependency: {
       create: vi.fn(),
@@ -42,7 +44,6 @@ vi.mock('@prisma/client', async () => {
     },
     partSiteAvailability: {
       create: vi.fn(),
-      findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
@@ -55,10 +56,9 @@ vi.mock('@prisma/client', async () => {
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      count: vi.fn(),
-      groupBy: vi.fn(),
     },
     workOrder: {
+      findMany: vi.fn(),
       count: vi.fn(),
     },
     part: {
@@ -67,23 +67,15 @@ vi.mock('@prisma/client', async () => {
     site: {
       findUnique: vi.fn(),
     },
-    $transaction: vi.fn((callback) => callback),
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+    $transaction: vi.fn(),
+  },
+}));
 
 describe('RoutingService', () => {
   let routingService: RoutingService;
-  let mockPrisma: any;
+  const mockPrisma = prisma as any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
     routingService = new RoutingService();
     vi.clearAllMocks();
   });

@@ -16,8 +16,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock dependencies with proper hoisting
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => ({
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     storedFile: {
       groupBy: vi.fn(),
     },
@@ -27,12 +28,6 @@ vi.mock('@prisma/client', () => ({
     storageMetrics: {
       create: vi.fn(),
     },
-  })),
-  StorageClass: {
-    HOT: 'HOT',
-    WARM: 'WARM',
-    COLD: 'COLD',
-    ARCHIVE: 'ARCHIVE',
   },
 }));
 
@@ -80,12 +75,12 @@ import type {
   AlertConfiguration,
   AlertResult
 } from '../../services/StorageAnalyticsService';
-import { PrismaClient, StorageClass } from '@prisma/client';
+import { StorageClass } from '@prisma/client';
 import { logger } from '../../utils/logger';
 
 // Get the mocked instances
 const mockLogger = logger as any;
-let mockPrisma: any;
+const mockPrisma = vi.mocked(await import('../../lib/database')).default;
 
 describe('StorageAnalyticsService', () => {
   let storageAnalyticsService: StorageAnalyticsService;
@@ -96,8 +91,6 @@ describe('StorageAnalyticsService', () => {
     vi.setSystemTime(mockDate);
 
     storageAnalyticsService = new StorageAnalyticsService();
-    // Get the mocked Prisma instance from the service
-    mockPrisma = (storageAnalyticsService as any).prisma;
   });
 
   afterEach(() => {
@@ -555,9 +548,9 @@ describe('StorageAnalyticsService', () => {
         {
           id: 'log1',
           fileId: 'file1',
-          createdAt: mockDate,
+          accessedAt: mockDate,
           file: { id: 'file1', fileName: 'test.pdf' },
-          action: 'DOWNLOAD',
+          accessType: 'READ',
         },
       ]);
     });
