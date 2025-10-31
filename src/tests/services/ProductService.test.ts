@@ -51,6 +51,14 @@ vi.mock('../../lib/database', () => ({
       delete: vi.fn(),
       count: vi.fn(),
     },
+    unitOfMeasure: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));

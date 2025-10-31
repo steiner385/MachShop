@@ -1,4 +1,10 @@
 import prisma from '../lib/database';
+
+// Guard check for prisma instance
+if (!prisma) {
+  throw new Error('Database connection not available. Check DATABASE_URL environment variable and database server connectivity.');
+}
+
 import type {
   MaterialClass,
   MaterialDefinition,
