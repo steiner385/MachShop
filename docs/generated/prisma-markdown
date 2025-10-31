@@ -208,6 +208,7 @@ erDiagram
   Int defaultShelfLifeDays "nullable"
   Float standardCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   Boolean requiresInspection
   String inspectionFrequency "nullable"
   String primarySupplierId "nullable"
@@ -280,6 +281,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   String parentLotId FK "nullable"
   Boolean isSplit
   Boolean isMerged
@@ -550,6 +552,7 @@ erDiagram
   Float standardCost "nullable"
   Float targetCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   Boolean isActive
   Boolean isConfigurable
   Boolean requiresFAI
@@ -1698,6 +1701,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   String movementType
   String reasonCode "nullable"
   B2MMessageStatus status
@@ -2316,6 +2320,7 @@ erDiagram
   String catalogNumber "nullable"
   Float cost "nullable"
   String costCurrency "nullable"
+  String costCurrencyId FK "nullable"
   String applicablePartIds
   String applicableOperations
   String usageInstructions "nullable"
@@ -2651,6 +2656,7 @@ erDiagram
   Float estimatedSavings "nullable"
   Float actualSavings "nullable"
   String costCurrency
+  String costCurrencyId FK "nullable"
   DateTime requestedEffectiveDate "nullable"
   DateTime plannedEffectiveDate "nullable"
   DateTime actualEffectiveDate "nullable"
@@ -3145,7 +3151,10 @@ erDiagram
   String roleId FK
   DateTime assignedAt
   String assignedBy "nullable"
+  DateTime validFrom "nullable"
   DateTime expiresAt "nullable"
+  Boolean isTemporary
+  String grantReason "nullable"
 }
 "user_site_roles" {
   String id PK
@@ -3154,7 +3163,24 @@ erDiagram
   String siteId FK
   DateTime assignedAt
   String assignedBy "nullable"
+  DateTime validFrom "nullable"
   DateTime expiresAt "nullable"
+  Boolean isTemporary
+  String grantReason "nullable"
+}
+"temporal_access_logs" {
+  String id PK
+  String userId FK
+  String roleId FK
+  String siteId FK "nullable"
+  String accessType
+  String reason "nullable"
+  String grantedBy
+  DateTime timestamp
+  DateTime validFrom "nullable"
+  DateTime expiresAt "nullable"
+  Boolean isEmergency
+  Json metadata "nullable"
 }
 "time_tracking_configurations" {
   String id PK
@@ -4047,6 +4073,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency
+  String currencyId FK "nullable"
   VendorKitStatus status
   VendorKitPriority priority
   DateTime requiredDate
@@ -4769,6 +4796,38 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"currencies" {
+  String id PK
+  String currencyCode UK
+  String currencyName
+  String currencySymbol "nullable"
+  String numericCode UK "nullable"
+  Int minorUnit
+  String region "nullable"
+  String country "nullable"
+  String displayFormat "nullable"
+  Boolean isActive
+  Boolean isBaseCurrency
+  Boolean allowFractional
+  DateTime createdAt
+  DateTime updatedAt
+}
+"exchange_rates" {
+  String id PK
+  String fromCurrencyId FK
+  String toCurrencyId FK
+  Decimal exchangeRate
+  DateTime effectiveDate
+  DateTime expirationDate "nullable"
+  ExchangeRateSource rateSource
+  String sourceReference "nullable"
+  Boolean isManualOverride
+  Boolean isActive
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy "nullable"
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "users" }o--o| "personnel_classes" : personnelClass
@@ -4788,12 +4847,14 @@ erDiagram
 "material_definitions" }o--o| "material_definitions" : replacementMaterial
 "material_definitions" }o--o| "units_of_measure" : baseUnitOfMeasureRef
 "material_definitions" }o--o| "units_of_measure" : alternateUnitOfMeasureRef
+"material_definitions" }o--o| "currencies" : currencyRef
 "material_properties" }o--|| "material_definitions" : material
 "material_properties" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lots" }o--|| "material_definitions" : material
 "material_lots" }o--o| "material_lots" : parentLot
 "material_lots" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lots" }o--o| "locations" : locationRef
+"material_lots" }o--o| "currencies" : currencyRef
 "material_sublots" }o--|| "material_lots" : parentLot
 "material_sublots" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lot_genealogy" }o--|| "material_lots" : childLot
@@ -4821,6 +4882,7 @@ erDiagram
 "physical_asset_operation_specifications" }o--|| "operations" : operation
 "parts" }o--o| "parts" : replacementPart
 "parts" }o--o| "units_of_measure" : unitOfMeasureRef
+"parts" }o--o| "currencies" : currencyRef
 "part_site_availability" }o--|| "parts" : part
 "part_site_availability" }o--|| "sites" : site
 "bom_items" }o--|| "parts" : componentPart
@@ -4938,6 +5000,7 @@ erDiagram
 "erp_material_transactions" }o--|| "integration_configs" : config
 "erp_material_transactions" }o--o| "parts" : part
 "erp_material_transactions" }o--o| "work_orders" : workOrder
+"erp_material_transactions" }o--o| "currencies" : currencyRef
 "personnel_info_exchanges" }o--|| "integration_configs" : config
 "equipment_data_collections" }o--|| "equipment" : equipment
 "equipment_data_collections" }o--o| "work_orders" : workOrder
@@ -4996,6 +5059,7 @@ erDiagram
 "tool_drawings" }o--|| "users" : createdBy
 "tool_drawings" }o--o| "tool_drawings" : parentVersion
 "tool_drawings" }o--|| "users" : updatedBy
+"tool_drawings" }o--o| "currencies" : costCurrencyRef
 "tool_maintenance_records" }o--|| "users" : performedBy
 "tool_maintenance_records" }o--|| "tool_drawings" : toolDrawing
 "tool_calibration_records" }o--|| "users" : performedBy
@@ -5012,6 +5076,7 @@ erDiagram
 "workflow_assignments" }o--|| "workflow_stage_instances" : stageInstance
 "workflow_history" }o--|| "workflow_instances" : workflowInstance
 "workflow_parallel_coordination" }o--|| "workflow_stage_instances" : stageInstance
+"engineering_change_orders" }o--o| "currencies" : costCurrencyRef
 "eco_affected_documents" }o--|| "engineering_change_orders" : eco
 "eco_tasks" }o--|| "engineering_change_orders" : eco
 "eco_attachments" }o--|| "engineering_change_orders" : eco
@@ -5034,6 +5099,9 @@ erDiagram
 "user_site_roles" }o--|| "roles" : role
 "user_site_roles" }o--|| "sites" : site
 "user_site_roles" }o--|| "users" : user
+"temporal_access_logs" }o--|| "users" : user
+"temporal_access_logs" }o--|| "roles" : role
+"temporal_access_logs" }o--o| "sites" : site
 "time_tracking_configurations" |o--|| "sites" : site
 "labor_time_entries" }o--o| "indirect_cost_codes" : indirectCode
 "labor_time_entries" }o--o| "work_order_operations" : operation
@@ -5158,6 +5226,7 @@ erDiagram
 "kit_shortage_alerts" }o--o| "users" : resolvedBy
 "vendor_kits" }o--|| "vendors" : vendor
 "vendor_kits" }o--o| "kits" : kit
+"vendor_kits" }o--o| "currencies" : currencyRef
 "vendor_kit_items" }o--|| "vendor_kits" : vendorKit
 "vendor_kit_items" }o--|| "parts" : part
 "vendor_kit_items" }o--o| "units_of_measure" : unitOfMeasureRef
@@ -5232,6 +5301,8 @@ erDiagram
 "locations" }o--o| "areas" : area
 "locations" }o--o| "units_of_measure" : capacityUnitOfMeasure
 "locations" }o--o| "units_of_measure" : dimensionUnitOfMeasure
+"exchange_rates" }o--|| "currencies" : fromCurrency
+"exchange_rates" }o--|| "currencies" : toCurrency
 ```
 
 ### `enterprises`
@@ -5465,6 +5536,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `defaultShelfLifeDays`: 
   - `standardCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `requiresInspection`: 
   - `inspectionFrequency`: 
   - `primarySupplierId`: 
@@ -5541,6 +5613,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `parentLotId`: 
   - `isSplit`: 
   - `isMerged`: 
@@ -5839,6 +5912,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `standardCost`: 
   - `targetCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `isActive`: 
   - `isConfigurable`: 
   - `requiresFAI`: 
@@ -7107,6 +7181,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `movementType`: 
   - `reasonCode`: 
   - `status`: 
@@ -7791,6 +7866,7 @@ Data Collection Field Template - Reusable field templates
   - `catalogNumber`: 
   - `cost`: 
   - `costCurrency`: 
+  - `costCurrencyId`: 
   - `applicablePartIds`: 
   - `applicableOperations`: 
   - `usageInstructions`: 
@@ -8167,6 +8243,7 @@ Engineering Change Order - Core ECO entity for formal change management
   - `estimatedSavings`: 
   - `actualSavings`: 
   - `costCurrency`: 
+  - `costCurrencyId`: 
   - `requestedEffectiveDate`: 
   - `plannedEffectiveDate`: 
   - `actualEffectiveDate`: 
@@ -8750,7 +8827,10 @@ Assigns global roles to users that apply across all sites
   - `roleId`: 
   - `assignedAt`: 
   - `assignedBy`: 
+  - `validFrom`: 
   - `expiresAt`: 
+  - `isTemporary`: 
+  - `grantReason`: 
 
 ### `user_site_roles`
 Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
@@ -8763,7 +8843,28 @@ Assigns site-specific roles to users for enhanced granular control
   - `siteId`: 
   - `assignedAt`: 
   - `assignedBy`: 
+  - `validFrom`: 
   - `expiresAt`: 
+  - `isTemporary`: 
+  - `grantReason`: 
+
+### `temporal_access_logs`
+Temporal Access Log for auditing temporal permission activities
+Tracks all temporal permission grants, revocations, expirations, and emergency access
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `roleId`: 
+  - `siteId`: 
+  - `accessType`: 
+  - `reason`: 
+  - `grantedBy`: 
+  - `timestamp`: 
+  - `validFrom`: 
+  - `expiresAt`: 
+  - `isEmergency`: 
+  - `metadata`: 
 
 ### `time_tracking_configurations`
 Time tracking configuration (site level)
@@ -9790,6 +9891,7 @@ LLP certification document storage and management
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `status`: 
   - `priority`: 
   - `requiredDate`: 
@@ -10618,3 +10720,41 @@ Hierarchical location model for warehouse management and material tracking
   - `contactEmail`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `currencies`
+ISO 4217 compliant currency lookup table for standardizing multi-currency operations
+
+**Properties**
+  - `id`: 
+  - `currencyCode`: 
+  - `currencyName`: 
+  - `currencySymbol`: 
+  - `numericCode`: 
+  - `minorUnit`: 
+  - `region`: 
+  - `country`: 
+  - `displayFormat`: 
+  - `isActive`: 
+  - `isBaseCurrency`: 
+  - `allowFractional`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `exchange_rates`
+Exchange rates for currency conversion with historical tracking and multiple sources
+
+**Properties**
+  - `id`: 
+  - `fromCurrencyId`: 
+  - `toCurrencyId`: 
+  - `exchangeRate`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `rateSource`: 
+  - `sourceReference`: 
+  - `isManualOverride`: 
+  - `isActive`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 

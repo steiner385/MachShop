@@ -43,11 +43,13 @@ export function clearUserPermissionCache(userId: string): void {
   permissionCache.delete(`user:${userId}:global`);
 
   // Clear site-specific caches
-  for (const key of permissionCache.keys()) {
+  const keysToDelete: string[] = [];
+  permissionCache.forEach((value, key) => {
     if (key.startsWith(`user:${userId}:site:`)) {
-      permissionCache.delete(key);
+      keysToDelete.push(key);
     }
-  }
+  });
+  keysToDelete.forEach(key => permissionCache.delete(key));
 }
 
 /**
@@ -319,9 +321,9 @@ export async function resolveUserPermissions(
     }
 
     // Convert site role map to array
-    for (const [siteId, roles] of siteRoleMap.entries()) {
+    siteRoleMap.forEach((roles, siteId) => {
       siteRoles.push({ siteId, roles });
-    }
+    });
 
     // Expand wildcard permissions
     const expandedPermissions = await expandWildcardPermissions(Array.from(wildcardPermissions));
@@ -690,9 +692,9 @@ export async function resolveUserPermissionsAtTime(
     }
 
     // Convert site role map to array
-    for (const [siteId, roles] of siteRoleMap.entries()) {
+    siteRoleMap.forEach((roles, siteId) => {
       siteRoles.push({ siteId, roles });
-    }
+    });
 
     // Expand wildcard permissions
     const expandedPermissions = await expandWildcardPermissions(Array.from(wildcardPermissions));
