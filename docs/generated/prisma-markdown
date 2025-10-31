@@ -5391,7 +5391,104 @@ erDiagram
   DateTime updatedAt
   String createdBy
 }
+"controlled_documents" {
+  String id PK
+  String documentNumber UK
+  String title
+  String description "nullable"
+  QMSDocumentType documentType
+  String category "nullable"
+  String revision
+  DateTime revisionDate
+  DateTime effectiveDate "nullable"
+  QMSDocumentStatus status
+  String fileUrl
+  String fileName
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  Int reviewFrequency "nullable"
+  DateTime nextReviewDate "nullable"
+  DateTime lastReviewDate "nullable"
+  Boolean isControlled
+  String parentDocumentId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"document_approvals" {
+  String id PK
+  String documentId FK
+  String approverRole
+  String approverId FK
+  Int sequence
+  ApprovalStatus status
+  DateTime requestedAt
+  DateTime reviewedAt "nullable"
+  String comments "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"training_courses" {
+  String id PK
+  String courseNumber UK
+  String courseName
+  String description "nullable"
+  String objectives "nullable"
+  Int duration "nullable"
+  CourseType courseType
+  String materials "nullable"
+  String requiredForRoles
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"competency_tests" {
+  String id PK
+  String trainingCourseId FK
+  String testName
+  Int passingScore
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_questions" {
+  String id PK
+  String testId FK
+  String questionText
+  QuestionType questionType
+  String correctAnswer
+  String possibleAnswers
+  Int points
+  DateTime createdAt
+  DateTime updatedAt
+}
+"training_records" {
+  String id PK
+  String trainingCourseId FK
+  String traineeId FK
+  String instructorId FK "nullable"
+  DateTime trainingDate
+  DateTime completionDate "nullable"
+  Int testScore "nullable"
+  Boolean passed "nullable"
+  DateTime certificationDate "nullable"
+  DateTime expirationDate "nullable"
+  Int effectivenessScore "nullable"
+  String effectivenessNotes "nullable"
+  String certificateUrl "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToTrainingCourse" {
   String A FK
   String B FK
 }
@@ -5933,8 +6030,23 @@ erDiagram
 "work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
 "workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
 "operation_workflow_configurations" |o--|| "operations" : operation
+"controlled_documents" }o--o| "users" : approvedBy
+"controlled_documents" }o--o| "controlled_documents" : parentDocument
+"controlled_documents" }o--|| "users" : createdBy
+"document_approvals" }o--|| "controlled_documents" : document
+"document_approvals" }o--|| "users" : approver
+"training_courses" }o--|| "users" : createdBy
+"competency_tests" |o--|| "training_courses" : trainingCourse
+"test_questions" }o--|| "competency_tests" : test
+"training_records" }o--|| "training_courses" : trainingCourse
+"training_records" }o--|| "users" : trainee
+"training_records" }o--o| "users" : instructor
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
+"_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToUser" }o--|| "users" : User
+"_ControlledDocumentToTrainingCourse" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToTrainingCourse" }o--|| "training_courses" : TrainingCourse
 ```
 
 ### `enterprises`
@@ -12049,8 +12161,129 @@ Granular configuration control per operation type
   - `updatedAt`: 
   - `createdBy`: 
 
+### `controlled_documents`
+Controlled Document - Core document management model (ISO 9001 Clause 7.5)
+
+**Properties**
+  - `id`: 
+  - `documentNumber`: 
+  - `title`: 
+  - `description`: 
+  - `documentType`: 
+  - `category`: 
+  - `revision`: 
+  - `revisionDate`: 
+  - `effectiveDate`: 
+  - `status`: 
+  - `fileUrl`: 
+  - `fileName`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `reviewFrequency`: 
+  - `nextReviewDate`: 
+  - `lastReviewDate`: 
+  - `isControlled`: 
+  - `parentDocumentId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `document_approvals`
+Document Approval - Approval workflow step
+
+**Properties**
+  - `id`: 
+  - `documentId`: 
+  - `approverRole`: 
+  - `approverId`: 
+  - `sequence`: 
+  - `status`: 
+  - `requestedAt`: 
+  - `reviewedAt`: 
+  - `comments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_courses`
+Training Course - Course definition and management
+
+**Properties**
+  - `id`: 
+  - `courseNumber`: 
+  - `courseName`: 
+  - `description`: 
+  - `objectives`: 
+  - `duration`: 
+  - `courseType`: 
+  - `materials`: 
+  - `requiredForRoles`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `competency_tests`
+Competency Test - Test/assessment associated with training
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `testName`: 
+  - `passingScore`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_questions`
+Test Question - Individual question in competency test
+
+**Properties**
+  - `id`: 
+  - `testId`: 
+  - `questionText`: 
+  - `questionType`: 
+  - `correctAnswer`: 
+  - `possibleAnswers`: 
+  - `points`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_records`
+Training Record - Record of training completion for individual
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `traineeId`: 
+  - `instructorId`: 
+  - `trainingDate`: 
+  - `completionDate`: 
+  - `testScore`: 
+  - `passed`: 
+  - `certificationDate`: 
+  - `expirationDate`: 
+  - `effectivenessScore`: 
+  - `effectivenessNotes`: 
+  - `certificateUrl`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToUser`
+Pair relationship table between [controlled_documents](#controlled_documents) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToTrainingCourse`
+Pair relationship table between [controlled_documents](#controlled_documents) and [training_courses](#training_courses)
 
 **Properties**
   - `A`: 
