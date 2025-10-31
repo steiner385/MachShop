@@ -113,6 +113,12 @@ import vendorKitRoutes from './routes/vendorKits';
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System Routes
+import maintenanceRoutes from './routes/maintenance';
+import downtimeRoutes from './routes/downtime';
+
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+import saviyntSurrogateRoutes from './routes/saviynt-surrogate';
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -323,6 +329,13 @@ apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
 apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
 
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
+apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
+apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
+
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+// Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
+apiRouter.use('/testing/saviynt-idm', saviyntSurrogateRoutes);
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
 
