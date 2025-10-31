@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # GE Proficy Historian Surrogate Service
+  proficy-historian-surrogate:
+    build:
+      context: ../../../../  # Build from project root
+      dockerfile: src/tests/infrastructure/proficy-historian-surrogate/docker/Dockerfile
+    image: machshop/proficy-historian-surrogate:latest
+    container_name: proficy-historian-surrogate
+    restart: unless-stopped
+    ports:
+      - "${SURROGATE_PORT:-8080}:8080"
+    environment:
+      # Server Configuration
+      SURROGATE_PORT: 8080
+      SURROGATE_HOST: 0.0.0.0
+      SURROGATE_LOG_LEVEL: ${SURROGATE_LOG_LEVEL:-info}
+
+      # Authentication
+      SURROGATE_AUTH_ENABLED: ${SURROGATE_AUTH_ENABLED:-true}
+      SURROGATE_AUTH_USERNAME: ${SURROGATE_AUTH_USERNAME:-historian}
+      SURROGATE_AUTH_PASSWORD: ${SURROGATE_AUTH_PASSWORD:-password}
+
+      # Storage Configuration
+      SURROGATE_MAX_DATA_POINTS: ${SURROGATE_MAX_DATA_POINTS:-1000000}
+      SURROGATE_RETENTION_HOURS: ${SURROGATE_RETENTION_HOURS:-24}
+      SURROGATE_COMPRESSION_ENABLED: ${SURROGATE_COMPRESSION_ENABLED:-true}
+
+      # Feature Flags
+      SURROGATE_ERROR_SIMULATION: ${SURROGATE_ERROR_SIMULATION:-false}
+      SURROGATE_RATE_LIMIT_ENABLED: ${SURROGATE_RATE_LIMIT_ENABLED:-false}
+      SURROGATE_CORS_ENABLED: ${SURROGATE_CORS_ENABLED:-true}
+
+      # Data Loading
+      SURROGATE_SCENARIO: ${SURROGATE_SCENARIO:-}
+      SURROGATE_LOAD_MINIMAL_DATA: ${SURROGATE_LOAD_MINIMAL_DATA:-true}
+
+      # Node.js Configuration
+      NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-UTC}
+    volumes:
+      # Persist logs
+      - historian_logs:/app/logs
+      # Optional: Mount custom scenarios
+      - type: bind
+        source: ${CUSTOM_SCENARIOS_PATH:-./scenarios}
+        target: /app/custom-scenarios
+        read_only: true
+        bind:
+          create_host_path: true
+    networks:
+      - historian_network
+    healthcheck:
+      test: ["CMD", "./healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.machshop.service=proficy-historian-surrogate"
+      - "com.machshop.environment=${ENVIRONMENT:-development}"
+      - "com.machshop.version=1.0.0"
+
+  # Optional: Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: proficy-historian-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    networks:
+      - historian_network
+    profiles:
+      - monitoring
+    depends_on:
+      - proficy-historian-surrogate
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: proficy-historian-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - historian_network
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  # Optional: Load testing with Artillery
+  load-test:
+    build:
+      context: ./testing
+      dockerfile: Dockerfile.artillery
+    container_name: proficy-historian-loadtest
+    environment:
+      TARGET_URL: http://proficy-historian-surrogate:8080
+      AUTH_USERNAME: ${SURROGATE_AUTH_USERNAME:-historian}
+      AUTH_PASSWORD: ${SURROGATE_AUTH_PASSWORD:-password}
+    volumes:
+      - ./testing/artillery:/app/tests:ro
+      - load_test_results:/app/results
+    networks:
+      - historian_network
+    profiles:
+      - testing
+    depends_on:
+      - proficy-historian-surrogate
+
+  # Optional: Log aggregation with ELK
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: proficy-historian-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - historian_network
+    profiles:
+      - logging
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    container_name: proficy-historian-logstash
+    volumes:
+      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - historian_logs:/app/logs:ro
+    networks:
+      - historian_network
+    profiles:
+      - logging
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: proficy-historian-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    networks:
+      - historian_network
+    profiles:
+      - logging
+    depends_on:
+      - elasticsearch
+
+networks:
+  historian_network:
+    driver: bridge
+    name: historian_network
+
+volumes:
+  # Persistent storage for logs
+  historian_logs:
+    driver: local
+    name: historian_logs
+
+  # Monitoring data
+  prometheus_data:
+    driver: local
+    name: prometheus_data
+
+  grafana_data:
+    driver: local
+    name: grafana_data
+
+  # Testing results
+  load_test_results:
+    driver: local
+    name: load_test_results
+
+  # Logging storage
+  elasticsearch_data:
+    driver: local
+    name: elasticsearch_data
