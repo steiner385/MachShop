@@ -196,6 +196,8 @@ model User {
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
   // OAuth/OIDC relationships
   oidcSessions              OidcSession[]
+  // SAML relationships
+  samlSessions              SamlSession[]
 
   // Saviynt Identity Governance relationships
   saviyntUserMapping        SaviyntUserMapping?
@@ -7978,4 +7980,85 @@ model OidcAuthState {
   @@index([configId])
   @@index([expiresAt])
   @@map("oidc_auth_states")
+}
+
+// ============================================================================
+// SAML 2.0 Integration (Issue #131)
+// ============================================================================
+
+/// SAML 2.0 Configuration
+/// Dedicated SAML provider configuration for enterprise SSO
+model SamlConfig {
+  id                    String        @id @default(cuid())
+  name                  String        @unique
+  entityId              String        @unique
+  ssoUrl                String
+  sloUrl                String?
+  idpMetadataUrl        String?
+  idpMetadata           String?
+  certificate           String
+  privateKey            String
+  signRequests          Boolean       @default(true)
+  signAssertions        Boolean       @default(false)
+  encryptAssertions     Boolean       @default(false)
+  nameIdFormat          String        @default("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+  attributeMapping      Json?
+  clockTolerance        Int           @default(60)
+  isActive              Boolean       @default(true)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  sessions              SamlSession[]
+  authRequests          SamlAuthRequest[]
+
+  @@index([isActive])
+  @@index([entityId])
+  @@map("saml_configs")
+}
+
+/// SAML User Sessions
+/// Track SAML authentication sessions and assertions
+model SamlSession {
+  id                String      @id @default(cuid())
+  userId            String
+  sessionIndex      String?
+  nameId            String
+  nameIdFormat      String
+  assertionId       String      @unique
+  configId          String
+  attributes        Json?
+  expiresAt         DateTime?
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config            SamlConfig  @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([configId])
+  @@index([sessionIndex])
+  @@index([expiresAt])
+  @@map("saml_sessions")
+}
+
+/// SAML Authentication Request Tracking
+/// Track outgoing SAML AuthnRequests for security and correlation
+model SamlAuthRequest {
+  id              String      @id @default(cuid())
+  requestId       String      @unique
+  relayState      String?
+  destination     String
+  issueInstant    DateTime
+  configId        String
+  expiresAt       DateTime
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  config          SamlConfig  @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("saml_auth_requests")
 }
