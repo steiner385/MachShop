@@ -84,6 +84,9 @@ model Site {
   andonNotificationTemplates AndonNotificationTemplate[]
   andonSystemSettings       AndonSystemSettings[]
 
+  // Serial Number Format Configuration Relations (Issue #149)
+  serialNumberFormatConfigs SerialNumberFormatConfig[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -1173,6 +1176,9 @@ model Part {
   icdImplementations         ICDPartImplementation[]     @relation("PartICDImplementations")
   icdConsumptions            ICDPartConsumption[]        @relation("PartICDConsumptions")
   icdComplianceChecks        ICDComplianceCheck[]        @relation("PartICDComplianceChecks")
+
+  // Serial Number Format Assignments (Issue #149)
+  serialFormatAssignments    SerialFormatPartAssignment[]
 
   @@index([productType])
   @@index([lifecycleState])
@@ -11027,4 +11033,121 @@ model LaborEntry {
   @@index([technicianId])
   @@index([startTime])
   @@map("labor_entries")
+}
+
+/// Serial Number Format Configuration (Issue #149)
+/// Configurable serial number format engine supporting diverse manufacturing standards
+model SerialNumberFormatConfig {
+  id                           String                           @id @default(cuid())
+  name                         String                           // e.g., "Aerospace Standard", "Medical Device"
+  description                  String?
+  patternTemplate              String                           // e.g., "PRE-{YYYY}{MM}{DD}-{SEQ:6}-{CHECK:luhn}"
+  siteId                       String
+  site                         Site                             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Configuration
+  isActive                     Boolean                          @default(true)
+  version                      Int                              @default(1)
+  validationRules              String?                          // JSON: character sets, length constraints, etc.
+  sequentialCounterStart       Int                              @default(1)
+  sequentialCounterIncrement   Int                              @default(1)
+  counterResetRule             String?                          // "daily", "monthly", "yearly", null for no reset
+
+  // Assignment relationships
+  partAssignments              SerialFormatPartAssignment[]
+  partFamilyAssignments        SerialFormatPartFamilyAssignment[]
+
+  // Usage tracking
+  usageTracking                SerialNumberUsageTracking?
+
+  // Audit fields
+  createdBy                    String?
+  createdAt                    DateTime                         @default(now())
+  updatedAt                    DateTime                         @updatedAt
+
+  @@unique([siteId, name])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("serial_number_format_configs")
+}
+
+/// Serial Format Part Assignment (Issue #149)
+/// Links serial number formats to specific parts with priority-based assignment
+model SerialFormatPartAssignment {
+  id                   String                      @id @default(cuid())
+  partId               String
+  part                 Part                        @relation(fields: [partId], references: [id], onDelete: Cascade)
+  formatConfigId       String
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Assignment level control
+  isDefault            Boolean                     @default(false)
+  priority             Int                         @default(0)  // Higher value = higher priority override
+  effectiveFrom        DateTime                    @default(now())
+  effectiveUntil       DateTime?
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@unique([partId, formatConfigId])
+  @@index([partId])
+  @@index([formatConfigId])
+  @@index([priority])
+  @@map("serial_format_part_assignments")
+}
+
+/// Serial Format Part Family Assignment (Issue #149)
+/// Links serial number formats to part families for hierarchical assignment
+/// Note: PartFamily model will be created in future phases for hierarchical part organization
+model SerialFormatPartFamilyAssignment {
+  id                   String                      @id @default(cuid())
+  partFamilyId         String                      // Will reference PartFamily when model is created
+  formatConfigId       String
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Assignment level control
+  isDefault            Boolean                     @default(false)
+  priority             Int                         @default(0)  // Higher value = higher priority override
+  effectiveFrom        DateTime                    @default(now())
+  effectiveUntil       DateTime?
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@unique([partFamilyId, formatConfigId])
+  @@index([partFamilyId])
+  @@index([formatConfigId])
+  @@index([priority])
+  @@map("serial_format_part_family_assignments")
+}
+
+/// Serial Number Usage Tracking (Issue #149)
+/// Manages sequential counter state and usage statistics for serial formats
+model SerialNumberUsageTracking {
+  id                   String                      @id @default(cuid())
+  formatConfigId       String                      @unique
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Counter management
+  currentSequenceValue Int                         @default(1)
+  lastGeneratedDate    DateTime?
+  counterResetDate     DateTime?
+
+  // Statistics
+  totalGenerated       Int                         @default(0)
+  totalUsed            Int                         @default(0)
+  duplicateAttempts    Int                         @default(0)
+
+  // Concurrency control
+  lastUpdateTimestamp  DateTime                    @updatedAt
+  version              Int                         @default(1)  // Optimistic locking version
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@index([formatConfigId])
+  @@map("serial_number_usage_tracking")
 }

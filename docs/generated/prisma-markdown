@@ -5115,6 +5115,58 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"serial_number_format_configs" {
+  String id PK
+  String name
+  String description "nullable"
+  String patternTemplate
+  String siteId FK
+  Boolean isActive
+  Int version
+  String validationRules "nullable"
+  Int sequentialCounterStart
+  Int sequentialCounterIncrement
+  String counterResetRule "nullable"
+  String createdBy "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_format_part_assignments" {
+  String id PK
+  String partId FK
+  String formatConfigId FK
+  Boolean isDefault
+  Int priority
+  DateTime effectiveFrom
+  DateTime effectiveUntil "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_format_part_family_assignments" {
+  String id PK
+  String partFamilyId
+  String formatConfigId FK
+  Boolean isDefault
+  Int priority
+  DateTime effectiveFrom
+  DateTime effectiveUntil "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_number_usage_tracking" {
+  String id PK
+  String formatConfigId FK
+  Int currentSequenceValue
+  DateTime lastGeneratedDate "nullable"
+  DateTime counterResetDate "nullable"
+  Int totalGenerated
+  Int totalUsed
+  Int duplicateAttempts
+  DateTime lastUpdateTimestamp
+  Int version
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -5637,6 +5689,11 @@ erDiagram
 "maintenance_parts" }o--|| "maintenance_work_orders" : workOrder
 "labor_entries" }o--|| "maintenance_work_orders" : workOrder
 "labor_entries" }o--|| "users" : technician
+"serial_number_format_configs" }o--|| "sites" : site
+"serial_format_part_assignments" }o--|| "parts" : part
+"serial_format_part_assignments" }o--|| "serial_number_format_configs" : formatConfig
+"serial_format_part_family_assignments" }o--|| "serial_number_format_configs" : formatConfig
+"serial_number_usage_tracking" |o--|| "serial_number_format_configs" : formatConfig
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 ```
@@ -11413,6 +11470,75 @@ Labor entries for maintenance work order time and cost tracking
   - `laborRate`: 
   - `laborCost`: 
   - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_number_format_configs`
+Serial Number Format Configuration (Issue #149)
+Configurable serial number format engine supporting diverse manufacturing standards
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `description`: 
+  - `patternTemplate`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `version`: 
+  - `validationRules`: 
+  - `sequentialCounterStart`: 
+  - `sequentialCounterIncrement`: 
+  - `counterResetRule`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_format_part_assignments`
+Serial Format Part Assignment (Issue #149)
+Links serial number formats to specific parts with priority-based assignment
+
+**Properties**
+  - `id`: 
+  - `partId`: 
+  - `formatConfigId`: 
+  - `isDefault`: 
+  - `priority`: 
+  - `effectiveFrom`: 
+  - `effectiveUntil`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_format_part_family_assignments`
+Serial Format Part Family Assignment (Issue #149)
+Links serial number formats to part families for hierarchical assignment
+Note: PartFamily model will be created in future phases for hierarchical part organization
+
+**Properties**
+  - `id`: 
+  - `partFamilyId`: 
+  - `formatConfigId`: 
+  - `isDefault`: 
+  - `priority`: 
+  - `effectiveFrom`: 
+  - `effectiveUntil`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_number_usage_tracking`
+Serial Number Usage Tracking (Issue #149)
+Manages sequential counter state and usage statistics for serial formats
+
+**Properties**
+  - `id`: 
+  - `formatConfigId`: 
+  - `currentSequenceValue`: 
+  - `lastGeneratedDate`: 
+  - `counterResetDate`: 
+  - `totalGenerated`: 
+  - `totalUsed`: 
+  - `duplicateAttempts`: 
+  - `lastUpdateTimestamp`: 
+  - `version`: 
   - `createdAt`: 
   - `updatedAt`: 
 
