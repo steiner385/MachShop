@@ -113,6 +113,12 @@ import vendorKitRoutes from './routes/vendorKits';
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
+// ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
+import maximoSurrogateRoutes from './routes/maximo-surrogate';
+import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
+import erpSurrogateRoutes from './routes/erp-surrogate';
+import errorSimulationRoutes from './routes/error-simulation';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -322,6 +328,13 @@ apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
 apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
+
+// ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
+// Note: No auth middleware for testing surrogates to enable CI/CD testing without authentication
+apiRouter.use('/testing/maximo', maximoSurrogateRoutes);
+apiRouter.use('/testing/indysoft', indySoftSurrogateRoutes);
+apiRouter.use('/testing/erp', erpSurrogateRoutes);
+apiRouter.use('/testing/error-simulation', errorSimulationRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
