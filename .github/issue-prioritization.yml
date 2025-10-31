@@ -184,7 +184,7 @@ issues:
     business_value: 8
     effort_estimate: 9
     blocks: []
-    notes: "Testing 27 infrastructure and integration services for 30-50% coverage milestones - includes document management, auth, and adapters"
+    notes: "COMPLETED - Testing 27 infrastructure and integration services for 30-50% coverage milestones - ALL 27 services discovered to be 100% implemented and tested. Comprehensive verification completed - Implemented in PR #270"
 
   - number: 178
     title: "Epic 4: Frontend Component Testing - Phase 1 (Core)"
@@ -469,7 +469,7 @@ issues:
     business_value: 10
     effort_estimate: 9
     blocks: [236]
-    notes: "COMPLETED - Foundation for engine assembly - auto-generate kits from BOM, staging locations, kit status tracking, vendor kitting support. Critical for managing 25,000+ parts in engine assembly. Cannot do engine assembly without this capability - Issue closed in GitHub"
+    notes: "COMPLETED - Foundation for engine assembly - auto-generate kits from BOM, staging locations, kit status tracking, vendor kitting support. Critical for managing 25,000+ parts in engine assembly. Cannot do engine assembly without this capability - Implemented in PR #249"
 
   - number: 230
     title: "Quality Management: Digital Torque Management & Sequence Control for Engine Assembly"
@@ -524,7 +524,7 @@ issues:
     strategic_focus: null
     business_value: 8
     effort_estimate: 10
-    blocks: []
+    blocks: [266]
     notes: "Mock Teamcenter PLM APIs for product data, BOMs, CAD integration. Source of truth for characteristics and BOM. Multi-level BOM support (10+ levels). Enables PLM integration testing without live system."
 
   - number: 242
@@ -686,7 +686,7 @@ issues:
     strategic_focus: quality_management
     business_value: 8
     effort_estimate: 5
-    blocks: [56, 57, 58]
+    blocks: [56, 57, 58, 266]
     notes: "Foundation for structured root cause analysis"
 
   - number: 55
@@ -697,7 +697,7 @@ issues:
     strategic_focus: quality_management
     business_value: 9
     effort_estimate: 6
-    blocks: [56, 57, 58]
+    blocks: [56, 57, 58, 266]
     notes: "Extends existing NCR system with aerospace-specific dispositions"
 
   - number: 56
@@ -721,6 +721,17 @@ issues:
     effort_estimate: 6
     blocks: [58]
     notes: "Structured problem-solving methodology"
+
+  - number: 266
+    title: "Quality Management: Core Teamcenter Quality MRB Integration Infrastructure"
+    category: quality_management
+    foundation_level: 1
+    dependencies: [54, 55, 241]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 7
+    blocks: [267, 268, 269]
+    notes: "Core infrastructure for integrating with Teamcenter Quality MRB (Material Review Board) processes. Establishes foundational data models, API framework, authentication, and bidirectional sync capabilities between MES non-conformances and Teamcenter MRB workflows."
 
   # --- Inventory & Material Management Foundation ---
   - number: 88
@@ -1181,6 +1192,39 @@ issues:
     effort_estimate: 6
     blocks: []
     notes: "Formalized inspection planning and control plans"
+
+  - number: 267
+    title: "Quality Management: MRB Dashboard & Real-Time Visibility"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Comprehensive MRB dashboard providing real-time visibility into Material Review Board status, pending reviews, disposition tracking, and analytics across all non-conformances integrated with Teamcenter Quality."
+
+  - number: 268
+    title: "Quality Management: Teamcenter MRB Workflow Integration & Automation"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Seamless workflow integration where MRB decisions made in Teamcenter Quality automatically update MES NCR status and trigger appropriate follow-up actions, notifications, and workflow transitions."
+
+  - number: 269
+    title: "Quality Management: Cross-System MRB Traceability & Audit Trail"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Complete audit trail and traceability linking MES non-conformances to Teamcenter MRB reviews, decisions, documentation, and outcomes. Enables comprehensive compliance reporting and cross-system accountability."
 
   # --- MBE Long-Term Archival ---
   - number: 221
