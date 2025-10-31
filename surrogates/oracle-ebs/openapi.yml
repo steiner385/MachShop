@@ -1,0 +1,647 @@
+openapi: 3.0.0
+info:
+  title: Oracle EBS Surrogate API
+  description: |
+    Comprehensive REST API for Oracle EBS Surrogate system.
+    Mock ERP system for Manufacturing Execution System (MES) integration testing.
+  version: 1.0.0
+  contact:
+    name: MachShop Development Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3002/api
+    description: Local Development Server
+  - url: https://oracle-ebs.example.com/api
+    description: Production Server
+
+tags:
+  - name: Work Orders
+    description: Work order management and status tracking
+  - name: Inventory
+    description: Inventory items, transactions, and stock management
+  - name: Purchase Orders
+    description: Purchase order creation and receipt tracking
+  - name: Master Data Sync
+    description: Data synchronization from Maximo and IndySoft systems
+  - name: Financial
+    description: Cost tracking, allocations, and financial reporting
+  - name: Webhooks
+    description: Webhook subscriptions and event delivery
+  - name: Test Data
+    description: Test data generation and scenario management
+  - name: Health
+    description: System health and status endpoints
+
+paths:
+  /work-orders:
+    post:
+      tags:
+        - Work Orders
+      summary: Create a new work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - equipment_id
+                - description
+                - estimated_hours
+              properties:
+                equipment_id:
+                  type: string
+                  example: EQ-001
+                description:
+                  type: string
+                  example: Routine maintenance
+                estimated_hours:
+                  type: number
+                  example: 8
+                cost_center:
+                  type: string
+                  example: CC-001
+      responses:
+        '201':
+          description: Work order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  workOrderId:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+    get:
+      tags:
+        - Work Orders
+      summary: List all work orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  pagination:
+                    type: object
+
+  /work-orders/{workOrderId}:
+    get:
+      tags:
+        - Work Orders
+      summary: Get work order details
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Work order details
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Work order not found
+
+  /work-orders/{workOrderId}/status:
+    patch:
+      tags:
+        - Work Orders
+      summary: Update work order status
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newStatus
+              properties:
+                newStatus:
+                  type: string
+                  enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: Status updated successfully
+
+  /inventory/items:
+    post:
+      tags:
+        - Inventory
+      summary: Create inventory item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - part_number
+                - description
+                - quantity
+                - unit_cost
+              properties:
+                part_number:
+                  type: string
+                description:
+                  type: string
+                quantity:
+                  type: integer
+                unit_cost:
+                  type: number
+                location:
+                  type: string
+      responses:
+        '201':
+          description: Inventory item created
+
+  /inventory/items:
+    get:
+      tags:
+        - Inventory
+      summary: List inventory items
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of inventory items
+
+  /inventory/transactions:
+    post:
+      tags:
+        - Inventory
+      summary: Record inventory transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - part_number
+                - quantity
+                - transaction_type
+              properties:
+                part_number:
+                  type: string
+                quantity:
+                  type: integer
+                transaction_type:
+                  type: string
+                  enum: [IN, OUT, ADJUSTMENT]
+                work_order_id:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Transaction recorded
+
+  /po-receipts:
+    post:
+      tags:
+        - Purchase Orders
+      summary: Create PO receipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - po_number
+                - part_number
+                - quantity_received
+              properties:
+                po_number:
+                  type: string
+                part_number:
+                  type: string
+                quantity_received:
+                  type: integer
+                unit_cost:
+                  type: number
+      responses:
+        '201':
+          description: PO receipt created
+
+  /financial/costs/labor:
+    post:
+      tags:
+        - Financial
+      summary: Record labor cost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workOrderId
+                - hours
+                - hourlyRate
+                - costCenter
+              properties:
+                workOrderId:
+                  type: string
+                hours:
+                  type: number
+                hourlyRate:
+                  type: number
+                costCenter:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Labor cost recorded
+
+  /financial/costs/material:
+    post:
+      tags:
+        - Financial
+      summary: Record material cost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workOrderId
+                - partNumber
+                - quantity
+                - unitCost
+                - costCenter
+              properties:
+                workOrderId:
+                  type: string
+                partNumber:
+                  type: string
+                quantity:
+                  type: integer
+                unitCost:
+                  type: number
+                costCenter:
+                  type: string
+      responses:
+        '201':
+          description: Material cost recorded
+
+  /financial/costs/overhead:
+    post:
+      tags:
+        - Financial
+      summary: Allocate overhead cost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workOrderId
+                - amount
+                - costCenter
+              properties:
+                workOrderId:
+                  type: string
+                amount:
+                  type: number
+                costCenter:
+                  type: string
+      responses:
+        '201':
+          description: Overhead cost allocated
+
+  /financial/costs/allocation/{workOrderId}:
+    get:
+      tags:
+        - Financial
+      summary: Get cost allocation for work order
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cost allocation details
+
+  /financial/reports/cost-center/{costCenter}:
+    get:
+      tags:
+        - Financial
+      summary: Get cost center report
+      parameters:
+        - name: costCenter
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Cost center report
+
+  /financial/reports/variance:
+    get:
+      tags:
+        - Financial
+      summary: Get cost variance analysis
+      parameters:
+        - name: costCenter
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: budget
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Variance analysis
+
+  /webhooks/subscriptions:
+    post:
+      tags:
+        - Webhooks
+      summary: Create webhook subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - url
+                - events
+              properties:
+                name:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - WORK_ORDER_CREATED
+                      - WORK_ORDER_STATUS_CHANGED
+                      - INVENTORY_TRANSACTION
+                      - INVENTORY_THRESHOLD_ALERT
+                      - PO_RECEIPT_RECEIVED
+                      - EQUIPMENT_DOWNTIME_ALERT
+      responses:
+        '201':
+          description: Subscription created
+
+  /webhooks/subscriptions:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhook subscriptions
+      responses:
+        '200':
+          description: List of subscriptions
+
+  /webhooks/publish:
+    post:
+      tags:
+        - Webhooks
+      summary: Publish webhook event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventType
+                - payload
+              properties:
+                eventType:
+                  type: string
+                payload:
+                  type: object
+      responses:
+        '200':
+          description: Event published
+
+  /webhooks/stats:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook delivery statistics
+      responses:
+        '200':
+          description: Delivery statistics
+
+  /test-data/generate:
+    post:
+      tags:
+        - Test Data
+      summary: Generate test data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - scenario
+              properties:
+                scenario:
+                  type: string
+                  enum: [BASIC, COMPREHENSIVE, STRESS_TEST]
+      responses:
+        '201':
+          description: Test data generated
+
+  /test-data/reset:
+    post:
+      tags:
+        - Test Data
+      summary: Reset test data
+      responses:
+        '200':
+          description: Test data reset
+
+  /test-data/summary:
+    get:
+      tags:
+        - Test Data
+      summary: Get test data summary
+      responses:
+        '200':
+          description: Test data summary
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: System is healthy
+
+components:
+  schemas:
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        equipment_id:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        estimated_hours:
+          type: number
+        actual_hours:
+          type: number
+        cost_center:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        part_number:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        unit_cost:
+          type: number
+        location:
+          type: string
+
+    CostTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        transaction_type:
+          type: string
+        amount:
+          type: number
+        work_order_id:
+          type: string
+        cost_center:
+          type: string
+        gl_account:
+          type: string
+
+    WebhookSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
