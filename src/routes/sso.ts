@@ -19,6 +19,7 @@ import { config } from '../config/config';
 import { asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import SsoOrchestrationService from '../services/SsoOrchestrationService';
+import SamlService from '../services/SamlService';
 import { resolveUserPermissions } from '../services/permissionService';
 import prisma from '../lib/database';
 
@@ -26,6 +27,14 @@ const router = express.Router();
 
 // Service instances
 const orchestrationService = SsoOrchestrationService.getInstance();
+
+// Initialize SAML service with configuration
+const samlService = new SamlService({
+  baseUrl: process.env.BASE_URL || 'http://localhost:3001',
+  acsPath: '/api/v1/sso/saml/acs',
+  metadataPath: '/api/v1/sso/saml/metadata',
+  sloPath: '/api/v1/sso/saml/slo'
+});
 
 // Validation schemas
 const discoverProvidersSchema = z.object({
@@ -263,6 +272,242 @@ router.get('/status/:flowId',
         redirectUrl: flow.redirectUrl
       }
     });
+  })
+);
+
+// ============================================================================
+// SAML 2.0 ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/v1/sso/saml/metadata/:configId
+ * Generate and serve SAML Service Provider metadata
+ */
+router.get('/saml/metadata/:configId',
+  asyncHandler(async (req, res) => {
+    const { configId } = req.params;
+
+    try {
+      const metadata = await samlService.generateMetadata(configId);
+
+      res.set('Content-Type', 'application/xml');
+      res.send(metadata);
+
+      logger.info('SAML metadata served', { configId });
+
+    } catch (error) {
+      logger.error('Failed to generate SAML metadata', {
+        configId,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'METADATA_GENERATION_FAILED',
+        message: 'Failed to generate SAML metadata'
+      });
+    }
+  })
+);
+
+/**
+ * POST /api/v1/sso/saml/acs
+ * SAML Assertion Consumer Service (ACS) endpoint
+ */
+router.post('/saml/acs',
+  asyncHandler(async (req, res) => {
+    const { SAMLResponse, RelayState } = req.body;
+    const { configId } = req.query;
+
+    if (!SAMLResponse) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_SAML_RESPONSE',
+        message: 'SAMLResponse is required'
+      });
+    }
+
+    if (!configId || typeof configId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_CONFIG_ID',
+        message: 'configId query parameter is required'
+      });
+    }
+
+    try {
+      const result = await samlService.processAssertion(
+        configId,
+        SAMLResponse,
+        RelayState
+      );
+
+      if (!result.success) {
+        logger.warn('SAML assertion processing failed', {
+          configId,
+          errorCode: result.errorCode,
+          errorMessage: result.errorMessage
+        });
+
+        return res.status(400).json({
+          success: false,
+          error: result.errorCode,
+          message: result.errorMessage
+        });
+      }
+
+      // Generate JWT tokens for successful authentication
+      const tokens = await generateSsoTokens(result.user!, result.sessionId!);
+
+      logger.info('SAML authentication completed successfully', {
+        userId: result.user!.id,
+        email: result.user!.email,
+        configId,
+        sessionId: result.sessionId
+      });
+
+      // Determine return URL from RelayState or use default
+      const returnUrl = RelayState || `${process.env.FRONTEND_URL}/auth/callback`;
+      const redirectUrl = `${returnUrl}?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`;
+
+      res.redirect(redirectUrl);
+
+    } catch (error) {
+      logger.error('SAML ACS processing failed', {
+        configId,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_ACS_ERROR',
+        message: 'Failed to process SAML assertion'
+      });
+    }
+  })
+);
+
+/**
+ * POST /api/v1/sso/saml/slo
+ * SAML Single Logout (SLO) endpoint
+ */
+router.post('/saml/slo',
+  asyncHandler(async (req, res) => {
+    const { sessionId, nameId, sessionIndex } = req.body;
+
+    if (!sessionId || !nameId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_PARAMETERS',
+        message: 'sessionId and nameId are required'
+      });
+    }
+
+    try {
+      const logoutUrl = await samlService.initiateSingleLogout(
+        sessionId,
+        nameId,
+        sessionIndex
+      );
+
+      logger.info('SAML single logout initiated', {
+        sessionId,
+        nameId
+      });
+
+      res.json({
+        success: true,
+        data: {
+          logoutUrl
+        }
+      });
+
+    } catch (error) {
+      logger.error('SAML SLO initiation failed', {
+        sessionId,
+        nameId,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_SLO_ERROR',
+        message: 'Failed to initiate SAML single logout'
+      });
+    }
+  })
+);
+
+/**
+ * GET /api/v1/sso/saml/login/:configId
+ * Initiate SAML authentication request
+ */
+router.get('/saml/login/:configId',
+  asyncHandler(async (req, res) => {
+    const { configId } = req.params;
+    const { RelayState, returnUrl } = req.query;
+
+    try {
+      const authUrl = await samlService.createAuthenticationRequest({
+        configId,
+        relayState: RelayState as string,
+        returnUrl: returnUrl as string
+      });
+
+      logger.info('SAML authentication request created', {
+        configId,
+        relayState: RelayState
+      });
+
+      res.redirect(authUrl);
+
+    } catch (error) {
+      logger.error('SAML authentication request failed', {
+        configId,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_AUTH_REQUEST_ERROR',
+        message: 'Failed to create SAML authentication request'
+      });
+    }
+  })
+);
+
+/**
+ * POST /api/v1/sso/saml/validate-config/:configId
+ * Validate SAML configuration
+ */
+router.post('/saml/validate-config/:configId',
+  asyncHandler(async (req, res) => {
+    const { configId } = req.params;
+
+    try {
+      const isValid = await samlService.validateConfiguration(configId);
+
+      res.json({
+        success: true,
+        data: {
+          configId,
+          isValid,
+          message: isValid ? 'Configuration is valid' : 'Configuration validation failed'
+        }
+      });
+
+    } catch (error) {
+      logger.error('SAML configuration validation failed', {
+        configId,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_CONFIG_VALIDATION_ERROR',
+        message: 'Failed to validate SAML configuration'
+      });
+    }
   })
 );
 

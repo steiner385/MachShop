@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { authAPI, tokenUtils } from '@/api/auth';
-import { User, LoginRequest, LoginResponse } from '@/types/auth';
+import { User, LoginRequest, LoginResponse, SamlAuthRequest, SamlProviderInfo, SamlDiscoveryResponse } from '@/types/auth';
 import { AuthStateSynchronizer } from '@/utils/AuthStateSynchronizer';
 
 interface AuthState {
@@ -12,6 +12,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  // SAML-specific state
+  samlProviders: SamlProviderInfo[];
+  isSamlDiscovering: boolean;
+  samlDiscoveryResult: SamlDiscoveryResponse | null;
 }
 
 interface AuthActions {
@@ -23,6 +27,11 @@ interface AuthActions {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   initialize: () => Promise<void>;
+  // SAML-specific actions
+  discoverSamlProviders: (email: string) => Promise<void>;
+  initiateSamlAuth: (request: SamlAuthRequest) => Promise<void>;
+  loadSamlProviders: () => Promise<void>;
+  clearSamlDiscovery: () => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -43,7 +52,16 @@ const isTestMode = () => {
 // Get initial test auth state from localStorage if in test mode
 const getInitialTestAuthState = () => {
   if (!isTestMode() || typeof window === 'undefined') {
-    return { user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: true };
+    return {
+    user: null,
+    token: null,
+    refreshToken: null,
+    isAuthenticated: false,
+    isLoading: true,
+    samlProviders: [],
+    isSamlDiscovering: false,
+    samlDiscoveryResult: null
+  };
   }
 
   try {
@@ -59,7 +77,10 @@ const getInitialTestAuthState = () => {
           token: authState.token,
           refreshToken: authState.refreshToken,
           isAuthenticated: true,
-          isLoading: false
+          isLoading: false,
+          samlProviders: [],
+          isSamlDiscovering: false,
+          samlDiscoveryResult: null
         };
       }
     }
@@ -67,7 +88,16 @@ const getInitialTestAuthState = () => {
     console.warn('[TEST MODE] Failed to parse auth state from localStorage:', error);
   }
 
-  return { user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false };
+  return {
+    user: null,
+    token: null,
+    refreshToken: null,
+    isAuthenticated: false,
+    isLoading: false,
+    samlProviders: [],
+    isSamlDiscovering: false,
+    samlDiscoveryResult: null
+  };
 };
 
 export const useAuthStoreBase = create<AuthStore>()(
@@ -84,6 +114,10 @@ export const useAuthStoreBase = create<AuthStore>()(
           isAuthenticated: initialTestState.isAuthenticated,
           isLoading: initialTestState.isLoading,
           error: null,
+          // SAML initial state
+          samlProviders: initialTestState.samlProviders,
+          isSamlDiscovering: initialTestState.isSamlDiscovering,
+          samlDiscoveryResult: initialTestState.samlDiscoveryResult,
 
           // Actions
           login: async (credentials: LoginRequest) => {
@@ -260,6 +294,79 @@ export const useAuthStoreBase = create<AuthStore>()(
             console.error('[AuthStore] Auth initialization error:', error);
             set({ isLoading: false, error: 'Authentication initialization failed' });
           }
+        },
+
+        // SAML Authentication Actions
+
+        discoverSamlProviders: async (email: string) => {
+          try {
+            set({ isSamlDiscovering: true, error: null });
+
+            const response: SamlDiscoveryResponse = await authAPI.discoverSamlProviders(email);
+
+            set({
+              isSamlDiscovering: false,
+              samlDiscoveryResult: response,
+              error: null,
+            });
+
+            console.log('[AuthStore] SAML provider discovery successful');
+          } catch (error: any) {
+            set({
+              isSamlDiscovering: false,
+              samlDiscoveryResult: null,
+              error: error.message || 'SAML provider discovery failed',
+            });
+            throw error;
+          }
+        },
+
+        initiateSamlAuth: async (request: SamlAuthRequest) => {
+          try {
+            set({ isLoading: true, error: null });
+
+            const response = await authAPI.initiateSamlAuth(request);
+
+            // Redirect to SAML IdP for authentication
+            if (response.redirectUrl) {
+              window.location.href = response.redirectUrl;
+            } else {
+              throw new Error('No redirect URL received from SAML provider');
+            }
+
+            console.log('[AuthStore] SAML authentication initiated');
+          } catch (error: any) {
+            set({
+              isLoading: false,
+              error: error.message || 'SAML authentication initiation failed',
+            });
+            throw error;
+          }
+        },
+
+        loadSamlProviders: async () => {
+          try {
+            const providers: SamlProviderInfo[] = await authAPI.getSamlProviders();
+
+            set({
+              samlProviders: providers,
+              error: null,
+            });
+
+            console.log('[AuthStore] SAML providers loaded successfully');
+          } catch (error: any) {
+            set({
+              error: error.message || 'Failed to load SAML providers',
+            });
+            throw error;
+          }
+        },
+
+        clearSamlDiscovery: () => {
+          set({
+            samlDiscoveryResult: null,
+            isSamlDiscovering: false,
+          });
         },
       };
     },
@@ -468,5 +575,59 @@ export const usePermissionCheck = () => {
     hasAllRoles,
     permissions: user?.permissions || [],
     roles: user?.roles || []
+  };
+};
+
+// SAML-specific hooks
+
+/**
+ * Hook for SAML authentication functionality
+ */
+export const useSamlAuth = () => {
+  const {
+    samlProviders,
+    isSamlDiscovering,
+    samlDiscoveryResult,
+    discoverSamlProviders,
+    initiateSamlAuth,
+    loadSamlProviders,
+    clearSamlDiscovery,
+  } = useAuthStore();
+
+  return {
+    samlProviders,
+    isSamlDiscovering,
+    samlDiscoveryResult,
+    discoverSamlProviders,
+    initiateSamlAuth,
+    loadSamlProviders,
+    clearSamlDiscovery,
+  };
+};
+
+/**
+ * Hook to get available SAML providers
+ */
+export const useSamlProviders = () => {
+  const { samlProviders, loadSamlProviders } = useAuthStore();
+  return { samlProviders, loadSamlProviders };
+};
+
+/**
+ * Hook for SAML provider discovery
+ */
+export const useSamlDiscovery = () => {
+  const {
+    isSamlDiscovering,
+    samlDiscoveryResult,
+    discoverSamlProviders,
+    clearSamlDiscovery,
+  } = useAuthStore();
+
+  return {
+    isSamlDiscovering,
+    samlDiscoveryResult,
+    discoverSamlProviders,
+    clearSamlDiscovery,
   };
 };

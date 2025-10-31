@@ -21,6 +21,8 @@ import { logger } from '../utils/logger';
 import SsoProviderService from '../services/SsoProviderService';
 import HomeRealmDiscoveryService from '../services/HomeRealmDiscoveryService';
 import SsoSessionService from '../services/SsoSessionService';
+import SamlService from '../services/SamlService';
+import prisma from '../lib/database';
 
 const router = express.Router();
 
@@ -28,6 +30,14 @@ const router = express.Router();
 const providerService = SsoProviderService.getInstance();
 const discoveryService = HomeRealmDiscoveryService.getInstance();
 const sessionService = SsoSessionService.getInstance();
+
+// Initialize SAML service with configuration
+const samlService = new SamlService({
+  baseUrl: process.env.BASE_URL || 'http://localhost:3001',
+  acsPath: '/api/v1/sso/saml/acs',
+  metadataPath: '/api/v1/sso/saml/metadata',
+  sloPath: '/api/v1/sso/saml/slo'
+});
 
 // Validation schemas
 const createProviderSchema = z.object({
@@ -53,6 +63,26 @@ const createDiscoveryRuleSchema = z.object({
 });
 
 const updateDiscoveryRuleSchema = createDiscoveryRuleSchema.partial();
+
+// SAML configuration validation schemas
+const createSamlConfigSchema = z.object({
+  name: z.string().min(1, 'Configuration name is required'),
+  entityId: z.string().min(1, 'Entity ID is required'),
+  ssoUrl: z.string().url('Valid SSO URL is required'),
+  sloUrl: z.string().url().optional(),
+  certificate: z.string().min(1, 'Certificate is required'),
+  privateKey: z.string().min(1, 'Private key is required'),
+  signRequests: z.boolean().default(true),
+  signAssertions: z.boolean().default(true),
+  encryptAssertions: z.boolean().default(false),
+  nameIdFormat: z.string().default('urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'),
+  attributeMapping: z.record(z.string()).default({}),
+  clockTolerance: z.number().int().min(0).default(300),
+  isActive: z.boolean().default(true),
+  idpMetadata: z.string().optional()
+});
+
+const updateSamlConfigSchema = createSamlConfigSchema.partial();
 
 // ============================================================================
 // SSO PROVIDER MANAGEMENT
@@ -434,6 +464,414 @@ router.delete('/users/:userId/sessions',
       success: true,
       message: 'All sessions terminated successfully'
     });
+  })
+);
+
+// ============================================================================
+// SAML CONFIGURATION MANAGEMENT
+// ============================================================================
+
+/**
+ * GET /api/v1/admin/sso/saml-configs
+ * List all SAML configurations
+ */
+router.get('/saml-configs',
+  requirePermission('sso.admin.read'),
+  asyncHandler(async (req, res) => {
+    const { isActive } = req.query;
+
+    const filters: any = {};
+    if (isActive !== undefined) filters.isActive = isActive === 'true';
+
+    const configs = await prisma.samlConfig.findMany({
+      where: filters,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Include status and session count for each config
+    const configsWithStatus = await Promise.all(
+      configs.map(async (config) => {
+        const [isValid, sessionCount] = await Promise.all([
+          samlService.validateConfiguration(config.id),
+          prisma.samlSession.count({
+            where: { configId: config.id }
+          })
+        ]);
+
+        return {
+          ...config,
+          isValid,
+          activeSessions: sessionCount,
+          // Remove sensitive fields from response
+          privateKey: undefined,
+          certificate: config.certificate ? '[REDACTED]' : null
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: configsWithStatus,
+      total: configs.length
+    });
+  })
+);
+
+/**
+ * GET /api/v1/admin/sso/saml-configs/:id
+ * Get specific SAML configuration details
+ */
+router.get('/saml-configs/:id',
+  requirePermission('sso.admin.read'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const config = await prisma.samlConfig.findUnique({
+      where: { id }
+    });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        error: 'SAML configuration not found'
+      });
+    }
+
+    const [isValid, sessionCount, recentSessions] = await Promise.all([
+      samlService.validateConfiguration(id),
+      prisma.samlSession.count({
+        where: { configId: id }
+      }),
+      prisma.samlSession.findMany({
+        where: { configId: id },
+        include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 10
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        ...config,
+        isValid,
+        activeSessions: sessionCount,
+        recentSessions,
+        // Remove sensitive fields from response
+        privateKey: undefined,
+        certificate: config.certificate ? '[REDACTED]' : null
+      }
+    });
+  })
+);
+
+/**
+ * POST /api/v1/admin/sso/saml-configs
+ * Create a new SAML configuration
+ */
+router.post('/saml-configs',
+  requirePermission('sso.admin.write'),
+  asyncHandler(async (req, res) => {
+    const validatedData = createSamlConfigSchema.parse(req.body);
+
+    const config = await prisma.samlConfig.create({
+      data: validatedData
+    });
+
+    logger.info('SAML configuration created via API', {
+      configId: config.id,
+      name: config.name,
+      entityId: config.entityId,
+      userId: req.user?.id
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...config,
+        // Remove sensitive fields from response
+        privateKey: undefined,
+        certificate: config.certificate ? '[REDACTED]' : null
+      }
+    });
+  })
+);
+
+/**
+ * PUT /api/v1/admin/sso/saml-configs/:id
+ * Update an existing SAML configuration
+ */
+router.put('/saml-configs/:id',
+  requirePermission('sso.admin.write'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updates = updateSamlConfigSchema.parse(req.body);
+
+    const config = await prisma.samlConfig.update({
+      where: { id },
+      data: {
+        ...updates,
+        updatedAt: new Date()
+      }
+    });
+
+    logger.info('SAML configuration updated via API', {
+      configId: id,
+      updates: Object.keys(updates),
+      userId: req.user?.id
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...config,
+        // Remove sensitive fields from response
+        privateKey: undefined,
+        certificate: config.certificate ? '[REDACTED]' : null
+      }
+    });
+  })
+);
+
+/**
+ * DELETE /api/v1/admin/sso/saml-configs/:id
+ * Delete a SAML configuration
+ */
+router.delete('/saml-configs/:id',
+  requirePermission('sso.admin.delete'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Check for active sessions before deletion
+    const activeSessionCount = await prisma.samlSession.count({
+      where: { configId: id }
+    });
+
+    if (activeSessionCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'ACTIVE_SESSIONS_EXIST',
+        message: `Cannot delete configuration with ${activeSessionCount} active sessions`
+      });
+    }
+
+    await prisma.samlConfig.delete({
+      where: { id }
+    });
+
+    logger.info('SAML configuration deleted via API', {
+      configId: id,
+      userId: req.user?.id
+    });
+
+    res.json({
+      success: true,
+      message: 'SAML configuration deleted successfully'
+    });
+  })
+);
+
+/**
+ * POST /api/v1/admin/sso/saml-configs/:id/test
+ * Test SAML configuration
+ */
+router.post('/saml-configs/:id/test',
+  requirePermission('sso.admin.read'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const isValid = await samlService.validateConfiguration(id);
+
+      // Try to generate metadata to test configuration
+      let metadataGenerated = false;
+      let metadataError = null;
+
+      try {
+        await samlService.generateMetadata(id);
+        metadataGenerated = true;
+      } catch (error) {
+        metadataError = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      res.json({
+        success: true,
+        data: {
+          configId: id,
+          isValid,
+          metadataGenerated,
+          metadataError,
+          timestamp: new Date(),
+          tests: {
+            configurationValid: isValid,
+            metadataGeneration: metadataGenerated
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('SAML configuration test failed', {
+        configId: id,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_CONFIG_TEST_FAILED',
+        message: 'Failed to test SAML configuration'
+      });
+    }
+  })
+);
+
+/**
+ * GET /api/v1/admin/sso/saml-configs/:id/metadata
+ * Get SAML configuration metadata (for IdP setup)
+ */
+router.get('/saml-configs/:id/metadata',
+  requirePermission('sso.admin.read'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const metadata = await samlService.generateMetadata(id);
+
+      res.set('Content-Type', 'application/xml');
+      res.send(metadata);
+
+    } catch (error) {
+      logger.error('Failed to generate SAML metadata for admin', {
+        configId: id,
+        error: error instanceof Error ? error.message : error
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'METADATA_GENERATION_FAILED',
+        message: 'Failed to generate SAML metadata'
+      });
+    }
+  })
+);
+
+/**
+ * GET /api/v1/admin/sso/saml-sessions
+ * List SAML sessions with filtering
+ */
+router.get('/saml-sessions',
+  requirePermission('sso.admin.read'),
+  asyncHandler(async (req, res) => {
+    const { configId, userId, limit = 50, offset = 0 } = req.query;
+
+    const filters: any = {};
+    if (configId) filters.configId = configId as string;
+    if (userId) filters.userId = userId as string;
+
+    const [sessions, total] = await Promise.all([
+      prisma.samlSession.findMany({
+        where: filters,
+        include: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          config: { select: { id: true, name: true, entityId: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit as string, 10),
+        skip: parseInt(offset as string, 10)
+      }),
+      prisma.samlSession.count({ where: filters })
+    ]);
+
+    res.json({
+      success: true,
+      data: sessions,
+      total,
+      pagination: {
+        limit: parseInt(limit as string, 10),
+        offset: parseInt(offset as string, 10),
+        hasMore: parseInt(offset as string, 10) + sessions.length < total
+      }
+    });
+  })
+);
+
+/**
+ * DELETE /api/v1/admin/sso/saml-sessions/:id
+ * Terminate a specific SAML session
+ */
+router.delete('/saml-sessions/:id',
+  requirePermission('sso.admin.delete'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const session = await prisma.samlSession.findUnique({
+      where: { id }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'SAML session not found'
+      });
+    }
+
+    await prisma.samlSession.delete({
+      where: { id }
+    });
+
+    logger.info('SAML session terminated via API', {
+      sessionId: id,
+      userId: session.userId,
+      adminUserId: req.user?.id
+    });
+
+    res.json({
+      success: true,
+      message: 'SAML session terminated successfully'
+    });
+  })
+);
+
+/**
+ * POST /api/v1/admin/sso/saml-cleanup
+ * Clean up expired SAML sessions and auth requests
+ */
+router.post('/saml-cleanup',
+  requirePermission('sso.admin.write'),
+  asyncHandler(async (req, res) => {
+    try {
+      await samlService.cleanup();
+
+      const stats = await Promise.all([
+        prisma.samlSession.count(),
+        prisma.samlAuthRequest.count()
+      ]);
+
+      logger.info('SAML cleanup completed via API', {
+        userId: req.user?.id
+      });
+
+      res.json({
+        success: true,
+        data: {
+          message: 'SAML cleanup completed',
+          activeSessions: stats[0],
+          activeAuthRequests: stats[1],
+          timestamp: new Date()
+        }
+      });
+
+    } catch (error) {
+      logger.error('SAML cleanup failed', {
+        error: error instanceof Error ? error.message : error,
+        userId: req.user?.id
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'SAML_CLEANUP_FAILED',
+        message: 'Failed to perform SAML cleanup'
+      });
+    }
   })
 );
 
