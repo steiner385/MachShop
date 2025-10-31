@@ -1,0 +1,50 @@
+{
+  "name": "teamcenter-plm-surrogate",
+  "version": "1.0.0",
+  "description": "Mock Teamcenter PLM system for testing BOM integration, ECO workflows, and CAD metadata without live system access",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "docker:build": "docker build -t teamcenter-plm-surrogate:latest .",
+    "docker:run": "docker run -p 3002:3002 --env-file .env teamcenter-plm-surrogate:latest"
+  },
+  "keywords": [
+    "PLM",
+    "BOM",
+    "CAD",
+    "engineering-change-management",
+    "testing",
+    "mock",
+    "surrogate"
+  ],
+  "author": "MachShop Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0",
+    "joi": "^17.11.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "@types/jest": "^29.5.8",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^6.0.2",
+    "swagger-ui-express": "^4.6.3",
+    "swagger-jsdoc": "^6.2.8"
+  }
+}
