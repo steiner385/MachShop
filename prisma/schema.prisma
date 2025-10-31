@@ -8949,7 +8949,7 @@ model InterchangeabilityApproval {
   groupId               String
   partId                String?                       // Specific part if approval is part-specific
   approvalType          InterchangeabilityApprovalType @default(GROUP_APPROVAL)
-  status                ApprovalStatus                @default(PENDING)
+  status                InterchangeabilityApprovalStatus @default(PENDING)
   requestedBy           String
   approvedBy            String?
   approvalDate          DateTime?
@@ -9076,7 +9076,7 @@ enum InterchangeabilityApprovalType {
   SUBSTITUTION_RULE // Approval for specific substitution rule
 }
 
-enum ApprovalStatus {
+enum InterchangeabilityApprovalStatus {
   PENDING
   IN_REVIEW
   APPROVED
