@@ -364,6 +364,26 @@ export default defineConfig({
       metadata: { projectName: 'role-tests' }
     },
 
+    /* Accessibility tests - WCAG 2.1 Level AA compliance */
+    {
+      name: 'accessibility-tests',
+      testMatch: '**/accessibility/accessibility-audit.spec.ts',
+      timeout: 120000, // 2 minutes per test (accessibility audits can be slow)
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        // No storageState - tests manage their own authentication for role-based testing
+        actionTimeout: 45000, // Extended timeout for complex component rendering
+        navigationTimeout: 45000,
+        extraHTTPHeaders: {
+          'X-Test-Mode': 'playwright-e2e',
+          'X-Project-Name': 'accessibility-tests'
+        }
+      },
+      // Set project name for dynamic allocation
+      metadata: { projectName: 'accessibility-tests' }
+    },
+
     // NOTE: Domain integration tests (routing-domain and domain-integration)
     // have been removed because they require Nginx and /etc/hosts configuration.
     // To re-enable, add projects with baseURL: 'http://local.mes.com'

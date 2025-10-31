@@ -1,0 +1,562 @@
+{
+  "placeholderMarkers": [
+    {
+      "file": "components/Staging/StagingDashboard.tsx",
+      "line": 117,
+      "pattern": "TODO",
+      "content": "// TODO: Replace with actual API call to staging dashboard endpoint",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Staging/StagingStatusBoard.tsx",
+      "line": 256,
+      "pattern": "TODO",
+      "content": "// TODO: Update backend with new status",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Approvals/ApprovalTaskQueue.tsx",
+      "line": 314,
+      "pattern": "TODO",
+      "content": "// TODO: Implement bulk reject with comments collection",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Approvals/ApprovalTaskQueue.tsx",
+      "line": 358,
+      "pattern": "TODO",
+      "content": "// TODO: Implement delegation modal",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Approvals/ApprovalTaskDetail.tsx",
+      "line": 769,
+      "pattern": "TODO",
+      "content": "// TODO: Implement delegation form submission",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Approvals/ApprovalTaskDetail.tsx",
+      "line": 782,
+      "pattern": "TODO",
+      "content": "{/* TODO: Populate with actual users */}",
+      "severity": "HIGH",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitForm.tsx",
+      "line": 178,
+      "pattern": "TODO",
+      "content": "// TODO: Implement actual API call",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitForm.tsx",
+      "line": 186,
+      "pattern": "TODO",
+      "content": "// TODO: Implement actual API call",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitForm.tsx",
+      "line": 194,
+      "pattern": "TODO",
+      "content": "// TODO: Implement actual API call with search",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitsList.tsx",
+      "line": 118,
+      "pattern": "TODO",
+      "content": "shortageCount: 0, // TODO: Calculate from shortages",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitsList.tsx",
+      "line": 383,
+      "pattern": "TODO",
+      "content": "// TODO: Implement status transition modal",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitsList.tsx",
+      "line": 388,
+      "pattern": "TODO",
+      "content": "// TODO: Implement QR code generation",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitsList.tsx",
+      "line": 404,
+      "pattern": "TODO",
+      "content": "// TODO: Implement bulk actions",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitCostAnalysis.tsx",
+      "line": 321,
+      "pattern": "TODO",
+      "content": "// TODO: Load actual data from API",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitAnalyticsDashboard.tsx",
+      "line": 205,
+      "pattern": "TODO",
+      "content": "// TODO: Replace with actual API call",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitAnalyticsDashboard.tsx",
+      "line": 333,
+      "pattern": "TODO",
+      "content": "// TODO: Implement actual export functionality",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 245,
+      "pattern": "TODO",
+      "content": "// TODO: Load from API",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 250,
+      "pattern": "TODO",
+      "content": "// TODO: Load from API",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 302,
+      "pattern": "TODO",
+      "content": "// TODO: Call API to generate preview",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 342,
+      "pattern": "TODO",
+      "content": "// TODO: Call API to generate report",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Traceability/GenealogyTreeVisualization.tsx",
+      "line": 223,
+      "pattern": "TODO",
+      "content": "// TODO: Show modal with node details",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/WorkInstructions/WorkInstructionForm.tsx",
+      "line": 317,
+      "pattern": "TODO",
+      "content": "{/* TODO: Load parts from API */}",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/WorkInstructions/WorkInstructionForm.tsx",
+      "line": 336,
+      "pattern": "TODO",
+      "content": "{/* TODO: Load operations from API */}",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Routing/StepBuilderModal.tsx",
+      "line": 108,
+      "pattern": "TODO",
+      "content": "// TODO: Load from actual APIs",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "components/Routing/RoutingDetail.tsx",
+      "line": 157,
+      "pattern": "TODO",
+      "content": "approvedBy: 'current-user', // TODO: Get from auth context",
+      "severity": "HIGH",
+      "category": "SECURITY"
+    },
+    {
+      "file": "components/Execution/panels/InstructionPanel.tsx",
+      "line": 224,
+      "pattern": "TODO",
+      "content": "{/* TODO: Add support for images, videos, diagrams */}",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Execution/ConfigurableExecutionLayout.tsx",
+      "line": 69,
+      "pattern": "TODO",
+      "content": "// TODO: Get actual user ID and workstation ID from context/auth",
+      "severity": "HIGH",
+      "category": "SECURITY"
+    },
+    {
+      "file": "components/Execution/ConfigurableExecutionLayout.tsx",
+      "line": 87,
+      "pattern": "TODO",
+      "content": "// TODO: Load work instruction steps from API",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "main.tsx",
+      "line": 80,
+      "pattern": "TODO",
+      "content": "// TODO: Send error to monitoring service",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "pages/WorkOrders/WorkOrders.tsx",
+      "line": 207,
+      "pattern": "TODO",
+      "content": "// TODO: Implement bulk delete API call",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "pages/Kits/KitsPage.tsx",
+      "line": 41,
+      "pattern": "TODO",
+      "content": "{/* TODO: Add other modals as needed */}",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "pages/Kits/KitAnalyticsPage.tsx",
+      "line": 60,
+      "pattern": "TODO",
+      "content": "// TODO: Implement comprehensive export functionality",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "pages/FAI/FAICreatePage.tsx",
+      "line": 133,
+      "pattern": "TODO",
+      "content": "{/* TODO: Load parts from API */}",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "pages/Dashboard/Dashboard.tsx",
+      "line": 195,
+      "pattern": "TODO",
+      "content": "avgCycleTime: 5.2, // TODO: Calculate from data",
+      "severity": "MEDIUM",
+      "category": "DATA"
+    },
+    {
+      "file": "pages/Dashboard/Dashboard.tsx",
+      "line": 219,
+      "pattern": "TODO",
+      "content": "avgCycleTime: 5.2, // TODO: Calculate from data",
+      "severity": "MEDIUM",
+      "category": "DATA"
+    },
+    {
+      "file": "store/executionLayoutStore.ts",
+      "line": 385,
+      "pattern": "TODO",
+      "content": "// TODO: Integrate with UserPreferenceService API",
+      "severity": "HIGH",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "store/executionLayoutStore.ts",
+      "line": 411,
+      "pattern": "TODO",
+      "content": "// TODO: Integrate with UserPreferenceService API",
+      "severity": "HIGH",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "store/executionLayoutStore.ts",
+      "line": 430,
+      "pattern": "TODO",
+      "content": "// TODO: Integrate with UserPreferenceService API",
+      "severity": "HIGH",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "store/executionLayoutStore.ts",
+      "line": 509,
+      "pattern": "TODO",
+      "content": "// TODO: Implement picture-in-picture window",
+      "severity": "MEDIUM",
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/materials.ts",
+      "line": 387,
+      "pattern": "TODO",
+      "content": "recentTransactions: [], // TODO: Implement when backend endpoint is available",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "api/materials.ts",
+      "line": 389,
+      "pattern": "TODO",
+      "content": "lowStock: [], // TODO: Implement when backend endpoint is available",
+      "severity": "MEDIUM",
+      "category": "API_INTEGRATION"
+    },
+    {
+      "file": "api/equipment.ts",
+      "line": 518,
+      "pattern": "TODO",
+      "content": "criticalEquipment: [], // TODO: Implement when backend endpoint is available",
+      "severity": "CRITICAL",
+      "category": "UI_COMPONENT"
+    },
+    {
+      "file": "pages/Admin/AdminPage.tsx",
+      "line": 207,
+      "pattern": "Coming Soon",
+      "content": "{/* Coming Soon Section */}",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "pages/Admin/AdminPage.tsx",
+      "line": 208,
+      "pattern": "Coming Soon",
+      "content": "<Card title=\"Additional Features (Coming Soon)\">",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/ECO/ECOForm.tsx",
+      "line": 407,
+      "pattern": "Not Implemented",
+      "content": "label=\"Risks if Not Implemented\"",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Traceability/GenealogyTreeVisualization.tsx",
+      "line": 337,
+      "pattern": "Work in Progress",
+      "content": "<Text type=\"secondary\">Work in Progress</Text>",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/Materials/__tests__/MaterialsList.test.tsx",
+      "line": 80,
+      "pattern": "Work in Progress",
+      "content": "WORK_IN_PROGRESS: 'Work in Progress',",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "pages/Serialization/SerializationListPage.tsx",
+      "line": 658,
+      "pattern": "Work in Progress",
+      "content": "<Select.Option value=\"WIP\">Work in Progress</Select.Option>",
+      "severity": "LOW",
+      "category": "GENERAL"
+    },
+    {
+      "file": "components/BuildRecords/BuildBookGenerator.tsx",
+      "line": 221,
+      "pattern": "XXX",
+      "content": "certificationInfo: 'AS9100D Certified | FAA Repair Station #XXXR'",
+      "severity": "LOW",
+      "category": "GENERAL"
+    }
+  ],
+  "deadLinks": [],
+  "incompleteComponents": [
+    {
+      "file": "App.tsx",
+      "component": "MaterialsPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "pages/Materials/MaterialsPage.tsx",
+      "component": "MaterialsPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "App.tsx",
+      "component": "PersonnelPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "pages/Personnel/PersonnelPage.tsx",
+      "component": "PersonnelPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "App.tsx",
+      "component": "AdminPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "pages/Admin/AdminPage.tsx",
+      "component": "AdminPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "App.tsx",
+      "component": "SettingsPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    },
+    {
+      "file": "pages/Settings/SettingsPage.tsx",
+      "component": "SettingsPage",
+      "type": "PLACEHOLDER_PAGE",
+      "severity": "MEDIUM",
+      "description": "Component identified as placeholder during discovery phase"
+    }
+  ],
+  "routeMismatches": [
+    {
+      "type": "ROUTE_WITHOUT_NAVIGATION",
+      "routePath": "/login",
+      "component": "LoginPage",
+      "severity": "MEDIUM",
+      "description": "Route exists but is not accessible through navigation menu"
+    },
+    {
+      "type": "ROUTE_WITHOUT_NAVIGATION",
+      "routePath": "/",
+      "component": "Navigate",
+      "severity": "MEDIUM",
+      "description": "Route exists but is not accessible through navigation menu"
+    },
+    {
+      "type": "ROUTE_WITHOUT_NAVIGATION",
+      "routePath": "/login",
+      "component": "Navigate",
+      "severity": "MEDIUM",
+      "description": "Route exists but is not accessible through navigation menu"
+    }
+  ],
+  "mockData": [
+    {
+      "file": "components/Staging/StagingDashboard.tsx",
+      "line": 121,
+      "pattern": "mockData",
+      "content": "const mockData: StagingDashboardData = {",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "components/Staging/StagingDashboard.tsx",
+      "line": 193,
+      "pattern": "mockData",
+      "content": "setDashboardData(mockData);",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "components/Kits/KitAnalyticsDashboard.tsx",
+      "line": 213,
+      "pattern": "mockData",
+      "content": "const mockData: AnalyticsData = {",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "components/Kits/KitAnalyticsDashboard.tsx",
+      "line": 316,
+      "pattern": "mockData",
+      "content": "setAnalyticsData(mockData);",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 306,
+      "pattern": "mockData",
+      "content": "const mockData = [",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "components/Kits/KitReportGenerator.tsx",
+      "line": 327,
+      "pattern": "mockData",
+      "content": "setReportPreview(mockData);",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    },
+    {
+      "file": "services/workOrderApi.ts",
+      "line": 190,
+      "pattern": "mockData",
+      "content": "const mockData: WorkOrder[] = [",
+      "severity": "HIGH",
+      "category": "WORK_ORDER_DATA"
+    },
+    {
+      "file": "services/workOrderApi.ts",
+      "line": 240,
+      "pattern": "mockData",
+      "content": "workOrders: mockData,",
+      "severity": "HIGH",
+      "category": "WORK_ORDER_DATA"
+    },
+    {
+      "file": "services/workOrderApi.ts",
+      "line": 241,
+      "pattern": "mockData",
+      "content": "total: mockData.length,",
+      "severity": "HIGH",
+      "category": "GENERAL_DATA"
+    }
+  ],
+  "summary": {
+    "totalFiles": 313,
+    "filesWithPlaceholders": 34,
+    "totalPlaceholders": 49,
+    "totalRouteMismatches": 3,
+    "totalIncompleteComponents": 8,
+    "totalMockDataInstances": 9,
+    "criticalIssues": 1,
+    "analysisDate": "2025-10-31"
+  }
+}

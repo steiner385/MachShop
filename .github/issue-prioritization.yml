@@ -20,6 +20,8 @@ scoring_weights:
 strategic_focus:
   - time_tracking
   - quality_management
+  - ui_accessibility
+  - user_experience
 
 # Issue Definitions
 issues:
@@ -435,6 +437,128 @@ issues:
     effort_estimate: 5
     blocks: []
     notes: "COMPLETED - Foundation for quality data exchange - migrate QIF measurement identifiers to UUID per NIST AMS 300-12, enables cross-enterprise characteristic tracking, AS9102 FAI compliance - Implemented in PR #239"
+
+  # --- UI Accessibility & User Experience Infrastructure ---
+  - number: 274
+    title: "Implement Materials Management Page (/materials)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "HIGH priority placeholder route - Materials page accessible via navigation but shows placeholder content. Critical for material inventory management interface, RBAC integration, navigation completeness, responsive design, and accessibility compliance"
+
+  - number: 275
+    title: "Implement Personnel Management Page (/personnel)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "HIGH priority placeholder route - Personnel page accessible via navigation but shows placeholder content. Essential for personnel management interface, RBAC integration, navigation completeness, responsive design, and accessibility compliance"
+
+  - number: 276
+    title: "Implement Administration Dashboard (/admin)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "HIGH priority placeholder route - Administration page accessible via navigation but shows placeholder content. Critical for admin functionality, RBAC integration, navigation completeness, responsive design, and accessibility compliance"
+
+  - number: 277
+    title: "Replace Hardcoded localhost URLs with Environment Variables"
+    category: api_integration
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 8
+    effort_estimate: 4
+    blocks: []
+    notes: "HIGH priority API integration issue - Replace hardcoded localhost:3001 URLs with configurable environment variables. Critical for deployment flexibility, development/staging/production environments, and proper configuration management"
+
+  - number: 278
+    title: "Fix Typography Hierarchy Issues"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "HIGH priority design consistency issue - Standardize typography hierarchy across application. Critical for visual consistency, readability, accessibility compliance, and professional appearance"
+
+  - number: 279
+    title: "Implement Keyboard Navigation for ReactFlow Components"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "HIGH priority accessibility issue - 84 ReactFlow components need custom keyboard navigation for WCAG 2.1 Level AA compliance. Critical for accessibility, keyboard navigation, ARIA labels, focus indicators, and keyboard shortcuts"
+
+  - number: 280
+    title: "Add Accessibility Support for D3 Data Visualizations"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "HIGH priority accessibility issue - 156 D3 visualization components need accessibility improvements for WCAG 2.1 Level AA compliance. Critical for screen reader support, keyboard navigation, and data accessibility"
+
+  - number: 281
+    title: "Systematic Keyboard Navigation Enhancement - Interactive Elements"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "HIGH priority accessibility issue - 522 improvement opportunities identified across 1,490 interactive elements. Critical for comprehensive keyboard navigation, focus management, and WCAG 2.1 Level AA compliance"
+
+  - number: 282
+    title: "Implement User Settings Page (/settings)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 6
+    effort_estimate: 6
+    blocks: []
+    notes: "MEDIUM priority placeholder route - User settings page accessible via navigation but shows placeholder content. Important for user experience, personalization, accessibility preferences, and navigation completeness"
+
+  - number: 283
+    title: "Standardize Color Usage - Replace Hardcoded Colors with Theme Colors"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "MEDIUM priority design consistency issue - Replace hardcoded colors with theme colors from Ant Design system. Important for design consistency, theme support, accessibility compliance, and maintainability"
+
+  - number: 284
+    title: "Enhance Chart Component Accessibility"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "MEDIUM priority accessibility issue - 161 chart components need accessibility improvements. Important for screen reader support, keyboard navigation, data accessibility, and WCAG 2.1 Level AA compliance"
 
   # --- Configuration Management Infrastructure ---
   - number: 223
@@ -1911,3 +2035,11 @@ categories:
   data_quality:
     name: "Data Quality & Schema Normalization"
     description: "Database schema normalization, lookup table migrations, enum conversions, and data integrity improvements"
+
+  ui_accessibility:
+    name: "UI Accessibility & User Experience"
+    description: "User interface accessibility improvements, WCAG 2.1 Level AA compliance, keyboard navigation, screen reader support, placeholder implementations, and user experience enhancements"
+
+  api_integration:
+    name: "API Integration & Configuration"
+    description: "API integration improvements, environment configuration management, endpoint standardization, and deployment flexibility"

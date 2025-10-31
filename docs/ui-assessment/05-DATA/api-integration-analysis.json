@@ -1,0 +1,1273 @@
+{
+  "apiEndpoints": [
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameters/${parameterId}/limits",
+      "lineNumber": 82,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameters/${parameterId}/limits",
+      "lineNumber": 87,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "DELETE",
+      "url": "${API_URL}/api/v1/parameters/${parameterId}/limits",
+      "lineNumber": 92,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameters/limits/validate",
+      "lineNumber": 98,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameters/${parameterId}/limits/evaluate",
+      "lineNumber": 106,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameters/limits",
+      "lineNumber": 111,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameter-groups",
+      "lineNumber": 120,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups/${id}",
+      "lineNumber": 128,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "PUT",
+      "url": "${API_URL}/api/v1/parameter-groups/${id}",
+      "lineNumber": 138,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "DELETE",
+      "url": "${API_URL}/api/v1/parameter-groups/${id}",
+      "lineNumber": 143,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups",
+      "lineNumber": 149,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups",
+      "lineNumber": 154,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups",
+      "lineNumber": 163,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameter-groups/${id}/move",
+      "lineNumber": 173,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups/${id}/parameters",
+      "lineNumber": 180,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/parameter-groups/assign",
+      "lineNumber": 188,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/parameter-groups/search/query",
+      "lineNumber": 195,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas",
+      "lineNumber": 208,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/formulas/${id}",
+      "lineNumber": 213,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "PUT",
+      "url": "${API_URL}/api/v1/formulas/${id}",
+      "lineNumber": 221,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "DELETE",
+      "url": "${API_URL}/api/v1/formulas/${id}",
+      "lineNumber": 226,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/formulas",
+      "lineNumber": 233,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas/${id}/evaluate",
+      "lineNumber": 241,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas/evaluate-expression",
+      "lineNumber": 251,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas/validate",
+      "lineNumber": 259,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas/test",
+      "lineNumber": 267,
+      "hasMockData": true,
+      "hasErrorHandling": true,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "POST",
+      "url": "${API_URL}/api/v1/formulas/extract-dependencies",
+      "lineNumber": 275,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "PATCH",
+      "url": "${API_URL}/api/v1/formulas/${id}/active",
+      "lineNumber": 285,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/formulas/parameter/${parameterId}",
+      "lineNumber": 292,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    },
+    {
+      "file": "api/parameters.ts",
+      "method": "GET",
+      "url": "${API_URL}/api/v1/formulas/triggered/${parameterId}",
+      "lineNumber": 297,
+      "hasMockData": false,
+      "hasErrorHandling": false,
+      "category": "GENERAL"
+    }
+  ],
+  "mockDataUsage": [],
+  "hardcodedConfigs": [
+    {
+      "file": "api/signatures.ts",
+      "lineNumber": 3,
+      "value": "'http://localhost:3001/api/v1'",
+      "type": "URL",
+      "severity": "HIGH",
+      "recommendation": "Move to environment variables (REACT_APP_API_URL)"
+    },
+    {
+      "file": "api/signatures.ts",
+      "lineNumber": 3,
+      "value": "'http://localhost:3001/api/v1'",
+      "type": "URL",
+      "severity": "HIGH",
+      "recommendation": "Move to environment variables (REACT_APP_API_URL)"
+    },
+    {
+      "file": "api/fai.ts",
+      "lineNumber": 3,
+      "value": "'http://localhost:3001/api/v1'",
+      "type": "URL",
+      "severity": "HIGH",
+      "recommendation": "Move to environment variables (REACT_APP_API_URL)"
+    },
+    {
+      "file": "api/fai.ts",
+      "lineNumber": 3,
+      "value": "'http://localhost:3001/api/v1'",
+      "type": "URL",
+      "severity": "HIGH",
+      "recommendation": "Move to environment variables (REACT_APP_API_URL)"
+    },
+    {
+      "file": "services/apiClient.ts",
+      "lineNumber": 24,
+      "value": "'localhost'",
+      "type": "GENERAL",
+      "severity": "LOW",
+      "recommendation": "Consider using environment-based configuration"
+    }
+  ],
+  "apiErrorHandling": [
+    {
+      "file": "api/presence.ts",
+      "lineNumber": 79,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "'An error occurred';      throw new Error(errorMessage);   } );  /"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 29,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialClass[]>(`${BASE_URL}/classes`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ise<ApiResponse<MaterialClass[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 49,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialClass>(`${BASE_URL}/classes/${id}`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<MaterialClass>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 66,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialClass[]>(`${BASE_URL}/classes/${id}/hierarchy`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ise<ApiResponse<MaterialClass[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 81,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialClass[]>(`${BASE_URL}/classes/${id}/children`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ise<ApiResponse<MaterialClass[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 102,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialDefinition[]>(`${BASE_URL}/definitions`, {\n        params,\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "piResponse<MaterialDefinition[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 122,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialDefinition>(`${BASE_URL}/definitions/${id}`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<MaterialDefinition>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 142,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialDefinition>(\n        `${BASE_URL}/definitions/number/${materialNumber}`,\n        { params: { includeRelations } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<MaterialDefinition>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 166,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialLot[]>(`${BASE_URL}/lots`, { params });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<MaterialLot[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 184,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialLot>(`${BASE_URL}/lots/${id}`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<MaterialLot>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 204,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialLot>(`${BASE_URL}/lots/number/${lotNumber}`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<MaterialLot>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 221,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialLot[]>(`${BASE_URL}/lots/expiring/soon`, {\n        params: { days },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<MaterialLot[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 238,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialLot[]>(`${BASE_URL}/lots/expired/all`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<MaterialLot[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 253,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialStatistics>(\n        `${BASE_URL}/lots/statistics/summary`\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<MaterialStatistics>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 278,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialTransaction[]>(`${BASE_URL}/transactions`, {\n        params,\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "iResponse<MaterialTransaction[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 299,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialTransaction>(\n        `${BASE_URL}/transactions/${id}`,\n        {\n          params: { includeRelations },\n        }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaterialTransaction>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 322,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialTransaction[]>(\n        `${BASE_URL}/transactions/material/${materialId}`,\n        { params }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "iResponse<MaterialTransaction[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 343,
+      "pattern": "try {\n      const response = await apiClient.get<MaterialTransaction[]>(\n        `${BASE_URL}/transactions/lot/${lotId}`,\n        { params }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "iResponse<MaterialTransaction[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/materials.ts",
+      "lineNumber": 373,
+      "pattern": "try {\n    const [statisticsRes, expiringSoonRes] = await Promise.all([\n      materialLotAPI.getLotStatistics(),\n      materialLotAPI.getExpiringSoon(30),\n    ]);\n\n    if (!statisticsRes.success) {\n      return { success: false, error: statisticsRes.error };\n    }\n\n    return {\n      success: true,\n      data: {\n        statistics: statisticsRes.data!,\n        recentTransactions: [], // TODO: Implement when backend endpoint is available\n        expiringSoon: expiringSoonRes.success ? expiringSoonRes.data! : [],\n        lowStock: [], // TODO: Implement when backend endpoint is available\n      },\n    };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Stock: MaterialDefinition[];   }> > {   try {     const [statisticsRes, expiring"
+    },
+    {
+      "file": "api/search.ts",
+      "lineNumber": 22,
+      "pattern": "try {\n    // Build query parameters\n    const params: Record<string, string> = {\n      q: request.query,\n    };\n\n    if (request.scope) {\n      params.scope = request.scope;\n    }\n\n    if (request.entityTypes && request.entityTypes.length > 0) {\n      params.entityTypes = request.entityTypes.join(',');\n    }\n\n    if (request.limit) {\n      params.limit = request.limit.toString();\n    }\n\n    if (request.includeInactive !== undefined) {\n      params.includeInactive = request.includeInactive.toString();\n    }\n\n    if (request.siteId) {\n      params.siteId = request.siteId;\n    }\n\n    if (request.areaId) {\n      params.areaId = request.areaId;\n    }\n\n    const response = await apiClient.get<SearchResponse>(BASE_URL, { params });\n    return { success: true, data: response.data };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "romise<ApiResponse<SearchResponse>> {   try {     // Build query parameters"
+    },
+    {
+      "file": "api/search.ts",
+      "lineNumber": 69,
+      "pattern": "try {\n    const response = await apiClient.get<{ query: string; suggestions: SearchSuggestion[] }>(\n      `${BASE_URL}/suggestions`,\n      {\n        params: { q: query, limit },\n      }\n    );\n    return { success: true, data: response.data };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "suggestions: SearchSuggestion[] }>> {   try {     const response = await apiClie"
+    },
+    {
+      "file": "api/search.ts",
+      "lineNumber": 91,
+      "pattern": "try {\n    const response = await apiClient.get<{\n      scopes: Array<{ value: SearchScope; label: string }>;\n    }>(`${BASE_URL}/scopes`);\n    return { success: true, data: response.data };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "SearchScope; label: string }> }> > {   try {     const response = await apiClie"
+    },
+    {
+      "file": "api/search.ts",
+      "lineNumber": 110,
+      "pattern": "try {\n    const response = await apiClient.get<{\n      entityTypes: Array<{ value: SearchEntityType; label: string }>;\n    }>(`${BASE_URL}/entity-types`);\n    return { success: true, data: response.data };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "chEntityType; label: string }> }> > {   try {     const response = await apiClie"
+    },
+    {
+      "file": "api/personnel.ts",
+      "lineNumber": 16,
+      "pattern": "try {\n      const response = await apiClient.get<{ success: boolean; data: Personnel[] }>(\n        BASE_URL,\n        { params }\n      );\n      return {\n        success: true,\n        data: response.data.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Personnel[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/personnel.ts",
+      "lineNumber": 37,
+      "pattern": "try {\n      const response = await apiClient.get<{ success: boolean; data: Personnel }>(\n        `${BASE_URL}/${id}`\n      );\n      return {\n        success: true,\n        data: response.data.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": ": Promise<ApiResponse<Personnel>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 29,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(BASE_URL, { params });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 47,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment>(`${BASE_URL}/${id}`, {\n        params: { includeRelations },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": ": Promise<ApiResponse<Equipment>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 67,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment>(\n        `${BASE_URL}/number/${equipmentNumber}`,\n        { params: { includeRelations } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": ": Promise<ApiResponse<Equipment>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 85,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(`${BASE_URL}/${id}/hierarchy`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 100,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(`${BASE_URL}/${id}/children`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 115,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(`${BASE_URL}/site/${siteId}`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 130,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(`${BASE_URL}/area/${areaId}`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 145,
+      "pattern": "try {\n      const response = await apiClient.get<Equipment[]>(`${BASE_URL}/workcenter/${workCenterId}`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<Equipment[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 160,
+      "pattern": "try {\n      const response = await apiClient.get<EquipmentStatistics>(`${BASE_URL}/statistics/summary`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<EquipmentStatistics>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 181,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord[]>(`${BASE_URL}/maintenance`, {\n        params,\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaintenanceRecord[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 201,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord>(\n        `${BASE_URL}/maintenance/${id}`,\n        { params: { includeRelations } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 222,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord[]>(\n        `${BASE_URL}/maintenance/equipment/${equipmentId}`,\n        { params }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaintenanceRecord[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 243,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord[]>(\n        `${BASE_URL}/maintenance/scheduled`,\n        { params: { startDate, endDate } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaintenanceRecord[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 261,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord[]>(`${BASE_URL}/maintenance/overdue`);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaintenanceRecord[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 276,
+      "pattern": "try {\n      const response = await apiClient.get<MaintenanceRecord[]>(\n        `${BASE_URL}/maintenance/upcoming`,\n        { params: { days } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ApiResponse<MaintenanceRecord[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 296,
+      "pattern": "try {\n      const response = await apiClient.post<MaintenanceRecord>(`${BASE_URL}/maintenance`, data);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 314,
+      "pattern": "try {\n      const response = await apiClient.put<MaintenanceRecord>(`${BASE_URL}/maintenance/${id}`, data);\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 332,
+      "pattern": "try {\n      const response = await apiClient.post<MaintenanceRecord>(\n        `${BASE_URL}/maintenance/${id}/complete`,\n        data\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 353,
+      "pattern": "try {\n      const response = await apiClient.post<MaintenanceRecord>(\n        `${BASE_URL}/maintenance/${id}/cancel`,\n        { reason }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 381,
+      "pattern": "try {\n      const response = await apiClient.get<OEEMetrics>(`${BASE_URL}/${equipmentId}/oee`, {\n        params: { startDate, endDate },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Promise<ApiResponse<OEEMetrics>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 402,
+      "pattern": "try {\n      const response = await apiClient.get<OEEMetrics[]>(\n        `${BASE_URL}/${equipmentId}/oee/history`,\n        { params: { startDate, endDate } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "romise<ApiResponse<OEEMetrics[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 423,
+      "pattern": "try {\n      const response = await apiClient.get(`${BASE_URL}/oee/summary`, {\n        params: { startDate, endDate },\n      });\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "me: string; oee: OEEMetrics }[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 450,
+      "pattern": "try {\n      const response = await apiClient.get<EquipmentStateHistory[]>(\n        `${BASE_URL}/${equipmentId}/state/history`,\n        { params: { startDate, endDate } }\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "esponse<EquipmentStateHistory[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 471,
+      "pattern": "try {\n      const response = await apiClient.post<Equipment>(\n        `${BASE_URL}/${equipmentId}/state`,\n        data\n      );\n      return { success: true, data: response.data };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": ": Promise<ApiResponse<Equipment>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 501,
+      "pattern": "try {\n    const [statisticsRes, upcomingRes, overdueRes] = await Promise.all([\n      equipmentAPI.getEquipmentStatistics(),\n      maintenanceAPI.getUpcomingMaintenance(30),\n      maintenanceAPI.getOverdueMaintenance(),\n    ]);\n\n    if (!statisticsRes.success) {\n      return { success: false, error: statisticsRes.error };\n    }\n\n    return {\n      success: true,\n      data: {\n        statistics: statisticsRes.data!,\n        upcomingMaintenance: upcomingRes.success ? upcomingRes.data! : [],\n        overdueMaintenance: overdueRes.success ? overdueRes.data! : [],\n        criticalEquipment: [], // TODO: Implement when backend endpoint is available\n      },\n    };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ticalEquipment: Equipment[];   }> > {   try {     const [statisticsRes, upcoming"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 536,
+      "pattern": "try {\n    const response = await maintenanceAPI.getScheduledMaintenance(startDate, endDate);\n    return response;\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<MaintenanceRecord[]>> {   try {     const response = await mainten"
+    },
+    {
+      "file": "api/equipment.ts",
+      "lineNumber": 556,
+      "pattern": "try {\n    const response = await apiClient.get<OEEDashboardData>(`${BASE_URL}/oee/dashboard`, {\n      params,\n    });\n    return { success: true, data: response.data };\n  } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "mise<ApiResponse<OEEDashboardData>> {   try {     const response = await apiClie"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 33,
+      "pattern": "try {\n      const response = await apiClient.get<ProductionSchedule[]>(BASE_URL, { params });\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "piResponse<ProductionSchedule[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 54,
+      "pattern": "try {\n      const response = await apiClient.get<ProductionSchedule>(\n        `${BASE_URL}/${id}`,\n        { params: { includeRelations } }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ProductionSchedule>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 78,
+      "pattern": "try {\n      const response = await apiClient.get<ProductionSchedule>(\n        `${BASE_URL}/number/${scheduleNumber}`,\n        { params: { includeRelations } }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ProductionSchedule>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 99,
+      "pattern": "try {\n      const response = await apiClient.post<ProductionSchedule>(BASE_URL, data);\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ProductionSchedule>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 120,
+      "pattern": "try {\n      const response = await apiClient.put<ProductionSchedule>(`${BASE_URL}/${id}`, data);\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ProductionSchedule>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 138,
+      "pattern": "try {\n      await apiClient.delete(`${BASE_URL}/${id}`, { params: { hardDelete } });\n      return {\n        success: true,\n        data: undefined,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "alse): Promise<ApiResponse<void>> {     try {       await apiClient.delete(`${BA"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 156,
+      "pattern": "try {\n      const response = await apiClient.get<ProductionSchedule[]>(`${BASE_URL}/state/${state}`);\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "piResponse<ProductionSchedule[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 183,
+      "pattern": "try {\n      const response = await apiClient.get<ScheduleEntry[]>(\n        `${BASE_URL}/${scheduleId}/entries`,\n        { params: { includeConstraints } }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ise<ApiResponse<ScheduleEntry[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 207,
+      "pattern": "try {\n      const response = await apiClient.post<ScheduleEntry>(\n        `${BASE_URL}/${scheduleId}/entries`,\n        data\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<ScheduleEntry>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 231,
+      "pattern": "try {\n      const response = await apiClient.put<ScheduleEntry>(\n        `${BASE_URL}/entries/${entryId}`,\n        data\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<ScheduleEntry>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 256,
+      "pattern": "try {\n      const response = await apiClient.post<ScheduleEntry>(\n        `${BASE_URL}/entries/${entryId}/cancel`,\n        { reason, cancelledBy }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "omise<ApiResponse<ScheduleEntry>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 277,
+      "pattern": "try {\n      const response = await apiClient.get<ScheduleEntry[]>(\n        `${BASE_URL}/dispatch/ready`,\n        { params: { siteId } }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ise<ApiResponse<ScheduleEntry[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 304,
+      "pattern": "try {\n      const response = await apiClient.get<ScheduleConstraint[]>(\n        `${BASE_URL}/entries/${entryId}/constraints`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "piResponse<ScheduleConstraint[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 327,
+      "pattern": "try {\n      const response = await apiClient.post<ScheduleConstraint>(\n        `${BASE_URL}/entries/${entryId}/constraints`,\n        data\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ScheduleConstraint>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 351,
+      "pattern": "try {\n      const response = await apiClient.put<ScheduleConstraint>(\n        `${BASE_URL}/constraints/${constraintId}`,\n        data\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ScheduleConstraint>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 376,
+      "pattern": "try {\n      const response = await apiClient.post<ScheduleConstraint>(\n        `${BASE_URL}/constraints/${constraintId}/resolve`,\n        { resolvedBy, resolutionNotes }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ScheduleConstraint>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 399,
+      "pattern": "try {\n      const response = await apiClient.post<{\n        isViolated: boolean;\n        violationSeverity: string;\n        violationMessage: string;\n      }>(`${BASE_URL}/constraints/${constraintId}/check`);\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ing; violationMessage: string }>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 430,
+      "pattern": "try {\n      const response = await apiClient.post<ScheduleStateHistory>(\n        `${BASE_URL}/${scheduleId}/state/transition`,\n        data\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "piResponse<ScheduleStateHistory>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 451,
+      "pattern": "try {\n      const response = await apiClient.get<ScheduleStateHistory[]>(\n        `${BASE_URL}/${scheduleId}/state/history`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Response<ScheduleStateHistory[]>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 479,
+      "pattern": "try {\n      const response = await apiClient.post<{ message: string; entriesAffected: number }>(\n        `${BASE_URL}/${scheduleId}/sequencing/priority`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ring; entriesAffected: number }>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 501,
+      "pattern": "try {\n      const response = await apiClient.post<{ message: string; entriesAffected: number }>(\n        `${BASE_URL}/${scheduleId}/sequencing/edd`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ring; entriesAffected: number }>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 521,
+      "pattern": "try {\n      const response = await apiClient.post<FeasibilityResult>(\n        `${BASE_URL}/${scheduleId}/feasibility/check`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "e<ApiResponse<FeasibilityResult>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 550,
+      "pattern": "try {\n      const response = await apiClient.post<{ entry: ScheduleEntry; workOrder: any }>(\n        `${BASE_URL}/entries/${entryId}/dispatch`,\n        { dispatchedBy }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "ScheduleEntry; workOrder: any }>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 574,
+      "pattern": "try {\n      const response = await apiClient.post<{ dispatchedCount: number; entries: any[] }>(\n        `${BASE_URL}/${scheduleId}/dispatch/all`,\n        { dispatchedBy }\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "Count: number; entries: any[] }>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/scheduling.ts",
+      "lineNumber": 601,
+      "pattern": "try {\n      const response = await apiClient.get<ScheduleStatistics>(\n        `${BASE_URL}/statistics/overview`\n      );\n      return {\n        success: true,\n        data: response.data,\n      };\n    } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "<ApiResponse<ScheduleStatistics>> {     try {       const response = await apiCl"
+    },
+    {
+      "file": "api/workInstructions.ts",
+      "lineNumber": 144,
+      "pattern": "try {\n        const authStorage = localStorage.getItem('mes-auth-storage');\n        if (authStorage) {\n          const parsed = JSON.parse(authStorage);\n          const token = parsed.state?.token;\n          if (token) {\n            config.headers.Authorization = `Bearer ${token}`;\n          }\n        }\n      } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "rs.request.use(     (config) => {       try {         const authStorage = localS"
+    },
+    {
+      "file": "api/workInstructions.ts",
+      "lineNumber": 168,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "if (error.response?.data) {         throw new Error(error.response.data.erro"
+    },
+    {
+      "file": "api/workInstructions.ts",
+      "lineNumber": 170,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "|| 'API request failed');       }       throw new Error(error.message || 'Networ"
+    },
+    {
+      "file": "api/workInstructions.ts",
+      "lineNumber": 154,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "}       } catch (error) {         console.error('Error getting auth token'"
+    },
+    {
+      "file": "api/rbac.ts",
+      "lineNumber": 64,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "error.response?.status === 403) {       throw new Error('Insufficient permission"
+    },
+    {
+      "file": "api/rbac.ts",
+      "lineNumber": 68,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "(error.response?.data?.message) {       throw new Error(error.response.data.mess"
+    },
+    {
+      "file": "api/rbac.ts",
+      "lineNumber": 71,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "rror.response.data.message);     }      throw new Error(error.message || 'An une"
+    },
+    {
+      "file": "api/routingTemplates.ts",
+      "lineNumber": 41,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "ror.message || 'An error occurred';     console.error('[Routing Template API Err"
+    },
+    {
+      "file": "api/auth.ts",
+      "lineNumber": 42,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "if (error.response?.data) {       throw new Error(error.response.data.mess"
+    },
+    {
+      "file": "api/auth.ts",
+      "lineNumber": 44,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "|| 'Authentication failed');     }     throw new Error(error.message || 'Networ"
+    },
+    {
+      "file": "api/parts.ts",
+      "lineNumber": 54,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "'An error occurred';      throw new Error(errorMessage);   } );  e"
+    },
+    {
+      "file": "api/routing.ts",
+      "lineNumber": 103,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "'An error occurred';      throw new Error(errorMessage);   } );  /"
+    },
+    {
+      "file": "api/client.ts",
+      "lineNumber": 62,
+      "pattern": "try {\n        await authInterceptor.onRejected(error);\n      } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "error.response?.status === 401) {       try {         await authInterceptor.onRe"
+    },
+    {
+      "file": "api/client.ts",
+      "lineNumber": 76,
+      "pattern": "throw new Error(",
+      "type": "ERROR_THROW",
+      "context": "'An error occurred';      throw new Error(errorMessage);   } );  e"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 134,
+      "pattern": ".catch(error =>",
+      "type": "PROMISE_CATCH",
+      "context": "cumentType, documentId, presence)       .catch(error => console.error('Failed to"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 308,
+      "pattern": ".catch(error =>",
+      "type": "PROMISE_CATCH",
+      "context": "Subscriptions?.(subscriptionList)       .catch(error => console.error('Failed to"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 50,
+      "pattern": "try {\n      this.eventSource = collaborationApi.createEventStream();\n\n      this.eventSource.onopen = () => {\n        console.log('Real-time collaboration connected');\n        this.isConnected = true;\n        this.reconnectAttempts = 0;\n        this.emit('connected');\n      };\n\n      this.eventSource.onmessage = (event) => {\n        try {\n          const data = JSON.parse(event.data);\n          this.handleCollaborationEvent(data);\n        } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "/ Clean up any existing connection      try {       this.eventSource = collabora"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 261,
+      "pattern": "try {\n          const data = JSON.parse(event.data);\n          this.handleCollaborationEvent({\n            ...data,\n            type: eventType.split('-')[0],\n            action: eventType.split('-')[1] || 'updated',\n          });\n        } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "er(eventType, (event: any) => {         try {           const data = JSON.parse("
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 65,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "a);         } catch (error) {           console.error('Failed to parse collabora"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 70,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "ntSource.onerror = (error) => {         console.error('Real-time collaboration e"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 80,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "steners();      } catch (error) {       console.error('Failed to connect to real"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 134,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "mentId, presence)       .catch(error => console.error('Failed to update presence"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 269,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "});         } catch (error) {           console.error(`Failed to parse ${eventTy"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 280,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "s >= this.maxReconnectAttempts) {       console.error('Max reconnection attempts"
+    },
+    {
+      "file": "services/realTimeCollaboration.ts",
+      "lineNumber": 308,
+      "pattern": "console.error",
+      "type": "CONSOLE_ERROR",
+      "context": "subscriptionList)       .catch(error => console.error('Failed to update subscrip"
+    },
+    {
+      "file": "services/apiClient.ts",
+      "lineNumber": 55,
+      "pattern": "try {\n          const authStorage = localStorage.getItem('mes-auth-storage');\n          if (authStorage) {\n            const parsedAuth = JSON.parse(authStorage);\n            const token = parsedAuth?.state?.token;\n            if (token) {\n              config.headers.Authorization = `Bearer ${token}`;\n            }\n          }\n        } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "y to avoid React context issues         try {           const authStorage = loca"
+    },
+    {
+      "file": "services/apiClient.ts",
+      "lineNumber": 93,
+      "pattern": "try {\n            await authInterceptor.onRejected(error);\n          } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "r.response?.status === 401) {           try {             await authInterceptor."
+    },
+    {
+      "file": "services/apiClient.ts",
+      "lineNumber": 219,
+      "pattern": "try {\n        const result = await this.get<{ status: string; timestamp: string }>('/health');\n\n        // Health check succeeded\n        const response = {\n          ...result,\n          isHealthy: true,\n          consecutiveFailures: this.connectionState.consecutiveFailures,\n          connectionState: this.getConnectionState()\n        };\n\n        if (this.isTestEnvironment) {\n          console.log(`[ApiClient] Health check passed (attempt ${attempt}/${maxRetries})`);\n        }\n\n        return response;\n      } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "tempt <= maxRetries; attempt++) {       try {         const result = await this."
+    },
+    {
+      "file": "services/apiClient.ts",
+      "lineNumber": 282,
+      "pattern": "try {\n        const health = await this.healthCheck({ maxRetries: 1 });\n\n        if (health.isHealthy) {\n          if (this.isTestEnvironment) {\n            console.log('[ApiClient] API is healthy');\n          }\n          return true;\n        }\n\n        consecutiveFailures++;\n\n        if (consecutiveFailures >= maxConsecutiveFailures) {\n          console.warn(`[ApiClient] Too many consecutive health check failures (${consecutiveFailures})`);\n          return false;\n        }\n\n      } catch (",
+      "type": "PROMISE_CATCH",
+      "context": "te.now() - startTime < timeout) {       try {         const health = await this."
+    }
+  ],
+  "missingIntegrations": [
+    {
+      "file": "api/kits.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 33 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/operation.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 36 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/signatures.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 6 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/unifiedDocuments.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 23 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/fai.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 11 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/setupSheets.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 19 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/collaboration.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 51 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/inspectionPlans.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 19 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/sops.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 21 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/parameters.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 30 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    },
+    {
+      "file": "api/toolDrawings.ts",
+      "issue": "INSUFFICIENT_ERROR_HANDLING",
+      "severity": "MEDIUM",
+      "description": "Only 0 error handlers for 23 API calls (0.0% coverage)",
+      "recommendation": "Add comprehensive error handling for all API calls"
+    }
+  ],
+  "dataFlowPatterns": [
+    {
+      "pattern": "REACT_QUERY",
+      "files": [
+        "test-utils/hooks.ts",
+        "test-utils/render.tsx",
+        "__tests__/components/Kits/KitsList.test.tsx",
+        "__tests__/components/Kits/KitAnalyticsDashboard.test.tsx",
+        "main.tsx",
+        "pages/Admin/RoleManagementPage.tsx",
+        "pages/Admin/RBACDashboardPage.tsx",
+        "pages/Admin/PermissionCatalogPage.tsx",
+        "pages/Admin/__tests__/RBACAdminPages.test.tsx",
+        "pages/Admin/UserRoleAssignmentPage.tsx"
+      ],
+      "count": 10,
+      "recommendation": "Good use of React Query for server state"
+    },
+    {
+      "pattern": "ZUSTAND_STATE",
+      "files": [
+        "utils/AuthStateSynchronizer.ts",
+        "test-utils/stores.ts",
+        "store/workInstructionStore.ts",
+        "store/faiStore.ts",
+        "store/operationStore.ts",
+        "store/equipmentStore.ts",
+        "store/materialsStore.ts",
+        "store/signatureStore.ts",
+        "store/kitStore.ts",
+        "store/routingStore.ts",
+        "store/schedulingStore.ts",
+        "store/AuthStore.tsx",
+        "store/executionLayoutStore.ts"
+      ],
+      "count": 13,
+      "recommendation": "Zustand stores found - ensure proper separation of client vs server state"
+    },
+    {
+      "pattern": "DIRECT_API_CALLS",
+      "files": [
+        "components/Staging/StagingDashboard.tsx",
+        "components/Staging/StagingLocationUtilization.tsx",
+        "components/Staging/StagingStatusBoard.tsx",
+        "components/ECO/ECODashboard.tsx",
+        "components/ECO/ECOForm.tsx",
+        "components/WorkOrders/WorkOrderPriorityChange.tsx",
+        "components/WorkOrders/WorkOrderReschedule.tsx",
+        "components/WorkOrders/__tests__/WorkOrderReschedule.test.tsx",
+        "components/WorkOrders/__tests__/WorkOrderPriorityChange.test.tsx",
+        "components/WorkOrders/__tests__/WorkOrderCreate.test.tsx",
+        "components/WorkOrders/__tests__/OperatorAssignment.test.tsx",
+        "components/WorkOrders/OperatorAssignment.tsx",
+        "components/WorkOrders/WorkOrderCreate.tsx",
+        "components/Approvals/ApprovalTaskQueue.tsx",
+        "components/Approvals/WorkflowProgressEnhanced.tsx",
+        "components/Approvals/ApprovalTaskDetail.tsx",
+        "components/Equipment/__tests__/MaintenanceList.test.tsx",
+        "components/Equipment/MaintenanceList.tsx",
+        "components/BuildRecords/BuildRecordList.tsx",
+        "components/BuildRecords/BuildBookGenerator.tsx",
+        "components/BuildRecords/BuildRecordOperationSignOff.tsx",
+        "components/BuildRecords/DeviationTracker.tsx",
+        "components/BuildRecords/PhotoCaptureModal.tsx",
+        "components/BuildRecords/BuildRecordDetail.tsx",
+        "components/Kits/KitsList.tsx",
+        "components/Kits/KitAnalyticsDashboard.tsx",
+        "components/Traceability/GenealogyTreeVisualization.tsx",
+        "components/Materials/MaterialsList.tsx",
+        "components/Materials/__tests__/MaterialsList.test.tsx",
+        "components/LLP/LLPLifeEventForm.tsx",
+        "components/LLP/LLPAlertManagement.tsx",
+        "components/LLP/LLPConfigurationForm.tsx",
+        "components/LLP/LLPDetailView.tsx",
+        "components/LLP/LLPDashboard.tsx",
+        "components/FAI/CMMImportModal.tsx",
+        "components/WorkInstructions/TabletExecutionView.tsx",
+        "components/WorkInstructions/WorkInstructionForm.tsx",
+        "components/WorkInstructions/WorkInstructionList.tsx",
+        "components/WorkInstructions/plugins/ImagePlugin.tsx",
+        "components/Admin/AzureAD/AzureADDashboard.tsx",
+        "components/Admin/AzureAD/UserSyncManager.tsx",
+        "components/Admin/AzureAD/AzureADConfig.tsx",
+        "components/Admin/AzureADDashboard.tsx",
+        "components/Admin/UserSyncManager.tsx",
+        "components/Admin/AzureADConfig.tsx",
+        "components/SPC/SPCConfiguration.tsx",
+        "components/SPC/__tests__/RuleViolationAlert.test.tsx",
+        "components/SPC/__tests__/SPCConfiguration.test.tsx",
+        "components/SPC/RuleViolationAlert.tsx",
+        "components/Dashboard/OEEMetricsCard.tsx",
+        "components/Routing/RoutingList.tsx",
+        "components/Routing/RoutingForm.tsx",
+        "components/Routing/RoutingDetail.tsx",
+        "components/Routing/RoutingChangedAlert.tsx",
+        "components/Scheduling/ScheduleDetail.tsx",
+        "components/Scheduling/SchedulingList.tsx",
+        "components/TimeTracking/TimeEntryEdit.tsx",
+        "components/TimeTracking/TimeEntryManagement.tsx",
+        "components/TimeTracking/TimeClockKiosk.tsx",
+        "components/TimeTracking/SupervisorApprovalDashboard.tsx",
+        "components/TimeTracking/MobileTimeTracker.tsx",
+        "components/TimeTracking/TimeEntryHistory.tsx",
+        "components/TimeTracking/TimeTrackingWidget.tsx",
+        "components/Personnel/PersonnelList.tsx"
+      ],
+      "count": 64,
+      "recommendation": "Consider centralizing API calls in service layer"
+    }
+  ],
+  "environmentIssues": [
+    {
+      "issue": "API_FILES_WITHOUT_ENV_VARS",
+      "severity": "MEDIUM",
+      "files": [
+        "api/operation.ts",
+        "api/signatures.ts",
+        "api/fai.ts",
+        "api/parameters.ts"
+      ],
+      "description": "4 API files may not use environment configuration",
+      "recommendation": "Ensure all API calls use centralized configuration"
+    }
+  ],
+  "summary": {
+    "totalApiFiles": 32,
+    "totalEndpoints": 30,
+    "endpointsWithMockData": 1,
+    "endpointsWithErrorHandling": 1,
+    "hardcodedUrls": 4,
+    "configurationIssues": 1,
+    "analysisDate": "2025-10-31"
+  }
+}
