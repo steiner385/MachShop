@@ -283,7 +283,71 @@ export class DatabaseService {
       )
     `);
 
-    logger.info('All database tables created successfully');
+    // Cost Transactions Table (Phase 5 - Financial Integration)
+    await run(`
+      CREATE TABLE IF NOT EXISTS cost_transactions (
+        id TEXT PRIMARY KEY,
+        transaction_type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL,
+        work_order_id TEXT,
+        part_number TEXT,
+        cost_center TEXT NOT NULL,
+        gl_account TEXT NOT NULL,
+        description TEXT,
+        transaction_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (work_order_id) REFERENCES work_orders(id),
+        FOREIGN KEY (part_number) REFERENCES inventory_items(part_number)
+      )
+    `);
+
+    // Webhook Subscriptions Table (Phase 5 - Webhooks)
+    await run(`
+      CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        events TEXT NOT NULL,
+        active INTEGER DEFAULT 1,
+        max_retries INTEGER DEFAULT 3,
+        backoff_seconds INTEGER DEFAULT 60,
+        created_at TEXT NOT NULL
+      )
+    `);
+
+    // Webhook Events Table (Phase 5 - Webhooks)
+    await run(`
+      CREATE TABLE IF NOT EXISTS webhook_events (
+        id TEXT PRIMARY KEY,
+        subscription_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        status TEXT NOT NULL,
+        attempts INTEGER DEFAULT 0,
+        last_attempt TEXT,
+        next_retry TEXT,
+        error TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (subscription_id) REFERENCES webhook_subscriptions(id)
+      )
+    `);
+
+    // Create indexes for performance optimization (Phase 5)
+    await run('CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status)');
+    await run('CREATE INDEX IF NOT EXISTS idx_work_orders_cost_center ON work_orders(cost_center)');
+    await run('CREATE INDEX IF NOT EXISTS idx_inventory_items_part_number ON inventory_items(part_number)');
+    await run('CREATE INDEX IF NOT EXISTS idx_inventory_transactions_part_number ON inventory_transactions(part_number)');
+    await run('CREATE INDEX IF NOT EXISTS idx_inventory_transactions_date ON inventory_transactions(transaction_date)');
+    await run('CREATE INDEX IF NOT EXISTS idx_cost_transactions_work_order ON cost_transactions(work_order_id)');
+    await run('CREATE INDEX IF NOT EXISTS idx_cost_transactions_cost_center ON cost_transactions(cost_center)');
+    await run('CREATE INDEX IF NOT EXISTS idx_cost_transactions_date ON cost_transactions(transaction_date)');
+    await run('CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(status)');
+    await run('CREATE INDEX IF NOT EXISTS idx_webhook_events_subscription ON webhook_events(subscription_id)');
+    await run('CREATE INDEX IF NOT EXISTS idx_po_receipts_po_number ON po_receipts(po_number)');
+    await run('CREATE INDEX IF NOT EXISTS idx_data_sync_status_source ON data_sync_status(source)');
+
+    logger.info('All database tables and indexes created successfully');
   }
 
   run(sql: string, params: any[] = []): Promise<void> {

@@ -13,6 +13,8 @@ import { DatabaseService } from './services/database.service';
 import { TestDataGenerator } from './utils/test-data';
 import { Logger } from './utils/logger';
 import testDataRoutes from './routes/testData';
+import financialRoutes from './routes/financial';
+import webhookRoutes from './routes/webhooks';
 import {
   WorkOrder,
   InventoryItem,
@@ -594,6 +596,12 @@ app.post('/api/admin/reset', async (req: Request, res: Response, next: NextFunct
 
 // Register test data routes
 app.use('/api/test-data', testDataRoutes);
+
+// Register financial routes (Phase 5)
+app.use('/api/financial', financialRoutes);
+
+// Register webhook routes (Phase 5)
+app.use('/api/webhooks', webhookRoutes);
 
 // ============================================================================
 // ERROR HANDLING
