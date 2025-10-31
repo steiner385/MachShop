@@ -1153,6 +1153,23 @@ erDiagram
   Float oee "nullable"
   Float ratedCapacity "nullable"
   Float currentCapacity "nullable"
+  String equipmentTypeId FK "nullable"
+  String assetTag UK "nullable"
+  DateTime purchaseDate "nullable"
+  DateTime warrantyExpiration "nullable"
+  CriticalityLevel criticality
+  String capacityUnit "nullable"
+  Decimal acquisitionCost "nullable"
+  Decimal currentValue "nullable"
+  String depreciationMethod "nullable"
+  Int maintenanceInterval "nullable"
+  DateTime lastMaintenanceDate "nullable"
+  DateTime nextMaintenanceDate "nullable"
+  Int totalRunTime
+  Int totalDownTime
+  Decimal mtbf "nullable"
+  Decimal mttr "nullable"
+  Boolean requiresCalibration
   Boolean isActive
   DateTime createdAt
   DateTime updatedAt
@@ -1430,16 +1447,38 @@ erDiagram
 }
 "maintenance_work_orders" {
   String id PK
-  String externalWorkOrderNumber UK
+  String workOrderNumber UK
+  String externalWorkOrderNumber UK "nullable"
+  String equipmentId FK
+  MaintenanceType type
+  Priority priority
+  MaintenanceStatus status
+  DateTime scheduledDate "nullable"
+  DateTime dueDate "nullable"
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
   String description
-  String workType
-  String status
-  String equipmentId FK "nullable"
+  String problemDescription "nullable"
+  String rootCause "nullable"
+  String correctiveAction "nullable"
+  String workPerformed "nullable"
+  String notes "nullable"
+  String assignedToId FK "nullable"
+  String assignedTeam "nullable"
+  Decimal estimatedLaborHours "nullable"
+  Decimal actualLaborHours "nullable"
+  Decimal estimatedPartsCost "nullable"
+  Decimal actualPartsCost "nullable"
+  Boolean causedDowntime
+  Int downtimeMinutes "nullable"
+  Boolean requiresFollowUp
+  DateTime followUpDate "nullable"
+  String followUpWorkOrderId FK "nullable"
+  String workType "nullable"
   DateTime scheduledStart "nullable"
   DateTime scheduledFinish "nullable"
   DateTime actualStart "nullable"
   DateTime actualFinish "nullable"
-  Int priority
   String failureCode "nullable"
   String problemCode "nullable"
   String causeCode "nullable"
@@ -1447,6 +1486,8 @@ erDiagram
   DateTime lastSyncedAt "nullable"
   DateTime createdAt
   DateTime updatedAt
+  String createdById FK
+  String updatedById FK
 }
 "measurement_equipment" {
   String id PK
@@ -5007,6 +5048,77 @@ erDiagram
   DateTime updatedAt
   String createdBy "nullable"
 }
+"equipment_types" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String category "nullable"
+  Int defaultMaintenanceInterval "nullable"
+  String defaultMaintenanceProcedure "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"downtime_events" {
+  String id PK
+  String equipmentId FK
+  DateTime startTime
+  DateTime endTime "nullable"
+  Int durationMinutes "nullable"
+  DowntimeType downtimeType
+  String downtimeReasonId FK
+  String affectedWorkOrderIds
+  Decimal productionLoss "nullable"
+  String description
+  String rootCause "nullable"
+  String correctiveAction "nullable"
+  String maintenanceWorkOrderId FK "nullable"
+  String reportedById FK
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"downtime_reasons" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String category "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"maintenance_parts" {
+  String id PK
+  String workOrderId FK
+  String partNumber
+  String partDescription "nullable"
+  Decimal quantity
+  Decimal unitCost "nullable"
+  Decimal totalCost "nullable"
+  String lotNumber "nullable"
+  String serialNumber "nullable"
+  String issuedFrom "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"labor_entries" {
+  String id PK
+  String workOrderId FK
+  String technicianId FK
+  DateTime startTime
+  DateTime endTime "nullable"
+  Decimal laborHours "nullable"
+  Decimal laborRate "nullable"
+  Decimal laborCost "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"_DepartmentToUser" {
+  String A FK
+  String B FK
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "departments" }o--o| "departments" : parentDepartment
@@ -5140,6 +5252,7 @@ erDiagram
 "equipment" }o--o| "sites" : site
 "equipment" }o--o| "work_centers" : workCenter
 "equipment" }o--o| "work_units" : workUnit
+"equipment" }o--o| "equipment_types" : equipmentTypeRef
 "equipment_capabilities" }o--|| "equipment" : equipment
 "equipment_logs" }o--|| "equipment" : equipment
 "equipment_logs" }o--o| "users" : user
@@ -5167,7 +5280,11 @@ erDiagram
 "electronic_signatures" }o--|| "users" : user
 "fai_characteristics" }o--|| "fai_reports" : faiReport
 "audit_logs" }o--o| "users" : user
-"maintenance_work_orders" }o--o| "equipment" : equipment
+"maintenance_work_orders" }o--|| "equipment" : equipment
+"maintenance_work_orders" }o--o| "users" : assignedTo
+"maintenance_work_orders" }o--o| "maintenance_work_orders" : followUpWorkOrder
+"maintenance_work_orders" }o--|| "users" : createdBy
+"maintenance_work_orders" }o--|| "users" : updatedBy
 "inspection_records" }o--o| "measurement_equipment" : measurementEquipment
 "inspection_records" }o--o| "serialized_parts" : serializedPart
 "program_download_logs" }o--o| "cnc_programs" : cncProgram
@@ -5513,6 +5630,15 @@ erDiagram
 "locations" }o--o| "units_of_measure" : dimensionUnitOfMeasure
 "exchange_rates" }o--|| "currencies" : fromCurrency
 "exchange_rates" }o--|| "currencies" : toCurrency
+"downtime_events" }o--|| "equipment" : equipment
+"downtime_events" }o--|| "downtime_reasons" : downtimeReason
+"downtime_events" }o--o| "maintenance_work_orders" : maintenanceWorkOrder
+"downtime_events" }o--|| "users" : reportedBy
+"maintenance_parts" }o--|| "maintenance_work_orders" : workOrder
+"labor_entries" }o--|| "maintenance_work_orders" : workOrder
+"labor_entries" }o--|| "users" : technician
+"_DepartmentToUser" }o--|| "departments" : Department
+"_DepartmentToUser" }o--|| "users" : User
 ```
 
 ### `enterprises`
@@ -6785,6 +6911,23 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `oee`: 
   - `ratedCapacity`: 
   - `currentCapacity`: 
+  - `equipmentTypeId`: 
+  - `assetTag`: 
+  - `purchaseDate`: 
+  - `warrantyExpiration`: 
+  - `criticality`: 
+  - `capacityUnit`: 
+  - `acquisitionCost`: 
+  - `currentValue`: 
+  - `depreciationMethod`: 
+  - `maintenanceInterval`: 
+  - `lastMaintenanceDate`: 
+  - `nextMaintenanceDate`: 
+  - `totalRunTime`: 
+  - `totalDownTime`: 
+  - `mtbf`: 
+  - `mttr`: 
+  - `requiresCalibration`: 
   - `isActive`: 
   - `createdAt`: 
   - `updatedAt`: 
@@ -7093,19 +7236,42 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `timestamp`: 
 
 ### `maintenance_work_orders`
+Enhanced maintenance work order model for comprehensive maintenance management (Issue #94)
 
 **Properties**
   - `id`: 
+  - `workOrderNumber`: 
   - `externalWorkOrderNumber`: 
-  - `description`: 
-  - `workType`: 
-  - `status`: 
   - `equipmentId`: 
+  - `type`: 
+  - `priority`: 
+  - `status`: 
+  - `scheduledDate`: 
+  - `dueDate`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `description`: 
+  - `problemDescription`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `workPerformed`: 
+  - `notes`: 
+  - `assignedToId`: 
+  - `assignedTeam`: 
+  - `estimatedLaborHours`: 
+  - `actualLaborHours`: 
+  - `estimatedPartsCost`: 
+  - `actualPartsCost`: 
+  - `causedDowntime`: 
+  - `downtimeMinutes`: 
+  - `requiresFollowUp`: 
+  - `followUpDate`: 
+  - `followUpWorkOrderId`: 
+  - `workType`: 
   - `scheduledStart`: 
   - `scheduledFinish`: 
   - `actualStart`: 
   - `actualFinish`: 
-  - `priority`: 
   - `failureCode`: 
   - `problemCode`: 
   - `causeCode`: 
@@ -7113,6 +7279,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `lastSyncedAt`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `createdById`: 
+  - `updatedById`: 
 
 ### `measurement_equipment`
 
@@ -11165,3 +11333,92 @@ Exchange rates for currency conversion with historical tracking and multiple sou
   - `createdAt`: 
   - `updatedAt`: 
   - `createdBy`: 
+
+### `equipment_types`
+Equipment types for better categorization and maintenance planning
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `category`: 
+  - `defaultMaintenanceInterval`: 
+  - `defaultMaintenanceProcedure`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `downtime_events`
+Enhanced downtime tracking for maintenance analysis
+
+**Properties**
+  - `id`: 
+  - `equipmentId`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `durationMinutes`: 
+  - `downtimeType`: 
+  - `downtimeReasonId`: 
+  - `affectedWorkOrderIds`: 
+  - `productionLoss`: 
+  - `description`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `maintenanceWorkOrderId`: 
+  - `reportedById`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `downtime_reasons`
+Standardized downtime reasons for better analysis and reporting
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `category`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `maintenance_parts`
+Parts used in maintenance work orders for cost tracking
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `partNumber`: 
+  - `partDescription`: 
+  - `quantity`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `lotNumber`: 
+  - `serialNumber`: 
+  - `issuedFrom`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `labor_entries`
+Labor entries for maintenance work order time and cost tracking
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `technicianId`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `laborHours`: 
+  - `laborRate`: 
+  - `laborCost`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `_DepartmentToUser`
+Pair relationship table between [departments](#departments) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
