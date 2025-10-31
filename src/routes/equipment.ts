@@ -7,7 +7,7 @@ import { auditLogger } from '../middleware/requestLogger';
 import { logger } from '../utils/logger';
 import EquipmentService from '../services/EquipmentService';
 import OEECalculationService from '../services/OEECalculationService';
-import { EquipmentClass, EquipmentState, PerformancePeriodType } from '@prisma/client';
+import { EquipmentClass, EquipmentState, PerformancePeriodType, CriticalityLevel } from '@prisma/client';
 
 const router = express.Router();
 
@@ -24,7 +24,14 @@ const querySchema = z.object({
   areaId: z.string().optional(),
   workCenterId: z.string().optional(),
   parentEquipmentId: z.string().optional(),
-  includeRelations: z.enum(['true', 'false']).optional()
+  includeRelations: z.enum(['true', 'false']).optional(),
+
+  // Enhanced maintenance filters for Issue #94
+  equipmentTypeId: z.string().optional(),
+  criticality: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+  maintenanceDue: z.enum(['true', 'false']).optional(),
+  requiresCalibration: z.enum(['true', 'false']).optional(),
+  assetTag: z.string().optional()
 });
 
 const updateStatusSchema = z.object({
@@ -64,7 +71,13 @@ router.get('/',
       areaId,
       workCenterId,
       parentEquipmentId,
-      includeRelations
+      includeRelations,
+      // Enhanced maintenance filters for Issue #94
+      equipmentTypeId,
+      criticality,
+      maintenanceDue,
+      requiresCalibration,
+      assetTag
     } = validationResult.data;
 
     // Build filters object for EquipmentService
@@ -77,6 +90,13 @@ router.get('/',
     if (areaId) filters.areaId = areaId;
     if (workCenterId) filters.workCenterId = workCenterId;
     if (search) filters.search = search;
+
+    // Enhanced maintenance filters for Issue #94
+    if (equipmentTypeId) filters.equipmentTypeId = equipmentTypeId;
+    if (criticality) filters.criticality = criticality as CriticalityLevel;
+    if (maintenanceDue) filters.maintenanceDue = maintenanceDue === 'true';
+    if (requiresCalibration) filters.requiresCalibration = requiresCalibration === 'true';
+    if (assetTag) filters.assetTag = assetTag;
 
     // Handle parentEquipmentId (null or specific ID)
     if (parentEquipmentId !== undefined) {
@@ -262,8 +282,15 @@ router.get('/:id/status',
       select: {
         status: true,
         utilizationRate: true,
-        // lastMaintenanceDate: true, // TODO: Add to Equipment model if needed
-        // nextMaintenanceDate: true // TODO: Add to Equipment model if needed
+        lastMaintenanceDate: true,
+        nextMaintenanceDate: true,
+        criticality: true,
+        requiresCalibration: true,
+        assetTag: true,
+        mtbf: true,
+        mttr: true,
+        totalRunTime: true,
+        totalDownTime: true
       }
     });
 
@@ -412,11 +439,10 @@ router.post('/:id/maintenance',
     }
 
     // Update equipment with maintenance date
-    // TODO: Add nextMaintenanceDate field to Equipment model
     const updatedEquipment = await prisma.equipment.update({
       where: { id },
       data: {
-        // nextMaintenanceDate: new Date(maintenanceDate),
+        nextMaintenanceDate: new Date(maintenanceDate),
         updatedAt: new Date()
       }
     });
@@ -1120,6 +1146,288 @@ router.post('/work-centers',
     });
 
     res.status(201).json(workCenter);
+  })
+);
+
+// ============================================================================
+// ENHANCED MAINTENANCE ENDPOINTS FOR ISSUE #94
+// ============================================================================
+
+/**
+ * @route GET /api/v1/equipment/asset-tag/:assetTag
+ * @desc Get equipment by asset tag
+ * @access Private
+ */
+router.get('/asset-tag/:assetTag',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { assetTag } = req.params;
+
+    const equipment = await EquipmentService.getEquipmentByAssetTag(assetTag);
+
+    if (!equipment) {
+      throw new NotFoundError('Equipment with that asset tag not found');
+    }
+
+    logger.info('Equipment retrieved by asset tag', {
+      userId: req.user?.id,
+      assetTag,
+      equipmentId: equipment.id
+    });
+
+    return res.status(200).json(equipment);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/maintenance-due
+ * @desc Get equipment requiring maintenance
+ * @access Private
+ */
+router.get('/maintenance-due',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { overdue, siteId } = req.query;
+
+    const equipment = await EquipmentService.getEquipmentRequiringMaintenance({
+      overdue: overdue === 'true',
+      siteId: siteId as string | undefined
+    });
+
+    logger.info('Maintenance due equipment retrieved', {
+      userId: req.user?.id,
+      count: equipment.length,
+      overdue: overdue === 'true',
+      siteId
+    });
+
+    return res.status(200).json(equipment);
+  })
+);
+
+/**
+ * @route PUT /api/v1/equipment/:id/maintenance-schedule
+ * @desc Update equipment maintenance schedule
+ * @access Private
+ */
+router.put('/:id/maintenance-schedule',
+  requireMaintenanceAccess,
+  requireSiteAccess,
+  auditLogger('equipment', 'UPDATE_MAINTENANCE_SCHEDULE'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { maintenanceInterval, lastMaintenanceDate, nextMaintenanceDate } = req.body;
+
+    const data: any = {};
+    if (maintenanceInterval !== undefined) data.maintenanceInterval = maintenanceInterval;
+    if (lastMaintenanceDate) data.lastMaintenanceDate = new Date(lastMaintenanceDate);
+    if (nextMaintenanceDate) data.nextMaintenanceDate = new Date(nextMaintenanceDate);
+
+    const equipment = await EquipmentService.updateMaintenanceSchedule(id, data);
+
+    logger.info('Equipment maintenance schedule updated', {
+      userId: req.user?.id,
+      equipmentId: id,
+      updates: Object.keys(data)
+    });
+
+    return res.status(200).json(equipment);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/:id/metrics
+ * @desc Calculate and get equipment metrics (MTBF, MTTR, availability)
+ * @access Private
+ */
+router.get('/:id/metrics',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const metrics = await EquipmentService.calculateEquipmentMetrics(id);
+
+    logger.info('Equipment metrics calculated', {
+      userId: req.user?.id,
+      equipmentId: id,
+      mtbf: metrics.mtbf,
+      mttr: metrics.mttr,
+      availability: metrics.availability
+    });
+
+    return res.status(200).json(metrics);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/:id/maintenance-history
+ * @desc Get equipment maintenance history
+ * @access Private
+ */
+router.get('/:id/maintenance-history',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { limit, from, to } = req.query;
+
+    const options: any = {};
+    if (limit) options.limit = parseInt(limit as string);
+    if (from) options.from = new Date(from as string);
+    if (to) options.to = new Date(to as string);
+
+    const history = await EquipmentService.getMaintenanceHistory(id, options);
+
+    logger.info('Equipment maintenance history retrieved', {
+      userId: req.user?.id,
+      equipmentId: id,
+      recordCount: history.length
+    });
+
+    return res.status(200).json(history);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/:id/downtime-analysis
+ * @desc Get equipment downtime analysis
+ * @access Private
+ */
+router.get('/:id/downtime-analysis',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { days } = req.query;
+
+    const options: any = {};
+    if (days) options.days = parseInt(days as string);
+
+    const analysis = await EquipmentService.getDowntimeAnalysis(id, options);
+
+    logger.info('Equipment downtime analysis retrieved', {
+      userId: req.user?.id,
+      equipmentId: id,
+      totalEvents: analysis.totalEvents,
+      totalDowntimeMinutes: analysis.totalDowntimeMinutes
+    });
+
+    return res.status(200).json(analysis);
+  })
+);
+
+// ============================================================================
+// EQUIPMENT TYPE MANAGEMENT ENDPOINTS FOR ISSUE #94
+// ============================================================================
+
+/**
+ * @route GET /api/v1/equipment/types
+ * @desc Get all equipment types
+ * @access Private
+ */
+router.get('/types',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { includeEquipmentCount } = req.query;
+
+    const equipmentTypes = await EquipmentService.getAllEquipmentTypes({
+      includeEquipmentCount: includeEquipmentCount === 'true'
+    });
+
+    logger.info('Equipment types retrieved', {
+      userId: req.user?.id,
+      count: equipmentTypes.length
+    });
+
+    return res.status(200).json(equipmentTypes);
+  })
+);
+
+/**
+ * @route POST /api/v1/equipment/types
+ * @desc Create equipment type
+ * @access Private
+ */
+router.post('/types',
+  requireMaintenanceAccess,
+  auditLogger('equipment-types', 'CREATE'),
+  asyncHandler(async (req, res) => {
+    const equipmentType = await EquipmentService.createEquipmentType(req.body);
+
+    logger.info('Equipment type created', {
+      userId: req.user?.id,
+      equipmentTypeId: equipmentType.id,
+      code: equipmentType.code
+    });
+
+    return res.status(201).json(equipmentType);
+  })
+);
+
+/**
+ * @route GET /api/v1/equipment/types/:id
+ * @desc Get equipment type by ID
+ * @access Private
+ */
+router.get('/types/:id',
+  requireMaintenanceAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const equipmentType = await EquipmentService.getEquipmentTypeById(id);
+
+    if (!equipmentType) {
+      throw new NotFoundError('Equipment type not found');
+    }
+
+    logger.info('Equipment type retrieved', {
+      userId: req.user?.id,
+      equipmentTypeId: id
+    });
+
+    return res.status(200).json(equipmentType);
+  })
+);
+
+/**
+ * @route PUT /api/v1/equipment/types/:id
+ * @desc Update equipment type
+ * @access Private
+ */
+router.put('/types/:id',
+  requireMaintenanceAccess,
+  auditLogger('equipment-types', 'UPDATE'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const equipmentType = await EquipmentService.updateEquipmentType(id, req.body);
+
+    logger.info('Equipment type updated', {
+      userId: req.user?.id,
+      equipmentTypeId: id
+    });
+
+    return res.status(200).json(equipmentType);
+  })
+);
+
+/**
+ * @route DELETE /api/v1/equipment/types/:id
+ * @desc Delete equipment type
+ * @access Private
+ */
+router.delete('/types/:id',
+  requireMaintenanceAccess,
+  auditLogger('equipment-types', 'DELETE'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const equipmentType = await EquipmentService.deleteEquipmentType(id);
+
+    logger.info('Equipment type deleted', {
+      userId: req.user?.id,
+      equipmentTypeId: id
+    });
+
+    return res.status(200).json(equipmentType);
   })
 );
 

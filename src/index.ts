@@ -113,6 +113,10 @@ import vendorKitRoutes from './routes/vendorKits';
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System Routes
+import maintenanceRoutes from './routes/maintenance';
+import downtimeRoutes from './routes/downtime';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -322,6 +326,10 @@ apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
 apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
+
+// ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
+apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
+apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));

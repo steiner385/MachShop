@@ -223,7 +223,6 @@ model User {
   supervisor                User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
   subordinates              User[]                          @relation("SupervisorRelation")
   departmentRelation        Department?                     @relation("UserDepartment", fields: [departmentId], references: [id])
-  managedDepartment         Department?                     @relation("DepartmentManager")
   workInstructionExecutions WorkInstructionExecution[]      @relation("WIExecutionOperator")
   signedStepExecutions      WorkInstructionStepExecution[]  @relation("WIStepExecutionSignedBy")
   approvedWorkInstructions  WorkInstruction[]               @relation("WorkInstructionApprovedBy")
@@ -307,6 +306,16 @@ model User {
 
   // Temporal permissions audit trail
   temporalAccessLogs        TemporalAccessLog[]
+
+  // Department Management Relations (Issue #209)
+  managedDepartments             Department[]              @relation("DepartmentManager")
+
+  // Equipment & Maintenance Management Relations (Issue #94)
+  assignedMaintenanceWorkOrders  MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderAssignedTo")
+  createdMaintenanceWorkOrders   MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderCreatedBy")
+  updatedMaintenanceWorkOrders   MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderUpdatedBy")
+  laborEntries                   LaborEntry[]              @relation("LaborEntryTechnician")
+  reportedDowntimeEvents         DowntimeEvent[]           @relation("DowntimeEventReportedBy")
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -2025,6 +2034,26 @@ model Equipment {
   oee                        Float?                      @default(0)
   ratedCapacity              Float?
   currentCapacity            Float?
+
+  // Enhanced maintenance fields for Issue #94
+  equipmentTypeId            String?
+  assetTag                   String?                     @unique
+  purchaseDate               DateTime?
+  warrantyExpiration         DateTime?
+  criticality                CriticalityLevel            @default(MEDIUM)
+  capacityUnit               String?
+  acquisitionCost            Decimal?
+  currentValue               Decimal?
+  depreciationMethod         String?
+  maintenanceInterval        Int?                        // Days
+  lastMaintenanceDate        DateTime?
+  nextMaintenanceDate        DateTime?
+  totalRunTime               Int                         @default(0) // Minutes
+  totalDownTime              Int                         @default(0) // Minutes
+  mtbf                       Decimal?                    // Mean Time Between Failures (hours)
+  mttr                       Decimal?                    // Mean Time To Repair (hours)
+  requiresCalibration        Boolean                     @default(false)
+
   isActive                   Boolean                     @default(true)
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
@@ -2034,6 +2063,11 @@ model Equipment {
   site                       Site?                       @relation(fields: [siteId], references: [id])
   workCenter                 WorkCenter?                 @relation(fields: [workCenterId], references: [id])
   workUnit                   WorkUnit?                   @relation(fields: [workUnitId], references: [id])
+
+  // Enhanced maintenance relations for Issue #94
+  equipmentTypeRef           EquipmentType?              @relation("EquipmentToEquipmentType", fields: [equipmentTypeId], references: [id])
+  downtimeEvents             DowntimeEvent[]             @relation("EquipmentDowntimeEvents")
+
   capabilities               EquipmentCapability[]
   equipmentCommands          EquipmentCommand[]
   equipmentDataCollections   EquipmentDataCollection[]
@@ -2053,6 +2087,10 @@ model Equipment {
   @@index([siteId])
   @@index([currentState])
   @@index([equipmentClass])
+  @@index([equipmentTypeId])
+  @@index([criticality])
+  @@index([nextMaintenanceDate])
+  @@index([assetTag])
   @@map("equipment")
 }
 
@@ -2462,30 +2500,91 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+/// Enhanced maintenance work order model for comprehensive maintenance management (Issue #94)
 model MaintenanceWorkOrder {
-  id                      String     @id @default(cuid())
-  externalWorkOrderNumber String     @unique
+  id                      String            @id @default(cuid())
+  workOrderNumber         String            @unique
+  externalWorkOrderNumber String?           @unique
+  equipmentId             String
+
+  // Work order classification
+  type                    MaintenanceType
+  priority                Priority          @default(NORMAL)
+  status                  MaintenanceStatus @default(PENDING)
+
+  // Scheduling
+  scheduledDate           DateTime?
+  dueDate                 DateTime?
+  startedAt               DateTime?
+  completedAt             DateTime?
+
+  // Description and analysis
   description             String
-  workType                String
-  status                  String
-  equipmentId             String?
+  problemDescription      String?
+  rootCause               String?
+  correctiveAction        String?
+  workPerformed           String?
+  notes                   String?
+
+  // Assignment
+  assignedToId            String?
+  assignedTeam            String?
+
+  // Labor tracking
+  estimatedLaborHours     Decimal?
+  actualLaborHours        Decimal?
+
+  // Parts tracking
+  estimatedPartsCost      Decimal?
+  actualPartsCost         Decimal?
+
+  // Downtime impact
+  causedDowntime          Boolean           @default(false)
+  downtimeMinutes         Int?
+
+  // Follow-up tracking
+  requiresFollowUp        Boolean           @default(false)
+  followUpDate            DateTime?
+  followUpWorkOrderId     String?
+
+  // Legacy fields for backwards compatibility
+  workType                String?
   scheduledStart          DateTime?
   scheduledFinish         DateTime?
   actualStart             DateTime?
   actualFinish            DateTime?
-  priority                Int        @default(3)
   failureCode             String?
   problemCode             String?
   causeCode               String?
   remedyCode              String?
   lastSyncedAt            DateTime?
-  createdAt               DateTime   @default(now())
-  updatedAt               DateTime   @updatedAt
-  equipment               Equipment? @relation(fields: [equipmentId], references: [id])
 
+  // Audit fields
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  createdById             String
+  updatedById             String
+
+  // Relations
+  equipment               Equipment         @relation(fields: [equipmentId], references: [id])
+  assignedTo              User?             @relation("MaintenanceWorkOrderAssignedTo", fields: [assignedToId], references: [id])
+  laborEntries            LaborEntry[]      @relation("MaintenanceWorkOrderLabor")
+  partsUsed               MaintenancePart[] @relation("MaintenanceWorkOrderParts")
+  downtimeEvents          DowntimeEvent[]   @relation("DowntimeToMaintenanceWorkOrder")
+  followUpWorkOrder       MaintenanceWorkOrder? @relation("FollowUpWorkOrder", fields: [followUpWorkOrderId], references: [id])
+  parentWorkOrders        MaintenanceWorkOrder[] @relation("FollowUpWorkOrder")
+  createdBy               User              @relation("MaintenanceWorkOrderCreatedBy", fields: [createdById], references: [id])
+  updatedBy               User              @relation("MaintenanceWorkOrderUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workOrderNumber])
   @@index([externalWorkOrderNumber])
   @@index([equipmentId])
   @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([scheduledDate])
   @@map("maintenance_work_orders")
 }
 
@@ -10349,4 +10448,176 @@ model ExchangeRate {
   @@index([expirationDate])
   @@index([rateSource])
   @@map("exchange_rates")
+}
+
+// ============================================================================
+// EQUIPMENT REGISTRY & MAINTENANCE MANAGEMENT SYSTEM (ISSUE #94)
+// ============================================================================
+
+/// Equipment criticality classification for maintenance prioritization
+enum CriticalityLevel {
+  HIGH      // Production-critical, immediate attention required
+  MEDIUM    // Important but workarounds available
+  LOW       // Nice to have, minimal production impact
+}
+
+/// Enhanced maintenance status tracking
+enum MaintenanceStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+/// Downtime classification for tracking planned vs unplanned events
+enum DowntimeType {
+  PLANNED           // Scheduled maintenance
+  UNPLANNED         // Unexpected breakdown
+}
+
+/// Equipment types for better categorization and maintenance planning
+model EquipmentType {
+  id                          String        @id @default(cuid())
+  code                        String        @unique
+  name                        String
+  description                 String?
+  category                    String?       // Machine, Tool, Fixture, Gauge, etc.
+
+  // Default maintenance settings
+  defaultMaintenanceInterval  Int?          // Days
+  defaultMaintenanceProcedure String?
+
+  // Relations
+  equipment                   Equipment[]   @relation("EquipmentToEquipmentType")
+
+  // Audit fields
+  createdAt                   DateTime      @default(now())
+  updatedAt                   DateTime      @updatedAt
+
+  @@map("equipment_types")
+}
+
+/// Enhanced downtime tracking for maintenance analysis
+model DowntimeEvent {
+  id                    String                @id @default(cuid())
+  equipmentId           String
+  equipment             Equipment             @relation("EquipmentDowntimeEvents", fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  // Timing
+  startTime             DateTime
+  endTime               DateTime?
+  durationMinutes       Int?
+
+  // Classification
+  downtimeType          DowntimeType
+  downtimeReasonId      String
+  downtimeReason        DowntimeReason        @relation(fields: [downtimeReasonId], references: [id])
+
+  // Impact
+  affectedWorkOrderIds  String[]              // Work orders affected by this downtime
+  productionLoss        Decimal?              // Units not produced
+
+  // Resolution
+  description           String
+  rootCause             String?
+  correctiveAction      String?
+
+  // Related maintenance
+  maintenanceWorkOrderId String?
+  maintenanceWorkOrder  MaintenanceWorkOrder? @relation("DowntimeToMaintenanceWorkOrder", fields: [maintenanceWorkOrderId], references: [id])
+
+  // Documentation
+  reportedById          String
+  reportedBy            User                  @relation("DowntimeEventReportedBy", fields: [reportedById], references: [id])
+  notes                 String?
+
+  // Audit fields
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([equipmentId])
+  @@index([startTime])
+  @@index([downtimeType])
+  @@index([downtimeReasonId])
+  @@map("downtime_events")
+}
+
+/// Standardized downtime reasons for better analysis and reporting
+model DowntimeReason {
+  id                    String          @id @default(cuid())
+  code                  String          @unique
+  name                  String
+  description           String?
+  category              String?         // Mechanical, Electrical, Operator Error, Material, etc.
+  isActive              Boolean         @default(true)
+
+  // Relations
+  downtimeEvents        DowntimeEvent[]
+
+  // Audit fields
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([code])
+  @@index([category])
+  @@index([isActive])
+  @@map("downtime_reasons")
+}
+
+/// Parts used in maintenance work orders for cost tracking
+model MaintenancePart {
+  id                    String               @id @default(cuid())
+  workOrderId           String
+  workOrder             MaintenanceWorkOrder @relation("MaintenanceWorkOrderParts", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  // Part information
+  partNumber            String
+  partDescription       String?
+  quantity              Decimal
+  unitCost              Decimal?
+  totalCost             Decimal?
+
+  // Inventory tracking
+  lotNumber             String?
+  serialNumber          String?
+  issuedFrom            String?             // Inventory location
+
+  // Audit fields
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([workOrderId])
+  @@index([partNumber])
+  @@map("maintenance_parts")
+}
+
+/// Labor entries for maintenance work order time and cost tracking
+model LaborEntry {
+  id                    String               @id @default(cuid())
+  workOrderId           String
+  workOrder             MaintenanceWorkOrder @relation("MaintenanceWorkOrderLabor", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  // Technician information
+  technicianId          String
+  technician            User                 @relation("LaborEntryTechnician", fields: [technicianId], references: [id])
+
+  // Time tracking
+  startTime             DateTime
+  endTime               DateTime?
+  laborHours            Decimal?
+  laborRate             Decimal?
+  laborCost             Decimal?
+
+  notes                 String?
+
+  // Audit fields
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([workOrderId])
+  @@index([technicianId])
+  @@index([startTime])
+  @@map("labor_entries")
 }
