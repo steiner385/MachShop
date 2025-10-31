@@ -76,6 +76,9 @@ model Site {
   // Department Management Relations (Issue #209)
   departments               Department[]
 
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration     SiteWorkflowConfiguration? @relation("SiteWorkflowConfig")
+
   // Andon System Relations (Issue #171)
   andonAlerts               AndonAlert[]
   andonIssueTypes           AndonIssueType[]
@@ -867,6 +870,9 @@ model Operation {
   // Part Interchangeability Framework relationships
   partSubstitutions         WorkOrderPartSubstitution[]
 
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration     OperationWorkflowConfiguration? @relation("OperationWorkflowConfig")
+
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
@@ -1413,6 +1419,9 @@ model WorkOrder {
   // Part Interchangeability Framework relationships
   partSubstitutions            WorkOrderPartSubstitution[]
 
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration        WorkOrderWorkflowConfiguration? @relation("WorkOrderWorkflowConfig")
+
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
@@ -1452,6 +1461,7 @@ model Routing {
   site            Site?                 @relation(fields: [siteId], references: [id])
   scheduleEntries ScheduleEntry[]
   workOrders      WorkOrder[]
+  workflowConfiguration RoutingWorkflowConfiguration? @relation("RoutingWorkflowConfig")
 
   @@unique([partId, siteId, version])
   @@index([siteId])
@@ -11150,4 +11160,168 @@ model SerialNumberUsageTracking {
 
   @@index([formatConfigId])
   @@map("serial_number_usage_tracking")
+}
+
+/// Site-Level Workflow Configuration (Issue #40)
+/// Defines enforcement level per site for flexible workflow execution
+/// Supports three modes: STRICT (full ISA-95), FLEXIBLE (relaxed prerequisites), HYBRID (external vouching)
+model SiteWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  siteId                    String   @unique
+
+  // Enforcement mode
+  mode                      WorkflowMode @default(STRICT)
+
+  // Detailed enforcement toggles
+  enforceOperationSequence  Boolean  @default(true)   // Require prerequisites met?
+  enforceStatusGating       Boolean  @default(true)   // Require WO status for data collection?
+  allowExternalVouching     Boolean  @default(false)  // Accept external completion vouching?
+  enforceQualityChecks      Boolean  @default(true)   // Require quality inspections?
+  requireStartTransition    Boolean  @default(true)   // Require explicit "start" before data collection?
+
+  // Audit and justification
+  requireJustification      Boolean  @default(false)  // Require reason for flexible usage?
+  requireApproval           Boolean  @default(false)  // Require supervisor approval for flexible?
+
+  // Metadata
+  effectiveDate             DateTime @default(now())
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+  updatedBy                 String?
+
+  // Relations
+  site                      Site     @relation("SiteWorkflowConfig", fields: [siteId], references: [id], onDelete: Cascade)
+  routingOverrides          RoutingWorkflowConfiguration[]
+  configurationHistory      WorkflowConfigurationHistory[]
+
+  @@index([siteId])
+  @@index([mode])
+  @@map("site_workflow_configurations")
+}
+
+/// Workflow Modes
+/// STRICT: Full ISA-95 enforcement (current behavior)
+/// FLEXIBLE: Allow data collection without status prerequisites
+/// HYBRID: Accept external vouching + flexible data collection
+enum WorkflowMode {
+  STRICT
+  FLEXIBLE
+  HYBRID
+}
+
+/// Routing-Level Workflow Configuration Overrides (Issue #40)
+/// Allows routing-specific configuration overrides from site defaults
+model RoutingWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  routingId                 String   @unique
+  siteConfigId              String?  // Null = site defaults
+
+  // Override flags (null = inherit from site)
+  mode                      WorkflowMode?
+  enforceOperationSequence  Boolean?
+  enforceStatusGating       Boolean?
+  allowExternalVouching     Boolean?
+  enforceQualityChecks      Boolean?
+  requireStartTransition    Boolean?
+
+  // Justification for override
+  overrideReason            String?
+  approvedBy                String?
+  approvedAt                DateTime?
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+
+  // Relations
+  routing                   Routing  @relation("RoutingWorkflowConfig", fields: [routingId], references: [id], onDelete: Cascade)
+  siteConfig                SiteWorkflowConfiguration? @relation(fields: [siteConfigId], references: [id], onDelete: SetNull)
+  workOrderOverrides        WorkOrderWorkflowConfiguration[]
+
+  @@index([routingId])
+  @@index([siteConfigId])
+  @@map("routing_workflow_configurations")
+}
+
+/// Work Order-Level Workflow Configuration Overrides (Issue #40)
+/// Exceptional work order-specific overrides (requires approval)
+model WorkOrderWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  workOrderId               String   @unique
+  routingConfigId           String?
+
+  // Override flags (null = inherit from routing/site)
+  mode                      WorkflowMode?
+  enforceOperationSequence  Boolean?
+  enforceStatusGating       Boolean?
+  allowExternalVouching     Boolean?
+  enforceQualityChecks      Boolean?
+  requireStartTransition    Boolean?
+
+  // Justification (REQUIRED for work order overrides)
+  overrideReason            String
+  approvedBy                String
+  approvedAt                DateTime
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  createdBy                 String
+
+  // Relations
+  workOrder                 WorkOrder @relation("WorkOrderWorkflowConfig", fields: [workOrderId], references: [id], onDelete: Cascade)
+  routingConfig             RoutingWorkflowConfiguration? @relation(fields: [routingConfigId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@map("work_order_workflow_configurations")
+}
+
+/// Workflow Configuration Change History (Issue #40)
+/// Audit trail for configuration changes
+model WorkflowConfigurationHistory {
+  id                String   @id @default(cuid())
+  configType        String   // 'SITE', 'ROUTING', 'WORK_ORDER'
+  configId          String   // ID of configuration record
+
+  // What changed
+  field             String   // Which field changed
+  oldValue          String?  // Previous value (JSON)
+  newValue          String   // New value (JSON)
+
+  // Why and who
+  changeReason      String?
+  changedBy         String
+  changedAt         DateTime @default(now())
+
+  // Relations (polymorphic)
+  siteConfigId      String?
+  siteConfig        SiteWorkflowConfiguration? @relation(fields: [siteConfigId], references: [id], onDelete: Cascade)
+
+  @@index([configType, configId])
+  @@index([changedAt])
+  @@map("workflow_configuration_history")
+}
+
+/// Operation-Level Workflow Configuration (Issue #40)
+/// Granular configuration control per operation type
+model OperationWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  operationId               String   @unique
+
+  // Granular overrides
+  requireQualityInspection  Boolean? // Override quality requirement for this operation
+  allowExternalVouching     Boolean? // Allow external vouching for this operation type
+  bypassPrerequisites       Boolean? // Bypass dependency checks for this operation
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+
+  // Relations
+  operation                 Operation @relation("OperationWorkflowConfig", fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@map("operation_workflow_configurations")
 }
