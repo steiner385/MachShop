@@ -11152,58 +11152,79 @@ model SerialNumberUsageTracking {
   @@map("serial_number_usage_tracking")
 }
 
-
 // ============================================
 // Issue #74: API Access Control & Security Model
+// Three-tier API access: Public, SDK, Private
 // ============================================
 
 enum ApiTier {
-  PUBLIC
-  SDK
-  PRIVATE
+  PUBLIC  // External integrations, third-party applications
+  SDK     // Plugin developers, system integrators
+  PRIVATE // Internal use only, sensitive operations
 }
 
 enum ApiKeyStatus {
-  ACTIVE
-  SUSPENDED
-  REVOKED
-  EXPIRED
-  PENDING_APPROVAL
+  ACTIVE              // Key is valid and usable
+  SUSPENDED           // Temporarily disabled
+  REVOKED             // Permanently invalidated
+  EXPIRED             // Passed expiration date
+  PENDING_APPROVAL    // Awaiting admin approval (SDK tier)
 }
 
 enum TokenType {
-  ACCESS_TOKEN
-  REFRESH_TOKEN
+  ACCESS_TOKEN        // Short-lived access token
+  REFRESH_TOKEN       // Long-lived refresh token for getting new access tokens
 }
 
+/**
+ * API Key model for managing API access across three tiers
+ * Stores cryptographically hashed API keys for authentication
+ * Issue #74: API Access Control & Security Model
+ */
 model ApiKey {
-  id              String         @id @default(cuid())
-  keyPrefix       String         @unique
-  keyHash         String
-  name            String
-  description     String?
-  tier            ApiTier        @default(PUBLIC)
-  status          ApiKeyStatus   @default(ACTIVE)
-  siteId          String?
-  companyId       String?
-  pluginId        String?
-  scopes          String[]       @default([])
-  rateLimit       Int            @default(100)
-  dailyQuota      Int?
-  monthlyQuota    Int?
-  expiresAt       DateTime?
-  lastUsedAt      DateTime?
-  lastUsedEndpoint String?
-  createdBy       String
-  approvedBy      String?
-  approvedAt      DateTime?
-  developerName   String?
-  developerEmail  String?
-  developerCompany String?
-  developerPhone  String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  usageLogs       ApiUsageLog[]
+  id                    String         @id @default(cuid())
+  keyPrefix             String         @unique           // pk_live_, sdk_live_, etc.
+  keyHash               String                           // bcrypt hash of full key
+  name                  String                           // Descriptive name for the key
+  description           String?
+  tier                  ApiTier        @default(PUBLIC) // PUBLIC, SDK, or PRIVATE
+  status                ApiKeyStatus   @default(ACTIVE)
+
+  // Scoping
+  siteId                String?                          // Optional: restrict to specific site
+  companyId             String?                          // Optional: restrict to specific company
+  pluginId              String?                          // Optional: for SDK keys linked to plugins
+
+  // Permissions
+  scopes                String[]       @default([])      // Array of permission scopes
+
+  // Rate limiting
+  rateLimit             Int            @default(100)    // Requests per minute
+  dailyQuota            Int?                             // Optional daily request quota
+  monthlyQuota          Int?                             // Optional monthly request quota
+
+  // Expiration & Usage
+  expiresAt             DateTime?                        // Optional expiration date
+  lastUsedAt            DateTime?                        // Track last successful use
+  lastUsedEndpoint      String?                          // Last endpoint called
+
+  // Metadata
+  createdBy             String                           // User ID who created the key
+  approvedBy            String?                          // User ID who approved (SDK keys)
+  approvedAt            DateTime?                        // When SDK key was approved
+
+  // Developer info (for SDK/PRIVATE keys)
+  developerName         String?
+  developerEmail        String?
+  developerCompany      String?
+  developerPhone        String?
+
+  // Audit trail
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // Relations
+  usageLogs             ApiUsageLog[]
 
   @@index([keyPrefix])
   @@index([siteId])
@@ -11214,25 +11235,44 @@ model ApiKey {
   @@map("api_keys")
 }
 
+/**
+ * API Usage Log model for audit trail and analytics
+ * Tracks every API request for compliance, debugging, and analytics
+ * Issue #74: API Access Control & Security Model
+ */
 model ApiUsageLog {
-  id                  String         @id @default(cuid())
-  apiKeyId            String
-  endpoint            String
-  httpMethod          String
-  apiVersion          String?
-  statusCode          Int
-  responseTime        Int
-  requestId           String         @unique
-  ipAddress           String?
-  userAgent           String?
-  rateLimitRemaining  Int?
-  rateLimitReset      DateTime?
-  errorCode           String?
-  errorMessage        String?
-  requestBytes        Int?
-  responseBytes       Int?
-  createdAt           DateTime       @default(now())
-  apiKey              ApiKey         @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  id                    String         @id @default(cuid())
+  apiKeyId              String                           // Foreign key to ApiKey
+
+  // Request details
+  endpoint              String                           // e.g., /api/v2/work-orders
+  httpMethod            String                           // GET, POST, PUT, DELETE, PATCH
+  apiVersion            String?                          // API version used (v1, v2, etc.)
+  statusCode            Int                              // HTTP response status code
+  responseTime          Int                              // Response time in milliseconds
+
+  // Request tracing
+  requestId             String         @unique          // UUID for request tracing
+  ipAddress             String?                          // Client IP address
+  userAgent             String?                          // Client user agent
+
+  // Rate limit state at time of request
+  rateLimitRemaining    Int?                             // Requests remaining in current window
+  rateLimitReset        DateTime?                        // When current rate limit window resets
+
+  // Error tracking
+  errorCode             String?                          // Error code if request failed
+  errorMessage          String?                          // Error message if request failed
+
+  // Request/response size
+  requestBytes          Int?                             // Request body size
+  responseBytes         Int?                             // Response body size
+
+  // Timestamp
+  createdAt             DateTime       @default(now())
+
+  // Relations
+  apiKey                ApiKey         @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 
   @@index([apiKeyId])
   @@index([endpoint])
@@ -11242,20 +11282,33 @@ model ApiUsageLog {
   @@map("api_usage_logs")
 }
 
+/**
+ * Rate Limit Configuration model
+ * Defines rate limits per API tier and optionally per resource
+ * Issue #74: API Access Control & Security Model
+ */
 model RateLimitConfig {
-  id              String         @id @default(cuid())
-  tier            ApiTier
-  resource        String?
-  requestsPerMinute Int          @default(100)
-  requestsPerHour Int?
-  requestsPerDay  Int?
-  burstMultiplier Decimal        @default(2.0)
-  burstDuration   Int            @default(10)
-  isActive        Boolean        @default(true)
-  siteId          String?
-  description     String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  tier                  ApiTier                          // Which tier this limit applies to
+  resource              String?                          // Optional: specific resource (null = global)
+
+  // Rate limits
+  requestsPerMinute     Int            @default(100)
+  requestsPerHour       Int?                             // Optional: hourly limit
+  requestsPerDay        Int?                             // Optional: daily limit
+
+  // Burst allowance
+  burstMultiplier       Decimal        @default(2.0)    // Allow brief spikes (e.g., 2x limit for 10 seconds)
+  burstDuration         Int            @default(10)     // Burst duration in seconds
+
+  // Configuration
+  isActive              Boolean        @default(true)   // Can disable limits temporarily
+  siteId                String?                          // Optional: site-specific override
+
+  // Metadata
+  description           String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([tier])
   @@index([resource])
@@ -11263,59 +11316,98 @@ model RateLimitConfig {
   @@map("rate_limit_configs")
 }
 
+/**
+ * OAuth Client model for third-party integrations
+ * Supports OAuth 2.0 authorization code and client credentials flows
+ * Issue #74: API Access Control & Security Model
+ */
 model OAuthClient {
-  id              String         @id @default(cuid())
-  clientId        String         @unique
-  clientSecret    String
-  name            String
-  description     String?
-  grantTypes      String[]       @default(["authorization_code"])
-  redirectUris    String[]       @default([])
-  allowedScopes   String[]       @default([])
-  tier            ApiTier        @default(PUBLIC)
-  isActive        Boolean        @default(true)
-  companyId       String?
-  createdBy       String
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  authorizations  OAuthAuthorization[]
-  tokens          OAuthToken[]
+  id                    String         @id @default(cuid())
+  clientId              String         @unique          // Public identifier
+  clientSecret          String                          // Hashed secret
+  name                  String
+  description           String?
+
+  // OAuth Configuration
+  grantTypes            String[]       @default(["authorization_code"])  // Grant types supported
+  redirectUris          String[]       @default([])     // Allowed redirect URIs
+  allowedScopes         String[]       @default([])     // Scopes this client can request
+
+  // Tier
+  tier                  ApiTier        @default(PUBLIC)
+
+  // Status
+  isActive              Boolean        @default(true)
+
+  // Metadata
+  companyId             String?
+  createdBy             String
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // Relations
+  authorizations        OAuthAuthorization[]
+  tokens                OAuthToken[]
 
   @@index([clientId])
   @@index([companyId])
   @@map("oauth_clients")
 }
 
+/**
+ * OAuth Authorization model
+ * Tracks user authorizations of OAuth clients
+ * Issue #74: API Access Control & Security Model
+ */
 model OAuthAuthorization {
-  id            String         @id @default(cuid())
-  clientId      String
-  userId        String
-  scopes        String[]       @default([])
-  isRevoked     Boolean        @default(false)
-  revokedAt     DateTime?
-  authorizedAt  DateTime       @default(now())
-  expiresAt     DateTime?
-  client        OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                    String         @id @default(cuid())
+  clientId              String
+  userId                String         // User who authorized this client
+  scopes                String[]       @default([])     // Scopes authorized
+
+  // Status
+  isRevoked             Boolean        @default(false)
+  revokedAt             DateTime?
+
+  // Timeline
+  authorizedAt          DateTime       @default(now())
+  expiresAt             DateTime?                        // Optional expiration
+
+  // Relations
+  client                OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([userId])
   @@map("oauth_authorizations")
 }
 
+/**
+ * OAuth Token model
+ * Stores access and refresh tokens for OAuth flows
+ * Issue #74: API Access Control & Security Model
+ */
 model OAuthToken {
-  id              String         @id @default(cuid())
-  clientId        String
-  userId          String?
-  tokenType       TokenType
-  tokenHash       String         @unique
-  scopes          String[]       @default([])
-  expiresAt       DateTime
-  isRevoked       Boolean        @default(false)
-  revokedAt       DateTime?
-  refreshTokenId  String?
-  createdAt       DateTime       @default(now())
-  lastUsedAt      DateTime?
-  client          OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                    String         @id @default(cuid())
+  clientId              String
+  userId                String?                          // Null for client credentials flow
+  tokenType             TokenType                        // ACCESS_TOKEN or REFRESH_TOKEN
+  tokenHash             String         @unique          // Bcrypt hash of token
+  scopes                String[]       @default([])     // Scopes granted to this token
+
+  // Expiration & Status
+  expiresAt             DateTime
+  isRevoked             Boolean        @default(false)
+  revokedAt             DateTime?
+
+  // Refresh token relationship
+  refreshTokenId        String?                          // ID of associated refresh token
+
+  // Timestamp
+  createdAt             DateTime       @default(now())
+  lastUsedAt            DateTime?
+
+  // Relations
+  client                OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([userId])
@@ -11324,17 +11416,25 @@ model OAuthToken {
   @@map("oauth_tokens")
 }
 
+/**
+ * API Tier Classification for endpoints
+ * Maps endpoints to their required access tier
+ * Used for endpoint discovery and documentation
+ * Issue #74: API Access Control & Security Model
+ */
 model ApiEndpointTier {
-  id                String         @id @default(cuid())
-  endpoint          String         @unique
-  httpMethod        String
-  tier              ApiTier
-  description       String?
-  isDeprecated      Boolean        @default(false)
-  deprecationDate   DateTime?
-  replacementEndpoint String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  endpoint              String         @unique          // e.g., /api/v2/work-orders
+  httpMethod            String                          // GET, POST, PUT, DELETE, PATCH
+  tier                  ApiTier                          // Required tier: PUBLIC, SDK, PRIVATE
+  description           String?                          // Endpoint description
+  isDeprecated          Boolean        @default(false)
+  deprecationDate       DateTime?
+  replacementEndpoint   String?                          // What to use instead (if deprecated)
+
+  // Metadata
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([endpoint])
   @@index([tier])
