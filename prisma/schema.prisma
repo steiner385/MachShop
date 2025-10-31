@@ -70,6 +70,9 @@ model Site {
   // Location Management Relations (Issue #207)
   locations                 Location[]
 
+  // Temporal permissions audit trail
+  temporalAccessLogs        TemporalAccessLog[]
+
   // Department Management Relations (Issue #209)
   departments               Department[]
 
@@ -301,6 +304,9 @@ model User {
   approvedSubstitutions     WorkOrderPartSubstitution[]     @relation("SubstitutionApprover")
   createdSubstitutions      WorkOrderPartSubstitution[]     @relation("SubstitutionCreator")
   auditLogActions           InterchangeabilityAuditLog[]    @relation("AuditLogPerformer")
+
+  // Temporal permissions audit trail
+  temporalAccessLogs        TemporalAccessLog[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -4948,6 +4954,9 @@ model Role {
   // Saviynt Identity Governance relationships
   saviyntRoleMappings  SaviyntRoleMapping[]
 
+  // Temporal permissions audit trail
+  temporalAccessLogs   TemporalAccessLog[]
+
   @@index([roleCode])
   @@index([isActive])
   @@index([isGlobal])
@@ -4998,42 +5007,84 @@ model RolePermission {
 /// Junction table: User ↔ Role (many-to-many, global)
 /// Assigns global roles to users that apply across all sites
 model UserRole {
-  id         String    @id @default(cuid())
-  userId     String
-  roleId     String
-  assignedAt DateTime  @default(now())
-  assignedBy String?
-  expiresAt  DateTime?
-  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  userId      String
+  roleId      String
+  assignedAt  DateTime  @default(now())
+  assignedBy  String?
+  validFrom   DateTime? // When the role becomes active (temporal permissions)
+  expiresAt   DateTime? // When the role expires (temporal permissions)
+  isTemporary Boolean   @default(false) // Flag for temporary vs permanent assignment
+  grantReason String?   // Reason for temporal assignment (e.g., "contractor", "emergency")
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
   @@index([expiresAt])
+  @@index([validFrom])
+  @@index([isTemporary])
   @@map("user_roles")
 }
 
 /// Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
 /// Assigns site-specific roles to users for enhanced granular control
 model UserSiteRole {
-  id         String    @id @default(cuid())
-  userId     String
-  roleId     String
-  siteId     String
-  assignedAt DateTime  @default(now())
-  assignedBy String?
-  expiresAt  DateTime?
-  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  userId      String
+  roleId      String
+  siteId      String
+  assignedAt  DateTime  @default(now())
+  assignedBy  String?
+  validFrom   DateTime? // When the role becomes active (temporal permissions)
+  expiresAt   DateTime? // When the role expires (temporal permissions)
+  isTemporary Boolean   @default(false) // Flag for temporary vs permanent assignment
+  grantReason String?   // Reason for temporal assignment (e.g., "contractor", "emergency")
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, siteId])
   @@index([userId])
   @@index([roleId])
   @@index([siteId])
   @@index([expiresAt])
+  @@index([validFrom])
+  @@index([isTemporary])
   @@map("user_site_roles")
+}
+
+/// Temporal Access Log for auditing temporal permission activities
+/// Tracks all temporal permission grants, revocations, expirations, and emergency access
+model TemporalAccessLog {
+  id          String   @id @default(cuid())
+  userId      String   // User whose permissions were affected
+  roleId      String   // Role that was granted/revoked
+  siteId      String?  // Site ID (null for global roles)
+  accessType  String   // 'granted', 'revoked', 'expired', 'emergency', 'extended', 'cleanup'
+  reason      String?  // Reason for the temporal access change
+  grantedBy   String   // User ID who performed the action (system for automatic actions)
+  timestamp   DateTime @default(now()) // When the action occurred
+
+  // Additional context fields
+  validFrom   DateTime? // When the permission was/will be active
+  expiresAt   DateTime? // When the permission expires/expired
+  isEmergency Boolean   @default(false) // Was this emergency access?
+  metadata    Json?     // Additional metadata about the action
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site        Site?     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([accessType])
+  @@index([timestamp])
+  @@index([isEmergency])
+  @@map("temporal_access_logs")
 }
 
 /// Time tracking configuration (site level)
