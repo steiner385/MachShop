@@ -1,68 +1,116 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/database';
 import { PersonnelService } from '../../services/PersonnelService';
 import { CompetencyLevel, CertificationStatus, AvailabilityType } from '@prisma/client';
 import { ValidationError, NotFoundError, ConflictError } from '../../middleware/errorHandler';
 
-// Mock Prisma Client
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
+    personnelClass: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     user: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
-    personnelClass: {
+    competency: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
-    personnelQualification: {
+    certification: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    personnelAvailability: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    personnelShift: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    personnelCompetency: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
     personnelCertification: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
-    personnelSkill: {
-      findUnique: vi.fn(),
-    },
-    personnelSkillAssignment: {
-      findUnique: vi.fn(),
+    personnelQualification: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
+    },
+    personnelSkill: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    personnelSkillAssignment: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      upsert: vi.fn(),
     },
     workCenter: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
     personnelWorkCenterAssignment: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
-      findMany: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
+      delete: vi.fn(),
     },
-    personnelAvailability: {
-      findMany: vi.fn(),
-      create: vi.fn(),
-    },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+  },
+}));
 
 describe('PersonnelService', () => {
   let personnelService: PersonnelService;
   let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    personnelService = new PersonnelService(mockPrisma);
+    mockPrisma = prisma as any;
+    personnelService = new PersonnelService();
     vi.clearAllMocks();
   });
 

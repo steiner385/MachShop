@@ -5,7 +5,8 @@
  * stage transitions, parallel approvals, and conditional routing
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../lib/database';
 import { logger } from '../utils/logger';
 import {
   WorkflowInstanceInput,
@@ -41,12 +42,10 @@ import { ElectronicSignatureService } from './ElectronicSignatureService';
 import { CreateSignatureInput } from '../types/signature';
 
 export class WorkflowEngineService {
-  private prisma: PrismaClient;
   private signatureService: ElectronicSignatureService;
 
-  constructor(prisma: PrismaClient) {
-    this.prisma = prisma;
-    this.signatureService = new ElectronicSignatureService(prisma);
+  constructor() {
+    this.signatureService = new ElectronicSignatureService();
   }
 
   // ============================================================================
@@ -67,7 +66,7 @@ export class WorkflowEngineService {
       });
 
       // Check if workflow already exists for this entity
-      const existingInstance = await this.prisma.workflowInstance.findUnique({
+      const existingInstance = await prisma.workflowInstance.findUnique({
         where: {
           entityType_entityId: {
             entityType: input.entityType,
@@ -83,7 +82,7 @@ export class WorkflowEngineService {
       }
 
       // Get workflow definition
-      const workflowDefinition = await this.prisma.workflowDefinition.findUnique({
+      const workflowDefinition = await prisma.workflowDefinition.findUnique({
         where: { id: input.workflowId },
         include: { stages: { orderBy: { stageNumber: 'asc' } } }
       });
@@ -93,7 +92,7 @@ export class WorkflowEngineService {
       }
 
       // Create workflow instance in transaction
-      const workflowInstance = await this.prisma.$transaction(async (tx) => {
+      const workflowInstance = await prisma.$transaction(async (tx) => {
         // Create the workflow instance
         const instance = await tx.workflowInstance.create({
           data: {
@@ -169,7 +168,7 @@ export class WorkflowEngineService {
         performedById
       });
 
-      const instance = await this.prisma.workflowInstance.findUnique({
+      const instance = await prisma.workflowInstance.findUnique({
         where: { id: instanceId },
         include: {
           stageInstances: {
@@ -210,7 +209,7 @@ export class WorkflowEngineService {
 
         if (hasNextStage) {
           // Move to next stage
-          await this.prisma.workflowInstance.update({
+          await prisma.workflowInstance.update({
             where: { id: instanceId },
             data: { currentStageNumber: nextStageNumber }
           });
@@ -243,7 +242,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Completing workflow ${instanceId}`, { performedById });
 
-      await this.prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         await tx.workflowInstance.update({
           where: { id: instanceId },
           data: {
@@ -283,7 +282,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Cancelling workflow ${instanceId}`, { reason, performedById });
 
-      await this.prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         await tx.workflowInstance.update({
           where: { id: instanceId },
           data: {
@@ -329,7 +328,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Starting stage ${stageNumber} for workflow ${instanceId}`);
 
-      const stageInstance = await this.prisma.workflowStageInstance.findFirst({
+      const stageInstance = await prisma.workflowStageInstance.findFirst({
         where: {
           workflowInstanceId: instanceId,
           stageNumber
@@ -342,7 +341,7 @@ export class WorkflowEngineService {
       }
 
       // Update stage status
-      await this.prisma.workflowStageInstance.update({
+      await prisma.workflowStageInstance.update({
         where: { id: stageInstance.id },
         data: {
           status: 'IN_PROGRESS',
@@ -351,10 +350,10 @@ export class WorkflowEngineService {
       });
 
       // Create assignments based on stage configuration
-      await this.createStageAssignments(stageInstance, this.prisma);
+      await this.createStageAssignments(stageInstance, prisma);
 
       // Create history entry
-      await this.prisma.workflowHistory.create({
+      await prisma.workflowHistory.create({
         data: {
           workflowInstanceId: instanceId,
           eventType: 'STAGE_STARTED',
@@ -384,7 +383,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Completing stage ${stageInstanceId}`, { outcome, performedById });
 
-      await this.prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         const updated = await tx.workflowStageInstance.update({
           where: { id: stageInstanceId },
           data: {
@@ -436,7 +435,7 @@ export class WorkflowEngineService {
         assignmentCount: assignments.length
       });
 
-      const results = await this.prisma.$transaction(async (tx) => {
+      const results = await prisma.$transaction(async (tx) => {
         const assignmentResults: any[] = [];
 
         for (const assignment of assignments) {
@@ -495,7 +494,7 @@ export class WorkflowEngineService {
         assignmentCount: assignments.length
       });
 
-      const stageInstance = await this.prisma.workflowStageInstance.findUnique({
+      const stageInstance = await prisma.workflowStageInstance.findUnique({
         where: { id: stageInstanceId }
       });
 
@@ -503,7 +502,7 @@ export class WorkflowEngineService {
         throw new WorkflowValidationError(`Stage instance ${stageInstanceId} not found`);
       }
 
-      const results = await this.prisma.$transaction(async (tx) => {
+      const results = await prisma.$transaction(async (tx) => {
         const assignmentResults: any[] = [];
 
         for (const assignment of assignments) {
@@ -553,7 +552,7 @@ export class WorkflowEngineService {
         performedById
       });
 
-      const assignment = await this.prisma.workflowAssignment.findUnique({
+      const assignment = await prisma.workflowAssignment.findUnique({
         where: { id: input.assignmentId },
         include: {
           stageInstance: {
@@ -579,7 +578,7 @@ export class WorkflowEngineService {
       }
 
       // Update assignment
-      await this.prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         await tx.workflowAssignment.update({
           where: { id: input.assignmentId },
           data: {
@@ -645,7 +644,7 @@ export class WorkflowEngineService {
    */
   async getWorkflowStatus(instanceId: string): Promise<WorkflowInstanceResponse> {
     try {
-      const instance = await this.prisma.workflowInstance.findUnique({
+      const instance = await prisma.workflowInstance.findUnique({
         where: { id: instanceId },
         include: {
           workflow: true,
@@ -711,7 +710,7 @@ export class WorkflowEngineService {
       const limit = filters.limit || 10;
 
       const [assignments, total] = await Promise.all([
-        this.prisma.workflowAssignment.findMany({
+        prisma.workflowAssignment.findMany({
           where,
           include: {
             stageInstance: {
@@ -724,7 +723,7 @@ export class WorkflowEngineService {
           skip: (page - 1) * limit,
           take: limit
         }),
-        this.prisma.workflowAssignment.count({ where })
+        prisma.workflowAssignment.count({ where })
       ]);
 
       const tasks = assignments.map((assignment: any) => ({
@@ -769,7 +768,7 @@ export class WorkflowEngineService {
     totalAssignments: number;
   }> {
     try {
-      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+      const workflowInstance = await prisma.workflowInstance.findUnique({
         where: { id: workflowInstanceId },
         include: {
           stageInstances: {
@@ -850,7 +849,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Checking completion for stage ${stageInstanceId}`);
 
-      const stageInstance = await this.prisma.workflowStageInstance.findUnique({
+      const stageInstance = await prisma.workflowStageInstance.findUnique({
         where: { id: stageInstanceId },
         include: {
           stage: true,
@@ -1031,7 +1030,7 @@ export class WorkflowEngineService {
    * ✅ PHASE 5A: Complete a stage and update workflow
    */
   private async completeStage(stageInstance: any, outcome: 'APPROVED' | 'REJECTED'): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update stage instance
       await tx.workflowStageInstance.update({
         where: { id: stageInstance.id },
@@ -1069,7 +1068,7 @@ export class WorkflowEngineService {
    * ✅ PHASE 5A: Reject a stage
    */
   private async rejectStage(stageInstance: any, rejectionReason: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       await tx.workflowStageInstance.update({
         where: { id: stageInstance.id },
         data: {
@@ -1197,7 +1196,7 @@ export class WorkflowEngineService {
    * ✅ PHASE 5C: Get applicable rules for current workflow state
    */
   private async getApplicableRules(workflowDefinitionId: string, context: RuleContext): Promise<any[]> {
-    const rules = await this.prisma.workflowRule.findMany({
+    const rules = await prisma.workflowRule.findMany({
       where: {
         workflowDefinitionId,
         isActive: true
@@ -1482,7 +1481,7 @@ export class WorkflowEngineService {
     );
 
     for (const stage of intermediateStages) {
-      await this.prisma.workflowStageInstance.update({
+      await prisma.workflowStageInstance.update({
         where: { id: stage.id },
         data: {
           status: 'SKIPPED',
@@ -1551,7 +1550,7 @@ export class WorkflowEngineService {
     try {
       switch (workflowInstance.entityType) {
         case 'work_instruction':
-          return await this.prisma.workInstruction.findUnique({
+          return await prisma.workInstruction.findUnique({
             where: { id: workflowInstance.entityId },
             include: {
               workOrder: true,
@@ -1560,7 +1559,7 @@ export class WorkflowEngineService {
           });
 
         case 'quality_check':
-          return await this.prisma.qualityCheck.findUnique({
+          return await prisma.qualityCheck.findUnique({
             where: { id: workflowInstance.entityId }
           });
 
@@ -1601,7 +1600,7 @@ export class WorkflowEngineService {
    */
   private async startNextStage(stageInstanceId: string): Promise<void> {
     try {
-      const stageInstance = await this.prisma.workflowStageInstance.findUnique({
+      const stageInstance = await prisma.workflowStageInstance.findUnique({
         where: { id: stageInstanceId },
         include: {
           stage: true,
@@ -1617,7 +1616,7 @@ export class WorkflowEngineService {
         throw new WorkflowValidationError(`Stage instance ${stageInstanceId} not found`);
       }
 
-      await this.prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         // Update stage status
         await tx.workflowStageInstance.update({
           where: { id: stageInstanceId },
@@ -1671,7 +1670,7 @@ export class WorkflowEngineService {
    * ✅ PHASE 5A: Complete the entire workflow
    */
   private async completeWorkflow(workflowInstanceId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       await tx.workflowInstance.update({
         where: { id: workflowInstanceId },
         data: {
@@ -1700,7 +1699,7 @@ export class WorkflowEngineService {
    * ✅ PHASE 5A: Handle workflow rejection
    */
   private async handleWorkflowRejection(workflowInstance: any, rejectionReason: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       await tx.workflowInstance.update({
         where: { id: workflowInstance.id },
         data: {
@@ -2285,7 +2284,7 @@ export class WorkflowEngineService {
    * Get parallel coordination data for a stage
    */
   private async getParallelCoordinationData(stageInstanceId: string): Promise<any[]> {
-    return await this.prisma.workflowParallelCoordination.findMany({
+    return await prisma.workflowParallelCoordination.findMany({
       where: { stageInstanceId }
     });
   }
@@ -2297,7 +2296,7 @@ export class WorkflowEngineService {
     stageInstanceId: string,
     status: 'ACTIVE' | 'COMPLETED' | 'REJECTED'
   ): Promise<void> {
-    await this.prisma.workflowParallelCoordination.updateMany({
+    await prisma.workflowParallelCoordination.updateMany({
       where: { stageInstanceId },
       data: { coordinationStatus: status }
     });
@@ -2328,7 +2327,7 @@ export class WorkflowEngineService {
   }
 
   private async rejectWorkflow(instanceId: string, performedById: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       await tx.workflowInstance.update({
         where: { id: instanceId },
         data: {
@@ -2541,11 +2540,11 @@ export class WorkflowEngineService {
       await this.processApprovalAction(input, performedById);
 
       // Store signature reference in assignment
-      await this.prisma.workflowAssignment.update({
+      await prisma.workflowAssignment.update({
         where: { id: input.assignmentId },
         data: {
           metadata: {
-            ...((await this.prisma.workflowAssignment.findUnique({
+            ...((await prisma.workflowAssignment.findUnique({
               where: { id: input.assignmentId },
               select: { metadata: true }
             }))?.metadata as any || {}),
@@ -2575,7 +2574,7 @@ export class WorkflowEngineService {
    */
   async isSignatureRequired(assignmentId: string): Promise<boolean> {
     try {
-      const assignment = await this.prisma.workflowAssignment.findUnique({
+      const assignment = await prisma.workflowAssignment.findUnique({
         where: { id: assignmentId },
         include: {
           stageInstance: {
@@ -2638,7 +2637,7 @@ export class WorkflowEngineService {
    */
   async getAssignmentSignature(assignmentId: string): Promise<any | null> {
     try {
-      const assignment = await this.prisma.workflowAssignment.findUnique({
+      const assignment = await prisma.workflowAssignment.findUnique({
         where: { id: assignmentId },
         select: { metadata: true }
       });
@@ -2684,7 +2683,7 @@ export class WorkflowEngineService {
     try {
       logger.info(`Verifying signatures for workflow ${workflowInstanceId}`);
 
-      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+      const workflowInstance = await prisma.workflowInstance.findUnique({
         where: { id: workflowInstanceId },
         include: {
           stageInstances: {
@@ -2767,7 +2766,7 @@ export class WorkflowEngineService {
    */
   async getWorkflowSignatures(workflowInstanceId: string): Promise<any[]> {
     try {
-      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+      const workflowInstance = await prisma.workflowInstance.findUnique({
         where: { id: workflowInstanceId },
         include: {
           stageInstances: {
@@ -2847,7 +2846,7 @@ export class WorkflowEngineService {
     verificationResult: any;
   }> {
     try {
-      const workflowInstance = await this.prisma.workflowInstance.findUnique({
+      const workflowInstance = await prisma.workflowInstance.findUnique({
         where: { id: workflowInstanceId },
         include: {
           workflowDefinition: true,

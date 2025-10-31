@@ -1,8 +1,9 @@
-import { PrismaClient, BackupSchedule, BackupHistory, BackupEntry, StorageClass, BackupStatus } from '@prisma/client';
+import { BackupSchedule, BackupHistory, BackupEntry, StorageClass, BackupStatus } from '@prisma/client';
 import { CloudStorageService } from './CloudStorageService';
 import { storageConfig } from '../config/storage';
 import { logger } from '../utils/logger';
 import * as cron from 'node-cron';
+import prisma from '../lib/database';
 
 export interface LifecycleRule {
   id: string;
@@ -84,13 +85,11 @@ export interface LifecycleExecutionResult {
  * Handles automated backups, lifecycle policies, and disaster recovery
  */
 export class BackupLifecycleService {
-  private prisma: PrismaClient;
   private cloudStorageService: CloudStorageService;
   private lifecycleRules: LifecycleRule[] = [];
   private cronJobs: Map<string, any> = new Map();
 
   constructor() {
-    this.prisma = new PrismaClient();
     this.cloudStorageService = new CloudStorageService();
     this.initializeLifecycleRules();
   }
@@ -113,23 +112,23 @@ export class BackupLifecycleService {
     userId: string
   ): Promise<BackupSchedule> {
     try {
-      const schedule = await this.prisma.backupSchedule.create({
+      const schedule = await prisma.backupSchedule.create({
         data: {
           name,
+          bucketName: config.backupBucket,
           cronExpression: config.schedule,
-          enabled: config.enabled,
+          isActive: config.enabled,
           retentionDays: config.retentionDays,
-          compression: config.compression,
-          encryption: config.encryption,
-          incrementalBackup: config.incrementalBackup,
+          enableCompression: config.compression,
+          enableEncryption: config.encryption,
           crossRegionReplication: config.crossRegionReplication,
           backupBucket: config.backupBucket,
-          configuration: config,
+          frequency: 'CUSTOM', // Default frequency since it's required
           createdById: userId,
         },
       });
 
-      if (schedule.enabled) {
+      if (schedule.isActive) {
         await this.scheduleBackupJob(schedule);
       }
 
@@ -156,7 +155,7 @@ export class BackupLifecycleService {
     const startTime = Date.now();
 
     try {
-      const schedule = await this.prisma.backupSchedule.findUnique({
+      const schedule = await prisma.backupSchedule.findUnique({
         where: { id: scheduleId },
       });
 
@@ -167,7 +166,7 @@ export class BackupLifecycleService {
       const config = schedule.configuration as BackupConfiguration;
 
       // Create backup history record
-      const backupHistory = await this.prisma.backupHistory.create({
+      const backupHistory = await prisma.backupHistory.create({
         data: {
           scheduleId,
           status: BackupStatus.IN_PROGRESS,
@@ -224,7 +223,7 @@ export class BackupLifecycleService {
 
       // Create backup entries in batch
       if (backupEntries.length > 0) {
-        await this.prisma.backupEntry.createMany({
+        await prisma.backupEntry.createMany({
           data: backupEntries,
         });
       }
@@ -233,7 +232,7 @@ export class BackupLifecycleService {
       const compressionRatio = totalSize > 0 ? (compressedSize / totalSize) * 100 : 100;
 
       // Update backup history
-      await this.prisma.backupHistory.update({
+      await prisma.backupHistory.update({
         where: { id: backupHistory.id },
         data: {
           status: errors.length > 0 ? BackupStatus.COMPLETED_WITH_ERRORS : BackupStatus.COMPLETED,
@@ -284,7 +283,7 @@ export class BackupLifecycleService {
     const startTime = Date.now();
 
     try {
-      const backupHistory = await this.prisma.backupHistory.findUnique({
+      const backupHistory = await prisma.backupHistory.findUnique({
         where: { id: options.backupId },
         include: {
           backupEntries: {
@@ -415,7 +414,7 @@ export class BackupLifecycleService {
     scheduleId?: string,
     limit: number = 50
   ): Promise<Array<BackupHistory & { schedule: BackupSchedule }>> {
-    return await this.prisma.backupHistory.findMany({
+    return await prisma.backupHistory.findMany({
       where: scheduleId ? { scheduleId } : undefined,
       include: {
         schedule: true,
@@ -433,8 +432,8 @@ export class BackupLifecycleService {
     reclaimedSpace: number;
   }> {
     try {
-      const schedules = await this.prisma.backupSchedule.findMany({
-        where: { enabled: true },
+      const schedules = await prisma.backupSchedule.findMany({
+        where: { isActive: true },
       });
 
       let deletedBackups = 0;
@@ -444,7 +443,7 @@ export class BackupLifecycleService {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - schedule.retentionDays);
 
-        const oldBackups = await this.prisma.backupHistory.findMany({
+        const oldBackups = await prisma.backupHistory.findMany({
           where: {
             scheduleId: schedule.id,
             startedAt: { lt: cutoffDate },
@@ -461,7 +460,7 @@ export class BackupLifecycleService {
             await this.deleteBackupFiles(backup.backupEntries);
 
             // Delete database records
-            await this.prisma.backupHistory.delete({
+            await prisma.backupHistory.delete({
               where: { id: backup.id },
             });
 
@@ -544,8 +543,8 @@ export class BackupLifecycleService {
   }
 
   private async loadScheduledBackups(): Promise<void> {
-    const schedules = await this.prisma.backupSchedule.findMany({
-      where: { enabled: true },
+    const schedules = await prisma.backupSchedule.findMany({
+      where: { isActive: true },
     });
 
     for (const schedule of schedules) {
@@ -608,7 +607,7 @@ export class BackupLifecycleService {
       };
     }
 
-    return await this.prisma.storedFile.findMany({
+    return await prisma.storedFile.findMany({
       where: baseQuery,
       select: {
         id: true,
@@ -643,7 +642,7 @@ export class BackupLifecycleService {
     }
 
     if (!options.overwriteExisting) {
-      const existingFile = await this.prisma.storedFile.findUnique({
+      const existingFile = await prisma.storedFile.findUnique({
         where: { id: entry.fileId },
       });
 

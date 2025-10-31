@@ -86,6 +86,9 @@ import adminUserRolesRoutes from './routes/admin/user-roles';
 import ssoRoutes from './routes/sso';
 import ssoAdminRoutes from './routes/ssoAdmin';
 
+// GitHub Issue #132: OAuth 2.0/OpenID Connect Integration Routes
+import oidcRoutes from './routes/oidc';
+
 // GitHub Issue #133: Azure AD/Entra ID Native Integration Routes
 import azureAdGraphRoutes from './routes/azureAdGraph';
 
@@ -212,6 +215,8 @@ const apiRouter = express.Router();
 // Public routes (no authentication required)
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/sso', ssoRoutes);
+// OAuth 2.0/OIDC public authentication endpoints
+apiRouter.use('/sso/oidc', oidcRoutes);
 
 // Protected routes (authentication required)
 apiRouter.use('/search', authMiddleware, searchRoutes);
@@ -283,6 +288,8 @@ apiRouter.use('/admin/user-roles', authMiddleware, adminUserRolesRoutes);
 
 // GitHub Issue #134: Unified SSO Management System Admin Routes
 apiRouter.use('/admin/sso', authMiddleware, ssoAdminRoutes);
+// GitHub Issue #132: OAuth 2.0/OIDC Configuration Admin Routes
+apiRouter.use('/admin/oidc', authMiddleware, oidcRoutes);
 
 // GitHub Issue #133: Azure AD/Entra ID Native Integration Admin Routes
 apiRouter.use('/admin/azure-ad', authMiddleware, azureAdGraphRoutes);

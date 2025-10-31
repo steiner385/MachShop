@@ -1,4 +1,5 @@
-import { PrismaClient, DocumentActivity, ActivityType } from '@prisma/client';
+import { DocumentActivity, ActivityType } from '@prisma/client';
+import prisma from '../lib/database';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 
@@ -56,26 +57,7 @@ export interface UserActivitySummary {
  * Activity Service - Tracks document activities and provides activity feeds
  */
 class ActivityService {
-  private prisma: PrismaClient;
-
   constructor() {
-    this.prisma = new PrismaClient({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'event', level: 'error' },
-        { emit: 'event', level: 'info' },
-        { emit: 'event', level: 'warn' },
-      ],
-    });
-
-    // Log Prisma events
-    this.prisma.$on('query', (e) => {
-      logger.debug('Prisma Query', { query: e.query, params: e.params, duration: e.duration });
-    });
-
-    this.prisma.$on('error', (e) => {
-      logger.error('Prisma Error', { error: e.message, target: e.target });
-    });
   }
 
   /**
@@ -90,7 +72,7 @@ class ActivityService {
         userId: input.userId
       });
 
-      const activity = await this.prisma.documentActivity.create({
+      const activity = await prisma.documentActivity.create({
         data: {
           documentType: input.documentType,
           documentId: input.documentId,
@@ -142,7 +124,7 @@ class ActivityService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: filters.limit,
@@ -193,7 +175,7 @@ class ActivityService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: filters.limit,
@@ -227,7 +209,7 @@ class ActivityService {
         };
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' }
       });
@@ -294,7 +276,7 @@ class ActivityService {
         };
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' }
       });
@@ -362,7 +344,7 @@ class ActivityService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: filters.limit || 50,
@@ -511,7 +493,7 @@ class ActivityService {
    */
   async logUserAccessed(documentType: string, documentId: string, userId: string, userName: string): Promise<DocumentActivity> {
     // Check if there's already a recent access activity for this user (within last hour)
-    const recentAccess = await this.prisma.documentActivity.findFirst({
+    const recentAccess = await prisma.documentActivity.findFirst({
       where: {
         documentType,
         documentId,
@@ -549,7 +531,7 @@ class ActivityService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-      const result = await this.prisma.documentActivity.deleteMany({
+      const result = await prisma.documentActivity.deleteMany({
         where: {
           createdAt: {
             lt: cutoffDate
@@ -589,7 +571,7 @@ class ActivityService {
         whereClause.documentType = documentType;
       }
 
-      const activities = await this.prisma.documentActivity.findMany({
+      const activities = await prisma.documentActivity.findMany({
         where: whereClause,
         select: {
           activityType: true,
@@ -667,7 +649,7 @@ class ActivityService {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

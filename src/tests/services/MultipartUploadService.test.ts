@@ -33,7 +33,7 @@ vi.mock('../../services/CloudStorageService', () => ({
 
 // Mock storage configuration
 vi.mock('../../config/storage', () => ({
-  getStorageConfig: () => ({
+  storageConfig: {
     provider: {
       type: 's3',
       region: 'us-east-1',
@@ -46,7 +46,7 @@ vi.mock('../../config/storage', () => ({
       maxParts: 10000,
       expirationTime: 24 * 60 * 60 * 1000, // 24 hours
     },
-  }),
+  },
 }));
 
 describe('MultipartUploadService', () => {

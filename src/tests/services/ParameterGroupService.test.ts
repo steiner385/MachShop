@@ -3,38 +3,30 @@ import { ParameterGroupService } from '../../services/ParameterGroupService';
 import { ParameterGroup, ParameterGroupType } from '@prisma/client';
 
 // Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
+const mockPrisma = {
+  parameterGroup: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+  operationParameter: {
+    findMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+};
 
-  const mockPrisma = {
-    parameterGroup: {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    operationParameter: {
-      findMany: vi.fn(),
-      update: vi.fn(),
-      updateMany: vi.fn(),
-    },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
+}));
 
 describe('ParameterGroupService', () => {
   let groupService: ParameterGroupService;
-  let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
     groupService = new ParameterGroupService();
     vi.clearAllMocks();
   });

@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/database';
 import { ProductionScheduleSyncService } from '../../services/ProductionScheduleSyncService';
 import { ProductionPerformanceExportService } from '../../services/ProductionPerformanceExportService';
 import { MaterialTransactionService } from '../../services/MaterialTransactionService';
@@ -18,94 +19,95 @@ import { PersonnelInfoSyncService } from '../../services/PersonnelInfoSyncServic
 import B2MMessageBuilder from '../../services/B2MMessageBuilder';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   const mockPrismaClient = {
     integrationConfig: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     part: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue({}),
     },
     workOrder: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     equipment: {
-      count: vi.fn(),
-      findMany: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     personnel: {
-      count: vi.fn(),
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      findMany: vi.fn(),
-      count: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
     },
     productionScheduleRequest: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     productionScheduleResponse: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     productionPerformanceActual: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     materialTransaction: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     eRPMaterialTransaction: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     personnelInfoExchange: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
     b2MMessage: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
+      create: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     inventory: {
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
   };
 
   return {
+    default: mockPrismaClient,
     PrismaClient: vi.fn(() => mockPrismaClient),
     B2MMessageStatus: {
       PENDING: 'PENDING',
@@ -141,7 +143,7 @@ describe('ISA95-B2M Integration Compliance', () => {
   };
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
+    mockPrisma = prisma as any;
 
     // Reset mock call counts but preserve mock implementations
     Object.values(mockPrisma).forEach((model: any) => {

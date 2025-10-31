@@ -1,2 +1,2 @@
 - please record our preference for thoughtful merging and conflict resolution for future sessions
-- When running test, the DATABASE_URL and th JWT_SECRET should both already be defined in the appropriate env file. We shouldn't need to define them when running commands.
+- there is no need to define DATABASE_URL or JWT_SECRET in the command line when running tests

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrismaClient, ERPTransactionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
 import { MaterialTransactionService } from '../../services/MaterialTransactionService';
+import prisma from '../../lib/database';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+vi.mock('../../lib/database', () => ({
+  default: {
     part: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -31,40 +32,16 @@ vi.mock('@prisma/client', () => {
       create: vi.fn(),
       findMany: vi.fn(),
     },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
-    ERPTransactionType: {
-      ISSUE: 'ISSUE',
-      RECEIPT: 'RECEIPT',
-      RETURN: 'RETURN',
-      TRANSFER: 'TRANSFER',
-      ADJUSTMENT: 'ADJUSTMENT',
-      SCRAP: 'SCRAP',
-      CONSUMPTION: 'CONSUMPTION',
-    },
-    B2MMessageStatus: {
-      PENDING: 'PENDING',
-      PROCESSED: 'PROCESSED',
-      SENT: 'SENT',
-      CONFIRMED: 'CONFIRMED',
-      FAILED: 'FAILED',
-    },
-    IntegrationDirection: {
-      INBOUND: 'INBOUND',
-      OUTBOUND: 'OUTBOUND',
-    },
-  };
-});
+  },
+}));
 
 describe('MaterialTransactionService', () => {
   let service: MaterialTransactionService;
   let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    service = new MaterialTransactionService(mockPrisma);
+    mockPrisma = prisma;
+    service = new MaterialTransactionService();
     vi.clearAllMocks();
   });
 
