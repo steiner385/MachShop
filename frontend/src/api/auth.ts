@@ -1,10 +1,13 @@
 import axios from 'axios';
-import { 
-  LoginRequest, 
-  LoginResponse, 
-  RefreshTokenResponse, 
+import {
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenResponse,
   ChangePasswordRequest,
-  User 
+  User,
+  SamlAuthRequest,
+  SamlProviderInfo,
+  SamlDiscoveryResponse
 } from '@/types/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -92,6 +95,40 @@ export const authAPI = {
     } catch {
       return false;
     }
+  },
+
+  // SAML Authentication Functions
+
+  /**
+   * Discover SAML providers by email domain
+   */
+  discoverSamlProviders: async (email: string): Promise<SamlDiscoveryResponse> => {
+    return authClient.post('/sso/saml/discover', { email });
+  },
+
+  /**
+   * Initiate SAML authentication with a specific provider
+   */
+  initiateSamlAuth: async (request: SamlAuthRequest): Promise<{ redirectUrl: string }> => {
+    return authClient.post(`/sso/saml/login/${request.configId}`, {
+      email: request.email,
+      returnUrl: request.returnUrl,
+      relayState: request.relayState,
+    });
+  },
+
+  /**
+   * Validate SAML provider configuration
+   */
+  validateSamlConfig: async (configId: string): Promise<{ isValid: boolean; errors?: string[] }> => {
+    return authClient.get(`/sso/saml/validate-config/${configId}`);
+  },
+
+  /**
+   * Get available SAML providers (public information)
+   */
+  getSamlProviders: async (): Promise<SamlProviderInfo[]> => {
+    return authClient.get('/sso/saml/providers');
   },
 };
 

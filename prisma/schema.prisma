@@ -199,6 +199,8 @@ model User {
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
   // OAuth/OIDC relationships
   oidcSessions              OidcSession[]
+  // SAML relationships
+  samlSessions              SamlSession[]
 
   // Saviynt Identity Governance relationships
   saviyntUserMapping        SaviyntUserMapping?
@@ -231,6 +233,15 @@ model User {
   timeEntryBatchesSubmitted TimeEntryBatch[]                @relation("TimeEntryBatchEmployee")
   timeEntryBatchesApproved  TimeEntryBatch[]                @relation("TimeEntryBatchApprover")
   timeEntryLocks            TimeEntryLock[]
+
+  // Part Interchangeability Framework relationships
+  createdInterchangeabilityGroups PartInterchangeabilityGroup[] @relation("InterchangeabilityGroupCreator")
+  createdPartSubstitutions  PartSubstitution[]              @relation("PartSubstitutionCreator")
+  requestedApprovals        InterchangeabilityApproval[]    @relation("ApprovalRequester")
+  approvedApprovals         InterchangeabilityApproval[]    @relation("ApprovalApprover")
+  approvedSubstitutions     WorkOrderPartSubstitution[]     @relation("SubstitutionApprover")
+  createdSubstitutions      WorkOrderPartSubstitution[]     @relation("SubstitutionCreator")
+  auditLogActions           InterchangeabilityAuditLog[]    @relation("AuditLogPerformer")
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -742,6 +753,8 @@ model Operation {
   samplingPlans             SamplingPlan[]
   torqueSpecifications      TorqueSpecification[]
   kits                      Kit[]
+  // Part Interchangeability Framework relationships
+  partSubstitutions         WorkOrderPartSubstitution[]
 
   @@index([parentOperationId])
   @@index([persistentUuid])
@@ -1014,6 +1027,12 @@ model Part {
   workOrders                 WorkOrder[]
   unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
   torqueSpecifications       TorqueSpecification[]
+  // Part Interchangeability Framework relationships
+  primarySubstitutions       PartSubstitution[]          @relation("PrimaryPartSubstitutions")
+  substituteSubstitutions    PartSubstitution[]          @relation("SubstitutePartSubstitutions")
+  approvals                  InterchangeabilityApproval[] @relation("PartApprovals")
+  originalPartSubstitutions  WorkOrderPartSubstitution[] @relation("OriginalPartSubstitutions")
+  substitutedPartSubstitutions WorkOrderPartSubstitution[] @relation("SubstitutedPartSubstitutions")
 
   // Life-Limited Parts (LLP) Fields
   isLifeLimited              Boolean                     @default(false)
@@ -1261,6 +1280,8 @@ model WorkOrder {
   torqueEvents                 TorqueEvent[]
   kits                         Kit[]
   buildRecord                  BuildRecord?
+  // Part Interchangeability Framework relationships
+  partSubstitutions            WorkOrderPartSubstitution[]
 
   @@index([persistentUuid])
   @@map("work_orders")
@@ -5449,11 +5470,9 @@ model PermissionChangeLog {
   @@map("permission_change_logs")
 }
 
-// ============================================================================
 // BUILD RECORD & ELECTRONIC BUILD BOOK MODELS
 // Comprehensive electronic build book system for engine assembly
 // AS9100 and FAA Part 43 compliance requirement
-// ============================================================================
 
 model BuildRecord {
   id                        String                @id @default(cuid())
@@ -7285,9 +7304,7 @@ enum AuthenticationEventType {
   FORCED_LOGOUT
 }
 
-// ============================================================================
 // ROLE TEMPLATE SYSTEM - GitHub Issue #125
-// ============================================================================
 
 /// Role Template Categories for Manufacturing
 enum RoleTemplateCategory {
@@ -7420,10 +7437,8 @@ model RoleTemplateUsageLog {
   @@map("role_template_usage_logs")
 }
 
-// ==============================================================================
 // TORQUE MANAGEMENT SYSTEM
 // Digital torque management for engine assembly operations
-// ==============================================================================
 
 /// Torque Specification - defines torque requirements for specific parts/operations
 model TorqueSpecification {
@@ -7631,9 +7646,7 @@ enum SystemOfMeasure {
   OTHER          // Other measurement systems
 }
 
-// ============================================================================
 // LIFE-LIMITED PARTS (LLP) SYSTEM
-// ============================================================================
 
 /// LLP criticality levels for safety classification
 enum LLPCriticalityLevel {
@@ -7777,9 +7790,7 @@ model LLPCertification {
   @@map("llp_certifications")
 }
 
-// =============================================================================
 // KITTING & MATERIAL STAGING SYSTEM
-// =============================================================================
 
 model Kit {
   id                 String           @id @default(cuid())
@@ -8359,9 +8370,7 @@ enum VendorMetricPeriod {
   YEARLY
 }
 
-// ============================================================================
 // BUILD RECORD & ELECTRONIC BUILD BOOK ENUMS
-// ============================================================================
 
 enum BuildRecordStatus {
   DRAFT               // Build record created but not started
@@ -8507,7 +8516,6 @@ enum SignatureLevel {
 }
 
 // Saviynt Identity Governance Integration Models (Issue #204)
-// ============================================================================
 
 model SaviyntUserMapping {
   id              String    @id @default(cuid())
@@ -8695,9 +8703,7 @@ enum SaviyntCertificationStatus {
   CANCELLED
 }
 
-// ============================================================================
 // OAuth 2.0/OpenID Connect (OIDC) Integration (Issue #132)
-// ============================================================================
 
 /// OAuth 2.0/OpenID Connect Configuration
 /// Dedicated OIDC provider configuration separate from generic SSO
@@ -8775,4 +8781,316 @@ model OidcAuthState {
   @@index([configId])
   @@index([expiresAt])
   @@map("oidc_auth_states")
+}
+
+// SAML 2.0 Integration (Issue #131)
+
+/// SAML 2.0 Configuration
+/// Dedicated SAML provider configuration for enterprise SSO
+model SamlConfig {
+  id                    String        @id @default(cuid())
+  name                  String        @unique
+  entityId              String        @unique
+  ssoUrl                String
+  sloUrl                String?
+  idpMetadataUrl        String?
+  idpMetadata           String?
+  certificate           String
+  privateKey            String
+  signRequests          Boolean       @default(true)
+  signAssertions        Boolean       @default(false)
+  encryptAssertions     Boolean       @default(false)
+  nameIdFormat          String        @default("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+  attributeMapping      Json?
+  clockTolerance        Int           @default(60)
+  isActive              Boolean       @default(true)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  sessions              SamlSession[]
+  authRequests          SamlAuthRequest[]
+
+  @@index([isActive])
+  @@index([entityId])
+  @@map("saml_configs")
+}
+
+/// SAML User Sessions
+/// Track SAML authentication sessions and assertions
+model SamlSession {
+  id                String      @id @default(cuid())
+  userId            String
+  sessionIndex      String?
+  nameId            String
+  nameIdFormat      String
+  assertionId       String      @unique
+  configId          String
+  attributes        Json?
+  expiresAt         DateTime?
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config            SamlConfig  @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([configId])
+  @@index([sessionIndex])
+  @@index([expiresAt])
+  @@map("saml_sessions")
+}
+
+/// SAML Authentication Request Tracking
+/// Track outgoing SAML AuthnRequests for security and correlation
+model SamlAuthRequest {
+  id              String      @id @default(cuid())
+  requestId       String      @unique
+  relayState      String?
+  destination     String
+  issueInstant    DateTime
+  configId        String
+  expiresAt       DateTime
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  config          SamlConfig  @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("saml_auth_requests")
+// Part Interchangeability & Substitution Group Framework (Issue #223)
+
+/// Part Interchangeability Groups
+/// Groups of parts that can be substituted for each other under specific conditions
+model PartInterchangeabilityGroup {
+  id                    String                         @id @default(cuid())
+  name                  String                         @unique
+  description           String?
+  groupType             InterchangeabilityType         @default(TWO_WAY)
+  category              String?                        // Optional categorization (e.g., "Fasteners", "Connectors")
+  engineeringBasis      String?                        // Form/Fit/Function documentation
+  complianceStandard    String?                        // e.g., "AS9100", "ISO 9001"
+  effectiveDate         DateTime                       @default(now())
+  obsoleteDate          DateTime?
+  isActive              Boolean                        @default(true)
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  createdBy             String
+
+  // Relations
+  creator               User                           @relation("InterchangeabilityGroupCreator", fields: [createdBy], references: [id])
+  partSubstitutions     PartSubstitution[]
+  approvals             InterchangeabilityApproval[]
+  auditLogs             InterchangeabilityAuditLog[]
+
+  @@index([groupType])
+  @@index([isActive])
+  @@index([effectiveDate])
+  @@index([createdBy])
+  @@map("part_interchangeability_groups")
+}
+
+/// Part Substitution Rules
+/// Specific substitution relationships between parts within interchangeability groups
+model PartSubstitution {
+  id                         String                        @id @default(cuid())
+  groupId                    String
+  primaryPartId              String
+  substitutePartId           String
+  substitutionType           SubstitutionType              @default(ALTERNATE)
+  direction                  SubstitutionDirection         @default(TWO_WAY)
+  priority                   Int                           @default(1) // Lower numbers = higher priority
+  effectiveDate              DateTime                      @default(now())
+  obsoleteDate               DateTime?
+  quantityRatio              Float                         @default(1.0) // Substitute quantity per primary quantity
+  notes                      String?
+  engineeringJustification   String?                       // Technical basis for substitution
+  testingReference           String?                       // Reference to validation testing
+  restrictionConditions      String?                       // Any usage restrictions
+  isActive                   Boolean                       @default(true)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  createdBy                  String
+
+  // Relations
+  group                      PartInterchangeabilityGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  primaryPart                Part                          @relation("PrimaryPartSubstitutions", fields: [primaryPartId], references: [id])
+  substitutePart             Part                          @relation("SubstitutePartSubstitutions", fields: [substitutePartId], references: [id])
+  creator                    User                          @relation("PartSubstitutionCreator", fields: [createdBy], references: [id])
+  workOrderSubstitutions     WorkOrderPartSubstitution[]
+
+  @@unique([groupId, primaryPartId, substitutePartId])
+  @@index([groupId])
+  @@index([primaryPartId])
+  @@index([substitutePartId])
+  @@index([priority])
+  @@index([isActive])
+  @@index([effectiveDate])
+  @@map("part_substitutions")
+}
+
+/// Interchangeability Approval Workflow
+/// Engineering approval process for declaring part interchangeability
+model InterchangeabilityApproval {
+  id                    String                        @id @default(cuid())
+  groupId               String
+  partId                String?                       // Specific part if approval is part-specific
+  approvalType          InterchangeabilityApprovalType @default(GROUP_APPROVAL)
+  status                ApprovalStatus                @default(PENDING)
+  requestedBy           String
+  approvedBy            String?
+  approvalDate          DateTime?
+  rejectionReason       String?
+  engineeringEvidence   String?                       // Documentation of testing/analysis
+  riskAssessment        String?                       // Risk analysis documentation
+  complianceNotes       String?                       // AS9100/regulatory compliance notes
+  attachments           Json?                         // File references or metadata
+  effectiveDate         DateTime?
+  expirationDate        DateTime?
+  comments              String?
+  isActive              Boolean                       @default(true)
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  // Relations
+  group                 PartInterchangeabilityGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  part                  Part?                         @relation("PartApprovals", fields: [partId], references: [id])
+  requester             User                          @relation("ApprovalRequester", fields: [requestedBy], references: [id])
+  approver              User?                         @relation("ApprovalApprover", fields: [approvedBy], references: [id])
+
+  @@index([groupId])
+  @@index([partId])
+  @@index([status])
+  @@index([requestedBy])
+  @@index([approvedBy])
+  @@index([createdAt])
+  @@map("interchangeability_approvals")
+}
+
+/// Work Order Part Substitution Log
+/// Track actual substitutions made during production
+model WorkOrderPartSubstitution {
+  id                    String                        @id @default(cuid())
+  workOrderId           String
+  operationId           String?
+  originalPartId        String
+  substitutedPartId     String
+  substitutionRuleId    String?                       // Reference to PartSubstitution rule used
+  quantity              Float
+  reason                SubstitutionReason            @default(ENGINEERING_APPROVED)
+  justification         String?
+  approvedBy            String?
+  substitutionDate      DateTime                      @default(now())
+  notes                 String?
+  serialNumbers         String[]                      // Track specific serial numbers if applicable
+  auditTrail            Json?                         // Additional audit information
+  createdBy             String
+  createdAt             DateTime                      @default(now())
+
+  // Relations
+  workOrder             WorkOrder                     @relation(fields: [workOrderId], references: [id])
+  operation             Operation?                    @relation(fields: [operationId], references: [id])
+  originalPart          Part                          @relation("OriginalPartSubstitutions", fields: [originalPartId], references: [id])
+  substitutedPart       Part                          @relation("SubstitutedPartSubstitutions", fields: [substitutedPartId], references: [id])
+  substitutionRule      PartSubstitution?             @relation(fields: [substitutionRuleId], references: [id])
+  approver              User?                         @relation("SubstitutionApprover", fields: [approvedBy], references: [id])
+  creator               User                          @relation("SubstitutionCreator", fields: [createdBy], references: [id])
+
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([originalPartId])
+  @@index([substitutedPartId])
+  @@index([substitutionDate])
+  @@index([createdBy])
+  @@map("work_order_part_substitutions")
+}
+
+/// Interchangeability Audit Log
+/// Comprehensive audit trail for all interchangeability-related changes
+model InterchangeabilityAuditLog {
+  id                    String                        @id @default(cuid())
+  groupId               String?
+  substitutionId        String?
+  approvalId            String?
+  action                AuditAction
+  entityType            String                        // "group", "substitution", "approval", etc.
+  entityId              String                        // ID of the affected entity
+  previousValues        Json?                         // Snapshot of values before change
+  newValues             Json?                         // Snapshot of values after change
+  reason                String?
+  performedBy           String
+  performedAt           DateTime                      @default(now())
+  ipAddress             String?
+  userAgent             String?
+  sessionId             String?
+
+  // Relations
+  group                 PartInterchangeabilityGroup?  @relation(fields: [groupId], references: [id])
+  performer             User                          @relation("AuditLogPerformer", fields: [performedBy], references: [id])
+
+  @@index([groupId])
+  @@index([substitutionId])
+  @@index([action])
+  @@index([entityType])
+  @@index([performedBy])
+  @@index([performedAt])
+  @@map("interchangeability_audit_logs")
+}
+
+// Enums for Part Interchangeability Framework
+
+enum InterchangeabilityType {
+  TWO_WAY      // Parts are fully interchangeable (A ↔ B)
+  ONE_WAY      // Directional interchangeability (A → B but not B → A)
+  CONDITIONAL  // Interchangeable under specific conditions
+}
+
+enum SubstitutionType {
+  PRIMARY      // Original/preferred part
+  ALTERNATE    // Approved alternate part
+  SUBSTITUTE   // Temporary substitute
+  OBSOLETE     // Obsolete part being replaced
+}
+
+enum SubstitutionDirection {
+  TWO_WAY      // Bidirectional substitution (A ↔ B)
+  ONE_WAY      // Unidirectional substitution (A → B only)
+}
+
+enum InterchangeabilityApprovalType {
+  GROUP_APPROVAL    // Approval for entire interchangeability group
+  PART_APPROVAL     // Approval for specific part within group
+  SUBSTITUTION_RULE // Approval for specific substitution rule
+}
+
+enum ApprovalStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum SubstitutionReason {
+  ENGINEERING_APPROVED  // Pre-approved engineering substitution
+  SHORTAGE             // Material shortage substitution
+  OBSOLESCENCE         // Obsolete part replacement
+  COST_REDUCTION       // Cost optimization substitution
+  QUALITY_IMPROVEMENT  // Quality improvement substitution
+  EMERGENCY            // Emergency substitution
+  CUSTOMER_REQUESTED   // Customer-specific substitution
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  ACTIVATE
+  DEACTIVATE
+  SUBSTITUTE
 }
