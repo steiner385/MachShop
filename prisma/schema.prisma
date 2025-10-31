@@ -507,7 +507,8 @@ model MaterialDefinition {
   lotNumberFormat        String?
   defaultShelfLifeDays   Int?
   standardCost           Float?
-  currency               String?              @default("USD")
+  currency               String?              @default("USD")    // Legacy field (to be deprecated)
+  currencyId             String?                                 // FK to Currency
   requiresInspection     Boolean              @default(false)
   inspectionFrequency    String?
   primarySupplierId      String?
@@ -528,6 +529,7 @@ model MaterialDefinition {
   replacedMaterials      MaterialDefinition[] @relation("MaterialReplacement")
   baseUnitOfMeasureRef   UnitOfMeasure?       @relation("MaterialDefinitionBaseUOM", fields: [baseUnitOfMeasureId], references: [id])
   alternateUnitOfMeasureRef UnitOfMeasure?    @relation("MaterialDefinitionAlternateUOM", fields: [alternateUnitOfMeasureId], references: [id])
+  currencyRef            Currency?            @relation("MaterialDefinitionCurrency", fields: [currencyId], references: [id])
   lots                   MaterialLot[]
   properties             MaterialProperty[]
 
@@ -604,7 +606,8 @@ model MaterialLot {
   countryOfOrigin     String?
   unitCost            Float?
   totalCost           Float?
-  currency            String?                @default("USD")
+  currency            String?                @default("USD")    // Legacy field (to be deprecated)
+  currencyId          String?                                   // FK to Currency
   parentLotId         String?
   isSplit             Boolean                @default(false)
   isMerged            Boolean                @default(false)
@@ -619,6 +622,7 @@ model MaterialLot {
   childLots           MaterialLot[]          @relation("LotGenealogy")
   unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
   locationRef         Location?              @relation(fields: [locationId], references: [id])
+  currencyRef         Currency?              @relation("MaterialLotCurrency", fields: [currencyId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
   kitItems            KitItem[]
@@ -1022,7 +1026,8 @@ model Part {
   lotSizeMultiple            Int?
   standardCost               Float?
   targetCost                 Float?
-  currency                   String?                     @default("USD")
+  currency                   String?                     @default("USD")    // Legacy field (to be deprecated)
+  currencyId                 String?                                        // FK to Currency
   isActive                   Boolean                     @default(true)
   isConfigurable             Boolean                     @default(false)
   requiresFAI                Boolean                     @default(false)
@@ -1046,6 +1051,7 @@ model Part {
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
   unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
+  currencyRef                Currency?                   @relation("PartCurrency", fields: [currencyId], references: [id])
   torqueSpecifications       TorqueSpecification[]
   // Part Interchangeability Framework relationships
   primarySubstitutions       PartSubstitution[]          @relation("PrimaryPartSubstitutions")
@@ -2799,7 +2805,8 @@ model ERPMaterialTransaction {
   serialNumber        String?
   unitCost            Float?
   totalCost           Float?
-  currency            String?              @default("USD")
+  currency            String?              @default("USD")    // Legacy field (to be deprecated)
+  currencyId          String?                                 // FK to Currency
   movementType        String
   reasonCode          String?
   status              B2MMessageStatus
@@ -2813,6 +2820,7 @@ model ERPMaterialTransaction {
   config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
   part                Part?                @relation(fields: [partId], references: [id])
   workOrder           WorkOrder?           @relation(fields: [workOrderId], references: [id])
+  currencyRef         Currency?            @relation("ERPTransactionCurrency", fields: [currencyId], references: [id])
 
   @@index([configId])
   @@index([transactionType])
@@ -3699,7 +3707,8 @@ model ToolDrawing {
   vendorPartNumber     String?
   catalogNumber        String?
   cost                 Float?
-  costCurrency         String?
+  costCurrency         String?                     // Legacy field (to be deprecated)
+  costCurrencyId       String?                     // FK to Currency
   applicablePartIds    String[]
   applicableOperations String[]
   usageInstructions    String?
@@ -3737,6 +3746,7 @@ model ToolDrawing {
   updatedBy            User                    @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
   maintenanceRecords   ToolMaintenanceRecord[]
   usageLogs            ToolUsageLog[]
+  costCurrencyRef      Currency?               @relation("ToolDrawingCostCurrency", fields: [costCurrencyId], references: [id])
 
   @@index([documentNumber])
   @@index([status])
@@ -4182,7 +4192,8 @@ model EngineeringChangeOrder {
   actualCost             Float?
   estimatedSavings       Float?
   actualSavings          Float?
-  costCurrency           String                @default("USD")
+  costCurrency           String                @default("USD")    // Legacy field (to be deprecated)
+  costCurrencyId         String?                                  // FK to Currency
   requestedEffectiveDate DateTime?
   plannedEffectiveDate   DateTime?
   actualEffectiveDate    DateTime?
@@ -4206,6 +4217,7 @@ model EngineeringChangeOrder {
   relatedECOs            ECORelation[]         @relation("ParentECO")
   parentRelations        ECORelation[]         @relation("RelatedECO")
   tasks                  ECOTask[]
+  costCurrencyRef        Currency?             @relation("ECOCostCurrency", fields: [costCurrencyId], references: [id])
 
   // ICD System relationships
   icdHistory             ICDHistory[]          @relation("ICDHistoryECO")
@@ -8210,7 +8222,8 @@ model VendorKit {
   quantityReceived      Int                        @default(0)
   unitCost              Float?
   totalCost             Float?
-  currency              String                     @default("USD")
+  currency              String                     @default("USD")    // Legacy field (to be deprecated)
+  currencyId            String?                                       // FK to Currency
   status                VendorKitStatus            @default(REQUESTED)
   priority              VendorKitPriority          @default(NORMAL)
   requiredDate          DateTime
@@ -8230,6 +8243,7 @@ model VendorKit {
   items                 VendorKitItem[]
   inspections           VendorKitInspection[]
   history               VendorKitHistory[]
+  currencyRef           Currency?                  @relation("VendorKitCurrency", fields: [currencyId], references: [id])
 
   @@index([vendorId])
   @@index([kitId])
@@ -10129,4 +10143,99 @@ model Location {
   @@index([capacityUnitOfMeasureId])
   @@index([dimensionUnitOfMeasureId])
   @@map("locations")
+}
+
+// ============================================================================
+// CURRENCY MANAGEMENT SYSTEM - ISO 4217 COMPLIANT
+// ============================================================================
+
+/// Source of exchange rate data for tracking and audit purposes
+enum ExchangeRateSource {
+  MANUAL_ENTRY        // Manually entered by user
+  BANK_FEED          // From bank API feed
+  FINANCIAL_SERVICE  // From financial service (e.g., XE, OANDA)
+  ERP_SYSTEM         // From integrated ERP system
+  CENTRAL_BANK       // From central bank feeds
+  MARKETPLACE        // From marketplace/trading platform
+}
+
+/// ISO 4217 compliant currency lookup table for standardizing multi-currency operations
+model Currency {
+  id                    String       @id @default(cuid())
+
+  // ISO 4217 Standard Fields
+  currencyCode          String       @unique          // e.g., "USD", "EUR", "GBP"
+  currencyName          String                        // e.g., "US Dollar", "Euro", "British Pound"
+  currencySymbol        String?                       // e.g., "$", "€", "£"
+  numericCode           String?      @unique          // ISO 4217 numeric code e.g., "840"
+  minorUnit             Int          @default(2)      // Decimal places e.g., 2 for USD, 0 for JPY
+
+  // Regional and Display Information
+  region                String?                       // e.g., "North America", "Europe"
+  country               String?                       // Primary country e.g., "United States"
+  displayFormat         String?                       // e.g., "$1,234.56", "€1.234,56"
+
+  // Operational Attributes
+  isActive              Boolean      @default(true)   // Currency is actively used
+  isBaseCurrency        Boolean      @default(false)  // System base currency (typically USD)
+  allowFractional       Boolean      @default(true)   // Allow fractional amounts
+
+  // Audit Fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Reverse Relations - Models using this currency
+  materialDefinitions   MaterialDefinition[]          @relation("MaterialDefinitionCurrency")
+  materialLots          MaterialLot[]                 @relation("MaterialLotCurrency")
+  parts                 Part[]                        @relation("PartCurrency")
+  erpTransactions       ERPMaterialTransaction[]      @relation("ERPTransactionCurrency")
+  toolDrawings          ToolDrawing[]                 @relation("ToolDrawingCostCurrency")
+  changeOrders          EngineeringChangeOrder[]      @relation("ECOCostCurrency")
+  vendorKits            VendorKit[]                   @relation("VendorKitCurrency")
+
+  // Exchange Rate Relations
+  exchangeRatesFrom     ExchangeRate[]                @relation("FromCurrency")
+  exchangeRatesTo       ExchangeRate[]                @relation("ToCurrency")
+
+  @@index([currencyCode])
+  @@index([isActive])
+  @@index([isBaseCurrency])
+  @@map("currencies")
+}
+
+/// Exchange rates for currency conversion with historical tracking and multiple sources
+model ExchangeRate {
+  id                    String       @id @default(cuid())
+
+  // Currency Pair
+  fromCurrencyId        String
+  toCurrencyId          String
+  fromCurrency          Currency     @relation("FromCurrency", fields: [fromCurrencyId], references: [id])
+  toCurrency            Currency     @relation("ToCurrency", fields: [toCurrencyId], references: [id])
+
+  // Rate Information
+  exchangeRate          Decimal      @db.Decimal(18, 8)    // High precision for accurate conversion
+  effectiveDate         DateTime                           // When this rate becomes effective
+  expirationDate        DateTime?                          // When this rate expires (null = current)
+
+  // Source and Metadata
+  rateSource            ExchangeRateSource               // Where rate comes from
+  sourceReference       String?                          // External reference/transaction ID
+  isManualOverride      Boolean      @default(false)     // Manually set vs. automatic
+
+  // Operational
+  isActive              Boolean      @default(true)
+  priority              Int          @default(0)         // Higher priority rates take precedence
+
+  // Audit Fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  createdBy             String?      // User who created this rate
+
+  @@unique([fromCurrencyId, toCurrencyId, effectiveDate])
+  @@index([fromCurrencyId, toCurrencyId])
+  @@index([effectiveDate, isActive])
+  @@index([expirationDate])
+  @@index([rateSource])
+  @@map("exchange_rates")
 }
