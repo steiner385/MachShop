@@ -353,6 +353,21 @@ model User {
   trainingRecordsAsTrainee  TrainingRecord[]                @relation("TrainingRecordTrainee")
   trainingRecordsAsInstructor TrainingRecord[]              @relation("TrainingRecordInstructor")
 
+  // QMS Phase 2: Audit, CAPA, Management Review, Change Management
+  auditsLead                InternalAudit[]                 @relation("AuditLeadAuditor")
+  auditsAsAuditee           InternalAudit[]                 @relation("Auditee")
+  auditsClosed              InternalAudit[]                 @relation("AuditClosedBy")
+  auditsCreated             InternalAudit[]                 @relation("AuditCreatedBy")
+  findingsVerified          AuditFinding[]
+  capasAssigned             CorrectiveAction[]              @relation("CAAssignedTo")
+  capasVerified             CorrectiveAction[]              @relation("CAVerifiedBy")
+  capasCreated              CorrectiveAction[]              @relation("CACreatedBy")
+  reviewsChaired            ManagementReview[]              @relation("ReviewChairperson")
+  reviewActionsAssigned     ManagementReviewAction[]
+  reviewsCreated            ManagementReview[]              @relation("ReviewCreatedBy")
+  changesApproved           ChangeRequest[]                 @relation("ChangeApprovedBy")
+  changesCreated            ChangeRequest[]                 @relation("ChangeCreatedBy")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -11869,4 +11884,335 @@ model TrainingRecord {
   @@index([expirationDate])
   @@index([passed])
   @@map("training_records")
+}
+
+// ============================================================================
+// QMS COMPLIANCE FRAMEWORK PHASE 2: AUDIT, CAPA, MANAGEMENT REVIEW, CHANGE
+// ============================================================================
+
+/// Audit Type enumeration
+enum QMSAuditType {
+  PROCESS_AUDIT       // Audit of manufacturing process
+  PRODUCT_AUDIT       // Audit of product conformance
+  SYSTEM_AUDIT        // Audit of QMS system
+  EXTERNAL_AUDIT      // Customer or registrar audit
+  SUPPLIER_AUDIT      // Audit of supplier
+}
+
+/// Audit Status enumeration
+enum QMSAuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  REPORT_ISSUED
+  CLOSED
+  CANCELLED
+}
+
+/// Finding Type enumeration
+enum QMSFindingType {
+  NONCONFORMANCE      // NC - violation of requirement
+  OBSERVATION         // OBS - potential issue
+  OPPORTUNITY         // OFI - opportunity for improvement
+  POSITIVE            // Good practice observed
+}
+
+/// Finding Severity enumeration
+enum QMSFindingSeverity {
+  CRITICAL            // Major nonconformance (cert at risk)
+  MAJOR               // Significant issue
+  MINOR               // Minor nonconformance
+  OBSERVATION         // No NC, just observation
+}
+
+/// Finding Status enumeration
+enum QMSFindingStatus {
+  OPEN
+  CORRECTIVE_ACTION_ASSIGNED
+  CORRECTIVE_ACTION_IMPLEMENTED
+  VERIFIED
+  CLOSED
+}
+
+/// CAPA Source enumeration
+enum QMSCASource {
+  INTERNAL_AUDIT
+  EXTERNAL_AUDIT
+  NCR
+  CUSTOMER_COMPLAINT
+  SUPPLIER_ISSUE
+  MANAGEMENT_REVIEW
+  PROCESS_MONITORING
+  IMPROVEMENT_OPPORTUNITY
+}
+
+/// RCA Method enumeration
+enum QMSRCAMethod {
+  FIVE_WHY
+  FISHBONE
+  FAULT_TREE
+  PARETO
+  EIGHT_D
+}
+
+/// CAPA Status enumeration
+enum QMSCAStatus {
+  OPEN
+  IN_PROGRESS
+  IMPLEMENTED
+  VERIFIED_EFFECTIVE
+  VERIFIED_INEFFECTIVE
+  CLOSED
+  CANCELLED
+}
+
+/// Change Type enumeration
+enum QMSChangeType {
+  DOCUMENT_CHANGE
+  PROCESS_CHANGE
+  PRODUCT_CHANGE
+  SYSTEM_CHANGE
+}
+
+/// Change Status enumeration
+enum QMSChangeStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+  CLOSED
+}
+
+/// Internal Audit - Audit planning and execution (ISO 9001 Clause 9.2)
+model InternalAudit {
+  id                  String   @id @default(cuid())
+  auditNumber         String   @unique
+  auditTitle          String
+  auditType           QMSAuditType
+  auditScope          String
+  plannedDate         DateTime
+  actualDate          DateTime?
+  duration            Int?                  // Minutes
+
+  // Team
+  leadAuditor         User     @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
+  leadAuditorId       String
+  auditeeId           String?
+  auditee             User?    @relation("Auditee", fields: [auditeeId], references: [id], onDelete: SetNull)
+  auditeeDepartment   String?
+
+  // Findings
+  findings            AuditFinding[]
+  status              QMSAuditStatus @default(PLANNED)
+
+  // Report
+  reportUrl           String?
+  summary             String?
+  closedBy            User?    @relation("AuditClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  closedById          String?
+  closedAt            DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("AuditCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([auditNumber])
+  @@index([auditType])
+  @@index([plannedDate])
+  @@index([status])
+  @@map("internal_audits")
+}
+
+/// Audit Finding - Findings from audit (ISO 9001 Clause 9.2)
+model AuditFinding {
+  id                  String   @id @default(cuid())
+  audit               InternalAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId             String
+
+  findingNumber       String
+  findingType         QMSFindingType
+  clause              String?                // ISO clause reference (e.g., "8.5.1")
+  description         String
+  objectiveEvidence   String?
+  severity            QMSFindingSeverity
+
+  // Corrective action linkage
+  correctiveAction    CorrectiveAction? @relation(fields: [correctiveActionId], references: [id], onDelete: SetNull)
+  correctiveActionId  String?
+
+  // Verification
+  status              QMSFindingStatus @default(OPEN)
+  verifiedBy          User?    @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedById        String?
+  verifiedAt          DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([auditId])
+  @@index([findingType])
+  @@index([severity])
+  @@index([status])
+  @@map("audit_findings")
+}
+
+/// Corrective Action - CAPA management (ISO 9001 Clause 10)
+model CorrectiveAction {
+  id                  String   @id @default(cuid())
+  caNumber            String   @unique
+  title               String
+  description         String
+
+  // Source
+  source              QMSCASource
+  sourceReference     String?                // NCR #, Audit #, etc.
+
+  // Root cause analysis
+  rootCauseMethod     QMSRCAMethod?
+  rootCause           String?
+
+  // Actions
+  correctiveAction    String
+  preventiveAction    String?
+
+  // Assignment
+  assignedTo          User     @relation("CAAssignedTo", fields: [assignedToId], references: [id])
+  assignedToId        String
+
+  // Timeline
+  targetDate          DateTime
+  implementedDate     DateTime?
+
+  // Verification
+  verificationMethod  String?
+  verifiedBy          User?    @relation("CAVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedById        String?
+  verifiedAt          DateTime?
+  isEffective         Boolean?
+
+  // Status
+  status              QMSCAStatus @default(OPEN)
+
+  // Linkages
+  auditFindings       AuditFinding[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("CACreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([caNumber])
+  @@index([source])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("corrective_actions")
+}
+
+/// Management Review - Management review sessions (ISO 9001 Clause 9.3)
+model ManagementReview {
+  id                  String   @id @default(cuid())
+  reviewNumber        String   @unique
+  reviewDate          DateTime
+
+  // Chairperson
+  chairperson         User     @relation("ReviewChairperson", fields: [chairpersonId], references: [id])
+  chairpersonId       String
+
+  // Details
+  inputsDiscussed     String?                // Structured inputs (JSON)
+  decisions           String?
+  resourceNeeds       String?
+  minutes             String?
+  minutesUrl          String?
+
+  // Actions
+  actionItems         ManagementReviewAction[]
+
+  // Status
+  status              String   @default("SCHEDULED")  // SCHEDULED, IN_PROGRESS, COMPLETED, CLOSED
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("ReviewCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([reviewNumber])
+  @@index([reviewDate])
+  @@map("management_reviews")
+}
+
+/// Management Review Action - Action items from management review
+model ManagementReviewAction {
+  id                  String   @id @default(cuid())
+  review              ManagementReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId            String
+
+  actionDescription   String
+  assignedTo          User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedToId        String?
+
+  dueDate             DateTime?
+  completedDate       DateTime?
+  status              String   @default("OPEN")  // OPEN, IN_PROGRESS, COMPLETED
+
+  notes               String?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([reviewId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("management_review_actions")
+}
+
+/// Change Request - Change management (AS9100D Clause 8.5.6)
+model ChangeRequest {
+  id                  String   @id @default(cuid())
+  changeNumber        String   @unique
+  title               String
+  description         String
+
+  // Change type
+  changeType          QMSChangeType
+
+  // Details
+  affectedParts       String[]
+  reason              String
+  benefits            String?
+  risks               String?
+  impactAssessment    String?
+  customerNotificationRequired Boolean @default(false)
+
+  // Implementation
+  implementationPlan  String?
+  implementationDate  DateTime?
+
+  // Status
+  status              QMSChangeStatus @default(DRAFT)
+
+  // Approval
+  approvedBy          User?    @relation("ChangeApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedById        String?
+  approvedAt          DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("ChangeCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([changeNumber])
+  @@index([changeType])
+  @@index([status])
+  @@map("change_requests")
 }
