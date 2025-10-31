@@ -117,6 +117,9 @@ import partInterchangeabilityRoutes from './routes/partInterchangeability';
 import maintenanceRoutes from './routes/maintenance';
 import downtimeRoutes from './routes/downtime';
 
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+import saviyntSurrogateRoutes from './routes/saviynt-surrogate';
+
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 import maximoSurrogateRoutes from './routes/maximo-surrogate';
 import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
@@ -336,6 +339,10 @@ apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeability
 // ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
 apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
 apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
+
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+// Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
+apiRouter.use('/testing/saviynt-idm', saviyntSurrogateRoutes);
 
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 // Note: No auth middleware for testing surrogates to enable CI/CD testing without authentication

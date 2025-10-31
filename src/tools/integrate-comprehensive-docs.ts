@@ -39,6 +39,29 @@ class ComprehensiveDocumentationIntegrator {
   private comprehensiveDocsPath = './docs/generated/complete-field-documentation.json';
   private outputPath = './prisma/schema.final.prisma';
 
+  /**
+   * Atomically writes content to a file to prevent race conditions
+   */
+  private async writeFileAtomically(filePath: string, content: string): Promise<void> {
+    const tempFile = `${filePath}.tmp.${crypto.randomBytes(8).toString('hex')}`;
+
+    try {
+      // Write to temporary file first
+      await fs.promises.writeFile(tempFile, content, 'utf8');
+
+      // Atomically move temp file to final location
+      await fs.promises.rename(tempFile, filePath);
+    } catch (error) {
+      // Clean up temp file if something went wrong
+      try {
+        await fs.promises.unlink(tempFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+      throw error;
+    }
+  }
+
   async integrateComprehensiveDocumentation(): Promise<void> {
     console.log('🚀 Integrating Comprehensive Field Documentation into Prisma Schema');
     console.log('📊 Using 100% coverage documentation system\n');
