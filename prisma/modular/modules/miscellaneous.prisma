@@ -879,6 +879,10 @@ model EngineeringChangeOrder {
   parentRelations        ECORelation[]         @relation("RelatedECO")
   tasks                  ECOTask[]
 
+  // ICD System relationships
+  icdHistory             ICDHistory[]             @relation("ICDHistoryECO")
+  icdChangeRequests      ICDChangeRequest[]       @relation("ICDChangeRequestECO")
+
   @@index([ecoNumber])
   @@index([status])
   @@index([priority])

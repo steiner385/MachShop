@@ -26,6 +26,7 @@ MODULES=(
   "security-access.prisma"
   "material-management.prisma"
   "operations-routing.prisma"
+  "icd-system.prisma"
   "parts-bom.prisma"
   "routing-templates.prisma"
   "work-orders.prisma"
