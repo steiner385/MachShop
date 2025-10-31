@@ -890,6 +890,7 @@ issues:
     effort_estimate: 6
     blocks: [56, 57, 58, 266]
     notes: "Extends existing NCR system with aerospace-specific dispositions"
+    phase_1_2_status: COMPLETED  # 3,700+ lines, 6 services, PR #324
 
   - number: 56
     title: "CAPA (Corrective & Preventive Action) Tracking"
