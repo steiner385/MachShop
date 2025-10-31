@@ -268,6 +268,21 @@ export class DatabaseService {
       )
     `);
 
+    // Data Sync Status Table (Phase 3)
+    await run(`
+      CREATE TABLE IF NOT EXISTS data_sync_status (
+        id TEXT PRIMARY KEY,
+        source TEXT NOT NULL,
+        status TEXT NOT NULL,
+        records_processed INTEGER,
+        records_succeeded INTEGER,
+        records_failed INTEGER,
+        error_message TEXT,
+        sync_date TEXT,
+        created_at TEXT NOT NULL
+      )
+    `);
+
     logger.info('All database tables created successfully');
   }
 
