@@ -1,0 +1,488 @@
+// Interface Control Document (ICD) System Schema
+// Issue #224 - SDK & Extensibility: Interface Control Document (ICD) System
+//
+// Purpose: Enable modular design and isolate changes within interface boundaries
+// Standards: SAE AIR6181A, ASME Y14.24, NASA Interface Management Guidelines, ISO 10007
+//
+// The ICD system enables modular design by defining interface specifications that
+// isolate changes within interface boundaries. This supports SAE AIR6181A and
+// ASME Y14.24 standards for interface control documentation.
+//
+// Key Features:
+// - Interface specification management
+// - Part implementation and consumption tracking
+// - Compliance validation and verification
+// - Version control and effectivity management
+// - Integration with Engineering Change Order (ECO) workflow
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+/// Interface Control Document - Master record defining interface specifications
+model InterfaceControlDocument {
+  id                    String                      @id @default(cuid())
+  persistentUuid        String                      @default(uuid()) // MBE compliance UUID
+  icdNumber             String                      @unique // e.g., "ICD-ENG-001"
+  icdName               String                      // Human-readable name
+  title                 String                      // Official title
+  description           String?                     // Detailed description
+
+  // Version and Control
+  version               String                      // e.g., "1.0", "2.1"
+  revisionLevel         String?                     // Revision within version
+  status                ICDStatus                   @default(DRAFT)
+
+  // Interface Classification
+  interfaceType         InterfaceType
+  interfaceDirection    InterfaceDirection          @default(BIDIRECTIONAL)
+  criticality           InterfaceCriticality        @default(MINOR)
+
+  // Standards and Compliance
+  applicableStandards   String[]                    // e.g., ["SAE AIR6181A", "ASME Y14.24"]
+  complianceNotes       String?                     // Compliance-specific notes
+
+  // Effectivity Management
+  effectiveDate         DateTime?                   // When this ICD becomes effective
+  expirationDate        DateTime?                   // When this ICD expires
+  effectivityType       InterfaceEffectivityType?  // How effectivity is managed
+  effectivityValue      String?                     // Specific effectivity value
+
+  // Approval and Ownership
+  ownerId               String?                     // Responsible engineer
+  ownerName             String?                     // Engineer name
+  ownerDepartment       String?                     // Department
+  approvedById          String?                     // Who approved
+  approvedDate          DateTime?                   // When approved
+  reviewCycle           Int?                        // Review cycle in months
+  nextReviewDate        DateTime?                   // Next scheduled review
+
+  // Documentation
+  documentationUrl      String?                     // Link to detailed docs
+  drawingReferences     String[]                    // Related drawing numbers
+  specificationRefs     String[]                    // Related specifications
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  createdById           String?
+  lastModifiedById      String?
+
+  // Relationships
+  requirements          InterfaceRequirement[]      // Detailed requirements
+  implementingParts     ICDPartImplementation[]     // Parts that implement
+  consumingAssemblies   ICDPartConsumption[]        // Assemblies that consume
+  parentInterfaces      ICDRelation[]               @relation("ParentICD")
+  childInterfaces       ICDRelation[]               @relation("ChildICD")
+  versions              ICDVersion[]                // Version history
+  history               ICDHistory[]                // Change history
+  attachments           ICDAttachment[]             // Supporting documents
+  complianceChecks      ICDComplianceCheck[]        // Compliance validations
+  changeRequests        ICDChangeRequest[]          // Change requests
+
+  @@index([icdNumber])
+  @@index([status])
+  @@index([interfaceType])
+  @@index([criticality])
+  @@index([version])
+  @@index([effectiveDate])
+  @@index([persistentUuid])
+  @@index([isActive])
+  @@map("interface_control_documents")
+}
+
+/// Interface Requirements - Detailed technical requirements for interfaces
+model InterfaceRequirement {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // Parent ICD
+  requirementId         String                      // e.g., "REQ-001"
+  category              String                      // e.g., "Form", "Fit", "Function"
+  subcategory           String?                     // More specific categorization
+
+  // Requirement Details
+  title                 String                      // Short description
+  description           String                      // Detailed requirement text
+  specification         String?                     // Technical specification
+  tolerance             String?                     // Acceptable tolerances
+  units                 String?                     // Units of measurement
+
+  // Values and Limits
+  nominalValue          String?                     // Nominal/target value
+  minimumValue          String?                     // Minimum acceptable
+  maximumValue          String?                     // Maximum acceptable
+  testConditions        String?                     // Test/operating conditions
+
+  // Verification
+  verificationMethod    VerificationMethod          @default(INSPECTION)
+  verificationProcedure String?                     // How to verify compliance
+  acceptanceCriteria    String?                     // What constitutes pass/fail
+
+  // Traceability
+  parentRequirementId   String?                     // Parent requirement
+  flowdownFrom          String[]                    // Source requirements
+  rationale             String?                     // Why this requirement exists
+
+  // Priority and Impact
+  priority              String                      @default("MEDIUM") // HIGH, MEDIUM, LOW
+  safetyRelated         Boolean                     @default(false)
+  missionCritical       Boolean                     @default(false)
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  parentRequirement     InterfaceRequirement?       @relation("RequirementHierarchy", fields: [parentRequirementId], references: [id])
+  childRequirements     InterfaceRequirement[]      @relation("RequirementHierarchy")
+  complianceChecks      ICDComplianceCheck[]        // Compliance results
+
+  @@index([icdId])
+  @@index([category])
+  @@index([priority])
+  @@index([safetyRelated])
+  @@index([parentRequirementId])
+  @@unique([icdId, requirementId])
+  @@map("interface_requirements")
+}
+
+/// ICD-Part Implementation - Links ICDs to parts that implement the interface
+model ICDPartImplementation {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // Interface being implemented
+  partId                String                      // Part implementing interface
+
+  // Implementation Details
+  implementationType    String                      // e.g., "DIRECT", "ADAPTER", "EMULATION"
+  implementationNotes   String?                     // Implementation-specific notes
+  configurationDetails  Json?                       // Configuration parameters
+
+  // Compliance Status
+  complianceStatus      ComplianceStatus            @default(UNDER_EVALUATION)
+  lastComplianceCheck   DateTime?                   // When last verified
+  complianceNotes       String?                     // Compliance details
+
+  // Effectivity
+  effectiveDate         DateTime?                   // When implementation is effective
+  expirationDate        DateTime?                   // When implementation expires
+  effectivityCondition  String?                     // Specific conditions
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  part                  Part                        @relation("PartICDImplementations", fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([icdId])
+  @@index([partId])
+  @@index([complianceStatus])
+  @@unique([icdId, partId])
+  @@map("icd_part_implementations")
+}
+
+/// ICD-Part Consumption - Links ICDs to assemblies/parts that consume the interface
+model ICDPartConsumption {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // Interface being consumed
+  partId                String                      // Assembly/part consuming interface
+
+  // Consumption Details
+  consumptionType       String                      // e.g., "DIRECT", "THROUGH_ADAPTER", "OPTIONAL"
+  quantityRequired      Int?                        @default(1) // How many instances needed
+  consumptionNotes      String?                     // Consumption-specific notes
+  alternativeOptions    String[]                    // Alternative interfaces accepted
+
+  // Requirements
+  isRequired            Boolean                     @default(true) // Is this interface mandatory
+  isCritical            Boolean                     @default(false) // Is it critical to operation
+  failureMode           String?                     // What happens if interface fails
+
+  // Effectivity
+  effectiveDate         DateTime?                   // When consumption is effective
+  expirationDate        DateTime?                   // When consumption expires
+  effectivityCondition  String?                     // Specific conditions
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  part                  Part                        @relation("PartICDConsumptions", fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([icdId])
+  @@index([partId])
+  @@index([isRequired])
+  @@unique([icdId, partId])
+  @@map("icd_part_consumptions")
+}
+
+/// ICD Relations - Hierarchical and dependency relationships between ICDs
+model ICDRelation {
+  id                    String                      @id @default(cuid())
+  parentIcdId           String                      // Parent/containing interface
+  childIcdId            String                      // Child/contained interface
+
+  // Relationship Details
+  relationType          String                      // e.g., "CONTAINS", "DEPENDS_ON", "SIMILAR_TO"
+  relationDescription   String?                     // Description of relationship
+  dependencyType        String?                     // e.g., "HARD", "SOFT", "OPTIONAL"
+
+  // Flow and Direction
+  dataFlowDirection     String?                     // e.g., "BIDIRECTIONAL", "PARENT_TO_CHILD"
+  interfacePriority     Int?                        // Priority/order of interface
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  // Relationships
+  parentIcd             InterfaceControlDocument    @relation("ParentICD", fields: [parentIcdId], references: [id], onDelete: Cascade)
+  childIcd              InterfaceControlDocument    @relation("ChildICD", fields: [childIcdId], references: [id], onDelete: Cascade)
+
+  @@index([parentIcdId])
+  @@index([childIcdId])
+  @@index([relationType])
+  @@unique([parentIcdId, childIcdId, relationType])
+  @@map("icd_relations")
+}
+
+/// ICD Version History - Tracks versions and changes to ICDs
+model ICDVersion {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // Parent ICD
+  versionNumber         String                      // Version number
+
+  // Version Details
+  versionType           String                      // e.g., "MAJOR", "MINOR", "PATCH"
+  changeDescription     String                      // What changed in this version
+  changeReason          String?                     // Why the change was made
+  changeCategory        String[]                    // Categories of changes
+
+  // Approval and Release
+  createdDate           DateTime                    @default(now())
+  approvedDate          DateTime?                   // When this version was approved
+  releasedDate          DateTime?                   // When this version was released
+  supersededDate        DateTime?                   // When this version was superseded
+
+  // People
+  createdById           String?                     // Who created this version
+  approvedById          String?                     // Who approved this version
+
+  // Version Content (snapshot)
+  versionData           Json?                       // Snapshot of ICD data at this version
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+
+  @@index([icdId])
+  @@index([versionNumber])
+  @@index([createdDate])
+  @@unique([icdId, versionNumber])
+  @@map("icd_versions")
+}
+
+/// ICD History - Audit trail of all changes to ICDs
+model ICDHistory {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // ICD that changed
+
+  // Change Details
+  actionType            String                      // e.g., "CREATE", "UPDATE", "APPROVE", "RELEASE"
+  fieldChanged          String?                     // Specific field that changed
+  oldValue              String?                     // Previous value
+  newValue              String?                     // New value
+  changeDescription     String?                     // Description of change
+
+  // Context
+  changeReason          String?                     // Why change was made
+  impactAssessment      String?                     // Impact of the change
+  relatedEcoId          String?                     // Related ECO if applicable
+
+  // People and Timing
+  changedAt             DateTime                    @default(now())
+  changedById           String?                     // Who made the change
+  changedByName         String?                     // Name of person who changed
+
+  // Metadata
+  sessionId             String?                     // Session identifier
+  ipAddress             String?                     // IP address of change
+  userAgent             String?                     // Browser/client info
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  relatedEco            EngineeringChangeOrder?     @relation("ICDHistoryECO", fields: [relatedEcoId], references: [id])
+
+  @@index([icdId])
+  @@index([actionType])
+  @@index([changedAt])
+  @@index([changedById])
+  @@index([relatedEcoId])
+  @@map("icd_history")
+}
+
+/// ICD Attachments - Supporting documents and files for ICDs
+model ICDAttachment {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // Parent ICD
+
+  // File Details
+  fileName              String                      // Original filename
+  fileSize              Int?                        // File size in bytes
+  fileType              String?                     // MIME type
+  fileExtension         String?                     // File extension
+
+  // Storage
+  storageUrl            String?                     // URL/path to file
+  storageKey            String?                     // Storage system key
+  checksum              String?                     // File integrity checksum
+
+  // Classification
+  documentType          String                      // e.g., "DRAWING", "SPECIFICATION", "TEST_REPORT"
+  category              String?                     // Additional categorization
+  securityLevel         String?                     @default("INTERNAL") // Security classification
+
+  // Metadata
+  description           String?                     // Description of attachment
+  version               String?                     // Document version
+  isActive              Boolean                     @default(true)
+  uploadedAt            DateTime                    @default(now())
+  uploadedById          String?                     // Who uploaded
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+
+  @@index([icdId])
+  @@index([documentType])
+  @@index([isActive])
+  @@map("icd_attachments")
+}
+
+/// ICD Compliance Checks - Records of interface compliance verification
+model ICDComplianceCheck {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // ICD being checked
+  requirementId         String?                     // Specific requirement checked
+  partId                String?                     // Part being checked
+
+  // Check Details
+  checkType             String                      // e.g., "DESIGN_REVIEW", "TEST", "INSPECTION"
+  checkMethod           VerificationMethod          @default(INSPECTION)
+  checkProcedure        String?                     // How the check was performed
+
+  // Results
+  complianceStatus      ComplianceStatus            @default(UNDER_EVALUATION)
+  checkResult           String                      // e.g., "PASS", "FAIL", "CONDITIONAL"
+  actualValue           String?                     // Measured/observed value
+  expectedValue         String?                     // Required/expected value
+  variance              String?                     // Difference from expected
+
+  // Documentation
+  testResults           Json?                       // Detailed test results
+  evidenceUrl           String?                     // Link to evidence/documentation
+  checkNotes            String?                     // Additional notes
+  nonComplianceReason   String?                     // Why non-compliant
+  correctiveAction      String?                     // What to do to fix
+
+  // People and Timing
+  checkDate             DateTime                    @default(now())
+  checkedById           String?                     // Who performed check
+  checkedByName         String?                     // Name of checker
+  reviewedById          String?                     // Who reviewed results
+  reviewedDate          DateTime?                   // When reviewed
+
+  // Next Actions
+  nextCheckDate         DateTime?                   // When next check due
+  reCheckRequired       Boolean                     @default(false)
+  escalationRequired    Boolean                     @default(false)
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  requirement           InterfaceRequirement?       @relation(fields: [requirementId], references: [id])
+  part                  Part?                       @relation("PartICDComplianceChecks", fields: [partId], references: [id])
+
+  @@index([icdId])
+  @@index([requirementId])
+  @@index([partId])
+  @@index([complianceStatus])
+  @@index([checkDate])
+  @@index([nextCheckDate])
+  @@map("icd_compliance_checks")
+}
+
+/// ICD Change Requests - Requests for changes to existing ICDs
+model ICDChangeRequest {
+  id                    String                      @id @default(cuid())
+  icdId                 String                      // ICD to be changed
+  requestNumber         String                      @unique // e.g., "ICR-001"
+
+  // Request Details
+  title                 String                      // Brief description
+  description           String                      // Detailed description
+  requestType           String                      // e.g., "CORRECTION", "ENHANCEMENT", "CLARIFICATION"
+  priority              String                      @default("MEDIUM") // HIGH, MEDIUM, LOW
+
+  // Change Details
+  proposedChange        String                      // What should change
+  changeReason          String                      // Why change is needed
+  alternativesConsidered String?                    // Other options considered
+
+  // Impact Analysis
+  impactAnalysis        Json?                       // Structured impact analysis
+  affectedParts         String[]                    // Parts that might be affected
+  affectedAssemblies    String[]                    // Assemblies that might be affected
+  estimatedEffort       String?                     // Effort to implement
+  riskAssessment        String?                     // Risks of making change
+
+  // Requestor Information
+  requestorId           String?                     // Who requested
+  requestorName         String                      // Requestor name
+  requestorDept         String?                     // Department
+  requestorEmail        String?                     // Contact email
+  requestDate           DateTime                    @default(now())
+
+  // Status and Approval
+  status                String                      @default("SUBMITTED") // SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, IMPLEMENTED
+  reviewerId            String?                     // Who is reviewing
+  reviewerNotes         String?                     // Reviewer comments
+  reviewDate            DateTime?                   // When reviewed
+  approvalRequired      Boolean                     @default(true)
+  approvedById          String?                     // Who approved
+  approvedDate          DateTime?                   // When approved
+
+  // Implementation
+  implementationPlan    String?                     // How to implement
+  implementationDate    DateTime?                   // When implemented
+  implementedById       String?                     // Who implemented
+  relatedEcoId          String?                     // Related ECO if created
+
+  // Metadata
+  isActive              Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  // Relationships
+  icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
+  relatedEco            EngineeringChangeOrder?     @relation("ICDChangeRequestECO", fields: [relatedEcoId], references: [id])
+
+  @@index([icdId])
+  @@index([requestNumber])
+  @@index([status])
+  @@index([priority])
+  @@index([requestDate])
+  @@index([relatedEcoId])
+  @@map("icd_change_requests")
+}

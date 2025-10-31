@@ -64,6 +64,11 @@ model Part {
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
 
+  // ICD System relationships
+  implementedInterfaces      ICDPartImplementation[]     @relation("PartICDImplementations")
+  consumedInterfaces         ICDPartConsumption[]        @relation("PartICDConsumptions")
+  complianceChecks           ICDComplianceCheck[]        @relation("PartICDComplianceChecks")
+
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
