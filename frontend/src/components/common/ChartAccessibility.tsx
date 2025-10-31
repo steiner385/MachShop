@@ -1,6 +1,6 @@
 import React, { useState, useCallback, ReactNode } from 'react';
-import { Table, Collapse, Button, Typography, Tag, Space } from 'antd';
-import { TableOutlined } from '@ant-design/icons';
+import { Table, Collapse, Button, Typography, Tag, Space, Select, Tooltip, Switch } from 'antd';
+import { TableOutlined, EyeOutlined, TouchOutlined, HighlightOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 const { Panel } = Collapse;
@@ -30,6 +30,9 @@ export interface AccessibleChartProps {
   tableColumns?: any[];
   getTableData?: () => any[];
   extraControls?: ReactNode;
+  enableAccessibilityControls?: boolean;
+  enableTouchSupport?: boolean;
+  onAccessibilityModeChange?: (mode: 'default' | 'highContrast' | 'colorblindFriendly') => void;
 }
 
 /**
@@ -38,6 +41,8 @@ export interface AccessibleChartProps {
 export const useChartAccessibility = () => {
   const [showDataTable, setShowDataTable] = useState(false);
   const [announceText, setAnnounceText] = useState('');
+  const [accessibilityMode, setAccessibilityMode] = useState<'default' | 'highContrast' | 'colorblindFriendly'>('default');
+  const [touchOptimized, setTouchOptimized] = useState(false);
 
   const announceToScreenReader = useCallback((message: string) => {
     setAnnounceText(message);
@@ -50,11 +55,31 @@ export const useChartAccessibility = () => {
     announceToScreenReader(newState ? 'Data table displayed' : 'Data table hidden');
   }, [showDataTable, announceToScreenReader]);
 
+  const changeAccessibilityMode = useCallback((mode: 'default' | 'highContrast' | 'colorblindFriendly') => {
+    setAccessibilityMode(mode);
+    const modeLabels = {
+      default: 'Standard',
+      highContrast: 'High Contrast',
+      colorblindFriendly: 'Color Blind Friendly'
+    };
+    announceToScreenReader(`Chart color mode changed to ${modeLabels[mode]}`);
+  }, [announceToScreenReader]);
+
+  const toggleTouchOptimization = useCallback(() => {
+    const newState = !touchOptimized;
+    setTouchOptimized(newState);
+    announceToScreenReader(newState ? 'Touch optimization enabled' : 'Touch optimization disabled');
+  }, [touchOptimized, announceToScreenReader]);
+
   return {
     showDataTable,
     announceText,
+    accessibilityMode,
+    touchOptimized,
     announceToScreenReader,
     toggleDataTable,
+    changeAccessibilityMode,
+    toggleTouchOptimization,
   };
 };
 
@@ -73,8 +98,19 @@ export const AccessibleChartWrapper: React.FC<AccessibleChartProps> = ({
   tableColumns = [],
   getTableData,
   extraControls,
+  enableAccessibilityControls = true,
+  enableTouchSupport = true,
+  onAccessibilityModeChange,
 }) => {
-  const { showDataTable, announceText, toggleDataTable } = useChartAccessibility();
+  const {
+    showDataTable,
+    announceText,
+    accessibilityMode,
+    touchOptimized,
+    toggleDataTable,
+    changeAccessibilityMode,
+    toggleTouchOptimization,
+  } = useChartAccessibility();
 
   // Default table data if not provided
   const defaultTableData = data.map((item, index) => ({
@@ -160,6 +196,48 @@ export const AccessibleChartWrapper: React.FC<AccessibleChartProps> = ({
           >
             Table View
           </Button>
+
+          {enableAccessibilityControls && (
+            <>
+              <Tooltip title="Change color scheme for better accessibility">
+                <Select
+                  value={accessibilityMode}
+                  onChange={(value) => {
+                    changeAccessibilityMode(value);
+                    onAccessibilityModeChange?.(value);
+                  }}
+                  size="small"
+                  style={{ width: 140 }}
+                  aria-label="Chart accessibility mode"
+                >
+                  <Select.Option value="default">
+                    <EyeOutlined /> Standard
+                  </Select.Option>
+                  <Select.Option value="highContrast">
+                    <HighlightOutlined /> High Contrast
+                  </Select.Option>
+                  <Select.Option value="colorblindFriendly">
+                    <EyeOutlined /> Color Blind Friendly
+                  </Select.Option>
+                </Select>
+              </Tooltip>
+            </>
+          )}
+
+          {enableTouchSupport && (
+            <Tooltip title="Optimize chart for touch devices">
+              <Button
+                icon={<TouchOutlined />}
+                onClick={toggleTouchOptimization}
+                size="small"
+                type={touchOptimized ? 'primary' : 'default'}
+                aria-label={touchOptimized ? 'Disable touch optimization' : 'Enable touch optimization'}
+                aria-pressed={touchOptimized}
+              >
+                Touch
+              </Button>
+            </Tooltip>
+          )}
         </Space>
       </div>
 
@@ -224,22 +302,20 @@ export const AccessibleChartWrapper: React.FC<AccessibleChartProps> = ({
 /**
  * Utility function to generate accessible colors with patterns
  */
-export const getAccessibleColor = (index: number, isHighlighted = false) => {
-  const colors = [
-    '#1890ff', // Blue
-    '#52c41a', // Green
-    '#fa8c16', // Orange
-    '#722ed1', // Purple
-    '#13c2c2', // Cyan
-    '#eb2f96', // Magenta
-    '#f5222d', // Red
-    '#faad14', // Gold
-  ];
+export const getAccessibleColor = (
+  index: number,
+  isHighlighted = false,
+  accessibilityMode: 'default' | 'highContrast' | 'colorblindFriendly' = 'default'
+) => {
+  // Import accessible colors - would normally be at top but doing inline for demonstration
+  const { getAccessibleDataPointStyle } = require('../../utils/accessibleColors');
+
+  const style = getAccessibleDataPointStyle(index, accessibilityMode);
 
   return {
-    color: colors[index % colors.length],
-    pattern: isHighlighted ? 'diagonal-stripes' : 'solid',
-    shape: getShapeByIndex(index),
+    ...style,
+    pattern: isHighlighted ? 'diagonal-stripes' : style.pattern,
+    isHighlighted,
   };
 };
 

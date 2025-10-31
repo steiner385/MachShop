@@ -57,6 +57,8 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import { AccessibleChartWrapper, useChartAccessibility, generateChartDescription } from '../common/ChartAccessibility';
+import { ResponsiveChartContainer, ChartContainerPresets } from '../common/ResponsiveChartContainer';
 import dayjs from 'dayjs';
 import { useKitStore } from '../../store/kitStore';
 import {
@@ -385,67 +387,178 @@ export const KitAnalyticsDashboard: React.FC<KitAnalyticsDashboardProps> = ({
     </Row>
   );
 
-  // Kit trends chart
-  const renderTrendsChart = () => (
-    <Card title="Kit Performance Trends" style={{ marginBottom: 16 }}>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={analyticsData?.trends}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis yAxisId="left" />
-          <YAxis yAxisId="right" orientation="right" />
-          <RechartsTooltip />
-          <Legend />
-          <Line
-            yAxisId="left"
-            type="monotone"
-            dataKey="kitsGenerated"
-            stroke="#1890ff"
-            name="Kits Generated"
-          />
-          <Line
-            yAxisId="left"
-            type="monotone"
-            dataKey="kitsCompleted"
-            stroke="#52c41a"
-            name="Kits Completed"
-          />
-          <Line
-            yAxisId="right"
-            type="monotone"
-            dataKey="onTimeRate"
-            stroke="#faad14"
-            name="On-Time Rate (%)"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </Card>
-  );
+  // Kit trends chart with accessibility
+  const renderTrendsChart = () => {
+    const trendsData = analyticsData?.trends || [];
+    const tableColumns = [
+      {
+        title: 'Date',
+        dataIndex: 'date',
+        key: 'date',
+        sorter: (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      },
+      {
+        title: 'Kits Generated',
+        dataIndex: 'kitsGenerated',
+        key: 'kitsGenerated',
+        sorter: (a: any, b: any) => a.kitsGenerated - b.kitsGenerated,
+      },
+      {
+        title: 'Kits Completed',
+        dataIndex: 'kitsCompleted',
+        key: 'kitsCompleted',
+        sorter: (a: any, b: any) => a.kitsCompleted - b.kitsCompleted,
+      },
+      {
+        title: 'On-Time Rate (%)',
+        dataIndex: 'onTimeRate',
+        key: 'onTimeRate',
+        render: (value: number) => `${value}%`,
+        sorter: (a: any, b: any) => a.onTimeRate - b.onTimeRate,
+      },
+    ];
 
-  // Status distribution pie chart
-  const renderStatusDistribution = () => (
-    <Card title="Kit Status Distribution" style={{ marginBottom: 16 }}>
-      <ResponsiveContainer width="100%" height={250}>
-        <PieChart>
-          <Pie
-            data={analyticsData?.statusDistribution}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, percentage }) => `${name} (${percentage}%)`}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="count"
+    return (
+      <Card title="Kit Performance Trends" style={{ marginBottom: 16 }}>
+        <AccessibleChartWrapper
+          title="Kit Performance Trends"
+          description="Line chart showing kit generation, completion, and on-time delivery rate trends over time. Use the table view for detailed data access."
+          chartType="Line Chart"
+          data={trendsData}
+          height={300}
+          tableColumns={tableColumns}
+          getTableData={() => trendsData.map((item, index) => ({ key: index, ...item }))}
+        >
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={trendsData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
+              <RechartsTooltip />
+              <Legend />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="kitsGenerated"
+                stroke="#1890ff"
+                name="Kits Generated"
+                strokeWidth={2}
+                dot={{ fill: '#1890ff', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#1890ff', strokeWidth: 2 }}
+              />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="kitsCompleted"
+                stroke="#52c41a"
+                name="Kits Completed"
+                strokeWidth={2}
+                dot={{ fill: '#52c41a', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#52c41a', strokeWidth: 2 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="onTimeRate"
+                stroke="#faad14"
+                name="On-Time Rate (%)"
+                strokeWidth={2}
+                dot={{ fill: '#faad14', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#faad14', strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </AccessibleChartWrapper>
+      </Card>
+    );
+  };
+
+  // Status distribution pie chart with accessibility
+  const renderStatusDistribution = () => {
+    const statusData = analyticsData?.statusDistribution || [];
+    const tableColumns = [
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        render: (text: string, record: any) => (
+          <span>
+            <span
+              style={{
+                display: 'inline-block',
+                width: 12,
+                height: 12,
+                backgroundColor: record.color,
+                marginRight: 8,
+                borderRadius: 2
+              }}
+            />
+            {text}
+          </span>
+        ),
+      },
+      {
+        title: 'Count',
+        dataIndex: 'count',
+        key: 'count',
+        sorter: (a: any, b: any) => a.count - b.count,
+      },
+      {
+        title: 'Percentage',
+        dataIndex: 'percentage',
+        key: 'percentage',
+        render: (value: number) => `${value}%`,
+        sorter: (a: any, b: any) => a.percentage - b.percentage,
+      },
+    ];
+
+    return (
+      <Card title="Kit Status Distribution" style={{ marginBottom: 16 }}>
+        <AccessibleChartWrapper
+          title="Kit Status Distribution"
+          description="Pie chart showing the distribution of kits across different status categories. Each segment represents a status with its percentage of the total."
+          chartType="Pie Chart"
+          data={statusData}
+          height={250}
+          tableColumns={tableColumns}
+          getTableData={() => statusData.map((item, index) => ({ key: index, ...item }))}
+        >
+          <ResponsiveChartContainer
+            height={250}
+            aria-label="Kit status distribution pie chart"
+            aria-describedby="status-chart-description"
           >
-            {analyticsData?.statusDistribution.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <RechartsTooltip />
-        </PieChart>
-      </ResponsiveContainer>
-    </Card>
-  );
+            <PieChart>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percentage }) => `${name} (${percentage}%)`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="count"
+              >
+                {statusData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <RechartsTooltip
+                formatter={(value: number, name: string, props: any) => [
+                  `${value} kits (${props.payload.percentage}%)`,
+                  props.payload.status
+                ]}
+              />
+            </PieChart>
+          </ResponsiveChartContainer>
+        </AccessibleChartWrapper>
+        <div id="status-chart-description" className="sr-only">
+          Detailed breakdown: {statusData.map(item => `${item.status}: ${item.count} kits (${item.percentage}%)`).join(', ')}
+        </div>
+      </Card>
+    );
+  };
 
   // Priority analysis table
   const priorityColumns: ColumnsType<any> = [
