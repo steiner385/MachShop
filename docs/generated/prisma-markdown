@@ -3367,6 +3367,250 @@ erDiagram
   DateTime timestamp
   String siteId FK "nullable"
 }
+"build_records" {
+  String id PK
+  String buildRecordNumber UK
+  String workOrderId FK
+  String serializedPartId FK "nullable"
+  String engineModel
+  String serialNumber
+  String customerName "nullable"
+  String contractNumber "nullable"
+  DateTime buildStartDate
+  DateTime buildEndDate "nullable"
+  DateTime targetCompletionDate "nullable"
+  DateTime actualCompletionDate "nullable"
+  BuildRecordStatus status
+  FinalDisposition finalDisposition "nullable"
+  Boolean isCompliant
+  Boolean hasDeviations
+  Boolean buildBookGenerated
+  DateTime buildBookGeneratedAt "nullable"
+  String buildBookPath "nullable"
+  Int buildBookVersion
+  Boolean qualityApprovalRequired
+  Boolean qualityApproved
+  DateTime qualityApprovedAt "nullable"
+  String qualityApprovedById FK "nullable"
+  Boolean engineeringApprovalRequired
+  Boolean engineeringApproved
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringApprovedById FK "nullable"
+  Boolean customerApprovalRequired
+  Boolean customerApproved
+  DateTime customerApprovedAt "nullable"
+  String customerApprovedBy "nullable"
+  String createdById FK
+  String assignedToId FK "nullable"
+  String notes "nullable"
+  String complianceNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_operations" {
+  String id PK
+  String buildRecordId FK
+  String workOrderOperationId FK "nullable"
+  String operationNumber
+  String operationName
+  String routingStepId "nullable"
+  DateTime plannedStartDate "nullable"
+  DateTime plannedEndDate "nullable"
+  DateTime actualStartDate "nullable"
+  DateTime actualEndDate "nullable"
+  Int plannedDuration "nullable"
+  Int actualDuration "nullable"
+  OperationStatus status
+  Int quantityPlanned
+  Int quantityCompleted
+  Int quantityScrap
+  String operatorId FK "nullable"
+  String inspectorId FK "nullable"
+  String workCenterId FK "nullable"
+  String equipmentUsed "nullable"
+  Json actualPartsUsed "nullable"
+  Json actualMaterials "nullable"
+  Boolean qualityCheckRequired
+  Boolean qualityCheckComplete
+  DateTime qualityCheckDate "nullable"
+  Boolean operatorSignedOff
+  DateTime operatorSignOffDate "nullable"
+  Boolean inspectorSignedOff
+  DateTime inspectorSignOffDate "nullable"
+  Boolean hasDeviations
+  Boolean requiresEngApproval
+  Boolean engineeringApproved
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringApprovedById FK "nullable"
+  Boolean torqueSpecsApplied
+  Json torqueValues "nullable"
+  Json toolsUsed "nullable"
+  Boolean calibrationVerified
+  String workInstructions "nullable"
+  String specialInstructions "nullable"
+  String operationNotes "nullable"
+  Boolean reworkRequired
+  String reworkReason "nullable"
+  Boolean reworkCompleted
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_deviations" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  String ncrId FK "nullable"
+  DeviationType deviationType
+  DeviationCategory deviationCategory
+  String title
+  String description
+  String detectedBy FK
+  DateTime detectedAt
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String operationNumber "nullable"
+  String asDesigned "nullable"
+  String asBuilt "nullable"
+  String variance "nullable"
+  DeviationSeverity severity
+  DeviationStatus status
+  DeviationDisposition disposition "nullable"
+  String dispositionReason "nullable"
+  Boolean engineeringReview
+  Boolean engineeringApproval
+  String engineeringApprovedBy FK "nullable"
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringComments "nullable"
+  Boolean qualityReview
+  Boolean qualityApproval
+  String qualityApprovedBy FK "nullable"
+  DateTime qualityApprovedAt "nullable"
+  String qualityComments "nullable"
+  Boolean customerNotificationReq
+  Boolean customerNotified
+  Boolean customerApprovalReq
+  Boolean customerApproved
+  String customerApprovedBy "nullable"
+  DateTime customerApprovedAt "nullable"
+  String correctiveAction "nullable"
+  String preventiveAction "nullable"
+  String rootCause "nullable"
+  String impactAssessment "nullable"
+  Decimal costImpact "nullable"
+  Int scheduleImpact "nullable"
+  String closedBy FK "nullable"
+  DateTime closedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_photos" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  String deviationId FK "nullable"
+  PhotoType photoType
+  String title
+  String description "nullable"
+  String filePath
+  String fileName
+  Int fileSize
+  String mimeType
+  Int imageWidth "nullable"
+  Int imageHeight "nullable"
+  String capturedBy FK
+  DateTime capturedAt
+  String locationCaptured "nullable"
+  String operationNumber "nullable"
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String equipmentUsed "nullable"
+  Json annotations "nullable"
+  Json metadata "nullable"
+  Boolean qualityControlPhoto
+  Boolean mandatoryPhoto
+  Boolean approved
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  Boolean rejected
+  String rejectedBy FK "nullable"
+  DateTime rejectedAt "nullable"
+  String rejectionReason "nullable"
+  Boolean isArchived
+  String tags
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_documents" {
+  String id PK
+  String buildRecordId FK
+  String deviationId FK "nullable"
+  BuildRecordDocumentType documentType
+  String title
+  String description "nullable"
+  String filePath
+  String fileName
+  Int fileSize
+  String mimeType
+  String documentNumber "nullable"
+  String version "nullable"
+  DateTime issueDate "nullable"
+  DateTime expirationDate "nullable"
+  String supplier "nullable"
+  String partNumber "nullable"
+  String lotNumber "nullable"
+  String serialNumber "nullable"
+  String certificationNumber "nullable"
+  Boolean isOriginal
+  Boolean requiresApproval
+  Boolean approved
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  Json compliance "nullable"
+  String uploadedBy FK
+  DateTime uploadedAt
+  String tags
+  Json metadata "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_status_history" {
+  String id PK
+  String buildRecordId FK
+  BuildRecordStatus previousStatus "nullable"
+  BuildRecordStatus newStatus
+  String changedBy FK
+  DateTime changedAt
+  String reason "nullable"
+  String notes "nullable"
+  Boolean automaticChange
+  String ipAddress "nullable"
+  String userAgent "nullable"
+}
+"build_record_signatures" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  BuildSignatureType signatureType
+  SignatureLevel signatureLevel
+  String userId FK
+  String signatureRole
+  String signatureReason
+  Json signatureData
+  DateTime timestamp
+  String ipAddress
+  String userAgent
+  BiometricType biometricType "nullable"
+  Float biometricScore "nullable"
+  String signatureHash
+  Boolean isValid
+  DateTime invalidatedAt "nullable"
+  String invalidatedBy FK "nullable"
+  String invalidationReason "nullable"
+  String operationNumber "nullable"
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String complianceLevel "nullable"
+}
 "role_templates" {
   String id PK
   String templateCode UK
@@ -3685,6 +3929,111 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"vendors" {
+  String id PK
+  String code UK
+  String name
+  String contactEmail "nullable"
+  String contactPhone "nullable"
+  String address "nullable"
+  Float qualityRating
+  Float onTimeDeliveryRate
+  String certifications
+  String approvedParts
+  Boolean isActive
+  Boolean preferredVendor
+  DateTime contractStartDate "nullable"
+  DateTime contractEndDate "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kits" {
+  String id PK
+  String vendorId FK
+  String vendorKitNumber
+  String kitId FK "nullable"
+  String requestId UK
+  String partNumbers
+  Int quantityOrdered
+  Int quantityReceived
+  Float unitCost "nullable"
+  Float totalCost "nullable"
+  String currency
+  VendorKitStatus status
+  VendorKitPriority priority
+  DateTime requiredDate
+  DateTime promisedDate "nullable"
+  DateTime actualShipDate "nullable"
+  DateTime actualReceiveDate "nullable"
+  String trackingNumber "nullable"
+  String shippingMethod "nullable"
+  String deliveryNotes "nullable"
+  String qualityRequirements "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_items" {
+  String id PK
+  String vendorKitId FK
+  String partId FK
+  String partNumber
+  String description "nullable"
+  Float quantityOrdered
+  Float quantityReceived
+  String unitOfMeasure
+  String unitOfMeasureId FK "nullable"
+  Float unitCost "nullable"
+  Float totalCost "nullable"
+  String lotNumber "nullable"
+  String serialNumbers
+  Boolean certificationRequired
+  Boolean inspectionRequired
+  VendorKitItemStatus status
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_inspections" {
+  String id PK
+  String vendorKitId FK
+  String inspectorId FK "nullable"
+  VendorInspectionType inspectionType
+  DateTime inspectionDate
+  VendorInspectionResult result
+  Int conformingQuantity
+  Int nonConformingQuantity
+  String notes "nullable"
+  Boolean correctionRequired
+  String correctionNotes "nullable"
+  Boolean certificatesReceived
+  String attachments
+  DateTime createdAt
+  DateTime updatedAt
+}
+"vendor_kit_history" {
+  String id PK
+  String vendorKitId FK
+  String userId FK "nullable"
+  VendorKitAction action
+  VendorKitStatus fromStatus "nullable"
+  VendorKitStatus toStatus "nullable"
+  String notes "nullable"
+  DateTime timestamp
+  Json metadata "nullable"
+}
+"vendor_performance_metrics" {
+  String id PK
+  String vendorId FK
+  VendorMetricType metricType
+  DateTime metricPeriod
+  VendorMetricPeriod periodType
+  Float value
+  Float target "nullable"
+  String unit "nullable"
+  String notes "nullable"
+  DateTime calculatedAt
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
 "users" }o--o| "personnel_classes" : personnelClass
@@ -3970,6 +4319,41 @@ erDiagram
 "permission_change_logs" }o--|| "users" : changedByUser
 "permission_change_logs" }o--o| "sites" : site
 "permission_change_logs" }o--|| "users" : targetUser
+"build_records" |o--|| "work_orders" : workOrder
+"build_records" }o--o| "serialized_parts" : serializedPart
+"build_records" }o--|| "users" : createdBy
+"build_records" }o--o| "users" : assignedTo
+"build_records" }o--o| "users" : qualityApprovedBy
+"build_records" }o--o| "users" : engineeringApprovedBy
+"build_record_operations" }o--|| "build_records" : buildRecord
+"build_record_operations" }o--o| "work_order_operations" : workOrderOperation
+"build_record_operations" }o--o| "users" : operator
+"build_record_operations" }o--o| "users" : inspector
+"build_record_operations" }o--o| "users" : engineeringApprovedBy
+"build_record_operations" }o--o| "work_centers" : workCenter
+"build_deviations" }o--|| "build_records" : buildRecord
+"build_deviations" }o--o| "build_record_operations" : operation
+"build_deviations" }o--o| "ncrs" : ncr
+"build_deviations" }o--|| "users" : detectedByUser
+"build_deviations" }o--o| "users" : engineeringApprover
+"build_deviations" }o--o| "users" : qualityApprover
+"build_deviations" }o--o| "users" : closedByUser
+"build_record_photos" }o--|| "build_records" : buildRecord
+"build_record_photos" }o--o| "build_record_operations" : operation
+"build_record_photos" }o--o| "build_deviations" : deviation
+"build_record_photos" }o--|| "users" : capturedByUser
+"build_record_photos" }o--o| "users" : approvedByUser
+"build_record_photos" }o--o| "users" : rejectedByUser
+"build_record_documents" }o--|| "build_records" : buildRecord
+"build_record_documents" }o--o| "build_deviations" : deviation
+"build_record_documents" }o--|| "users" : uploadedByUser
+"build_record_documents" }o--o| "users" : approvedByUser
+"build_record_status_history" }o--|| "build_records" : buildRecord
+"build_record_status_history" }o--|| "users" : changedByUser
+"build_record_signatures" }o--|| "build_records" : buildRecord
+"build_record_signatures" }o--o| "build_record_operations" : operation
+"build_record_signatures" }o--|| "users" : user
+"build_record_signatures" }o--o| "users" : invalidatedByUser
 "role_templates" }o--|| "users" : creator
 "role_templates" }o--o| "users" : updater
 "role_template_permissions" }o--|| "role_templates" : template
@@ -4019,6 +4403,16 @@ erDiagram
 "kit_shortage_alerts" }o--|| "parts" : part
 "kit_shortage_alerts" }o--o| "users" : assignedTo
 "kit_shortage_alerts" }o--o| "users" : resolvedBy
+"vendor_kits" }o--|| "vendors" : vendor
+"vendor_kits" }o--o| "kits" : kit
+"vendor_kit_items" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_items" }o--|| "parts" : part
+"vendor_kit_items" }o--o| "units_of_measure" : unitOfMeasureRef
+"vendor_kit_inspections" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_inspections" }o--o| "users" : inspector
+"vendor_kit_history" }o--|| "vendor_kits" : vendorKit
+"vendor_kit_history" }o--o| "users" : user
+"vendor_performance_metrics" }o--|| "vendors" : vendor
 ```
 
 ### `enterprises`
@@ -7819,6 +8213,264 @@ Tracks all changes to user permissions and roles for compliance
   - `timestamp`: 
   - `siteId`: 
 
+### `build_records`
+
+**Properties**
+  - `id`: 
+  - `buildRecordNumber`: 
+  - `workOrderId`: 
+  - `serializedPartId`: 
+  - `engineModel`: 
+  - `serialNumber`: 
+  - `customerName`: 
+  - `contractNumber`: 
+  - `buildStartDate`: 
+  - `buildEndDate`: 
+  - `targetCompletionDate`: 
+  - `actualCompletionDate`: 
+  - `status`: 
+  - `finalDisposition`: 
+  - `isCompliant`: 
+  - `hasDeviations`: 
+  - `buildBookGenerated`: 
+  - `buildBookGeneratedAt`: 
+  - `buildBookPath`: 
+  - `buildBookVersion`: 
+  - `qualityApprovalRequired`: 
+  - `qualityApproved`: 
+  - `qualityApprovedAt`: 
+  - `qualityApprovedById`: 
+  - `engineeringApprovalRequired`: 
+  - `engineeringApproved`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringApprovedById`: 
+  - `customerApprovalRequired`: 
+  - `customerApproved`: 
+  - `customerApprovedAt`: 
+  - `customerApprovedBy`: 
+  - `createdById`: 
+  - `assignedToId`: 
+  - `notes`: 
+  - `complianceNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_operations`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `workOrderOperationId`: 
+  - `operationNumber`: 
+  - `operationName`: 
+  - `routingStepId`: 
+  - `plannedStartDate`: 
+  - `plannedEndDate`: 
+  - `actualStartDate`: 
+  - `actualEndDate`: 
+  - `plannedDuration`: 
+  - `actualDuration`: 
+  - `status`: 
+  - `quantityPlanned`: 
+  - `quantityCompleted`: 
+  - `quantityScrap`: 
+  - `operatorId`: 
+  - `inspectorId`: 
+  - `workCenterId`: 
+  - `equipmentUsed`: 
+  - `actualPartsUsed`: 
+  - `actualMaterials`: 
+  - `qualityCheckRequired`: 
+  - `qualityCheckComplete`: 
+  - `qualityCheckDate`: 
+  - `operatorSignedOff`: 
+  - `operatorSignOffDate`: 
+  - `inspectorSignedOff`: 
+  - `inspectorSignOffDate`: 
+  - `hasDeviations`: 
+  - `requiresEngApproval`: 
+  - `engineeringApproved`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringApprovedById`: 
+  - `torqueSpecsApplied`: 
+  - `torqueValues`: 
+  - `toolsUsed`: 
+  - `calibrationVerified`: 
+  - `workInstructions`: 
+  - `specialInstructions`: 
+  - `operationNotes`: 
+  - `reworkRequired`: 
+  - `reworkReason`: 
+  - `reworkCompleted`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_deviations`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `ncrId`: 
+  - `deviationType`: 
+  - `deviationCategory`: 
+  - `title`: 
+  - `description`: 
+  - `detectedBy`: 
+  - `detectedAt`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `operationNumber`: 
+  - `asDesigned`: 
+  - `asBuilt`: 
+  - `variance`: 
+  - `severity`: 
+  - `status`: 
+  - `disposition`: 
+  - `dispositionReason`: 
+  - `engineeringReview`: 
+  - `engineeringApproval`: 
+  - `engineeringApprovedBy`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringComments`: 
+  - `qualityReview`: 
+  - `qualityApproval`: 
+  - `qualityApprovedBy`: 
+  - `qualityApprovedAt`: 
+  - `qualityComments`: 
+  - `customerNotificationReq`: 
+  - `customerNotified`: 
+  - `customerApprovalReq`: 
+  - `customerApproved`: 
+  - `customerApprovedBy`: 
+  - `customerApprovedAt`: 
+  - `correctiveAction`: 
+  - `preventiveAction`: 
+  - `rootCause`: 
+  - `impactAssessment`: 
+  - `costImpact`: 
+  - `scheduleImpact`: 
+  - `closedBy`: 
+  - `closedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_photos`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `deviationId`: 
+  - `photoType`: 
+  - `title`: 
+  - `description`: 
+  - `filePath`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `mimeType`: 
+  - `imageWidth`: 
+  - `imageHeight`: 
+  - `capturedBy`: 
+  - `capturedAt`: 
+  - `locationCaptured`: 
+  - `operationNumber`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `equipmentUsed`: 
+  - `annotations`: 
+  - `metadata`: 
+  - `qualityControlPhoto`: 
+  - `mandatoryPhoto`: 
+  - `approved`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejected`: 
+  - `rejectedBy`: 
+  - `rejectedAt`: 
+  - `rejectionReason`: 
+  - `isArchived`: 
+  - `tags`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_documents`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `deviationId`: 
+  - `documentType`: 
+  - `title`: 
+  - `description`: 
+  - `filePath`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `mimeType`: 
+  - `documentNumber`: 
+  - `version`: 
+  - `issueDate`: 
+  - `expirationDate`: 
+  - `supplier`: 
+  - `partNumber`: 
+  - `lotNumber`: 
+  - `serialNumber`: 
+  - `certificationNumber`: 
+  - `isOriginal`: 
+  - `requiresApproval`: 
+  - `approved`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `compliance`: 
+  - `uploadedBy`: 
+  - `uploadedAt`: 
+  - `tags`: 
+  - `metadata`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_status_history`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `previousStatus`: 
+  - `newStatus`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `reason`: 
+  - `notes`: 
+  - `automaticChange`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+
+### `build_record_signatures`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `signatureType`: 
+  - `signatureLevel`: 
+  - `userId`: 
+  - `signatureRole`: 
+  - `signatureReason`: 
+  - `signatureData`: 
+  - `timestamp`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `biometricType`: 
+  - `biometricScore`: 
+  - `signatureHash`: 
+  - `isValid`: 
+  - `invalidatedAt`: 
+  - `invalidatedBy`: 
+  - `invalidationReason`: 
+  - `operationNumber`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `complianceLevel`: 
+
 ### `role_templates`
 Role Template - Master template definition for role configurations
 
@@ -8176,3 +8828,120 @@ LLP certification document storage and management
   - `resolution`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `vendors`
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `contactEmail`: 
+  - `contactPhone`: 
+  - `address`: 
+  - `qualityRating`: 
+  - `onTimeDeliveryRate`: 
+  - `certifications`: 
+  - `approvedParts`: 
+  - `isActive`: 
+  - `preferredVendor`: 
+  - `contractStartDate`: 
+  - `contractEndDate`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kits`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `vendorKitNumber`: 
+  - `kitId`: 
+  - `requestId`: 
+  - `partNumbers`: 
+  - `quantityOrdered`: 
+  - `quantityReceived`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `currency`: 
+  - `status`: 
+  - `priority`: 
+  - `requiredDate`: 
+  - `promisedDate`: 
+  - `actualShipDate`: 
+  - `actualReceiveDate`: 
+  - `trackingNumber`: 
+  - `shippingMethod`: 
+  - `deliveryNotes`: 
+  - `qualityRequirements`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_items`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `partId`: 
+  - `partNumber`: 
+  - `description`: 
+  - `quantityOrdered`: 
+  - `quantityReceived`: 
+  - `unitOfMeasure`: 
+  - `unitOfMeasureId`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `lotNumber`: 
+  - `serialNumbers`: 
+  - `certificationRequired`: 
+  - `inspectionRequired`: 
+  - `status`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_inspections`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `inspectorId`: 
+  - `inspectionType`: 
+  - `inspectionDate`: 
+  - `result`: 
+  - `conformingQuantity`: 
+  - `nonConformingQuantity`: 
+  - `notes`: 
+  - `correctionRequired`: 
+  - `correctionNotes`: 
+  - `certificatesReceived`: 
+  - `attachments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `vendor_kit_history`
+
+**Properties**
+  - `id`: 
+  - `vendorKitId`: 
+  - `userId`: 
+  - `action`: 
+  - `fromStatus`: 
+  - `toStatus`: 
+  - `notes`: 
+  - `timestamp`: 
+  - `metadata`: 
+
+### `vendor_performance_metrics`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `metricType`: 
+  - `metricPeriod`: 
+  - `periodType`: 
+  - `value`: 
+  - `target`: 
+  - `unit`: 
+  - `notes`: 
+  - `calculatedAt`: 

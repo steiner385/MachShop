@@ -195,6 +195,27 @@ model User {
   shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
 
+  // Build Record Relationships
+  buildRecordsCreated       BuildRecord[]                   @relation("BuildRecordCreatedBy")
+  buildRecordsAssigned      BuildRecord[]                   @relation("BuildRecordAssignedTo")
+  buildRecordsQualityApproved BuildRecord[]                 @relation("BuildRecordQualityApprover")
+  buildRecordsEngineeringApproved BuildRecord[]             @relation("BuildRecordEngineeringApprover")
+  operationOperator         BuildRecordOperation[]          @relation("OperationOperator")
+  operationInspector        BuildRecordOperation[]          @relation("OperationInspector")
+  operationEngineeringApprover BuildRecordOperation[]       @relation("OperationEngineeringApprover")
+  deviationsDetected        BuildDeviation[]                @relation("DeviationDetectedBy")
+  deviationsEngineeringApproved BuildDeviation[]            @relation("DeviationEngineeringApprover")
+  deviationsQualityApproved BuildDeviation[]               @relation("DeviationQualityApprover")
+  deviationsClosed          BuildDeviation[]                @relation("DeviationClosedBy")
+  photosCaptured            BuildRecordPhoto[]              @relation("PhotoCapturedBy")
+  photosApproved            BuildRecordPhoto[]              @relation("PhotoApprovedBy")
+  photosRejected            BuildRecordPhoto[]              @relation("PhotoRejectedBy")
+  documentsUploaded         BuildRecordDocument[]           @relation("DocumentUploadedBy")
+  documentsApproved         BuildRecordDocument[]           @relation("DocumentApprovedBy")
+  statusChanges             BuildRecordStatusHistory[]      @relation("StatusChangedBy")
+  buildRecordSignatures     BuildRecordSignature[]          @relation("BuildRecordSigner")
+  buildRecordInvalidatedSignatures BuildRecordSignature[]    @relation("BuildRecordSignatureInvalidator")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -1223,6 +1244,7 @@ model WorkOrder {
   workPerformance              WorkPerformance[]
   torqueEvents                 TorqueEvent[]
   kits                         Kit[]
+  buildRecord                  BuildRecord?
 
   @@index([persistentUuid])
   @@map("work_orders")
@@ -1409,6 +1431,7 @@ model WorkCenter {
   scheduleEntries      ScheduleEntry[]
   area                 Area?                           @relation(fields: [areaId], references: [id])
   workUnits            WorkUnit[]
+  buildRecordOperations BuildRecordOperation[]
 
   @@index([areaId])
   @@map("work_centers")
@@ -1450,6 +1473,7 @@ model WorkOrderOperation {
   RoutingStep        RoutingStep?             @relation(fields: [routingStepId], references: [id])
   workOrder          WorkOrder                @relation(fields: [workOrderId], references: [id])
   workPerformance    WorkPerformance[]
+  buildRecordOperations BuildRecordOperation[]
 
   @@map("work_order_operations")
 }
@@ -1840,6 +1864,7 @@ model NCR {
   inspection       QualityInspection? @relation(fields: [inspectionId], references: [id])
   site             Site?              @relation(fields: [siteId], references: [id])
   workOrder        WorkOrder?         @relation(fields: [workOrderId], references: [id])
+  buildDeviations  BuildDeviation[]
 
   @@map("ncrs")
 }
@@ -2068,6 +2093,9 @@ model SerializedPart {
   llpLifeHistory        LLPLifeHistory[]
   llpAlerts             LLPAlert[]
   llpCertifications     LLPCertification[]
+
+  // Build Record Relationships
+  buildRecords          BuildRecord[]
 
   @@index([persistentUuid])
   @@map("serialized_parts")
@@ -5231,6 +5259,374 @@ model PermissionChangeLog {
   @@map("permission_change_logs")
 }
 
+// ============================================================================
+// BUILD RECORD & ELECTRONIC BUILD BOOK MODELS
+// Comprehensive electronic build book system for engine assembly
+// AS9100 and FAA Part 43 compliance requirement
+// ============================================================================
+
+model BuildRecord {
+  id                        String                @id @default(cuid())
+  buildRecordNumber         String                @unique // Auto-generated unique identifier
+  workOrderId               String                @unique // One build record per work order
+  serializedPartId          String?               // Optional link to serialized part
+  engineModel               String                // Engine model (e.g., "GE9X-105B1A")
+  serialNumber              String                // Engine serial number
+  customerName              String?               // Customer information
+  contractNumber            String?               // Customer contract reference
+  buildStartDate            DateTime              // When build started
+  buildEndDate              DateTime?             // When build completed
+  targetCompletionDate      DateTime?             // Target completion date
+  actualCompletionDate      DateTime?             // Actual completion date
+  status                    BuildRecordStatus     // ACTIVE, COMPLETE, ON_HOLD, CANCELLED
+  finalDisposition          FinalDisposition?     // ACCEPTED, REJECTED, REWORK_REQUIRED
+  isCompliant               Boolean               @default(true) // AS9100 compliance status
+  hasDeviations             Boolean               @default(false) // Flag for deviations
+  buildBookGenerated        Boolean               @default(false) // PDF build book generated
+  buildBookGeneratedAt      DateTime?             // When PDF was generated
+  buildBookPath             String?               // Path to generated PDF
+  buildBookVersion          Int                   @default(1) // Build book version number
+  qualityApprovalRequired   Boolean               @default(true) // Requires quality sign-off
+  qualityApproved           Boolean               @default(false) // Quality approved
+  qualityApprovedAt         DateTime?             // Quality approval timestamp
+  qualityApprovedById       String?               // Quality approver
+  engineeringApprovalRequired Boolean             @default(false) // Requires engineering approval
+  engineeringApproved       Boolean               @default(false) // Engineering approved
+  engineeringApprovedAt     DateTime?             // Engineering approval timestamp
+  engineeringApprovedById   String?               // Engineering approver
+  customerApprovalRequired  Boolean               @default(false) // Customer approval required
+  customerApproved          Boolean               @default(false) // Customer approved
+  customerApprovedAt        DateTime?             // Customer approval timestamp
+  customerApprovedBy        String?               // Customer approver name
+  createdById               String                // Creator user ID
+  assignedToId              String?               // Assigned build engineer
+  notes                     String?               // General notes
+  complianceNotes           String?               // Compliance-specific notes
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  // Relationships
+  workOrder                 WorkOrder             @relation(fields: [workOrderId], references: [id])
+  serializedPart            SerializedPart?       @relation(fields: [serializedPartId], references: [id])
+  createdBy                 User                  @relation("BuildRecordCreatedBy", fields: [createdById], references: [id])
+  assignedTo                User?                 @relation("BuildRecordAssignedTo", fields: [assignedToId], references: [id])
+  qualityApprovedBy         User?                 @relation("BuildRecordQualityApprover", fields: [qualityApprovedById], references: [id])
+  engineeringApprovedBy     User?                 @relation("BuildRecordEngineeringApprover", fields: [engineeringApprovedById], references: [id])
+
+  // Child relationships
+  operations                BuildRecordOperation[]
+  deviations                BuildDeviation[]
+  photos                    BuildRecordPhoto[]
+  documents                 BuildRecordDocument[]
+  statusHistory             BuildRecordStatusHistory[]
+  signatures                BuildRecordSignature[]
+
+  @@index([workOrderId])
+  @@index([serialNumber])
+  @@index([status])
+  @@index([buildStartDate])
+  @@index([finalDisposition])
+  @@map("build_records")
+}
+
+model BuildRecordOperation {
+  id                        String                      @id @default(cuid())
+  buildRecordId             String
+  workOrderOperationId      String?                     // Link to work order operation
+  operationNumber           String                      // Operation sequence number
+  operationName             String                      // Operation description
+  routingStepId             String?                     // Link to routing step
+  plannedStartDate          DateTime?                   // Planned start from routing
+  plannedEndDate            DateTime?                   // Planned end from routing
+  actualStartDate           DateTime?                   // Actual start timestamp
+  actualEndDate             DateTime?                   // Actual end timestamp
+  plannedDuration           Int?                        // Planned duration in minutes
+  actualDuration            Int?                        // Actual duration in minutes
+  status                    OperationStatus             // NOT_STARTED, IN_PROGRESS, COMPLETE, ON_HOLD, SKIPPED
+  quantityPlanned           Int                         // Planned quantity
+  quantityCompleted         Int                         @default(0) // Actual quantity completed
+  quantityScrap             Int                         @default(0) // Quantity scrapped
+  operatorId                String?                     // Primary operator
+  inspectorId               String?                     // Quality inspector
+  workCenterId              String?                     // Work center used
+  equipmentUsed             String?                     // Equipment/tools used
+  actualPartsUsed           Json?                       // Actual parts used (BOM comparison)
+  actualMaterials           Json?                       // Actual materials consumed
+  qualityCheckRequired      Boolean                     @default(false) // Requires quality check
+  qualityCheckComplete      Boolean                     @default(false) // Quality check done
+  qualityCheckDate          DateTime?                   // Quality check date
+  operatorSignedOff         Boolean                     @default(false) // Operator sign-off
+  operatorSignOffDate       DateTime?                   // Operator sign-off date
+  inspectorSignedOff        Boolean                     @default(false) // Inspector sign-off
+  inspectorSignOffDate      DateTime?                   // Inspector sign-off date
+  hasDeviations             Boolean                     @default(false) // Operation has deviations
+  requiresEngApproval       Boolean                     @default(false) // Requires engineering approval
+  engineeringApproved       Boolean                     @default(false) // Engineering approved
+  engineeringApprovedAt     DateTime?                   // Engineering approval date
+  engineeringApprovedById   String?                     // Engineering approver
+  torqueSpecsApplied        Boolean                     @default(false) // Torque specs applied
+  torqueValues              Json?                       // Actual torque values captured
+  toolsUsed                 Json?                       // Tools and fixtures used
+  calibrationVerified       Boolean                     @default(false) // Tool calibration verified
+  workInstructions          String?                     // Work instruction reference
+  specialInstructions       String?                     // Special instructions
+  operationNotes            String?                     // Operation-specific notes
+  reworkRequired            Boolean                     @default(false) // Rework needed
+  reworkReason              String?                     // Reason for rework
+  reworkCompleted           Boolean                     @default(false) // Rework completed
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+
+  // Relationships
+  buildRecord               BuildRecord                 @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  workOrderOperation        WorkOrderOperation?         @relation(fields: [workOrderOperationId], references: [id])
+  operator                  User?                       @relation("OperationOperator", fields: [operatorId], references: [id])
+  inspector                 User?                       @relation("OperationInspector", fields: [inspectorId], references: [id])
+  engineeringApprovedBy     User?                       @relation("OperationEngineeringApprover", fields: [engineeringApprovedById], references: [id])
+  workCenter                WorkCenter?                 @relation(fields: [workCenterId], references: [id])
+
+  // Child relationships
+  photos                    BuildRecordPhoto[]
+  signatures                BuildRecordSignature[]
+  deviations                BuildDeviation[]
+
+  @@index([buildRecordId])
+  @@index([operationNumber])
+  @@index([status])
+  @@index([actualStartDate])
+  @@index([workOrderOperationId])
+  @@map("build_record_operations")
+}
+
+model BuildDeviation {
+  id                        String                    @id @default(cuid())
+  buildRecordId             String
+  operationId               String?                   // Optional link to specific operation
+  ncrId                     String?                   // Link to NCR if applicable
+  deviationType             DeviationType             // PART_SUBSTITUTION, DIMENSION_DEVIATION, PROCESS_DEVIATION, etc.
+  deviationCategory         DeviationCategory         // MAJOR, MINOR, CRITICAL
+  title                     String                    // Brief description
+  description               String                    // Detailed description
+  detectedBy                String                    // Who detected the deviation
+  detectedAt                DateTime                  // When detected
+  partNumber                String?                   // Affected part number
+  serialNumber              String?                   // Affected serial number
+  operationNumber           String?                   // Affected operation
+  asDesigned                String?                   // As-designed specification
+  asBuilt                   String?                   // As-built actual
+  variance                  String?                   // Variance amount/description
+  severity                  DeviationSeverity         // LOW, MEDIUM, HIGH, CRITICAL
+  status                    DeviationStatus           // OPEN, UNDER_REVIEW, APPROVED, REJECTED, CLOSED
+  disposition               DeviationDisposition?     // USE_AS_IS, REPAIR, REWORK, SCRAP, RETURN_TO_VENDOR
+  dispositionReason         String?                   // Justification for disposition
+  engineeringReview         Boolean                   @default(false) // Engineering reviewed
+  engineeringApproval       Boolean                   @default(false) // Engineering approved
+  engineeringApprovedBy     String?                   // Engineering approver
+  engineeringApprovedAt     DateTime?                 // Engineering approval date
+  engineeringComments       String?                   // Engineering comments
+  qualityReview             Boolean                   @default(false) // Quality reviewed
+  qualityApproval           Boolean                   @default(false) // Quality approved
+  qualityApprovedBy         String?                   // Quality approver
+  qualityApprovedAt         DateTime?                 // Quality approval date
+  qualityComments           String?                   // Quality comments
+  customerNotificationReq   Boolean                   @default(false) // Customer notification required
+  customerNotified          Boolean                   @default(false) // Customer notified
+  customerApprovalReq       Boolean                   @default(false) // Customer approval required
+  customerApproved          Boolean                   @default(false) // Customer approved
+  customerApprovedBy        String?                   // Customer approver
+  customerApprovedAt        DateTime?                 // Customer approval date
+  correctiveAction          String?                   // Corrective action taken
+  preventiveAction          String?                   // Preventive action plan
+  rootCause                 String?                   // Root cause analysis
+  impactAssessment          String?                   // Impact on performance/safety
+  costImpact                Decimal?                  // Cost impact estimate
+  scheduleImpact            Int?                      // Schedule impact in days
+  closedBy                  String?                   // Who closed the deviation
+  closedAt                  DateTime?                 // When closed
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+
+  // Relationships
+  buildRecord               BuildRecord               @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  operation                 BuildRecordOperation?     @relation(fields: [operationId], references: [id])
+  ncr                       NCR?                      @relation(fields: [ncrId], references: [id])
+  detectedByUser            User                      @relation("DeviationDetectedBy", fields: [detectedBy], references: [id])
+  engineeringApprover       User?                     @relation("DeviationEngineeringApprover", fields: [engineeringApprovedBy], references: [id])
+  qualityApprover           User?                     @relation("DeviationQualityApprover", fields: [qualityApprovedBy], references: [id])
+  closedByUser              User?                     @relation("DeviationClosedBy", fields: [closedBy], references: [id])
+
+  // Child relationships
+  photos                    BuildRecordPhoto[]
+  documents                 BuildRecordDocument[]
+
+  @@index([buildRecordId])
+  @@index([deviationType])
+  @@index([status])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("build_deviations")
+}
+
+model BuildRecordPhoto {
+  id                        String                  @id @default(cuid())
+  buildRecordId             String
+  operationId               String?                 // Optional link to operation
+  deviationId               String?                 // Optional link to deviation
+  photoType                 PhotoType               // BEFORE, AFTER, INSPECTION, DEVIATION, ASSEMBLY, etc.
+  title                     String                  // Photo title/description
+  description               String?                 // Detailed description
+  filePath                  String                  // File storage path
+  fileName                  String                  // Original file name
+  fileSize                  Int                     // File size in bytes
+  mimeType                  String                  // File MIME type
+  imageWidth                Int?                    // Image width in pixels
+  imageHeight               Int?                    // Image height in pixels
+  capturedBy                String                  // User who captured photo
+  capturedAt                DateTime                // When photo was captured
+  locationCaptured          String?                 // Where photo was taken
+  operationNumber           String?                 // Associated operation number
+  partNumber                String?                 // Associated part number
+  serialNumber              String?                 // Associated serial number
+  equipmentUsed             String?                 // Camera/equipment used
+  annotations               Json?                   // Photo annotations/markup
+  metadata                  Json?                   // Additional metadata
+  qualityControlPhoto       Boolean                 @default(false) // QC photo flag
+  mandatoryPhoto            Boolean                 @default(false) // Required photo flag
+  approved                  Boolean                 @default(false) // Photo approved
+  approvedBy                String?                 // Who approved photo
+  approvedAt                DateTime?               // When approved
+  rejected                  Boolean                 @default(false) // Photo rejected
+  rejectedBy                String?                 // Who rejected photo
+  rejectedAt                DateTime?               // When rejected
+  rejectionReason           String?                 // Reason for rejection
+  isArchived                Boolean                 @default(false) // Archived flag
+  tags                      String[]                // Photo tags for search
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+
+  // Relationships
+  buildRecord               BuildRecord             @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  operation                 BuildRecordOperation?   @relation(fields: [operationId], references: [id])
+  deviation                 BuildDeviation?         @relation(fields: [deviationId], references: [id])
+  capturedByUser            User                    @relation("PhotoCapturedBy", fields: [capturedBy], references: [id])
+  approvedByUser            User?                   @relation("PhotoApprovedBy", fields: [approvedBy], references: [id])
+  rejectedByUser            User?                   @relation("PhotoRejectedBy", fields: [rejectedBy], references: [id])
+
+  @@index([buildRecordId])
+  @@index([operationId])
+  @@index([photoType])
+  @@index([capturedAt])
+  @@index([partNumber])
+  @@map("build_record_photos")
+}
+
+model BuildRecordDocument {
+  id                        String                  @id @default(cuid())
+  buildRecordId             String
+  deviationId               String?                 // Optional link to deviation
+  documentType              BuildRecordDocumentType // MATERIAL_CERT, TEST_REPORT, CALIBRATION_CERT, etc.
+  title                     String                  // Document title
+  description               String?                 // Document description
+  filePath                  String                  // File storage path
+  fileName                  String                  // Original file name
+  fileSize                  Int                     // File size in bytes
+  mimeType                  String                  // File MIME type
+  documentNumber            String?                 // Document control number
+  version                   String?                 // Document version
+  issueDate                 DateTime?               // Document issue date
+  expirationDate            DateTime?               // Document expiration
+  supplier                  String?                 // Supplier/vendor name
+  partNumber                String?                 // Associated part number
+  lotNumber                 String?                 // Associated lot number
+  serialNumber              String?                 // Associated serial number
+  certificationNumber       String?                 // Certification number
+  isOriginal                Boolean                 @default(true) // Original vs copy
+  requiresApproval          Boolean                 @default(false) // Requires approval
+  approved                  Boolean                 @default(false) // Document approved
+  approvedBy                String?                 // Who approved
+  approvedAt                DateTime?               // When approved
+  compliance                Json?                   // Compliance information
+  uploadedBy                String                  // Who uploaded document
+  uploadedAt                DateTime                // When uploaded
+  tags                      String[]                // Document tags
+  metadata                  Json?                   // Additional metadata
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+
+  // Relationships
+  buildRecord               BuildRecord             @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  deviation                 BuildDeviation?         @relation(fields: [deviationId], references: [id])
+  uploadedByUser            User                    @relation("DocumentUploadedBy", fields: [uploadedBy], references: [id])
+  approvedByUser            User?                   @relation("DocumentApprovedBy", fields: [approvedBy], references: [id])
+
+  @@index([buildRecordId])
+  @@index([documentType])
+  @@index([partNumber])
+  @@index([certificationNumber])
+  @@map("build_record_documents")
+}
+
+model BuildRecordStatusHistory {
+  id                        String                  @id @default(cuid())
+  buildRecordId             String
+  previousStatus            BuildRecordStatus?      // Previous status
+  newStatus                 BuildRecordStatus       // New status
+  changedBy                 String                  // User who changed status
+  changedAt                 DateTime                @default(now()) // When changed
+  reason                    String?                 // Reason for change
+  notes                     String?                 // Additional notes
+  automaticChange           Boolean                 @default(false) // System vs manual change
+  ipAddress                 String?                 // IP address of change
+  userAgent                 String?                 // User agent string
+
+  // Relationships
+  buildRecord               BuildRecord             @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  changedByUser             User                    @relation("StatusChangedBy", fields: [changedBy], references: [id])
+
+  @@index([buildRecordId])
+  @@index([changedAt])
+  @@map("build_record_status_history")
+}
+
+model BuildRecordSignature {
+  id                        String                  @id @default(cuid())
+  buildRecordId             String
+  operationId               String?                 // Optional link to operation
+  signatureType             BuildSignatureType      // OPERATOR, INSPECTOR, ENGINEER, QUALITY, CUSTOMER
+  signatureLevel            SignatureLevel          // OPERATION, BUILD_RECORD, FINAL_APPROVAL
+  userId                    String                  // Who signed
+  signatureRole             String                  // Role at time of signing
+  signatureReason           String                  // Reason for signature
+  signatureData             Json                    // Electronic signature data
+  timestamp                 DateTime                @default(now()) // When signed
+  ipAddress                 String                  // IP address
+  userAgent                 String                  // User agent
+  biometricType             BiometricType?          // Biometric authentication
+  biometricScore            Float?                  // Biometric match score
+  signatureHash             String                  // Signature hash for integrity
+  isValid                   Boolean                 @default(true) // Signature validity
+  invalidatedAt             DateTime?               // When invalidated
+  invalidatedBy             String?                 // Who invalidated
+  invalidationReason        String?                 // Reason for invalidation
+  operationNumber           String?                 // Associated operation
+  partNumber                String?                 // Associated part
+  serialNumber              String?                 // Associated serial
+  complianceLevel           String?                 // Compliance requirement level
+
+  // Relationships
+  buildRecord               BuildRecord             @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  operation                 BuildRecordOperation?   @relation(fields: [operationId], references: [id])
+  user                      User                    @relation("BuildRecordSigner", fields: [userId], references: [id])
+  invalidatedByUser         User?                   @relation("BuildRecordSignatureInvalidator", fields: [invalidatedBy], references: [id])
+
+  @@index([buildRecordId])
+  @@index([operationId])
+  @@index([signatureType])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("build_record_signatures")
+}
+
 enum QualificationType {
   CERTIFICATION
   LICENSE
@@ -7698,4 +8094,151 @@ enum VendorMetricPeriod {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+// ============================================================================
+// BUILD RECORD & ELECTRONIC BUILD BOOK ENUMS
+// ============================================================================
+
+enum BuildRecordStatus {
+  DRAFT               // Build record created but not started
+  ACTIVE              // Build in progress
+  ON_HOLD             // Build temporarily stopped
+  COMPLETE            // Build completed, pending final approval
+  APPROVED            // Build approved and finalized
+  CANCELLED           // Build cancelled
+  REWORK_REQUIRED     // Build requires rework
+}
+
+enum FinalDisposition {
+  ACCEPTED            // Engine accepted for delivery
+  REJECTED            // Engine rejected, cannot be delivered
+  REWORK_REQUIRED     // Engine requires rework before acceptance
+  CONDITIONAL_ACCEPT  // Accepted with conditions/limitations
+  CUSTOMER_HOLD       // Customer-requested hold
+}
+
+enum OperationStatus {
+  NOT_STARTED         // Operation not yet started
+  IN_PROGRESS         // Operation currently being performed
+  COMPLETE            // Operation completed successfully
+  ON_HOLD             // Operation temporarily stopped
+  SKIPPED             // Operation skipped with approval
+  FAILED              // Operation failed, requires attention
+  REWORK              // Operation requires rework
+}
+
+enum DeviationType {
+  PART_SUBSTITUTION   // Different part used than specified
+  DIMENSION_DEVIATION // Dimensional measurements out of spec
+  PROCESS_DEVIATION   // Process performed differently than specified
+  MATERIAL_DEVIATION  // Different material used
+  TOOL_DEVIATION      // Different tool/fixture used
+  SEQUENCE_DEVIATION  // Operations performed in different sequence
+  SPECIFICATION_DEVIATION // Spec requirements not met
+  DOCUMENTATION_DEVIATION // Missing or incorrect documentation
+  QUALITY_DEVIATION   // Quality standards not met
+  TIME_DEVIATION      // Significant time variance from plan
+  ENVIRONMENTAL_DEVIATION // Environmental conditions outside spec
+  SAFETY_DEVIATION    // Safety procedures not followed
+  OTHER               // Other type of deviation
+}
+
+enum DeviationCategory {
+  CRITICAL            // Critical deviation affecting safety/performance
+  MAJOR               // Major deviation affecting functionality
+  MINOR               // Minor deviation with minimal impact
+  COSMETIC            // Cosmetic deviation with no functional impact
+}
+
+enum DeviationSeverity {
+  LOW                 // Low impact, minimal concern
+  MEDIUM              // Medium impact, requires attention
+  HIGH                // High impact, requires immediate action
+  CRITICAL            // Critical impact, stop work until resolved
+}
+
+enum DeviationStatus {
+  OPEN                // Deviation identified, awaiting review
+  UNDER_REVIEW        // Deviation being reviewed by engineering
+  APPROVED            // Deviation approved for use-as-is
+  REJECTED            // Deviation rejected, corrective action required
+  CLOSED              // Deviation resolved and closed
+  ESCALATED           // Deviation escalated to higher authority
+}
+
+enum DeviationDisposition {
+  USE_AS_IS           // Use the deviated item as-is
+  REPAIR              // Repair the deviated item
+  REWORK              // Rework the deviated item
+  SCRAP               // Scrap the deviated item
+  RETURN_TO_VENDOR    // Return item to vendor
+  CONDITIONAL_ACCEPT  // Accept with conditions
+  WAIVER              // Grant waiver for deviation
+  ENGINEERING_REVIEW  // Requires engineering evaluation
+}
+
+enum PhotoType {
+  BEFORE              // Before operation photo
+  AFTER               // After operation photo
+  INSPECTION          // Quality inspection photo
+  DEVIATION           // Deviation documentation photo
+  ASSEMBLY            // Assembly progress photo
+  DAMAGE              // Damage documentation photo
+  REPAIR              // Repair documentation photo
+  CALIBRATION         // Calibration verification photo
+  SETUP               // Setup/configuration photo
+  TOOLING             // Tooling/fixture photo
+  MATERIAL_CERT       // Material certification photo
+  SERIAL_NUMBER       // Serial number documentation photo
+  TORQUE_VERIFICATION // Torque verification photo
+  DIMENSIONAL         // Dimensional inspection photo
+  FUNCTIONAL_TEST     // Functional test photo
+  FINAL_ASSEMBLY      // Final assembly photo
+  PACKAGING           // Packaging photo
+  GENERAL             // General documentation photo
+}
+
+enum BuildRecordDocumentType {
+  MATERIAL_CERT       // Material certification
+  TEST_REPORT         // Test report
+  CALIBRATION_CERT    // Calibration certificate
+  INSPECTION_REPORT   // Inspection report
+  NCR_DOCUMENT        // Non-conformance report
+  ENGINEERING_DRAWING // Engineering drawing
+  WORK_INSTRUCTION    // Work instruction
+  PROCESS_SPEC        // Process specification
+  QUALITY_PLAN        // Quality plan
+  VENDOR_CERT         // Vendor certification
+  HEAT_TREAT_CERT     // Heat treatment certificate
+  CHEMICAL_ANALYSIS   // Chemical analysis report
+  DIMENSIONAL_REPORT  // Dimensional inspection report
+  FUNCTIONAL_TEST     // Functional test report
+  TORQUE_CHART        // Torque verification chart
+  PHOTO_PACKAGE       // Photo documentation package
+  BUILD_RECORD        // Build record document
+  SHIPPING_DOCUMENT   // Shipping documentation
+  CUSTOMER_SPEC       // Customer specification
+  REGULATORY_CERT     // Regulatory certification
+  OTHER               // Other document type
+}
+
+enum BuildSignatureType {
+  OPERATOR            // Operator signature
+  INSPECTOR           // Quality inspector signature
+  ENGINEER            // Engineering signature
+  QUALITY             // Quality manager signature
+  SUPERVISOR          // Supervisor signature
+  CUSTOMER            // Customer signature
+  REGULATORY          // Regulatory authority signature
+  FINAL_APPROVAL      // Final build approval signature
+}
+
+enum SignatureLevel {
+  OPERATION           // Operation-level signature
+  BUILD_RECORD        // Build record level signature
+  FINAL_APPROVAL      // Final approval signature
+  DEVIATION_APPROVAL  // Deviation approval signature
+  QUALITY_RELEASE     // Quality release signature
+  CUSTOMER_ACCEPTANCE // Customer acceptance signature
 }
