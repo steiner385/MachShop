@@ -106,6 +106,9 @@ import kitRoutes from './routes/api/kits';
 import stagingRoutes from './routes/api/staging';
 import vendorKitRoutes from './routes/vendorKits';
 
+// ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
+import partInterchangeabilityRoutes from './routes/partInterchangeability';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -307,6 +310,9 @@ apiRouter.use('/llp', authMiddleware, llpRoutes);
 apiRouter.use('/kits', authMiddleware, kitRoutes);
 apiRouter.use('/staging', authMiddleware, stagingRoutes);
 apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
+
+// ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
+apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
