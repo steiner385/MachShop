@@ -1,6 +1,6 @@
 /**
  * Materials Management Page
- * Phase 2: Material Movement Tracking
+ * Complete material inventory management interface with RBAC integration
  */
 
 import React from 'react';
