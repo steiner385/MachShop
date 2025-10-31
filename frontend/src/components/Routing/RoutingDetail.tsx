@@ -57,6 +57,8 @@ import { ActiveUsersIndicator } from './ActiveUsersIndicator';
 import { RoutingChangedAlert } from './RoutingChangedAlert';
 import { SaveAsTemplateModal } from './SaveAsTemplateModal';
 import { useRoutingChangeDetection } from '@/hooks/useRoutingChangeDetection';
+import UUIDDisplay from '../Common/UUIDDisplay';
+import { isValidUUID } from '../../utils/uuidUtils';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -438,6 +440,24 @@ export const RoutingDetail: React.FC = () => {
                 {LIFECYCLE_STATE_LABELS[currentRouting.lifecycleState]}
               </Tag>
             </Title>
+
+            {/* UUID Display */}
+            {currentRouting.persistentUuid && isValidUUID(currentRouting.persistentUuid) && (
+              <div style={{ marginBottom: '12px' }}>
+                <UUIDDisplay
+                  uuid={currentRouting.persistentUuid}
+                  entityType="Routing"
+                  variant="inline"
+                  showStandardFormats={true}
+                  options={{
+                    showCopy: true,
+                    showTooltip: true,
+                    truncate: true
+                  }}
+                />
+              </div>
+            )}
+
             <Space size="middle">
               <Text type="secondary">
                 Part: <strong>{currentRouting.part?.partNumber}</strong> - {currentRouting.part?.partName}

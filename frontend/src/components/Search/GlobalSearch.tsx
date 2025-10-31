@@ -37,6 +37,7 @@ import {
   groupResultsByType,
   formatSearchExecutionTime,
 } from '@/types/search';
+import { isLikelyUUIDQuery, isValidUUID, reconstructUUID } from '../../utils/uuidUtils';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -50,7 +51,7 @@ interface GlobalSearchProps {
 }
 
 export const GlobalSearch: React.FC<GlobalSearchProps> = ({
-  placeholder = 'Search work orders, materials, equipment...',
+  placeholder = 'Search work orders, materials, equipment... or paste a UUID',
   defaultScope = SearchScope.ALL,
   onResultClick,
   compact = false,
@@ -81,8 +82,25 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
       setLoading(true);
       setShowResults(true);
 
+      const trimmedQuery = searchQuery.trim();
+      let queryToSearch = trimmedQuery;
+
+      // Check if query is a UUID or UUID-like
+      if (isLikelyUUIDQuery(trimmedQuery)) {
+        // Try to reconstruct full UUID if it's partial
+        const reconstructed = reconstructUUID(trimmedQuery);
+        if (reconstructed) {
+          queryToSearch = reconstructed;
+        }
+
+        // If it's a valid UUID, prioritize exact UUID search
+        if (isValidUUID(queryToSearch)) {
+          console.log('Detected UUID query, performing exact lookup:', queryToSearch);
+        }
+      }
+
       const response = await searchAPI.search({
-        query: searchQuery.trim(),
+        query: queryToSearch,
         scope,
         limit: 10,
       });
