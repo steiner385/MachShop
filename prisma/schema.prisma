@@ -73,6 +73,9 @@ model Site {
   // Temporal permissions audit trail
   temporalAccessLogs        TemporalAccessLog[]
 
+  // Department Management Relations (Issue #209)
+  departments               Department[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -96,6 +99,47 @@ model Area {
   @@map("areas")
 }
 
+model Department {
+  id                String      @id @default(cuid())
+  departmentCode    String      @unique   // e.g., "ENG", "QA", "PROD", "MFG"
+  departmentName    String                 // e.g., "Engineering", "Quality Assurance"
+  description       String?
+
+  // Organizational hierarchy
+  parentDepartmentId String?
+  parentDepartment  Department? @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments  Department[] @relation("DepartmentHierarchy")
+
+  // Optional associations
+  siteId            String?
+  site              Site?       @relation(fields: [siteId], references: [id])
+
+  // Cost center tracking
+  costCenter        String?
+  budgetCode        String?
+
+  // Department manager
+  managerId         String?
+  manager           User?       @relation("DepartmentManager", fields: [managerId], references: [id])
+
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations back to entities
+  users                       User[]                  @relation("UserDepartment")
+  personnelInfoExchanges      PersonnelInfoExchange[] @relation("PersonnelDepartment")
+  ecoRequestorDepts           EngineeringChangeOrder[] @relation("ECORequestorDept")
+  ecoTaskAssignments          ECOTask[]               @relation("ECOTaskDept")
+  icdChangeRequestDepts       ICDChangeRequest[]      @relation("ICDChangeRequestDept")
+
+  @@index([departmentCode])
+  @@index([siteId])
+  @@index([parentDepartmentId])
+  @@index([managerId])
+  @@map("departments")
+}
+
 model User {
   id                        String                          @id @default(cuid())
   username                  String                          @unique
@@ -117,6 +161,7 @@ model User {
   emergencyContact          String?
   emergencyPhone            String?
   department                String?
+  departmentId              String?
   supervisorId              String?
   costCenter                String?
   laborRate                 Float?
@@ -177,6 +222,8 @@ model User {
   personnelClass            PersonnelClass?                 @relation(fields: [personnelClassId], references: [id])
   supervisor                User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
   subordinates              User[]                          @relation("SupervisorRelation")
+  departmentRelation        Department?                     @relation("UserDepartment", fields: [departmentId], references: [id])
+  managedDepartment         Department?                     @relation("DepartmentManager")
   workInstructionExecutions WorkInstructionExecution[]      @relation("WIExecutionOperator")
   signedStepExecutions      WorkInstructionStepExecution[]  @relation("WIStepExecutionSignedBy")
   approvedWorkInstructions  WorkInstruction[]               @relation("WorkInstructionApprovedBy")
@@ -264,6 +311,7 @@ model User {
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
+  @@index([departmentId])
   @@map("users")
 }
 
@@ -2849,6 +2897,7 @@ model PersonnelInfoExchange {
   email               String?
   employeeNumber      String?
   department          String?
+  departmentId        String?
   jobTitle            String?
   skills              Json?
   certifications      Json?
@@ -2866,12 +2915,14 @@ model PersonnelInfoExchange {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
+  departmentRelation  Department?          @relation("PersonnelDepartment", fields: [departmentId], references: [id])
 
   @@index([configId])
   @@index([actionType])
   @@index([status])
   @@index([externalPersonnelId])
   @@index([personnelId])
+  @@index([departmentId])
   @@map("personnel_info_exchanges")
 }
 
@@ -4188,6 +4239,7 @@ model EngineeringChangeOrder {
   requestorId            String
   requestorName          String
   requestorDept          String?
+  requestorDeptId        String?
   requestDate            DateTime              @default(now())
   sponsorId              String?
   sponsorName            String?
@@ -4228,12 +4280,14 @@ model EngineeringChangeOrder {
   // ICD System relationships
   icdHistory             ICDHistory[]          @relation("ICDHistoryECO")
   icdChangeRequests      ICDChangeRequest[]    @relation("ICDChangeRequestECO")
+  requestorDepartment    Department?           @relation("ECORequestorDept", fields: [requestorDeptId], references: [id])
 
   @@index([ecoNumber])
   @@index([status])
   @@index([priority])
   @@index([requestDate])
   @@index([requestorId])
+  @@index([requestorDeptId])
   @@map("engineering_change_orders")
 }
 
@@ -4273,6 +4327,7 @@ model ECOTask {
   assignedToId      String?
   assignedToName    String?
   assignedToDept    String?
+  assignedToDeptId  String?
   status            ECOTaskStatus          @default(PENDING)
   dueDate           DateTime?
   startedAt         DateTime?
@@ -4284,11 +4339,13 @@ model ECOTask {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   eco               EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  assignedDepartment Department?           @relation("ECOTaskDept", fields: [assignedToDeptId], references: [id])
 
   @@index([ecoId])
   @@index([assignedToId])
   @@index([status])
   @@index([dueDate])
+  @@index([assignedToDeptId])
   @@map("eco_tasks")
 }
 
@@ -10065,6 +10122,7 @@ model ICDChangeRequest {
   requestorId           String?                     // Who requested
   requestorName         String                      // Requestor name
   requestorDept         String?                     // Department
+  requestorDeptId       String?                     // Department ID
   requestorEmail        String?                     // Contact email
   requestDate           DateTime                    @default(now())
 
@@ -10091,6 +10149,7 @@ model ICDChangeRequest {
   // Relationships
   icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
   relatedEco            EngineeringChangeOrder?     @relation("ICDChangeRequestECO", fields: [relatedEcoId], references: [id])
+  requestorDepartment   Department?                 @relation("ICDChangeRequestDept", fields: [requestorDeptId], references: [id])
 
   @@index([icdId])
   @@index([requestNumber])
@@ -10098,6 +10157,7 @@ model ICDChangeRequest {
   @@index([priority])
   @@index([requestDate])
   @@index([relatedEcoId])
+  @@index([requestorDeptId])
   @@map("icd_change_requests")
 }
 
