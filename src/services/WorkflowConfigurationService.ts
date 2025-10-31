@@ -1,0 +1,384 @@
+/**
+ * Workflow Configuration Service (Issue #40)
+ * Manages site, routing, and work order-level workflow configurations
+ * Supports three modes: STRICT, FLEXIBLE, HYBRID
+ */
+
+import { Prisma, WorkflowMode } from "@prisma/client";
+import { prisma } from "../db/client";
+import { Logger } from "../utils/logger";
+
+const logger = Logger.getInstance();
+
+export interface EffectiveWorkflowConfiguration {
+  mode: WorkflowMode;
+  enforceOperationSequence: boolean;
+  enforceStatusGating: boolean;
+  allowExternalVouching: boolean;
+  enforceQualityChecks: boolean;
+  requireStartTransition: boolean;
+  requireJustification: boolean;
+  requireApproval: boolean;
+  source: {
+    site: any;
+    routing?: any;
+    workOrder?: any;
+  };
+  isStrictMode: boolean;
+  isFlexibleMode: boolean;
+  isHybridMode: boolean;
+}
+
+export interface OperationExecutionPermission {
+  allowed: boolean;
+  reason?: string;
+  requiresApproval?: boolean;
+}
+
+export interface DataCollectionPermission {
+  allowed: boolean;
+  reason?: string;
+  requiresApproval?: boolean;
+}
+
+export class WorkflowConfigurationService {
+  /**
+   * Get effective configuration for a work order with inheritance
+   * Precedence: WorkOrder > Routing > Site
+   */
+  async getEffectiveConfiguration(
+    workOrderId: string
+  ): Promise<EffectiveWorkflowConfiguration> {
+    try {
+      // Get work order with routing
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        include: {
+          routing: true,
+          workflowConfiguration: true,
+        },
+      });
+
+      if (!workOrder) {
+        throw new Error(`Work order ${workOrderId} not found`);
+      }
+
+      // Get site configuration
+      const siteConfig = await prisma.siteWorkflowConfiguration.findUnique({
+        where: { siteId: workOrder.siteId! },
+      });
+
+      if (!siteConfig) {
+        throw new Error(
+          `No site configuration found for site ${workOrder.siteId}`
+        );
+      }
+
+      // Get routing configuration if exists
+      let routingConfig = null;
+      if (workOrder.routingId) {
+        routingConfig = await prisma.routingWorkflowConfiguration.findUnique({
+          where: { routingId: workOrder.routingId },
+        });
+      }
+
+      // Get work order configuration if exists
+      const woConfig = workOrder.workflowConfiguration;
+
+      // Resolve with precedence: WorkOrder > Routing > Site
+      const mode = woConfig?.mode ?? routingConfig?.mode ?? siteConfig.mode;
+
+      return {
+        mode,
+        enforceOperationSequence:
+          woConfig?.enforceOperationSequence ??
+          routingConfig?.enforceOperationSequence ??
+          siteConfig.enforceOperationSequence,
+        enforceStatusGating:
+          woConfig?.enforceStatusGating ??
+          routingConfig?.enforceStatusGating ??
+          siteConfig.enforceStatusGating,
+        allowExternalVouching:
+          woConfig?.allowExternalVouching ??
+          routingConfig?.allowExternalVouching ??
+          siteConfig.allowExternalVouching,
+        enforceQualityChecks:
+          woConfig?.enforceQualityChecks ??
+          routingConfig?.enforceQualityChecks ??
+          siteConfig.enforceQualityChecks,
+        requireStartTransition:
+          woConfig?.requireStartTransition ??
+          routingConfig?.requireStartTransition ??
+          siteConfig.requireStartTransition,
+        requireJustification: siteConfig.requireJustification,
+        requireApproval: siteConfig.requireApproval,
+        source: { site: siteConfig, routing: routingConfig, workOrder: woConfig },
+        isStrictMode: mode === "STRICT",
+        isFlexibleMode: mode === "FLEXIBLE",
+        isHybridMode: mode === "HYBRID",
+      };
+    } catch (error) {
+      logger.error(
+        `Failed to get effective configuration for ${workOrderId}`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get site configuration
+   */
+  async getSiteConfiguration(siteId: string) {
+    try {
+      const config = await prisma.siteWorkflowConfiguration.findUnique({
+        where: { siteId },
+      });
+
+      if (!config) {
+        // Create default STRICT configuration if not exists
+        return await this.createDefaultSiteConfiguration(siteId);
+      }
+
+      return config;
+    } catch (error) {
+      logger.error(`Failed to get site configuration for ${siteId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create default site configuration (STRICT mode)
+   */
+  async createDefaultSiteConfiguration(siteId: string) {
+    try {
+      return await prisma.siteWorkflowConfiguration.create({
+        data: {
+          siteId,
+          mode: "STRICT",
+          enforceOperationSequence: true,
+          enforceStatusGating: true,
+          allowExternalVouching: false,
+          enforceQualityChecks: true,
+          requireStartTransition: true,
+          requireJustification: false,
+          requireApproval: false,
+          createdBy: "SYSTEM",
+        },
+      });
+    } catch (error) {
+      logger.error(`Failed to create default site configuration`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update site configuration
+   */
+  async updateSiteConfiguration(
+    siteId: string,
+    config: Partial<{
+      mode: WorkflowMode;
+      enforceOperationSequence: boolean;
+      enforceStatusGating: boolean;
+      allowExternalVouching: boolean;
+      enforceQualityChecks: boolean;
+      requireStartTransition: boolean;
+      requireJustification: boolean;
+      requireApproval: boolean;
+    }>,
+    updatedBy: string,
+    reason?: string
+  ) {
+    try {
+      const existing = await this.getSiteConfiguration(siteId);
+
+      // Track changes for history
+      const changes: any[] = [];
+      for (const [key, value] of Object.entries(config)) {
+        if ((existing as any)[key] !== value) {
+          changes.push({
+            field: key,
+            oldValue: JSON.stringify((existing as any)[key]),
+            newValue: JSON.stringify(value),
+            changeReason: reason,
+            changedBy: updatedBy,
+          });
+        }
+      }
+
+      // Update configuration
+      const updated = await prisma.siteWorkflowConfiguration.update({
+        where: { siteId },
+        data: {
+          ...config,
+          updatedBy,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Record history
+      if (changes.length > 0) {
+        await prisma.workflowConfigurationHistory.createMany({
+          data: changes.map((change) => ({
+            ...change,
+            configType: "SITE",
+            configId: existing.id,
+            siteConfigId: existing.id,
+          })),
+        });
+
+        logger.info(`Updated site configuration for ${siteId}`, {
+          changes: changes.length,
+          updatedBy,
+        });
+      }
+
+      return updated;
+    } catch (error) {
+      logger.error(`Failed to update site configuration`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if operation can be executed given configuration
+   */
+  async canExecuteOperation(
+    workOrderId: string,
+    operationId: string
+  ): Promise<OperationExecutionPermission> {
+    try {
+      const config = await this.getEffectiveConfiguration(workOrderId);
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+      });
+
+      if (!workOrder) {
+        return {
+          allowed: false,
+          reason: "Work order not found",
+        };
+      }
+
+      // STRICT mode: Require IN_PROGRESS status
+      if (config.isStrictMode && workOrder.status !== "IN_PROGRESS") {
+        return {
+          allowed: false,
+          reason:
+            "STRICT mode requires work order to be IN_PROGRESS to execute operations",
+        };
+      }
+
+      // FLEXIBLE mode: Allow any status
+      if (config.isFlexibleMode) {
+        return { allowed: true };
+      }
+
+      // HYBRID mode: Allow if status is valid or external vouching is approved
+      if (config.isHybridMode) {
+        if (
+          workOrder.status === "IN_PROGRESS" ||
+          workOrder.status === "COMPLETED"
+        ) {
+          return { allowed: true };
+        }
+        return {
+          allowed: config.allowExternalVouching,
+          reason: "HYBRID mode requires IN_PROGRESS status or external vouching",
+          requiresApproval: config.allowExternalVouching,
+        };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      logger.error(`Failed to check operation execution permission`, error);
+      return {
+        allowed: false,
+        reason: "Error checking permissions",
+      };
+    }
+  }
+
+  /**
+   * Check if data can be collected
+   */
+  async canCollectData(workOrderId: string): Promise<DataCollectionPermission> {
+    try {
+      const config = await this.getEffectiveConfiguration(workOrderId);
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+      });
+
+      if (!workOrder) {
+        return {
+          allowed: false,
+          reason: "Work order not found",
+        };
+      }
+
+      // STRICT mode: Require status gating
+      if (config.isStrictMode && config.enforceStatusGating) {
+        if (workOrder.status !== "IN_PROGRESS") {
+          return {
+            allowed: false,
+            reason:
+              "STRICT mode with status gating requires IN_PROGRESS status",
+          };
+        }
+      }
+
+      // FLEXIBLE mode: Allow data collection without status constraints
+      if (config.isFlexibleMode) {
+        return { allowed: true };
+      }
+
+      // HYBRID mode: Allow if external vouching is enabled
+      if (config.isHybridMode) {
+        return { allowed: config.allowExternalVouching };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      logger.error(`Failed to check data collection permission`, error);
+      return {
+        allowed: false,
+        reason: "Error checking permissions",
+      };
+    }
+  }
+
+  /**
+   * Validate configuration
+   */
+  async validateConfiguration(
+    config: Partial<any>
+  ): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = [];
+
+    // Validate mode
+    if (config.mode && !["STRICT", "FLEXIBLE", "HYBRID"].includes(config.mode)) {
+      errors.push("Invalid workflow mode");
+    }
+
+    // Validate STRICT mode: cannot have relaxed enforcement
+    if (config.mode === "STRICT") {
+      if (config.enforceOperationSequence === false) {
+        errors.push("STRICT mode requires enforceOperationSequence");
+      }
+      if (config.enforceStatusGating === false) {
+        errors.push("STRICT mode requires enforceStatusGating");
+      }
+      if (config.allowExternalVouching === true) {
+        errors.push("STRICT mode does not allow external vouching");
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+}
+
+export default new WorkflowConfigurationService();
