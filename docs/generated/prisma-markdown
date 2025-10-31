@@ -5167,6 +5167,192 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"api_keys" {
+  String id PK
+  String keyPrefix UK
+  String keyHash
+  String name
+  String description "nullable"
+  ApiTier tier
+  ApiKeyStatus status
+  String siteId "nullable"
+  String companyId "nullable"
+  String pluginId "nullable"
+  String scopes
+  Int rateLimit
+  Int dailyQuota "nullable"
+  Int monthlyQuota "nullable"
+  DateTime expiresAt "nullable"
+  DateTime lastUsedAt "nullable"
+  String lastUsedEndpoint "nullable"
+  String createdBy
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  String developerName "nullable"
+  String developerEmail "nullable"
+  String developerCompany "nullable"
+  String developerPhone "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_usage_logs" {
+  String id PK
+  String apiKeyId FK
+  String endpoint
+  String httpMethod
+  String apiVersion "nullable"
+  Int statusCode
+  Int responseTime
+  String requestId UK
+  String ipAddress "nullable"
+  String userAgent "nullable"
+  Int rateLimitRemaining "nullable"
+  DateTime rateLimitReset "nullable"
+  String errorCode "nullable"
+  String errorMessage "nullable"
+  Int requestBytes "nullable"
+  Int responseBytes "nullable"
+  DateTime createdAt
+}
+"rate_limit_configs" {
+  String id PK
+  ApiTier tier
+  String resource "nullable"
+  Int requestsPerMinute
+  Int requestsPerHour "nullable"
+  Int requestsPerDay "nullable"
+  Decimal burstMultiplier
+  Int burstDuration
+  Boolean isActive
+  String siteId "nullable"
+  String description "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oauth_clients" {
+  String id PK
+  String clientId UK
+  String clientSecret
+  String name
+  String description "nullable"
+  String grantTypes
+  String redirectUris
+  String allowedScopes
+  ApiTier tier
+  Boolean isActive
+  String companyId "nullable"
+  String createdBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oauth_authorizations" {
+  String id PK
+  String clientId FK
+  String userId
+  String scopes
+  Boolean isRevoked
+  DateTime revokedAt "nullable"
+  DateTime authorizedAt
+  DateTime expiresAt "nullable"
+}
+"oauth_tokens" {
+  String id PK
+  String clientId FK
+  String userId "nullable"
+  TokenType tokenType
+  String tokenHash UK
+  String scopes
+  DateTime expiresAt
+  Boolean isRevoked
+  DateTime revokedAt "nullable"
+  String refreshTokenId "nullable"
+  DateTime createdAt
+  DateTime lastUsedAt "nullable"
+}
+"api_endpoint_tiers" {
+  String id PK
+  String endpoint UK
+  String httpMethod
+  ApiTier tier
+  String description "nullable"
+  Boolean isDeprecated
+  DateTime deprecationDate "nullable"
+  String replacementEndpoint "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"site_workflow_configurations" {
+  String id PK
+  String siteId FK
+  WorkflowMode mode
+  Boolean enforceOperationSequence
+  Boolean enforceStatusGating
+  Boolean allowExternalVouching
+  Boolean enforceQualityChecks
+  Boolean requireStartTransition
+  Boolean requireJustification
+  Boolean requireApproval
+  DateTime effectiveDate
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"routing_workflow_configurations" {
+  String id PK
+  String routingId FK
+  String siteConfigId FK "nullable"
+  WorkflowMode mode "nullable"
+  Boolean enforceOperationSequence "nullable"
+  Boolean enforceStatusGating "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean enforceQualityChecks "nullable"
+  Boolean requireStartTransition "nullable"
+  String overrideReason "nullable"
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"work_order_workflow_configurations" {
+  String id PK
+  String workOrderId FK
+  String routingConfigId FK "nullable"
+  WorkflowMode mode "nullable"
+  Boolean enforceOperationSequence "nullable"
+  Boolean enforceStatusGating "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean enforceQualityChecks "nullable"
+  Boolean requireStartTransition "nullable"
+  String overrideReason
+  String approvedBy
+  DateTime approvedAt
+  DateTime createdAt
+  String createdBy
+}
+"workflow_configuration_history" {
+  String id PK
+  String configType
+  String configId
+  String field
+  String oldValue "nullable"
+  String newValue
+  String changeReason "nullable"
+  String changedBy
+  DateTime changedAt
+  String siteConfigId FK "nullable"
+}
+"operation_workflow_configurations" {
+  String id PK
+  String operationId FK
+  Boolean requireQualityInspection "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean bypassPrerequisites "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -5694,6 +5880,16 @@ erDiagram
 "serial_format_part_assignments" }o--|| "serial_number_format_configs" : formatConfig
 "serial_format_part_family_assignments" }o--|| "serial_number_format_configs" : formatConfig
 "serial_number_usage_tracking" |o--|| "serial_number_format_configs" : formatConfig
+"api_usage_logs" }o--|| "api_keys" : apiKey
+"oauth_authorizations" }o--|| "oauth_clients" : client
+"oauth_tokens" }o--|| "oauth_clients" : client
+"site_workflow_configurations" |o--|| "sites" : site
+"routing_workflow_configurations" |o--|| "routings" : routing
+"routing_workflow_configurations" }o--o| "site_workflow_configurations" : siteConfig
+"work_order_workflow_configurations" |o--|| "work_orders" : workOrder
+"work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
+"workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
+"operation_workflow_configurations" |o--|| "operations" : operation
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 ```
@@ -11541,6 +11737,227 @@ Manages sequential counter state and usage statistics for serial formats
   - `version`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `api_keys`
+
+**Properties**
+  - `id`: 
+  - `keyPrefix`: 
+  - `keyHash`: 
+  - `name`: 
+  - `description`: 
+  - `tier`: 
+  - `status`: 
+  - `siteId`: 
+  - `companyId`: 
+  - `pluginId`: 
+  - `scopes`: 
+  - `rateLimit`: 
+  - `dailyQuota`: 
+  - `monthlyQuota`: 
+  - `expiresAt`: 
+  - `lastUsedAt`: 
+  - `lastUsedEndpoint`: 
+  - `createdBy`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `developerName`: 
+  - `developerEmail`: 
+  - `developerCompany`: 
+  - `developerPhone`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_usage_logs`
+
+**Properties**
+  - `id`: 
+  - `apiKeyId`: 
+  - `endpoint`: 
+  - `httpMethod`: 
+  - `apiVersion`: 
+  - `statusCode`: 
+  - `responseTime`: 
+  - `requestId`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `rateLimitRemaining`: 
+  - `rateLimitReset`: 
+  - `errorCode`: 
+  - `errorMessage`: 
+  - `requestBytes`: 
+  - `responseBytes`: 
+  - `createdAt`: 
+
+### `rate_limit_configs`
+
+**Properties**
+  - `id`: 
+  - `tier`: 
+  - `resource`: 
+  - `requestsPerMinute`: 
+  - `requestsPerHour`: 
+  - `requestsPerDay`: 
+  - `burstMultiplier`: 
+  - `burstDuration`: 
+  - `isActive`: 
+  - `siteId`: 
+  - `description`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oauth_clients`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `clientSecret`: 
+  - `name`: 
+  - `description`: 
+  - `grantTypes`: 
+  - `redirectUris`: 
+  - `allowedScopes`: 
+  - `tier`: 
+  - `isActive`: 
+  - `companyId`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oauth_authorizations`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `userId`: 
+  - `scopes`: 
+  - `isRevoked`: 
+  - `revokedAt`: 
+  - `authorizedAt`: 
+  - `expiresAt`: 
+
+### `oauth_tokens`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `userId`: 
+  - `tokenType`: 
+  - `tokenHash`: 
+  - `scopes`: 
+  - `expiresAt`: 
+  - `isRevoked`: 
+  - `revokedAt`: 
+  - `refreshTokenId`: 
+  - `createdAt`: 
+  - `lastUsedAt`: 
+
+### `api_endpoint_tiers`
+
+**Properties**
+  - `id`: 
+  - `endpoint`: 
+  - `httpMethod`: 
+  - `tier`: 
+  - `description`: 
+  - `isDeprecated`: 
+  - `deprecationDate`: 
+  - `replacementEndpoint`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `site_workflow_configurations`
+Site-Level Workflow Configuration (Issue #40)
+Defines enforcement level per site for flexible workflow execution
+Supports three modes: STRICT (full ISA-95), FLEXIBLE (relaxed prerequisites), HYBRID (external vouching)
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `requireJustification`: 
+  - `requireApproval`: 
+  - `effectiveDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `routing_workflow_configurations`
+Routing-Level Workflow Configuration Overrides (Issue #40)
+Allows routing-specific configuration overrides from site defaults
+
+**Properties**
+  - `id`: 
+  - `routingId`: 
+  - `siteConfigId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `overrideReason`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `work_order_workflow_configurations`
+Work Order-Level Workflow Configuration Overrides (Issue #40)
+Exceptional work order-specific overrides (requires approval)
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `routingConfigId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `overrideReason`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `createdBy`: 
+
+### `workflow_configuration_history`
+Workflow Configuration Change History (Issue #40)
+Audit trail for configuration changes
+
+**Properties**
+  - `id`: 
+  - `configType`: 
+  - `configId`: 
+  - `field`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeReason`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `siteConfigId`: 
+
+### `operation_workflow_configurations`
+Operation-Level Workflow Configuration (Issue #40)
+Granular configuration control per operation type
+
+**Properties**
+  - `id`: 
+  - `operationId`: 
+  - `requireQualityInspection`: 
+  - `allowExternalVouching`: 
+  - `bypassPrerequisites`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
