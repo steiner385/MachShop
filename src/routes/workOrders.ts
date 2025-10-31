@@ -21,9 +21,11 @@ import {
 import { auditLogger } from '../middleware/requestLogger';
 import { logger } from '../utils/logger';
 import prisma from '../lib/database';
+import { KitGenerationService } from '../services/KitGenerationService';
 
 const router = express.Router();
 const workOrderService = new WorkOrderService();
+const kitGenerationService = new KitGenerationService(prisma);
 
 // Validation schemas
 const createWorkOrderSchema = z.object({
@@ -352,6 +354,7 @@ router.post('/:id/release',
   auditLogger('work_order', 'RELEASE'),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const { autoGenerateKits = false, kitOptions = {} } = req.body;
 
     // Find existing work order
     const existingWorkOrder = await workOrderService.getWorkOrderById(id);
@@ -365,13 +368,58 @@ router.post('/:id/release',
       req.user!.id
     );
 
+    let kitGenerationResult = null;
+
+    // Optionally generate kits automatically on work order release
+    if (autoGenerateKits) {
+      try {
+        const {
+          assemblyStage = 'COMPLETE',
+          priority = 'NORMAL'
+        } = kitOptions;
+
+        kitGenerationResult = await kitGenerationService.generateKitsForWorkOrder({
+          workOrderId: id,
+          assemblyStage,
+          priority
+        });
+
+        logger.info('Kits automatically generated on work order release', {
+          userId: req.user?.id,
+          workOrderId: id,
+          workOrderNumber: releasedWorkOrder.workOrderNumber,
+          totalKits: kitGenerationResult.kits.length,
+          totalItems: kitGenerationResult.analysis.totalItems
+        });
+      } catch (error) {
+        logger.warn('Kit generation failed during work order release', {
+          userId: req.user?.id,
+          workOrderId: id,
+          error: error.message
+        });
+        // Don't fail the work order release if kit generation fails
+        // Just log the warning and continue
+      }
+    }
+
     logger.info('Work order released', {
       userId: req.user?.id,
       workOrderId: id,
-      workOrderNumber: releasedWorkOrder.workOrderNumber
+      workOrderNumber: releasedWorkOrder.workOrderNumber,
+      kitsGenerated: kitGenerationResult ? kitGenerationResult.kits.length : 0
     });
 
-    res.status(200).json(releasedWorkOrder);
+    const response = {
+      ...releasedWorkOrder,
+      kitGeneration: kitGenerationResult ? {
+        success: true,
+        totalKits: kitGenerationResult.kits.length,
+        totalItems: kitGenerationResult.analysis.totalItems,
+        kits: kitGenerationResult.kits
+      } : null
+    };
+
+    res.status(200).json(response);
   })
 );
 
@@ -394,6 +442,145 @@ router.get('/:id/operations',
     const operations = await workOrderService.getWorkOrderOperations(id);
 
     res.status(200).json(operations);
+  })
+);
+
+/**
+ * @route POST /api/v1/workorders/:id/generate-kits
+ * @desc Generate kits for a work order
+ * @access Private
+ */
+router.post('/:id/generate-kits',
+  requirePermission('workorders.manage'),
+  requireSiteAccess,
+  auditLogger('kit', 'GENERATE'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const {
+      assemblyStage = 'COMPLETE',
+      priority = 'NORMAL'
+    } = req.body;
+
+    // Validate assembly stage and priority
+    const validAssemblyStages = ['FAN', 'COMPRESSOR', 'COMBUSTOR', 'TURBINE', 'INTEGRATION', 'COMPLETE'];
+    const validPriorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+
+    if (!validAssemblyStages.includes(assemblyStage)) {
+      throw new ValidationError('Invalid assembly stage');
+    }
+
+    if (!validPriorities.includes(priority)) {
+      throw new ValidationError('Invalid priority');
+    }
+
+    // Find existing work order
+    const existingWorkOrder = await workOrderService.getWorkOrderById(id);
+    if (!existingWorkOrder) {
+      throw new NotFoundError('Work order not found');
+    }
+
+    // Check if work order is in a state that allows kit generation
+    const validStatuses = ['CREATED', 'RELEASED', 'IN_PROGRESS'];
+    if (!validStatuses.includes(existingWorkOrder.status)) {
+      throw new BusinessRuleError(`Cannot generate kits for work order in ${existingWorkOrder.status} status`);
+    }
+
+    try {
+      // Generate kits using the kit generation service
+      const kitGenerationResult = await kitGenerationService.generateKitsForWorkOrder({
+        workOrderId: id,
+        assemblyStage,
+        priority
+      });
+
+      logger.info('Kits generated for work order', {
+        userId: req.user?.id,
+        workOrderId: id,
+        workOrderNumber: existingWorkOrder.workOrderNumber,
+        totalKits: kitGenerationResult.kits.length,
+        totalItems: kitGenerationResult.analysis.totalItems
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `Generated ${kitGenerationResult.kits.length} kits for work order ${existingWorkOrder.workOrderNumber}`,
+        data: {
+          kits: kitGenerationResult.kits,
+          analysis: kitGenerationResult.analysis,
+          workOrder: {
+            id: existingWorkOrder.id,
+            workOrderNumber: existingWorkOrder.workOrderNumber,
+            partNumber: existingWorkOrder.partNumber
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Kit generation failed', {
+        userId: req.user?.id,
+        workOrderId: id,
+        error: error.message
+      });
+      throw new BusinessRuleError(`Kit generation failed: ${error.message}`);
+    }
+  })
+);
+
+/**
+ * @route GET /api/v1/workorders/:id/kits
+ * @desc Get kits associated with a work order
+ * @access Private
+ */
+router.get('/:id/kits',
+  requireProductionAccess,
+  requireSiteAccess,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Find existing work order
+    const existingWorkOrder = await workOrderService.getWorkOrderById(id);
+    if (!existingWorkOrder) {
+      throw new NotFoundError('Work order not found');
+    }
+
+    // Get kits for this work order
+    const kits = await prisma.kit.findMany({
+      where: { workOrderId: id },
+      include: {
+        kitItems: {
+          include: {
+            part: true,
+            unitOfMeasureRef: true
+          }
+        },
+        stagingLocation: true,
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    logger.info('Kits retrieved for work order', {
+      userId: req.user?.id,
+      workOrderId: id,
+      workOrderNumber: existingWorkOrder.workOrderNumber,
+      totalKits: kits.length
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workOrder: {
+          id: existingWorkOrder.id,
+          workOrderNumber: existingWorkOrder.workOrderNumber,
+          partNumber: existingWorkOrder.partNumber,
+          status: existingWorkOrder.status
+        },
+        kits
+      }
+    });
   })
 );
 

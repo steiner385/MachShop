@@ -187,6 +187,8 @@ model User {
   kitsCreated               Kit[]                           @relation("KitCreatedBy")
   kitsStaged                Kit[]                           @relation("KitStagedBy")
   kitsIssued                Kit[]                           @relation("KitIssuedBy")
+  vendorKitInspections      VendorKitInspection[]
+  vendorKitHistory          VendorKitHistory[]
   kitsReceived              Kit[]                           @relation("KitIssuedTo")
   kitsReturned              Kit[]                           @relation("KitReturnedBy")
   kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
@@ -387,6 +389,7 @@ model UnitOfMeasure {
   inventories                 Inventory[]                 @relation("InventoryUOM")
   materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
   kitItems                    KitItem[]                   @relation("KitItemUOM")
+  vendorKitItems              VendorKitItem[]             @relation("VendorKitItemUOM")
 
   @@index([code])
   @@index([unitType])
@@ -989,6 +992,7 @@ model Part {
   // Kitting System relationships
   kitItems                   KitItem[]
   shortageAlerts             KitShortageAlert[]
+  vendorKitItems             VendorKitItem[]
 
   @@index([productType])
   @@index([lifecycleState])
@@ -7184,6 +7188,7 @@ model Kit {
   kitItems           KitItem[]
   statusHistory      KitStatusHistory[]
   shortageAlerts     KitShortageAlert[]
+  vendorKits         VendorKit[]
 
   @@index([workOrderId])
   @@index([status])
@@ -7432,4 +7437,265 @@ enum AlertStatus {
   RESOLVED
   CLOSED
   CANCELLED
+}
+
+// Vendor Kitting Support Models (GitHub Issue #229)
+
+model Vendor {
+  id                    String                     @id @default(cuid())
+  code                  String                     @unique
+  name                  String
+  contactEmail          String?
+  contactPhone          String?
+  address               String?
+  qualityRating         Float                      @default(0.0) // 0-100 scale
+  onTimeDeliveryRate    Float                      @default(0.0) // 0-100 percentage
+  certifications        String[]                   // AS9100, NADCAP, etc.
+  approvedParts         String[]                   // Approved part numbers
+  isActive              Boolean                    @default(true)
+  preferredVendor       Boolean                    @default(false)
+  contractStartDate     DateTime?
+  contractEndDate       DateTime?
+  notes                 String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKits            VendorKit[]
+  performanceMetrics    VendorPerformanceMetric[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([preferredVendor])
+  @@map("vendors")
+}
+
+model VendorKit {
+  id                    String                     @id @default(cuid())
+  vendorId              String
+  vendorKitNumber       String                     // Vendor's internal kit ID
+  kitId                 String?                    // Link to internal Kit if applicable
+  requestId             String                     @unique // Unique request identifier
+  partNumbers           String[]                   // Parts included in this vendor kit
+  quantityOrdered       Int
+  quantityReceived      Int                        @default(0)
+  unitCost              Float?
+  totalCost             Float?
+  currency              String                     @default("USD")
+  status                VendorKitStatus            @default(REQUESTED)
+  priority              VendorKitPriority          @default(NORMAL)
+  requiredDate          DateTime
+  promisedDate          DateTime?
+  actualShipDate        DateTime?
+  actualReceiveDate     DateTime?
+  trackingNumber        String?
+  shippingMethod        String?
+  deliveryNotes         String?
+  qualityRequirements   String?                    // Special quality or certification requirements
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendor                Vendor                     @relation(fields: [vendorId], references: [id])
+  kit                   Kit?                       @relation(fields: [kitId], references: [id])
+  items                 VendorKitItem[]
+  inspections           VendorKitInspection[]
+  history               VendorKitHistory[]
+
+  @@index([vendorId])
+  @@index([kitId])
+  @@index([status])
+  @@index([requiredDate])
+  @@index([requestId])
+  @@map("vendor_kits")
+}
+
+model VendorKitItem {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  partId                String
+  partNumber            String                     // Vendor's part number (may differ from internal)
+  description           String?
+  quantityOrdered       Float
+  quantityReceived      Float                      @default(0)
+  unitOfMeasure         String
+  unitOfMeasureId       String?
+  unitCost              Float?
+  totalCost             Float?
+  lotNumber             String?
+  serialNumbers         String[]                   // For serialized parts
+  certificationRequired Boolean                    @default(false)
+  inspectionRequired    Boolean                    @default(false)
+  status                VendorKitItemStatus        @default(ORDERED)
+  notes                 String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  part                  Part                       @relation(fields: [partId], references: [id])
+  unitOfMeasureRef      UnitOfMeasure?             @relation("VendorKitItemUOM", fields: [unitOfMeasureId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([partId])
+  @@index([status])
+  @@index([unitOfMeasureId])
+  @@map("vendor_kit_items")
+}
+
+model VendorKitInspection {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  inspectorId           String?
+  inspectionType        VendorInspectionType
+  inspectionDate        DateTime                   @default(now())
+  result                VendorInspectionResult
+  conformingQuantity    Int                        @default(0)
+  nonConformingQuantity Int                        @default(0)
+  notes                 String?
+  correctionRequired    Boolean                    @default(false)
+  correctionNotes       String?
+  certificatesReceived  Boolean                    @default(false)
+  attachments           String[]                   // File paths or URLs
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  inspector             User?                      @relation(fields: [inspectorId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([inspectorId])
+  @@index([inspectionDate])
+  @@index([result])
+  @@map("vendor_kit_inspections")
+}
+
+model VendorKitHistory {
+  id                    String                     @id @default(cuid())
+  vendorKitId           String
+  userId                String?
+  action                VendorKitAction
+  fromStatus            VendorKitStatus?
+  toStatus              VendorKitStatus?
+  notes                 String?
+  timestamp             DateTime                   @default(now())
+  metadata              Json?                      // Additional context data
+
+  // Relationships
+  vendorKit             VendorKit                  @relation(fields: [vendorKitId], references: [id])
+  user                  User?                      @relation(fields: [userId], references: [id])
+
+  @@index([vendorKitId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("vendor_kit_history")
+}
+
+model VendorPerformanceMetric {
+  id                    String                     @id @default(cuid())
+  vendorId              String
+  metricType            VendorMetricType
+  metricPeriod          DateTime                   // Start of measurement period
+  periodType            VendorMetricPeriod         @default(MONTHLY)
+  value                 Float
+  target                Float?
+  unit                  String?                    // %, days, count, etc.
+  notes                 String?
+  calculatedAt          DateTime                   @default(now())
+
+  // Relationships
+  vendor                Vendor                     @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@index([metricType])
+  @@index([metricPeriod])
+  @@index([periodType])
+  @@map("vendor_performance_metrics")
+}
+
+// Vendor Kitting Enums
+
+enum VendorKitStatus {
+  REQUESTED
+  ACKNOWLEDGED
+  IN_PRODUCTION
+  SHIPPED
+  RECEIVED
+  INSPECTING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum VendorKitPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  EXPEDITE
+}
+
+enum VendorKitItemStatus {
+  ORDERED
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  RECEIVED
+  INSPECTED
+  ACCEPTED
+  REJECTED
+}
+
+enum VendorInspectionType {
+  RECEIVING
+  FIRST_ARTICLE
+  SAMPLING
+  FULL_INSPECTION
+  CERTIFICATION_REVIEW
+  DIMENSIONAL
+  MATERIAL_VERIFICATION
+}
+
+enum VendorInspectionResult {
+  PASS
+  PASS_WITH_DEVIATION
+  FAIL
+  PENDING
+  WAIVED
+}
+
+enum VendorKitAction {
+  CREATED
+  REQUESTED
+  ACKNOWLEDGED
+  PRODUCTION_STARTED
+  SHIPPED
+  RECEIVED
+  INSPECTION_STARTED
+  INSPECTION_COMPLETED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  STATUS_UPDATED
+  NOTES_ADDED
+}
+
+enum VendorMetricType {
+  ON_TIME_DELIVERY
+  QUALITY_RATING
+  COST_PERFORMANCE
+  LEAD_TIME
+  DEFECT_RATE
+  DELIVERY_PERFORMANCE
+  RESPONSIVENESS
+  CERTIFICATION_COMPLIANCE
+}
+
+enum VendorMetricPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }
