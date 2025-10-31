@@ -119,7 +119,7 @@ model Department {
   budgetCode        String?
 
   // Department manager
-  managerId         String?
+  managerId         String?     @unique
   manager           User?       @relation("DepartmentManager", fields: [managerId], references: [id])
 
   isActive          Boolean     @default(true)
