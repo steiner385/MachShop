@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+build/
+.docusaurus/
+dist/
+
+# Generated files
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Cache
+.cache/
+*.lcov
+coverage/
+.nyc_output/
+
+# Misc
+.env
+.env.example.local
+.cache-loader
+
+# OS
+.DS_Store
+Thumbs.db
