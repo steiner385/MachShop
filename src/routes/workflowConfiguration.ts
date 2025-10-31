@@ -175,4 +175,287 @@ router.get(
   }
 );
 
+/**
+ * GET /api/v1/routings/:routingId/workflow-configuration
+ * Get routing override configuration
+ */
+router.get(
+  "/routings/:routingId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { routingId } = req.params;
+      const config = await configService.getRoutingOverride(routingId);
+
+      if (!config) {
+        return res.status(404).json({
+          success: false,
+          error: "No override found for this routing",
+        });
+      }
+
+      res.json({
+        success: true,
+        data: config,
+      });
+    } catch (error) {
+      logger.error("Failed to get routing override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/routings/:routingId/workflow-configuration
+ * Create or update routing override
+ */
+router.post(
+  "/routings/:routingId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { routingId } = req.params;
+      const { mode, enforceOperationSequence, enforceStatusGating, allowExternalVouching, enforceQualityChecks, requireStartTransition, overrideReason, approvedBy } = req.body;
+      const userId = (req as any).user?.id;
+
+      const override = await configService.createRoutingOverride(
+        routingId,
+        {
+          mode,
+          enforceOperationSequence,
+          enforceStatusGating,
+          allowExternalVouching,
+          enforceQualityChecks,
+          requireStartTransition,
+          overrideReason,
+          approvedBy,
+        },
+        userId
+      );
+
+      res.status(201).json({
+        success: true,
+        data: override,
+      });
+    } catch (error) {
+      logger.error("Failed to create routing override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/v1/routings/:routingId/workflow-configuration
+ * Delete routing override
+ */
+router.delete(
+  "/routings/:routingId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { routingId } = req.params;
+      await configService.deleteRoutingOverride(routingId);
+
+      res.json({
+        success: true,
+      });
+    } catch (error) {
+      logger.error("Failed to delete routing override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/work-orders/:workOrderId/workflow-configuration
+ * Get work order override configuration
+ */
+router.get(
+  "/work-orders/:workOrderId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { workOrderId } = req.params;
+      const config = await configService.getWorkOrderOverride(workOrderId);
+
+      if (!config) {
+        return res.status(404).json({
+          success: false,
+          error: "No override found for this work order",
+        });
+      }
+
+      res.json({
+        success: true,
+        data: config,
+      });
+    } catch (error) {
+      logger.error("Failed to get work order override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/work-orders/:workOrderId/workflow-configuration
+ * Create or update work order override (requires approval)
+ */
+router.post(
+  "/work-orders/:workOrderId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { workOrderId } = req.params;
+      const { mode, enforceOperationSequence, enforceStatusGating, allowExternalVouching, enforceQualityChecks, requireStartTransition, overrideReason, approvedBy } = req.body;
+      const userId = (req as any).user?.id;
+
+      // Validate required fields for approval
+      if (!approvedBy) {
+        return res.status(400).json({
+          success: false,
+          error: "Approver (approvedBy) is required for work order overrides",
+        });
+      }
+
+      if (!overrideReason) {
+        return res.status(400).json({
+          success: false,
+          error: "Override reason is required for work order overrides",
+        });
+      }
+
+      const override = await configService.createWorkOrderOverride(
+        workOrderId,
+        {
+          mode,
+          enforceOperationSequence,
+          enforceStatusGating,
+          allowExternalVouching,
+          enforceQualityChecks,
+          requireStartTransition,
+        },
+        overrideReason,
+        approvedBy,
+        userId
+      );
+
+      res.status(201).json({
+        success: true,
+        data: override,
+      });
+    } catch (error) {
+      logger.error("Failed to create work order override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/v1/work-orders/:workOrderId/workflow-configuration
+ * Delete work order override
+ */
+router.delete(
+  "/work-orders/:workOrderId/workflow-configuration",
+  async (req: Request, res: Response) => {
+    try {
+      const { workOrderId } = req.params;
+      await configService.deleteWorkOrderOverride(workOrderId);
+
+      res.json({
+        success: true,
+      });
+    } catch (error) {
+      logger.error("Failed to delete work order override", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/sites/:siteId/workflow-configuration/history
+ * Get configuration change history for site
+ */
+router.get(
+  "/sites/:siteId/workflow-configuration/history",
+  async (req: Request, res: Response) => {
+    try {
+      const { siteId } = req.params;
+      const { limit } = req.query;
+
+      // Get site config ID
+      const siteConfig = await configService.getSiteConfiguration(siteId);
+
+      const history = await configService.getConfigurationHistory(
+        "SITE",
+        siteConfig.id,
+        limit ? parseInt(limit as string) : 50
+      );
+
+      res.json({
+        success: true,
+        data: history,
+      });
+    } catch (error) {
+      logger.error("Failed to get configuration history", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/routings/:routingId/workflow-configuration/history
+ * Get configuration change history for routing
+ */
+router.get(
+  "/routings/:routingId/workflow-configuration/history",
+  async (req: Request, res: Response) => {
+    try {
+      const { routingId } = req.params;
+      const { limit } = req.query;
+
+      const routingConfig = await configService.getRoutingOverride(routingId);
+
+      if (!routingConfig) {
+        return res.status(404).json({
+          success: false,
+          error: "No override found for this routing",
+        });
+      }
+
+      const history = await configService.getConfigurationHistory(
+        "ROUTING",
+        routingConfig.id,
+        limit ? parseInt(limit as string) : 50
+      );
+
+      res.json({
+        success: true,
+        data: history,
+      });
+    } catch (error) {
+      logger.error("Failed to get routing configuration history", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
 export default router;

@@ -379,6 +379,296 @@ export class WorkflowConfigurationService {
       errors,
     };
   }
+
+  /**
+   * Create or update routing override
+   */
+  async createRoutingOverride(
+    routingId: string,
+    config: Partial<{
+      mode?: WorkflowMode;
+      enforceOperationSequence?: boolean;
+      enforceStatusGating?: boolean;
+      allowExternalVouching?: boolean;
+      enforceQualityChecks?: boolean;
+      requireStartTransition?: boolean;
+      overrideReason?: string;
+      approvedBy?: string;
+    }>,
+    createdBy: string
+  ) {
+    try {
+      // Check if routing exists
+      const routing = await prisma.routing.findUnique({
+        where: { id: routingId },
+      });
+
+      if (!routing) {
+        throw new Error(`Routing ${routingId} not found`);
+      }
+
+      // Get site configuration for default values
+      const siteConfig = await this.getSiteConfiguration(routing.siteId!);
+
+      // Check for existing override
+      const existing = await prisma.routingWorkflowConfiguration.findUnique({
+        where: { routingId },
+      });
+
+      let result;
+      if (existing) {
+        // Update existing override
+        const changes: any[] = [];
+        for (const [key, value] of Object.entries(config)) {
+          if (key !== "overrideReason" && key !== "approvedBy") {
+            if ((existing as any)[key] !== value) {
+              changes.push({
+                field: key,
+                oldValue: JSON.stringify((existing as any)[key]),
+                newValue: JSON.stringify(value),
+                changedBy: createdBy,
+              });
+            }
+          }
+        }
+
+        result = await prisma.routingWorkflowConfiguration.update({
+          where: { routingId },
+          data: {
+            ...config,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Record history
+        if (changes.length > 0) {
+          await prisma.workflowConfigurationHistory.createMany({
+            data: changes.map((change) => ({
+              ...change,
+              configType: "ROUTING",
+              configId: existing.id,
+              siteConfigId: siteConfig.id,
+            })),
+          });
+        }
+      } else {
+        // Create new override
+        result = await prisma.routingWorkflowConfiguration.create({
+          data: {
+            routingId,
+            siteConfigId: siteConfig.id,
+            mode: config.mode || null,
+            enforceOperationSequence: config.enforceOperationSequence || null,
+            enforceStatusGating: config.enforceStatusGating || null,
+            allowExternalVouching: config.allowExternalVouching || null,
+            enforceQualityChecks: config.enforceQualityChecks || null,
+            requireStartTransition: config.requireStartTransition || null,
+            overrideReason: config.overrideReason,
+            approvedBy: config.approvedBy,
+            approvedAt: config.approvedBy ? new Date() : null,
+            createdBy,
+          },
+        });
+
+        logger.info(`Created routing override for ${routingId}`, {
+          reason: config.overrideReason,
+          createdBy,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error(`Failed to create routing override`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete routing override
+   */
+  async deleteRoutingOverride(routingId: string) {
+    try {
+      await prisma.routingWorkflowConfiguration.delete({
+        where: { routingId },
+      });
+
+      logger.info(`Deleted routing override for ${routingId}`);
+      return { success: true };
+    } catch (error) {
+      logger.error(`Failed to delete routing override`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create work order override (requires approval)
+   */
+  async createWorkOrderOverride(
+    workOrderId: string,
+    config: Partial<{
+      mode?: WorkflowMode;
+      enforceOperationSequence?: boolean;
+      enforceStatusGating?: boolean;
+      allowExternalVouching?: boolean;
+      enforceQualityChecks?: boolean;
+      requireStartTransition?: boolean;
+    }>,
+    overrideReason: string,
+    approvedBy: string,
+    createdBy: string
+  ) {
+    try {
+      // Validate inputs
+      if (!overrideReason || overrideReason.trim().length === 0) {
+        throw new Error("Override reason is required for work order overrides");
+      }
+
+      if (!approvedBy || approvedBy.trim().length === 0) {
+        throw new Error("Approver is required for work order overrides");
+      }
+
+      // Check if work order exists
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+      });
+
+      if (!workOrder) {
+        throw new Error(`Work order ${workOrderId} not found`);
+      }
+
+      // Validate configuration
+      const validation = await this.validateConfiguration(config);
+      if (!validation.valid) {
+        throw new Error(`Configuration validation failed: ${validation.errors.join(", ")}`);
+      }
+
+      // Check for existing override
+      const existing = await prisma.workOrderWorkflowConfiguration.findUnique({
+        where: { workOrderId },
+      });
+
+      let result;
+      if (existing) {
+        // Update existing override
+        result = await prisma.workOrderWorkflowConfiguration.update({
+          where: { workOrderId },
+          data: {
+            mode: config.mode || null,
+            enforceOperationSequence: config.enforceOperationSequence || null,
+            enforceStatusGating: config.enforceStatusGating || null,
+            allowExternalVouching: config.allowExternalVouching || null,
+            enforceQualityChecks: config.enforceQualityChecks || null,
+            requireStartTransition: config.requireStartTransition || null,
+            overrideReason,
+            approvedBy,
+            approvedAt: new Date(),
+          },
+        });
+
+        logger.info(`Updated work order override for ${workOrderId}`, {
+          reason: overrideReason,
+          approvedBy,
+        });
+      } else {
+        // Create new override
+        result = await prisma.workOrderWorkflowConfiguration.create({
+          data: {
+            workOrderId,
+            mode: config.mode || null,
+            enforceOperationSequence: config.enforceOperationSequence || null,
+            enforceStatusGating: config.enforceStatusGating || null,
+            allowExternalVouching: config.allowExternalVouching || null,
+            enforceQualityChecks: config.enforceQualityChecks || null,
+            requireStartTransition: config.requireStartTransition || null,
+            overrideReason,
+            approvedBy,
+            approvedAt: new Date(),
+            createdBy,
+          },
+        });
+
+        logger.info(`Created work order override for ${workOrderId}`, {
+          reason: overrideReason,
+          approvedBy,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error(`Failed to create work order override`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete work order override
+   */
+  async deleteWorkOrderOverride(workOrderId: string) {
+    try {
+      await prisma.workOrderWorkflowConfiguration.delete({
+        where: { workOrderId },
+      });
+
+      logger.info(`Deleted work order override for ${workOrderId}`);
+      return { success: true };
+    } catch (error) {
+      logger.error(`Failed to delete work order override`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get configuration change history
+   */
+  async getConfigurationHistory(
+    configType: "SITE" | "ROUTING" | "WORK_ORDER",
+    configId: string,
+    limit: number = 50
+  ) {
+    try {
+      const history = await prisma.workflowConfigurationHistory.findMany({
+        where: {
+          configType,
+          configId,
+        },
+        orderBy: { changedAt: "desc" },
+        take: limit,
+      });
+
+      return history;
+    } catch (error) {
+      logger.error(`Failed to get configuration history`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get routing override
+   */
+  async getRoutingOverride(routingId: string) {
+    try {
+      return await prisma.routingWorkflowConfiguration.findUnique({
+        where: { routingId },
+      });
+    } catch (error) {
+      logger.error(`Failed to get routing override`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get work order override
+   */
+  async getWorkOrderOverride(workOrderId: string) {
+    try {
+      return await prisma.workOrderWorkflowConfiguration.findUnique({
+        where: { workOrderId },
+      });
+    } catch (error) {
+      logger.error(`Failed to get work order override`, error);
+      throw error;
+    }
+  }
 }
 
 export default new WorkflowConfigurationService();
