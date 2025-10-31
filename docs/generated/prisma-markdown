@@ -5480,6 +5480,114 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"internal_audits" {
+  String id PK
+  String auditNumber UK
+  String auditTitle
+  QMSAuditType auditType
+  String auditScope
+  DateTime plannedDate
+  DateTime actualDate "nullable"
+  Int duration "nullable"
+  String leadAuditorId FK
+  String auditeeId FK "nullable"
+  String auditeeDepartment "nullable"
+  QMSAuditStatus status
+  String reportUrl "nullable"
+  String summary "nullable"
+  String closedById FK "nullable"
+  DateTime closedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"audit_findings" {
+  String id PK
+  String auditId FK
+  String findingNumber
+  QMSFindingType findingType
+  String clause "nullable"
+  String description
+  String objectiveEvidence "nullable"
+  QMSFindingSeverity severity
+  String correctiveActionId FK "nullable"
+  QMSFindingStatus status
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"corrective_actions" {
+  String id PK
+  String caNumber UK
+  String title
+  String description
+  QMSCASource source
+  String sourceReference "nullable"
+  QMSRCAMethod rootCauseMethod "nullable"
+  String rootCause "nullable"
+  String correctiveAction
+  String preventiveAction "nullable"
+  String assignedToId FK
+  DateTime targetDate
+  DateTime implementedDate "nullable"
+  String verificationMethod "nullable"
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  Boolean isEffective "nullable"
+  QMSCAStatus status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_reviews" {
+  String id PK
+  String reviewNumber UK
+  DateTime reviewDate
+  String chairpersonId FK
+  String inputsDiscussed "nullable"
+  String decisions "nullable"
+  String resourceNeeds "nullable"
+  String minutes "nullable"
+  String minutesUrl "nullable"
+  String status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_review_actions" {
+  String id PK
+  String reviewId FK
+  String actionDescription
+  String assignedToId FK "nullable"
+  DateTime dueDate "nullable"
+  DateTime completedDate "nullable"
+  String status
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"change_requests" {
+  String id PK
+  String changeNumber UK
+  String title
+  String description
+  QMSChangeType changeType
+  String affectedParts
+  String reason
+  String benefits "nullable"
+  String risks "nullable"
+  String impactAssessment "nullable"
+  Boolean customerNotificationRequired
+  String implementationPlan "nullable"
+  DateTime implementationDate "nullable"
+  QMSChangeStatus status
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -6041,6 +6149,22 @@ erDiagram
 "training_records" }o--|| "training_courses" : trainingCourse
 "training_records" }o--|| "users" : trainee
 "training_records" }o--o| "users" : instructor
+"internal_audits" }o--|| "users" : leadAuditor
+"internal_audits" }o--o| "users" : auditee
+"internal_audits" }o--o| "users" : closedBy
+"internal_audits" }o--|| "users" : createdBy
+"audit_findings" }o--|| "internal_audits" : audit
+"audit_findings" }o--o| "corrective_actions" : correctiveAction
+"audit_findings" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : assignedTo
+"corrective_actions" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : createdBy
+"management_reviews" }o--|| "users" : chairperson
+"management_reviews" }o--|| "users" : createdBy
+"management_review_actions" }o--|| "management_reviews" : review
+"management_review_actions" }o--o| "users" : assignedTo
+"change_requests" }o--o| "users" : approvedBy
+"change_requests" }o--|| "users" : createdBy
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -12267,6 +12391,132 @@ Training Record - Record of training completion for individual
   - `notes`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `internal_audits`
+Internal Audit - Audit planning and execution (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditNumber`: 
+  - `auditTitle`: 
+  - `auditType`: 
+  - `auditScope`: 
+  - `plannedDate`: 
+  - `actualDate`: 
+  - `duration`: 
+  - `leadAuditorId`: 
+  - `auditeeId`: 
+  - `auditeeDepartment`: 
+  - `status`: 
+  - `reportUrl`: 
+  - `summary`: 
+  - `closedById`: 
+  - `closedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `audit_findings`
+Audit Finding - Findings from audit (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditId`: 
+  - `findingNumber`: 
+  - `findingType`: 
+  - `clause`: 
+  - `description`: 
+  - `objectiveEvidence`: 
+  - `severity`: 
+  - `correctiveActionId`: 
+  - `status`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `corrective_actions`
+Corrective Action - CAPA management (ISO 9001 Clause 10)
+
+**Properties**
+  - `id`: 
+  - `caNumber`: 
+  - `title`: 
+  - `description`: 
+  - `source`: 
+  - `sourceReference`: 
+  - `rootCauseMethod`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `preventiveAction`: 
+  - `assignedToId`: 
+  - `targetDate`: 
+  - `implementedDate`: 
+  - `verificationMethod`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `isEffective`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_reviews`
+Management Review - Management review sessions (ISO 9001 Clause 9.3)
+
+**Properties**
+  - `id`: 
+  - `reviewNumber`: 
+  - `reviewDate`: 
+  - `chairpersonId`: 
+  - `inputsDiscussed`: 
+  - `decisions`: 
+  - `resourceNeeds`: 
+  - `minutes`: 
+  - `minutesUrl`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_review_actions`
+Management Review Action - Action items from management review
+
+**Properties**
+  - `id`: 
+  - `reviewId`: 
+  - `actionDescription`: 
+  - `assignedToId`: 
+  - `dueDate`: 
+  - `completedDate`: 
+  - `status`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `change_requests`
+Change Request - Change management (AS9100D Clause 8.5.6)
+
+**Properties**
+  - `id`: 
+  - `changeNumber`: 
+  - `title`: 
+  - `description`: 
+  - `changeType`: 
+  - `affectedParts`: 
+  - `reason`: 
+  - `benefits`: 
+  - `risks`: 
+  - `impactAssessment`: 
+  - `customerNotificationRequired`: 
+  - `implementationPlan`: 
+  - `implementationDate`: 
+  - `status`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
