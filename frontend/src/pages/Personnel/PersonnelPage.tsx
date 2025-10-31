@@ -1,6 +1,6 @@
 /**
  * Personnel Management Page
- * Phase 2: Personnel Management Enhancements
+ * Complete personnel management interface with RBAC integration
  */
 
 import React from 'react';
