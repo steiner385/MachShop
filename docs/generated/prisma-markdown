@@ -1102,6 +1102,44 @@ erDiagram
   String notes "nullable"
   DateTime createdAt
 }
+"cause_code_categories" {
+  String id PK
+  String code
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  Boolean enabled
+  Int sortOrder
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_codes" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  String categoryId FK
+  Boolean enabled
+  Int level
+  Int sortOrder
+  Int usageCount
+  DateTime lastUsedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_code_history" {
+  String id PK
+  String causeCodeId FK
+  String changeType
+  String oldValue "nullable"
+  String newValue "nullable"
+  String changeReason "nullable"
+  DateTime changedAt
+  String changedBy
+}
 "ncrs" {
   String id PK
   String ncrNumber UK
@@ -1118,7 +1156,7 @@ erDiagram
   String createdById FK
   String assignedToId FK "nullable"
   DateTime dueDate "nullable"
-  String rootCause "nullable"
+  String rootCauseId FK "nullable"
   String correctiveAction "nullable"
   String preventiveAction "nullable"
   DateTime closedAt "nullable"
@@ -5480,11 +5518,16 @@ erDiagram
 "quality_inspections" }o--|| "work_orders" : workOrder
 "quality_measurements" }o--|| "quality_characteristics" : characteristic
 "quality_measurements" }o--|| "quality_inspections" : inspection
+"cause_code_categories" }o--o| "cause_code_categories" : parent
+"cause_codes" }o--o| "cause_codes" : parent
+"cause_codes" }o--|| "cause_code_categories" : category
+"cause_code_history" }o--|| "cause_codes" : causeCode
 "ncrs" }o--o| "users" : assignedTo
 "ncrs" }o--|| "users" : createdBy
 "ncrs" }o--o| "quality_inspections" : inspection
 "ncrs" }o--o| "sites" : site
 "ncrs" }o--o| "work_orders" : workOrder
+"ncrs" }o--o| "cause_codes" : rootCause
 "equipment" }o--o| "areas" : area
 "equipment" }o--o| "equipment" : parentEquipment
 "equipment" }o--o| "sites" : site
@@ -7109,6 +7152,53 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `notes`: 
   - `createdAt`: 
 
+### `cause_code_categories`
+Cause Code Category - Top-level grouping (e.g., Material, Equipment, Process)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `enabled`: 
+  - `sortOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_codes`
+Cause Code - Detailed root cause classification (hierarchical)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `categoryId`: 
+  - `enabled`: 
+  - `level`: 
+  - `sortOrder`: 
+  - `usageCount`: 
+  - `lastUsedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_code_history`
+Cause Code Change History - Audit trail for cause code modifications
+
+**Properties**
+  - `id`: 
+  - `causeCodeId`: 
+  - `changeType`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeReason`: 
+  - `changedAt`: 
+  - `changedBy`: 
+
 ### `ncrs`
 
 **Properties**
@@ -7127,7 +7217,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `createdById`: 
   - `assignedToId`: 
   - `dueDate`: 
-  - `rootCause`: 
+  - `rootCauseId`: 
   - `correctiveAction`: 
   - `preventiveAction`: 
   - `closedAt`: 

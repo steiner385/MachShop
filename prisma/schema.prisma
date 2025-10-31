@@ -2020,6 +2020,100 @@ model QualityMeasurement {
   @@map("quality_measurements")
 }
 
+// ============================================================================
+// HIERARCHICAL CAUSE CODE SYSTEM (Issue #54)
+// ============================================================================
+
+/// Cause Code Category - Top-level grouping (e.g., Material, Equipment, Process)
+model CauseCodeCategory {
+  id          String   @id @default(cuid())
+  code        String              // E.g., "MAT", "EQP", "PRO"
+  name        String              // E.g., "Material", "Equipment", "Process"
+  description String?
+
+  // Hierarchy
+  parentId    String?
+  parent      CauseCodeCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    CauseCodeCategory[] @relation("CategoryHierarchy")
+
+  // Metadata
+  enabled     Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String
+
+  // Relations
+  causeCodes  CauseCode[]
+
+  @@index([parentId])
+  @@index([enabled])
+  @@map("cause_code_categories")
+}
+
+/// Cause Code - Detailed root cause classification (hierarchical)
+model CauseCode {
+  id          String   @id @default(cuid())
+  code        String              // E.g., "MAT-001", "MAT-001-A"
+  name        String              // Display name
+  description String?             // Detailed description
+
+  // Hierarchy - can have parent cause codes (e.g., MAT > MAT-001 > MAT-001-A)
+  parentId    String?
+  parent      CauseCode?         @relation("CauseCodeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    CauseCode[]        @relation("CauseCodeHierarchy")
+
+  // Classification
+  categoryId  String
+  category    CauseCodeCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Properties
+  enabled     Boolean            @default(true)
+  level       Int                // Depth in hierarchy (1 = top, 2 = subcategory, etc.)
+  sortOrder   Int                @default(0)
+
+  // Statistics (cached for performance)
+  usageCount  Int                @default(0)
+  lastUsedAt  DateTime?
+
+  // Metadata
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdBy   String
+
+  // Relations
+  ncrRootCauses         NCR[]              @relation("RootCause")
+  causeCodeHistory      CauseCodeHistory[]
+
+  @@index([categoryId])
+  @@index([parentId])
+  @@index([level])
+  @@index([enabled])
+  @@unique([code])
+  @@map("cause_codes")
+}
+
+/// Cause Code Change History - Audit trail for cause code modifications
+model CauseCodeHistory {
+  id           String   @id @default(cuid())
+  causeCodeId  String
+  causeCode    CauseCode  @relation(fields: [causeCodeId], references: [id], onDelete: Cascade)
+
+  // Change tracking
+  changeType   String   // "CREATED", "UPDATED", "ENABLED", "DISABLED", "HIERARCHY_CHANGED"
+  oldValue     String?  // JSON of previous values
+  newValue     String?  // JSON of new values
+  changeReason String?
+
+  // Metadata
+  changedAt    DateTime @default(now())
+  changedBy    String
+
+  @@index([causeCodeId])
+  @@index([changedAt])
+  @@map("cause_code_history")
+}
+
 model NCR {
   id               String             @id @default(cuid())
   ncrNumber        String             @unique
@@ -2036,7 +2130,7 @@ model NCR {
   createdById      String
   assignedToId     String?
   dueDate          DateTime?
-  rootCause        String?
+  rootCauseId      String?            // Hierarchical cause code (Issue #54)
   correctiveAction String?
   preventiveAction String?
   closedAt         DateTime?
@@ -2047,6 +2141,7 @@ model NCR {
   inspection       QualityInspection? @relation(fields: [inspectionId], references: [id])
   site             Site?              @relation(fields: [siteId], references: [id])
   workOrder        WorkOrder?         @relation(fields: [workOrderId], references: [id])
+  rootCause        CauseCode?         @relation("RootCause", fields: [rootCauseId], references: [id])
   buildDeviations  BuildDeviation[]
 
   @@map("ncrs")
