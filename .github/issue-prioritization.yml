@@ -637,8 +637,74 @@ issues:
     strategic_focus: null
     business_value: 8
     effort_estimate: 10
+    blocks: [296, 297, 298, 299, 300, 301]
+    notes: "COMPLETED - Multi-phase implementation of comprehensive Oracle EBS surrogate system. Phase 1 (Core API) in PR #302, Phase 2 (Workflows & Transactions) in PR #303, Phase 3 (Master Data Sync) in PR #305, Phase 4 (Test Data) in PR #306. Enables full integration testing without live ERP access. Critical for CI/CD pipeline."
+
+  - number: 296
+    title: "Phase 1: Core Oracle EBS API (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 2
+    blocks: [297, 298]
+    notes: "COMPLETED - Foundational work order, inventory, and PO REST APIs - Implemented in PR #302"
+
+  - number: 297
+    title: "Phase 2: Workflows & Transaction Management (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [296]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 2
+    blocks: [298, 299]
+    notes: "COMPLETED - Workflow state machine, atomic transactions with rollback, PO three-way match - Implemented in PR #303"
+
+  - number: 298
+    title: "Phase 3: Master Data & Asset Integration (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [297, 243]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 2
+    blocks: [299, 300]
+    notes: "COMPLETED - Equipment and gauge sync from Maximo/IndySoft surrogates with retry logic - Implemented in PR #305"
+
+  - number: 299
+    title: "Phase 4: Test Data & Error Scenarios (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [298]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 2
+    blocks: [300, 301]
+    notes: "COMPLETED - Comprehensive test data generation (50-500 records), success/error/edge case scenarios - Implemented in PR #306"
+
+  - number: 300
+    title: "Phase 5: Integration Testing & API Documentation (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [299]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 2
+    blocks: [301]
+    notes: "Comprehensive integration tests, API documentation, test execution framework, CI/CD integration"
+
+  - number: 301
+    title: "Phase 6: Performance Testing & Optimization (Issue #240)"
+    category: testing_infrastructure
+    foundation_level: 0
+    dependencies: [300]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 2
     blocks: []
-    notes: "Mock Oracle EBS APIs for orders, inventory, financials. Receives equipment/gauge data from asset management systems. Enables integration testing without live ERP access. Critical for CI/CD pipeline."
+    notes: "Performance benchmarking, stress testing, optimization, load testing scenarios"
 
   - number: 241
     title: "Testing Infrastructure: PLM System Surrogates (Teamcenter PLM)"
