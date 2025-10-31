@@ -1,0 +1,260 @@
+# GitHub Labels Configuration for MachShop UI Assessment
+# Use this file with github-label-sync or similar tools to standardize labels
+
+# Assessment Category Labels
+- name: 'ui-assessment'
+  color: '1d76db'
+  description: 'Issues identified during comprehensive UI assessment'
+
+- name: 'accessibility'
+  color: 'f9d0c4'
+  description: 'Accessibility and WCAG compliance issues'
+
+- name: 'design-consistency'
+  color: 'c5def5'
+  description: 'Design system and visual consistency improvements'
+
+- name: 'incomplete-feature'
+  color: 'fbca04'
+  description: 'Placeholder routes, components, or incomplete features'
+
+- name: 'api-integration'
+  color: 'bfd4f2'
+  description: 'API integration improvements and technical debt'
+
+- name: 'specialized-component'
+  color: 'd4c5f9'
+  description: 'ReactFlow, D3, Monaco, and other specialized components'
+
+# Priority Labels
+- name: 'critical-priority'
+  color: 'b60205'
+  description: 'Critical issues that must be addressed immediately'
+
+- name: 'high-priority'
+  color: 'd93f0b'
+  description: 'High priority issues affecting user experience'
+
+- name: 'medium-priority'
+  color: 'fbca04'
+  description: 'Medium priority improvements and enhancements'
+
+- name: 'low-priority'
+  color: '0e8a16'
+  description: 'Low priority nice-to-have improvements'
+
+# Severity Labels
+- name: 'severity-critical'
+  color: 'b60205'
+  description: 'Blocks users from completing tasks'
+
+- name: 'severity-high'
+  color: 'd93f0b'
+  description: 'Significant impact on user experience'
+
+- name: 'severity-medium'
+  color: 'fbca04'
+  description: 'Moderate impact, workarounds available'
+
+- name: 'severity-low'
+  color: '0e8a16'
+  description: 'Minor impact, enhancement opportunity'
+
+# Component Type Labels
+- name: 'reactflow'
+  color: '61dafb'
+  description: 'ReactFlow visual editor components'
+
+- name: 'd3-visualization'
+  color: 'ff6600'
+  description: 'D3.js data visualizations and charts'
+
+- name: 'monaco-editor'
+  color: '007acc'
+  description: 'Monaco code editor components'
+
+- name: 'lexical-editor'
+  color: 'bb86fc'
+  description: 'Lexical rich text editor components'
+
+- name: 'ant-design'
+  color: '1890ff'
+  description: 'Ant Design component library related'
+
+- name: 'charts-analytics'
+  color: 'ffc107'
+  description: 'Chart components and analytics dashboards'
+
+# Technical Area Labels
+- name: 'keyboard-navigation'
+  color: 'c5def5'
+  description: 'Keyboard accessibility and navigation'
+
+- name: 'screen-reader'
+  color: 'f9d0c4'
+  description: 'Screen reader compatibility and ARIA'
+
+- name: 'color-contrast'
+  color: 'e99695'
+  description: 'Color contrast and visual accessibility'
+
+- name: 'responsive-design'
+  color: '84b6eb'
+  description: 'Mobile and responsive layout issues'
+
+- name: 'performance'
+  color: 'ff9800'
+  description: 'Performance optimization opportunities'
+
+- name: 'memory-leak'
+  color: 'd73a49'
+  description: 'Memory leaks and resource cleanup'
+
+- name: 'error-handling'
+  color: 'f85149'
+  description: 'Error handling and user feedback'
+
+- name: 'navigation'
+  color: '7057ff'
+  description: 'Application navigation and user flows'
+
+- name: 'forms'
+  color: 'bfd4f2'
+  description: 'Form components and validation'
+
+- name: 'data-visualization'
+  color: 'ff6f00'
+  description: 'Charts, graphs, and data presentation'
+
+# Status Labels
+- name: 'needs-design'
+  color: 'e91e63'
+  description: 'Requires design input or mockups'
+
+- name: 'needs-accessibility-review'
+  color: 'f9d0c4'
+  description: 'Requires accessibility expert review'
+
+- name: 'needs-testing'
+  color: '795548'
+  description: 'Requires manual or automated testing'
+
+- name: 'needs-documentation'
+  color: '607d8b'
+  description: 'Requires documentation updates'
+
+- name: 'blocked'
+  color: 'b60205'
+  description: 'Blocked by external dependencies'
+
+- name: 'in-assessment'
+  color: 'fbca04'
+  description: 'Currently being assessed or analyzed'
+
+# Assessment Phase Labels
+- name: 'phase-1-discovery'
+  color: '0052cc'
+  description: 'Issues from Phase 1: Discovery and mapping'
+
+- name: 'phase-2-accessibility'
+  color: '0052cc'
+  description: 'Issues from Phase 2: Accessibility testing'
+
+- name: 'phase-3-navigation'
+  color: '0052cc'
+  description: 'Issues from Phase 3: Navigation analysis'
+
+- name: 'phase-4-placeholders'
+  color: '0052cc'
+  description: 'Issues from Phase 4: Placeholder detection'
+
+- name: 'phase-5-api'
+  color: '0052cc'
+  description: 'Issues from Phase 5: API integration'
+
+- name: 'phase-6-errors'
+  color: '0052cc'
+  description: 'Issues from Phase 6: Error monitoring'
+
+- name: 'phase-7-ux'
+  color: '0052cc'
+  description: 'Issues from Phase 7: UX/UI quality'
+
+- name: 'phase-8-specialized'
+  color: '0052cc'
+  description: 'Issues from Phase 8: Specialized components'
+
+# WCAG Compliance Labels
+- name: 'wcag-2.1-aa'
+  color: 'f9d0c4'
+  description: 'WCAG 2.1 Level AA compliance issue'
+
+- name: 'wcag-perceivable'
+  color: 'ffeaa7'
+  description: 'WCAG Principle 1: Perceivable'
+
+- name: 'wcag-operable'
+  color: 'fab1a0'
+  description: 'WCAG Principle 2: Operable'
+
+- name: 'wcag-understandable'
+  color: 'fd79a8'
+  description: 'WCAG Principle 3: Understandable'
+
+- name: 'wcag-robust'
+  color: 'e17055'
+  description: 'WCAG Principle 4: Robust'
+
+# Effort Estimation Labels
+- name: 'effort-xs'
+  color: '0e8a16'
+  description: 'Extra small effort (< 1 day)'
+
+- name: 'effort-small'
+  color: '28a745'
+  description: 'Small effort (1-2 days)'
+
+- name: 'effort-medium'
+  color: 'ffc107'
+  description: 'Medium effort (3-5 days)'
+
+- name: 'effort-large'
+  color: 'fd7e14'
+  description: 'Large effort (1-2 weeks)'
+
+- name: 'effort-xl'
+  color: 'd73a49'
+  description: 'Extra large effort (> 2 weeks)'
+
+# Special Labels
+- name: 'good-first-issue'
+  color: '7057ff'
+  description: 'Good for newcomers to the codebase'
+
+- name: 'technical-debt'
+  color: '6f42c1'
+  description: 'Technical debt that should be addressed'
+
+- name: 'breaking-change'
+  color: 'd73a49'
+  description: 'May require breaking changes to API or components'
+
+- name: 'enhancement'
+  color: 'a2eeef'
+  description: 'New feature or improvement'
+
+- name: 'bug'
+  color: 'd73a49'
+  description: 'Something is not working correctly'
+
+- name: 'question'
+  color: 'd876e3'
+  description: 'Further information is requested'
+
+- name: 'help-wanted'
+  color: '008672'
+  description: 'Extra attention is needed'
+
+- name: 'duplicate'
+  color: 'cfd3d7'
+  description: 'This issue or pull request already exists'

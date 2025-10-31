@@ -20,6 +20,8 @@ scoring_weights:
 strategic_focus:
   - time_tracking
   - quality_management
+  - ui_accessibility
+  - user_experience
 
 # Issue Definitions
 issues:
@@ -82,7 +84,7 @@ issues:
     business_value: 7
     effort_estimate: 7
     blocks: []
-    notes: "Legacy enterprise SSO support"
+    notes: "COMPLETED - Legacy enterprise SSO support - Issue closed in GitHub"
 
   - number: 203
     title: "Enterprise SSO & Authentication: CyberArk Privileged Access Management Integration"
@@ -93,7 +95,7 @@ issues:
     business_value: 9
     effort_estimate: 5
     blocks: []
-    notes: "Enterprise secrets management and privileged access management - CyberArk integration for secure credential storage and rotation"
+    notes: "COMPLETED - Enterprise secrets management and privileged access management - CyberArk integration for secure credential storage and rotation - Issue closed in GitHub"
 
   - number: 204
     title: "Enterprise SSO & Authentication: Saviynt Identity Governance Integration"
@@ -104,7 +106,7 @@ issues:
     business_value: 9
     effort_estimate: 5
     blocks: []
-    notes: "Enterprise identity governance and administration - Saviynt integration for automated user provisioning and access governance"
+    notes: "COMPLETED - Enterprise identity governance and administration - Saviynt integration for automated user provisioning and access governance - Issue closed in GitHub"
 
   # --- Advanced RBAC Extensions ---
   - number: 127
@@ -184,7 +186,7 @@ issues:
     business_value: 8
     effort_estimate: 9
     blocks: []
-    notes: "Testing 27 infrastructure and integration services for 30-50% coverage milestones - includes document management, auth, and adapters"
+    notes: "COMPLETED - Testing 27 infrastructure and integration services for 30-50% coverage milestones - ALL 27 services discovered to be 100% implemented and tested. Comprehensive verification completed - Implemented in PR #270"
 
   - number: 178
     title: "Epic 4: Frontend Component Testing - Phase 1 (Core)"
@@ -366,7 +368,7 @@ issues:
     business_value: 7
     effort_estimate: 7
     blocks: [172, 173]
-    notes: "Foundation for shop floor issue escalation - configurable at global/site levels, data models, UI for raising alerts"
+    notes: "COMPLETED - Foundation for shop floor issue escalation - configurable at global/site levels, data models, UI for raising alerts - Issue closed in GitHub"
 
   # --- Data Quality & Schema Normalization ---
   - number: 206
@@ -411,7 +413,7 @@ issues:
     business_value: 6
     effort_estimate: 4
     blocks: []
-    notes: "Foundation for organizational structure - affects ~5 fields. Enables org hierarchy, cost center tracking, departmental reporting"
+    notes: "COMPLETED - Foundation for organizational structure - affects ~5 fields. Enables org hierarchy, cost center tracking, departmental reporting - Issue closed in GitHub"
 
   # --- MBE/UUID Compliance ---
   - number: 218
@@ -436,6 +438,128 @@ issues:
     blocks: []
     notes: "COMPLETED - Foundation for quality data exchange - migrate QIF measurement identifiers to UUID per NIST AMS 300-12, enables cross-enterprise characteristic tracking, AS9102 FAI compliance - Implemented in PR #239"
 
+  # --- UI Accessibility & User Experience Infrastructure ---
+  - number: 274
+    title: "Implement Materials Management Page (/materials)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "HIGH priority placeholder route - Materials page accessible via navigation but shows placeholder content. Critical for material inventory management interface, RBAC integration, navigation completeness, responsive design, and accessibility compliance"
+
+  - number: 275
+    title: "Implement Personnel Management Page (/personnel)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "COMPLETED - HIGH priority placeholder route - Personnel page accessible via navigation but shows placeholder content. Essential for personnel management interface, RBAC integration, navigation completeness, responsive design, and accessibility compliance - Implemented in PR #288"
+
+  - number: 276
+    title: "Implement Administration Dashboard (/admin)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "HIGH priority placeholder route - Administration page accessible via navigation but shows placeholder content. Critical for admin functionality, RBAC integration, navigation completeness, responsive design, and accessibility compliance"
+
+  - number: 277
+    title: "Replace Hardcoded localhost URLs with Environment Variables"
+    category: api_integration
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 8
+    effort_estimate: 4
+    blocks: []
+    notes: "HIGH priority API integration issue - Replace hardcoded localhost:3001 URLs with configurable environment variables. Critical for deployment flexibility, development/staging/production environments, and proper configuration management"
+
+  - number: 278
+    title: "Fix Typography Hierarchy Issues"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "HIGH priority design consistency issue - Standardize typography hierarchy across application. Critical for visual consistency, readability, accessibility compliance, and professional appearance"
+
+  - number: 279
+    title: "Implement Keyboard Navigation for ReactFlow Components"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "HIGH priority accessibility issue - 84 ReactFlow components need custom keyboard navigation for WCAG 2.1 Level AA compliance. Critical for accessibility, keyboard navigation, ARIA labels, focus indicators, and keyboard shortcuts"
+
+  - number: 280
+    title: "Add Accessibility Support for D3 Data Visualizations"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "HIGH priority accessibility issue - 156 D3 visualization components need accessibility improvements for WCAG 2.1 Level AA compliance. Critical for screen reader support, keyboard navigation, and data accessibility"
+
+  - number: 281
+    title: "Systematic Keyboard Navigation Enhancement - Interactive Elements"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "HIGH priority accessibility issue - 522 improvement opportunities identified across 1,490 interactive elements. Critical for comprehensive keyboard navigation, focus management, and WCAG 2.1 Level AA compliance"
+
+  - number: 282
+    title: "Implement User Settings Page (/settings)"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: user_experience
+    business_value: 6
+    effort_estimate: 6
+    blocks: []
+    notes: "MEDIUM priority placeholder route - User settings page accessible via navigation but shows placeholder content. Important for user experience, personalization, accessibility preferences, and navigation completeness"
+
+  - number: 283
+    title: "Standardize Color Usage - Replace Hardcoded Colors with Theme Colors"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 5
+    blocks: []
+    notes: "MEDIUM priority design consistency issue - Replace hardcoded colors with theme colors from Ant Design system. Important for design consistency, theme support, accessibility compliance, and maintainability"
+
+  - number: 284
+    title: "Enhance Chart Component Accessibility"
+    category: ui_accessibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: ui_accessibility
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "MEDIUM priority accessibility issue - 161 chart components need accessibility improvements. Important for screen reader support, keyboard navigation, data accessibility, and WCAG 2.1 Level AA compliance"
+
   # --- Configuration Management Infrastructure ---
   - number: 223
     title: "Regulatory Compliance: Part Interchangeability & Substitution Group Framework"
@@ -446,7 +570,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: [225, 226, 236]
-    notes: "Foundation for hybrid configuration management - enables both full propagation and interface abstraction strategies. Two-way/one-way interchangeability, substitution groups, engineering approval workflow. Critical for AS9100 compliance and operational flexibility"
+    notes: "COMPLETED - Foundation for hybrid configuration management - enables both full propagation and interface abstraction strategies. Two-way/one-way interchangeability, substitution groups, engineering approval workflow. Critical for AS9100 compliance and operational flexibility - Issue closed in GitHub"
 
   - number: 224
     title: "SDK & Extensibility: Interface Control Document (ICD) System"
@@ -469,7 +593,7 @@ issues:
     business_value: 10
     effort_estimate: 9
     blocks: [236]
-    notes: "Foundation for engine assembly - auto-generate kits from BOM, staging locations, kit status tracking, vendor kitting support. Critical for managing 25,000+ parts in engine assembly. Cannot do engine assembly without this capability."
+    notes: "COMPLETED - Foundation for engine assembly - auto-generate kits from BOM, staging locations, kit status tracking, vendor kitting support. Critical for managing 25,000+ parts in engine assembly. Cannot do engine assembly without this capability - Implemented in PR #249"
 
   - number: 230
     title: "Quality Management: Digital Torque Management & Sequence Control for Engine Assembly"
@@ -502,7 +626,7 @@ issues:
     business_value: 9
     effort_estimate: 8
     blocks: [233]
-    notes: "AS9100 compliance requirement - BuildRecord model, as-built configuration, deviation tracking, integrated sign-offs, photo/video capture, automated build book generation. FAA Part 43 requirement. Engines cannot be delivered without complete build records."
+    notes: "COMPLETED - AS9100 compliance requirement - BuildRecord model, as-built configuration, deviation tracking, integrated sign-offs, photo/video capture, automated build book generation. FAA Part 43 requirement. Engines cannot be delivered without complete build records - Issue closed in GitHub"
 
   # --- External System Integration Surrogates ---
   - number: 240
@@ -524,7 +648,7 @@ issues:
     strategic_focus: null
     business_value: 8
     effort_estimate: 10
-    blocks: []
+    blocks: [266]
     notes: "Mock Teamcenter PLM APIs for product data, BOMs, CAD integration. Source of truth for characteristics and BOM. Multi-level BOM support (10+ levels). Enables PLM integration testing without live system."
 
   - number: 242
@@ -536,7 +660,7 @@ issues:
     business_value: 8
     effort_estimate: 8
     blocks: []
-    notes: "Mock GE Proficy Historian APIs for time-series process data, real-time data collection, aggregations. Enables SPC and quality analytics testing. Realistic data pattern generation."
+    notes: "COMPLETED - Mock GE Proficy Historian APIs for time-series process data, real-time data collection, aggregations. Enables SPC and quality analytics testing. Realistic data pattern generation - Issue closed in GitHub"
 
   - number: 243
     title: "Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)"
@@ -569,7 +693,7 @@ issues:
     business_value: 8
     effort_estimate: 5
     blocks: []
-    notes: "Mock Saviynt IDM APIs for user provisioning, access governance, authentication, role management. Foundational for SSO and user provisioning workflows. OAuth/SAML simulation."
+    notes: "COMPLETED - Mock Saviynt IDM APIs for user provisioning, access governance, authentication, role management. Foundational for SSO and user provisioning workflows. OAuth/SAML simulation - Implemented in previous session"
 
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
@@ -675,7 +799,7 @@ issues:
     business_value: 7
     effort_estimate: 5
     blocks: []
-    notes: "Reduces assembly delays - Automated shortage identification, notification workflow, alternate part suggestions, expedite/rush orders, partial kit release, supplier coordination. Integrates with kitting system and interchangeability framework."
+    notes: "COMPLETED - Reduces assembly delays - Automated shortage identification, notification workflow, alternate part suggestions, expedite/rush orders, partial kit release, supplier coordination. Integrates with kitting system and interchangeability framework - Issue closed in GitHub"
 
   # --- Quality Management Foundation ---
   - number: 54
@@ -686,7 +810,7 @@ issues:
     strategic_focus: quality_management
     business_value: 8
     effort_estimate: 5
-    blocks: [56, 57, 58]
+    blocks: [56, 57, 58, 266]
     notes: "Foundation for structured root cause analysis"
 
   - number: 55
@@ -697,7 +821,7 @@ issues:
     strategic_focus: quality_management
     business_value: 9
     effort_estimate: 6
-    blocks: [56, 57, 58]
+    blocks: [56, 57, 58, 266]
     notes: "Extends existing NCR system with aerospace-specific dispositions"
 
   - number: 56
@@ -721,6 +845,17 @@ issues:
     effort_estimate: 6
     blocks: [58]
     notes: "Structured problem-solving methodology"
+
+  - number: 266
+    title: "Quality Management: Core Teamcenter Quality MRB Integration Infrastructure"
+    category: quality_management
+    foundation_level: 1
+    dependencies: [54, 55, 241]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 7
+    blocks: [267, 268, 269]
+    notes: "Core infrastructure for integrating with Teamcenter Quality MRB (Material Review Board) processes. Establishes foundational data models, API framework, authentication, and bidirectional sync capabilities between MES non-conformances and Teamcenter MRB workflows."
 
   # --- Inventory & Material Management Foundation ---
   - number: 88
@@ -1181,6 +1316,39 @@ issues:
     effort_estimate: 6
     blocks: []
     notes: "Formalized inspection planning and control plans"
+
+  - number: 267
+    title: "Quality Management: MRB Dashboard & Real-Time Visibility"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Comprehensive MRB dashboard providing real-time visibility into Material Review Board status, pending reviews, disposition tracking, and analytics across all non-conformances integrated with Teamcenter Quality."
+
+  - number: 268
+    title: "Quality Management: Teamcenter MRB Workflow Integration & Automation"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 8
+    effort_estimate: 7
+    blocks: []
+    notes: "Seamless workflow integration where MRB decisions made in Teamcenter Quality automatically update MES NCR status and trigger appropriate follow-up actions, notifications, and workflow transitions."
+
+  - number: 269
+    title: "Quality Management: Cross-System MRB Traceability & Audit Trail"
+    category: quality_management
+    foundation_level: 2
+    dependencies: [266]
+    strategic_focus: quality_management
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Complete audit trail and traceability linking MES non-conformances to Teamcenter MRB reviews, decisions, documentation, and outcomes. Enables comprehensive compliance reporting and cross-system accountability."
 
   # --- MBE Long-Term Archival ---
   - number: 221
@@ -1867,3 +2035,11 @@ categories:
   data_quality:
     name: "Data Quality & Schema Normalization"
     description: "Database schema normalization, lookup table migrations, enum conversions, and data integrity improvements"
+
+  ui_accessibility:
+    name: "UI Accessibility & User Experience"
+    description: "User interface accessibility improvements, WCAG 2.1 Level AA compliance, keyboard navigation, screen reader support, placeholder implementations, and user experience enhancements"
+
+  api_integration:
+    name: "API Integration & Configuration"
+    description: "API integration improvements, environment configuration management, endpoint standardization, and deployment flexibility"

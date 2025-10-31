@@ -1,0 +1,572 @@
+{
+  "summary": {
+    "totalRoutes": 53,
+    "moduleRoutes": 0,
+    "detailRoutes": 0,
+    "formRoutes": 0,
+    "placeholderRoutes": 4,
+    "orphanedRoutes": 4,
+    "navigationDepth": {
+      "average": 0.7924528301886793,
+      "maximum": 2,
+      "minimum": 0
+    },
+    "userFlowCoverage": 30.18867924528302,
+    "generatedAt": "2025-10-31T16:36:47.502Z"
+  },
+  "navigationStructure": {
+    "menus": [],
+    "links": [],
+    "breadcrumbs": [],
+    "issues": []
+  },
+  "userFlowAnalysis": [
+    {
+      "name": "Work Order Creation Flow",
+      "priority": "critical",
+      "userRoles": [
+        "Production Planner",
+        "Manufacturing Engineer"
+      ],
+      "expectedTime": "2-3 minutes",
+      "flowLength": 3,
+      "navigationEfficiency": 70,
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "name": "Quality Inspection Flow",
+      "priority": "critical",
+      "userRoles": [
+        "Quality Inspector"
+      ],
+      "expectedTime": "1-2 minutes",
+      "flowLength": 3,
+      "navigationEfficiency": 70,
+      "issues": [
+        "Illogical navigation: /dashboard → /quality/inspections"
+      ],
+      "recommendations": [
+        "Review navigation flow for logical progression"
+      ]
+    },
+    {
+      "name": "NCR Investigation Flow",
+      "priority": "high",
+      "userRoles": [
+        "Quality Engineer"
+      ],
+      "expectedTime": "5-10 minutes",
+      "flowLength": 4,
+      "navigationEfficiency": 60,
+      "issues": [
+        "Illogical navigation: /dashboard → /quality/ncrs",
+        "Illogical navigation: /quality/ncrs/:id → /traceability/:serialNumber"
+      ],
+      "recommendations": [
+        "Review navigation flow for logical progression"
+      ]
+    },
+    {
+      "name": "Routing Management Flow",
+      "priority": "high",
+      "userRoles": [
+        "Manufacturing Engineer"
+      ],
+      "expectedTime": "10-15 minutes",
+      "flowLength": 3,
+      "navigationEfficiency": 70,
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "name": "Kit Analytics Review Flow",
+      "priority": "medium",
+      "userRoles": [
+        "Production Planner"
+      ],
+      "expectedTime": "3-5 minutes",
+      "flowLength": 4,
+      "navigationEfficiency": 60,
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "name": "Equipment Maintenance Flow",
+      "priority": "medium",
+      "userRoles": [
+        "Maintenance Technician"
+      ],
+      "expectedTime": "2-3 minutes",
+      "flowLength": 3,
+      "navigationEfficiency": 70,
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "name": "Traceability Investigation Flow",
+      "priority": "high",
+      "userRoles": [
+        "Quality Engineer",
+        "Quality Inspector"
+      ],
+      "expectedTime": "3-5 minutes",
+      "flowLength": 3,
+      "navigationEfficiency": 70,
+      "issues": [],
+      "recommendations": []
+    }
+  ],
+  "navigationIssues": [
+    {
+      "type": "ORPHANED_ROUTE",
+      "severity": "MEDIUM",
+      "route": "/materials",
+      "description": "Route appears to be orphaned - no parent and no menu reference",
+      "recommendation": "Add to navigation menu or establish parent relationship"
+    },
+    {
+      "type": "ORPHANED_ROUTE",
+      "severity": "MEDIUM",
+      "route": "/personnel",
+      "description": "Route appears to be orphaned - no parent and no menu reference",
+      "recommendation": "Add to navigation menu or establish parent relationship"
+    },
+    {
+      "type": "ORPHANED_ROUTE",
+      "severity": "MEDIUM",
+      "route": "/admin",
+      "description": "Route appears to be orphaned - no parent and no menu reference",
+      "recommendation": "Add to navigation menu or establish parent relationship"
+    },
+    {
+      "type": "ORPHANED_ROUTE",
+      "severity": "MEDIUM",
+      "route": "/settings",
+      "description": "Route appears to be orphaned - no parent and no menu reference",
+      "recommendation": "Add to navigation menu or establish parent relationship"
+    },
+    {
+      "type": "PLACEHOLDER_ROUTE",
+      "severity": "HIGH",
+      "route": "/materials",
+      "description": "Route is marked as placeholder but may be needed for complete user flows",
+      "recommendation": "Implement route or remove from navigation"
+    },
+    {
+      "type": "PLACEHOLDER_ROUTE",
+      "severity": "HIGH",
+      "route": "/personnel",
+      "description": "Route is marked as placeholder but may be needed for complete user flows",
+      "recommendation": "Implement route or remove from navigation"
+    },
+    {
+      "type": "PLACEHOLDER_ROUTE",
+      "severity": "HIGH",
+      "route": "/admin",
+      "description": "Route is marked as placeholder but may be needed for complete user flows",
+      "recommendation": "Implement route or remove from navigation"
+    },
+    {
+      "type": "PLACEHOLDER_ROUTE",
+      "severity": "HIGH",
+      "route": "/settings",
+      "description": "Route is marked as placeholder but may be needed for complete user flows",
+      "recommendation": "Implement route or remove from navigation"
+    },
+    {
+      "type": "MISSING_BREADCRUMBS",
+      "severity": "LOW",
+      "route": "/kits/:id/analytics",
+      "description": "Deep route should have breadcrumb navigation",
+      "recommendation": "Implement breadcrumb navigation for better user orientation"
+    },
+    {
+      "type": "MISSING_BREADCRUMBS",
+      "severity": "LOW",
+      "route": "/kits/:id/reports",
+      "description": "Deep route should have breadcrumb navigation",
+      "recommendation": "Implement breadcrumb navigation for better user orientation"
+    }
+  ],
+  "accessibilityIssues": [
+    {
+      "type": "KEYBOARD_NAVIGATION",
+      "severity": "HIGH",
+      "description": "Verify all navigation elements support keyboard navigation",
+      "recommendation": "Ensure all links and buttons are keyboard accessible with proper tab order",
+      "testRequired": true
+    },
+    {
+      "type": "ARIA_LABELS",
+      "severity": "MEDIUM",
+      "description": "Navigation should have proper ARIA labels and landmark roles",
+      "recommendation": "Add role=\"navigation\", aria-label, and proper ARIA attributes",
+      "testRequired": true
+    },
+    {
+      "type": "FOCUS_MANAGEMENT",
+      "severity": "HIGH",
+      "description": "Route changes should manage focus appropriately",
+      "recommendation": "Implement focus management for route transitions and modal navigation",
+      "testRequired": true
+    },
+    {
+      "type": "SCREEN_READER",
+      "severity": "HIGH",
+      "description": "Navigation should be properly announced to screen readers",
+      "recommendation": "Test with screen readers and add appropriate announcements",
+      "testRequired": true
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "category": "Navigation Issues",
+      "title": "Address 4 high-severity navigation issues",
+      "description": "High-severity navigation issues can significantly impact user experience",
+      "action": "Review and fix placeholder routes and missing navigation elements"
+    },
+    {
+      "priority": "HIGH",
+      "category": "User Experience",
+      "title": "Optimize 2 inefficient user flows",
+      "description": "Complex navigation flows can frustrate users and reduce productivity",
+      "action": "Simplify navigation paths and reduce number of clicks for common tasks"
+    },
+    {
+      "priority": "HIGH",
+      "category": "Accessibility",
+      "title": "Implement comprehensive navigation accessibility",
+      "description": "Navigation must be accessible to all users including those with disabilities",
+      "action": "Add ARIA labels, keyboard navigation support, and screen reader compatibility"
+    },
+    {
+      "priority": "LOW",
+      "category": "Coverage",
+      "title": "Expand user flow analysis coverage",
+      "description": "Only 30.2% of routes are covered in defined user flows",
+      "action": "Define additional user flows to ensure all application areas are optimized"
+    }
+  ],
+  "routeMetrics": {
+    "/": {
+      "depth": 0,
+      "type": "root",
+      "children": 0,
+      "hasParent": false
+    },
+    "/login": {
+      "depth": 0,
+      "type": "auth",
+      "children": 0,
+      "hasParent": false
+    },
+    "/dashboard": {
+      "depth": 1,
+      "type": "dashboard",
+      "children": 0,
+      "hasParent": true
+    },
+    "/work-orders": {
+      "depth": 0,
+      "type": "module",
+      "children": 2,
+      "hasParent": false
+    },
+    "/work-orders/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/work-orders/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality": {
+      "depth": 0,
+      "type": "module",
+      "children": 3,
+      "hasParent": false
+    },
+    "/quality/inspections": {
+      "depth": 1,
+      "type": "list",
+      "children": 2,
+      "hasParent": true
+    },
+    "/quality/inspections/create": {
+      "depth": 2,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality/inspections/:id": {
+      "depth": 2,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality/ncrs": {
+      "depth": 1,
+      "type": "list",
+      "children": 2,
+      "hasParent": true
+    },
+    "/quality/ncrs/create": {
+      "depth": 2,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality/ncrs/:id": {
+      "depth": 2,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality/fai": {
+      "depth": 1,
+      "type": "list",
+      "children": 2,
+      "hasParent": true
+    },
+    "/quality/fai/create": {
+      "depth": 2,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/quality/fai/:id": {
+      "depth": 2,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/traceability": {
+      "depth": 0,
+      "type": "module",
+      "children": 1,
+      "hasParent": false
+    },
+    "/traceability/:serialNumber": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/routing": {
+      "depth": 0,
+      "type": "module",
+      "children": 2,
+      "hasParent": false
+    },
+    "/routing/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/routing/:id/edit": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/equipment": {
+      "depth": 0,
+      "type": "module",
+      "children": 1,
+      "hasParent": false
+    },
+    "/equipment/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/work-instructions": {
+      "depth": 0,
+      "type": "module",
+      "children": 2,
+      "hasParent": false
+    },
+    "/work-instructions/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/work-instructions/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/kits": {
+      "depth": 0,
+      "type": "module",
+      "children": 4,
+      "hasParent": false
+    },
+    "/kits/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/kits/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/kits/:id/analytics": {
+      "depth": 2,
+      "type": "analytics",
+      "children": 0,
+      "hasParent": true
+    },
+    "/kits/:id/reports": {
+      "depth": 2,
+      "type": "reports",
+      "children": 0,
+      "hasParent": true
+    },
+    "/operations": {
+      "depth": 0,
+      "type": "module",
+      "children": 1,
+      "hasParent": false
+    },
+    "/operations/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/staging": {
+      "depth": 0,
+      "type": "module",
+      "children": 3,
+      "hasParent": false
+    },
+    "/staging/dashboard": {
+      "depth": 1,
+      "type": "dashboard",
+      "children": 0,
+      "hasParent": true
+    },
+    "/staging/kits": {
+      "depth": 1,
+      "type": "list",
+      "children": 0,
+      "hasParent": true
+    },
+    "/staging/materials": {
+      "depth": 1,
+      "type": "list",
+      "children": 0,
+      "hasParent": true
+    },
+    "/scheduling": {
+      "depth": 0,
+      "type": "module",
+      "children": 1,
+      "hasParent": false
+    },
+    "/scheduling/capacity": {
+      "depth": 1,
+      "type": "analytics",
+      "children": 0,
+      "hasParent": true
+    },
+    "/serialization": {
+      "depth": 0,
+      "type": "module",
+      "children": 2,
+      "hasParent": false
+    },
+    "/serialization/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/serialization/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/integrations": {
+      "depth": 0,
+      "type": "module",
+      "children": 3,
+      "hasParent": false
+    },
+    "/integrations/azure": {
+      "depth": 1,
+      "type": "integration",
+      "children": 0,
+      "hasParent": true
+    },
+    "/integrations/mes": {
+      "depth": 1,
+      "type": "integration",
+      "children": 0,
+      "hasParent": true
+    },
+    "/integrations/erp": {
+      "depth": 1,
+      "type": "integration",
+      "children": 0,
+      "hasParent": true
+    },
+    "/signatures": {
+      "depth": 0,
+      "type": "module",
+      "children": 2,
+      "hasParent": false
+    },
+    "/signatures/create": {
+      "depth": 1,
+      "type": "form",
+      "children": 0,
+      "hasParent": true
+    },
+    "/signatures/:id": {
+      "depth": 1,
+      "type": "detail",
+      "children": 0,
+      "hasParent": true
+    },
+    "/materials": {
+      "depth": 0,
+      "type": "placeholder",
+      "children": 0,
+      "hasParent": false
+    },
+    "/personnel": {
+      "depth": 0,
+      "type": "placeholder",
+      "children": 0,
+      "hasParent": false
+    },
+    "/admin": {
+      "depth": 0,
+      "type": "placeholder",
+      "children": 0,
+      "hasParent": false
+    },
+    "/settings": {
+      "depth": 0,
+      "type": "placeholder",
+      "children": 0,
+      "hasParent": false
+    }
+  }
+}

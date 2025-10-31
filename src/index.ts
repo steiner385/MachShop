@@ -119,6 +119,13 @@ import downtimeRoutes from './routes/downtime';
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 import saviyntSurrogateRoutes from './routes/saviynt-surrogate';
+
+// ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
+import maximoSurrogateRoutes from './routes/maximo-surrogate';
+import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
+import erpSurrogateRoutes from './routes/erp-surrogate';
+import errorSimulationRoutes from './routes/error-simulation';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 
 // Import OpenAPI specification - commented out for now
@@ -336,6 +343,14 @@ apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
 apiRouter.use('/testing/saviynt-idm', saviyntSurrogateRoutes);
+
+// ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
+// Note: No auth middleware for testing surrogates to enable CI/CD testing without authentication
+apiRouter.use('/testing/maximo', maximoSurrogateRoutes);
+apiRouter.use('/testing/indysoft', indySoftSurrogateRoutes);
+apiRouter.use('/testing/erp', erpSurrogateRoutes);
+apiRouter.use('/testing/error-simulation', errorSimulationRoutes);
+
 // Serve uploaded files statically
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || './uploads'));
 
