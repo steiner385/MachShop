@@ -1,9 +1,7 @@
-// IMPORTANT: Set environment variables BEFORE any imports
-// This ensures Prisma connects to the test database
-process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://mes_user:mes_password@localhost:5432/mes_test';
-process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long-for-testing';
-process.env.SESSION_SECRET = 'test-session-secret-that-is-at-least-32-characters-long-for-testing';
+// IMPORTANT: Environment variables are now loaded automatically from .env.test
+// when NODE_ENV=test is set in package.json. No need to hardcode them here.
+// Ensure NODE_ENV is set to test to load the correct environment file
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 // Clear any cached Prisma instances to force fresh connection
 declare global {

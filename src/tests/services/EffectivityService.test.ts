@@ -53,9 +53,9 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 // Mock PrismaClient
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   return {
-    PrismaClient: vi.fn(() => mockPrisma),
+    default: mockPrisma,
     EffectivityType: {
       BY_DATE: 'BY_DATE',
       BY_SERIAL_NUMBER: 'BY_SERIAL_NUMBER',

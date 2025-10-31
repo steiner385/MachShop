@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProductionScheduleService } from '../../services/ProductionScheduleService';
-import type { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/database';
 
-// Mock Prisma Client with actual enums preserved
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     productionSchedule: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -41,57 +39,16 @@ vi.mock('@prisma/client', async () => {
     user: {
       findUnique: vi.fn(),
     },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+  },
+}));
 
 describe('ProductionScheduleService', () => {
   let scheduleService: ProductionScheduleService;
   let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = {
-      productionSchedule: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        count: vi.fn(),
-        groupBy: vi.fn(),
-      },
-      scheduleEntry: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        findUnique: vi.fn(),
-        update: vi.fn(),
-        count: vi.fn(),
-      },
-      scheduleConstraint: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        findUnique: vi.fn(),
-        update: vi.fn(),
-        count: vi.fn(),
-      },
-      scheduleStateHistory: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      workOrder: {
-        create: vi.fn(),
-      },
-      user: {
-        findUnique: vi.fn(),
-      },
-    };
-
-    scheduleService = new ProductionScheduleService(mockPrisma as unknown as PrismaClient);
+    mockPrisma = prisma as any;
+    scheduleService = new ProductionScheduleService();
     vi.clearAllMocks();
   });
 

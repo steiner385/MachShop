@@ -8,15 +8,14 @@ import {
   DependencyTimingType,
 } from '@prisma/client';
 
-// Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     operation: {
       create: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
@@ -49,23 +48,29 @@ vi.mock('@prisma/client', async () => {
       create: vi.fn(),
       findMany: vi.fn(),
     },
-  };
+    workInstruction: {
+      findUnique: vi.fn(),
+    },
+    unitOfMeasure: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  },
+}));
 
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/database';
 
 describe('OperationService', () => {
   let operationService: OperationService;
   let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    operationService = new OperationService(mockPrisma);
+    mockPrisma = prisma as any;
+    operationService = new OperationService();
     vi.clearAllMocks();
   });
 

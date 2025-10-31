@@ -14,44 +14,54 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OracleFusionAdapter, OracleFusionConfig } from '../../services/OracleFusionAdapter';
 import { PrismaClient } from '@prisma/client';
 
-// Mock axios
-const mockedAxios = {
-  create: vi.fn(),
-  post: vi.fn(),
-  get: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  interceptors: {
-    request: { use: vi.fn() },
-    response: { use: vi.fn() },
-  },
-};
-
+// Mock axios - avoid hoisting issues by putting everything directly in mock
 vi.mock('axios', () => ({
-  default: mockedAxios,
+  default: {
+    create: vi.fn(() => ({
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      interceptors: {
+        request: { use: vi.fn() },
+        response: { use: vi.fn() },
+      },
+    })),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  },
 }));
 
 // Mock Prisma
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
-    part: {
-      findUnique: vi.fn(),
-      upsert: vi.fn(),
-    },
-    bOMItem: {
-      upsert: vi.fn(),
-    },
-  };
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+const mockPrisma = {
+  part: {
+    upsert: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  bOMItem: {
+    upsert: vi.fn(),
+  },
+  $connect: vi.fn(),
+  $disconnect: vi.fn(),
+};
+
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
+}));
 
 describe('OracleFusionAdapter', () => {
   let adapter: OracleFusionAdapter;
   let config: OracleFusionConfig;
+  let mockedAxios: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     config = {
       oicBaseUrl: 'https://test.oic.oraclecloud.com',
       fusionBaseUrl: 'https://test.fa.oraclecloud.com',
@@ -66,6 +76,9 @@ describe('OracleFusionAdapter', () => {
       retryAttempts: 3,
       retryDelay: 1000,
     };
+
+    // Get reference to mocked axios for test use
+    mockedAxios = (await import('axios')).default;
 
     adapter = new OracleFusionAdapter(config);
 
@@ -211,7 +224,7 @@ describe('OracleFusionAdapter', () => {
       });
 
       const prisma = new PrismaClient();
-      const mockUpsert = vi.mocked(prisma.part.upsert);
+      const mockUpsert = vi.mocked(mockPrisma.part.upsert);
       mockUpsert.mockResolvedValue({} as any);
 
       const result = await adapter.syncItems();
@@ -278,7 +291,7 @@ describe('OracleFusionAdapter', () => {
       });
 
       const prisma = new PrismaClient();
-      const mockUpsert = vi.mocked(prisma.part.upsert);
+      const mockUpsert = vi.mocked(mockPrisma.part.upsert);
       mockUpsert
         .mockResolvedValueOnce({} as any) // First succeeds
         .mockRejectedValueOnce(new Error('Database error')); // Second fails
@@ -348,14 +361,14 @@ describe('OracleFusionAdapter', () => {
       });
 
       const prisma = new PrismaClient();
-      const mockPartFindUnique = vi.mocked(prisma.part.findUnique);
+      const mockPartFindUnique = vi.mocked(mockPrisma.part.findUnique);
       mockPartFindUnique.mockResolvedValue({
         id: 'part-id',
         partNumber: 'ASM-001',
         unitOfMeasure: 'EA',
       } as any);
 
-      const mockBOMUpsert = vi.mocked(prisma.bOMItem.upsert);
+      const mockBOMUpsert = vi.mocked(mockPrisma.bOMItem.upsert);
       mockBOMUpsert.mockResolvedValue({} as any);
 
       const result = await adapter.syncBOMs();
@@ -394,7 +407,7 @@ describe('OracleFusionAdapter', () => {
       });
 
       const prisma = new PrismaClient();
-      vi.mocked(prisma.part.findUnique).mockResolvedValue(null);
+      vi.mocked(mockPrisma.part.findUnique).mockResolvedValue(null);
 
       const result = await adapter.syncBOMs();
 
@@ -416,7 +429,7 @@ describe('OracleFusionAdapter', () => {
 
     it('should confirm production to Fusion ERP', async () => {
       const prisma = new PrismaClient();
-      vi.mocked(prisma.part.findUnique).mockResolvedValue({
+      vi.mocked(mockPrisma.part.findUnique).mockResolvedValue({
         id: 'wo-id',
         workOrderNumber: 'WO-001',
         externalSystemId: 'fusion-wo-123',
@@ -445,7 +458,7 @@ describe('OracleFusionAdapter', () => {
 
     it('should handle production confirmation failure', async () => {
       const prisma = new PrismaClient();
-      vi.mocked(prisma.part.findUnique).mockResolvedValue({
+      vi.mocked(mockPrisma.part.findUnique).mockResolvedValue({
         id: 'wo-id',
         externalSystemId: 'fusion-wo-123',
       } as any);
@@ -498,14 +511,14 @@ describe('OracleFusionAdapter', () => {
       };
 
       const prisma = new PrismaClient();
-      vi.mocked(prisma.part.upsert).mockResolvedValue({} as any);
+      vi.mocked(mockPrisma.part.upsert).mockResolvedValue({} as any);
 
       await adapter.handleWebhookEvent({
         eventType: 'item.created',
         payload,
       });
 
-      expect(prisma.part.upsert).toHaveBeenCalledWith(
+      expect(mockPrisma.part.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { partNumber: 'WEBHOOK-PART' },
         })

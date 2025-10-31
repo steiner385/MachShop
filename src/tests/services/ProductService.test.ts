@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProductService } from '../../services/ProductService';
-import type { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/database';
 
-// Mock Prisma Client with actual enums preserved
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     part: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -53,71 +51,25 @@ vi.mock('@prisma/client', async () => {
       delete: vi.fn(),
       count: vi.fn(),
     },
+    unitOfMeasure: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     $transaction: vi.fn(),
-  };
+  },
+}));
 
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+const mockPrisma = prisma as any;
 
 describe('ProductService', () => {
   let productService: ProductService;
-  let mockPrisma: any;
 
   beforeEach(() => {
-    mockPrisma = {
-      part: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        count: vi.fn(),
-        groupBy: vi.fn(),
-      },
-      productSpecification: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        count: vi.fn(),
-      },
-      productConfiguration: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        count: vi.fn(),
-      },
-      configurationOption: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        deleteMany: vi.fn(),
-        count: vi.fn(),
-      },
-      productLifecycle: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      bOMItem: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        count: vi.fn(),
-      },
-      $transaction: vi.fn(),
-    };
-
-    productService = new ProductService(mockPrisma as unknown as PrismaClient);
+    productService = new ProductService();
     vi.clearAllMocks();
   });
 

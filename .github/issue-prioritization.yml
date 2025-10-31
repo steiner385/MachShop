@@ -71,7 +71,7 @@ issues:
     business_value: 8
     effort_estimate: 6
     blocks: []
-    notes: "Standard SSO protocol support"
+    notes: "COMPLETED - Standard SSO protocol support with PKCE, discovery, and claims mapping - Implemented in PR #251"
 
   - number: 131
     title: "SAML 2.0 Integration"

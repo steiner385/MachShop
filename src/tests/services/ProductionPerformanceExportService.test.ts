@@ -3,7 +3,7 @@ import { PrismaClient, B2MMessageStatus } from '@prisma/client';
 import { ProductionPerformanceExportService } from '../../services/ProductionPerformanceExportService';
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   const mockPrismaClient = {
     workOrder: {
       findUnique: vi.fn(),

@@ -194,6 +194,11 @@ model User {
   kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
   shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
+  // OAuth/OIDC relationships
+  oidcSessions              OidcSession[]
+
+  // Saviynt Identity Governance relationships
+  saviyntUserMapping        SaviyntUserMapping?
 
   // Build Record Relationships
   buildRecordsCreated       BuildRecord[]                   @relation("BuildRecordCreatedBy")
@@ -4800,6 +4805,9 @@ model Role {
   // Role Template relationship
   templateInstance RoleTemplateInstance?
 
+  // Saviynt Identity Governance relationships
+  saviyntRoleMappings  SaviyntRoleMapping[]
+
   @@index([roleCode])
   @@index([isActive])
   @@index([isGlobal])
@@ -8241,4 +8249,273 @@ enum SignatureLevel {
   DEVIATION_APPROVAL  // Deviation approval signature
   QUALITY_RELEASE     // Quality release signature
   CUSTOMER_ACCEPTANCE // Customer acceptance signature
+// Saviynt Identity Governance Integration Models (Issue #204)
+// ============================================================================
+
+model SaviyntUserMapping {
+  id              String    @id @default(cuid())
+  userId          String    @unique // FK to User
+  saviyntUserId   String    @unique
+  saviyntUsername String    @unique
+  provisionedAt   DateTime  @default(now())
+  lastSyncAt      DateTime?
+  syncStatus      SaviyntSyncStatus @default(PENDING)
+  attributes      Json?     // Additional user attributes from Saviynt
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([saviyntUserId])
+  @@index([syncStatus])
+  @@index([lastSyncAt])
+  @@map("saviynt_user_mappings")
+}
+
+model SaviyntRoleMapping {
+  id                String    @id @default(cuid())
+  roleId            String    // FK to Role
+  saviyntRoleId     String
+  saviyntRoleName   String
+  mappingType       SaviyntMappingType @default(AUTOMATIC)
+  conditions        Json?     // Mapping conditions and rules
+  isActive          Boolean   @default(true)
+  lastSyncAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  role              Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, saviyntRoleId])
+  @@index([roleId])
+  @@index([saviyntRoleId])
+  @@index([mappingType])
+  @@map("saviynt_role_mappings")
+}
+
+model SaviyntSyncLog {
+  id               String    @id @default(cuid())
+  syncType         SaviyntSyncType
+  entityType       SaviyntEntityType
+  entityId         String?   // User ID, Role ID, etc.
+  saviyntEntityId  String?   // Corresponding Saviynt entity ID
+  operation        SaviyntOperation
+  status           SaviyntSyncStatus
+  requestPayload   Json?
+  responsePayload  Json?
+  errorMessage     String?
+  errorCode        String?
+  retryCount       Int       @default(0)
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  duration         Int?      // Duration in milliseconds
+  triggeredBy      String    // User ID or system process
+  syncBatchId      String?   // Group related sync operations
+
+  @@index([syncType])
+  @@index([entityType])
+  @@index([status])
+  @@index([startedAt])
+  @@index([syncBatchId])
+  @@map("saviynt_sync_logs")
+}
+
+model SaviyntWebhookEvent {
+  id              String    @id @default(cuid())
+  eventType       String    // Saviynt event type
+  eventSubtype    String?   // Additional event classification
+  entityType      SaviyntEntityType
+  entityId        String    // Saviynt entity ID
+  eventPayload    Json      // Full webhook payload
+  processedAt     DateTime?
+  processingStatus SaviyntSyncStatus @default(PENDING)
+  errorMessage    String?
+  mesEntityId     String?   // Corresponding MES entity ID after processing
+  retryCount      Int       @default(0)
+  receivedAt      DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([entityType])
+  @@index([processingStatus])
+  @@index([receivedAt])
+  @@map("saviynt_webhook_events")
+}
+
+model SaviyntAccessCertification {
+  id                    String    @id @default(cuid())
+  certificationId       String    @unique // Saviynt certification ID
+  campaignName          String
+  certificationName     String
+  entityType            SaviyntEntityType
+  entityId              String    // User ID, Role ID, etc.
+  saviyntEntityId       String    // Corresponding Saviynt entity
+  accessType            String    // Type of access being certified
+  accessDetails         Json      // Detailed access information
+  certifier             String    // Who needs to certify
+  certifierType         String    // Manager, Security, etc.
+  status                SaviyntCertificationStatus @default(PENDING)
+  dueDate               DateTime
+  certifiedAt           DateTime?
+  certifiedBy           String?   // Actual certifier
+  certificationDecision String?   // APPROVE, REVOKE, etc.
+  comments              String?
+  riskScore             Float?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([certificationId])
+  @@index([entityType])
+  @@index([status])
+  @@index([dueDate])
+  @@index([certifier])
+  @@map("saviynt_access_certifications")
+}
+
+model SaviyntConfiguration {
+  id                String    @id @default(cuid())
+  configKey         String    @unique
+  configValue       Json
+  description       String?
+  isEncrypted       Boolean   @default(false)
+  lastModifiedBy    String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([configKey])
+  @@map("saviynt_configurations")
+}
+
+// Saviynt Integration Enums
+
+enum SaviyntSyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PARTIAL
+  SKIPPED
+}
+
+enum SaviyntSyncType {
+  SCHEDULED
+  REAL_TIME
+  MANUAL
+  WEBHOOK
+  BULK_IMPORT
+}
+
+enum SaviyntEntityType {
+  USER
+  ROLE
+  ACCOUNT
+  ENTITLEMENT
+  APPLICATION
+  ORGANIZATION
+}
+
+enum SaviyntOperation {
+  CREATE
+  UPDATE
+  DELETE
+  PROVISION
+  DEPROVISION
+  SYNC
+  VALIDATE
+}
+
+enum SaviyntMappingType {
+  AUTOMATIC
+  MANUAL
+  CONDITIONAL
+  HYBRID
+}
+
+enum SaviyntCertificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+// ============================================================================
+// OAuth 2.0/OpenID Connect (OIDC) Integration (Issue #132)
+// ============================================================================
+
+/// OAuth 2.0/OpenID Connect Configuration
+/// Dedicated OIDC provider configuration separate from generic SSO
+model OidcConfig {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  clientId              String
+  clientSecret          String
+  issuer                String
+  discoveryUrl          String?
+  authorizationEndpoint String?
+  tokenEndpoint         String?
+  userinfoEndpoint      String?
+  jwksUri               String?
+  scopes                String[]    @default(["openid", "profile", "email"])
+  responseType          String      @default("code")
+  responseMode          String      @default("query")
+  usePkce               Boolean     @default(true)
+  claimsMapping         Json?
+  groupClaimsPath       String?
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relations
+  sessions              OidcSession[]
+  authStates            OidcAuthState[]
+
+  @@index([isActive])
+  @@map("oidc_configs")
+}
+
+/// OAuth User Sessions
+/// Track OIDC authentication sessions and tokens
+model OidcSession {
+  id                String     @id @default(cuid())
+  userId            String
+  sub               String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  tokenType         String     @default("Bearer")
+  expiresAt         DateTime?
+  refreshExpiresAt  DateTime?
+  configId          String
+  scopes            String[]
+  createdAt         DateTime   @default(now())
+
+  // Relations
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config            OidcConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("oidc_sessions")
+}
+
+/// Authorization State Tracking
+/// PKCE and CSRF protection for OAuth flows
+model OidcAuthState {
+  id            String     @id @default(cuid())
+  state         String     @unique
+  codeVerifier  String?
+  nonce         String?
+  redirectUri   String?
+  configId      String
+  expiresAt     DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+
+  // Relations
+  config        OidcConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([state])
+  @@index([configId])
+  @@index([expiresAt])
+  @@map("oidc_auth_states")
 }

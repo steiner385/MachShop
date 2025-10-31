@@ -24,9 +24,30 @@ const mockEmailService = {
   sendBatchEmails: vi.fn(),
 };
 
+// Mock @prisma/client enums
+vi.mock('@prisma/client', async () => {
+  const actual = await vi.importActual('@prisma/client');
+  return {
+    ...actual,
+    WorkflowEventType: {
+      WORKFLOW_STARTED: 'WORKFLOW_STARTED',
+      STAGE_STARTED: 'STAGE_STARTED',
+      ASSIGNMENT_CREATED: 'ASSIGNMENT_CREATED',
+      APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
+      APPROVAL_SUBMITTED: 'APPROVAL_SUBMITTED',
+      STAGE_COMPLETED: 'STAGE_COMPLETED',
+      WORKFLOW_COMPLETED: 'WORKFLOW_COMPLETED',
+      DEADLINE_APPROACHING: 'DEADLINE_APPROACHING',
+      DEADLINE_EXCEEDED: 'DEADLINE_EXCEEDED',
+      WORKFLOW_ESCALATED: 'WORKFLOW_ESCALATED',
+      WORKFLOW_CANCELLED: 'WORKFLOW_CANCELLED',
+    },
+  };
+});
+
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+vi.mock('../../lib/database', () => ({
+  default: {
     workflowInstance: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -47,33 +68,18 @@ vi.mock('@prisma/client', () => {
       findFirst: vi.fn(),
     },
     $transaction: vi.fn(),
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
-    WorkflowEventType: {
-      WORKFLOW_STARTED: 'WORKFLOW_STARTED',
-      STAGE_STARTED: 'STAGE_STARTED',
-      ASSIGNMENT_CREATED: 'ASSIGNMENT_CREATED',
-      APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
-      APPROVAL_SUBMITTED: 'APPROVAL_SUBMITTED',
-      STAGE_COMPLETED: 'STAGE_COMPLETED',
-      WORKFLOW_COMPLETED: 'WORKFLOW_COMPLETED',
-      DEADLINE_APPROACHING: 'DEADLINE_APPROACHING',
-      DEADLINE_EXCEEDED: 'DEADLINE_EXCEEDED',
-      WORKFLOW_ESCALATED: 'WORKFLOW_ESCALATED',
-      WORKFLOW_CANCELLED: 'WORKFLOW_CANCELLED',
-    },
-  };
-});
+  },
+}));
 
 describe('WorkflowNotificationService', () => {
   let workflowNotificationService: WorkflowNotificationService;
   let mockPrisma: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockPrisma = new PrismaClient();
+    // Import the mocked database
+    const { default: prisma } = await import('../../lib/database');
+    mockPrisma = prisma;
     workflowNotificationService = new WorkflowNotificationService(mockPrisma);
 
     // Replace the email service with mock

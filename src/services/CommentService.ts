@@ -1,4 +1,5 @@
-import { PrismaClient, DocumentComment, CommentStatus, CommentPriority, ReactionType } from '@prisma/client';
+import { DocumentComment, CommentStatus, CommentPriority, ReactionType } from '@prisma/client';
+import prisma from '../lib/database';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 
@@ -66,26 +67,7 @@ export interface CommentWithReplies extends DocumentComment {
  * Comment Service - Manages document comments and reactions
  */
 class CommentService {
-  private prisma: PrismaClient;
-
   constructor() {
-    this.prisma = new PrismaClient({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'event', level: 'error' },
-        { emit: 'event', level: 'info' },
-        { emit: 'event', level: 'warn' },
-      ],
-    });
-
-    // Log Prisma events
-    this.prisma.$on('query', (e) => {
-      logger.debug('Prisma Query', { query: e.query, params: e.params, duration: e.duration });
-    });
-
-    this.prisma.$on('error', (e) => {
-      logger.error('Prisma Error', { error: e.message, target: e.target });
-    });
   }
 
   /**
@@ -99,7 +81,7 @@ class CommentService {
         authorId: input.authorId
       });
 
-      const comment = await this.prisma.documentComment.create({
+      const comment = await prisma.documentComment.create({
         data: {
           documentType: input.documentType,
           documentId: input.documentId,
@@ -144,7 +126,7 @@ class CommentService {
       });
 
       // First, get the parent comment to inherit document context
-      const parentComment = await this.prisma.documentComment.findUnique({
+      const parentComment = await prisma.documentComment.findUnique({
         where: { id: input.parentCommentId }
       });
 
@@ -152,7 +134,7 @@ class CommentService {
         throw new AppError('Parent comment not found', 404, 'PARENT_COMMENT_NOT_FOUND');
       }
 
-      const reply = await this.prisma.documentComment.create({
+      const reply = await prisma.documentComment.create({
         data: {
           documentType: parentComment.documentType,
           documentId: parentComment.documentId,
@@ -188,7 +170,7 @@ class CommentService {
       logger.info('Updating comment', { commentId, userId });
 
       // Verify the comment exists and user has permission to update
-      const existingComment = await this.prisma.documentComment.findUnique({
+      const existingComment = await prisma.documentComment.findUnique({
         where: { id: commentId }
       });
 
@@ -200,7 +182,7 @@ class CommentService {
         throw new AppError('Not authorized to update this comment', 403, 'UNAUTHORIZED');
       }
 
-      const updatedComment = await this.prisma.documentComment.update({
+      const updatedComment = await prisma.documentComment.update({
         where: { id: commentId },
         data: {
           ...updates,
@@ -233,7 +215,7 @@ class CommentService {
       logger.info('Deleting comment', { commentId, userId });
 
       // Verify the comment exists and user has permission to delete
-      const existingComment = await this.prisma.documentComment.findUnique({
+      const existingComment = await prisma.documentComment.findUnique({
         where: { id: commentId }
       });
 
@@ -245,7 +227,7 @@ class CommentService {
         throw new AppError('Not authorized to delete this comment', 403, 'UNAUTHORIZED');
       }
 
-      await this.prisma.documentComment.update({
+      await prisma.documentComment.update({
         where: { id: commentId },
         data: {
           status: CommentStatus.ARCHIVED,
@@ -266,7 +248,7 @@ class CommentService {
     try {
       logger.info('Resolving comment', { commentId, userId });
 
-      const resolvedComment = await this.prisma.documentComment.update({
+      const resolvedComment = await prisma.documentComment.update({
         where: { id: commentId },
         data: {
           isResolved: true,
@@ -299,7 +281,7 @@ class CommentService {
     try {
       logger.info('Pinning comment', { commentId, isPinned });
 
-      const pinnedComment = await this.prisma.documentComment.update({
+      const pinnedComment = await prisma.documentComment.update({
         where: { id: commentId },
         data: { isPinned },
         include: {
@@ -365,7 +347,7 @@ class CommentService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const comments = await this.prisma.documentComment.findMany({
+      const comments = await prisma.documentComment.findMany({
         where: whereClause,
         include: {
           reactions: {
@@ -416,7 +398,7 @@ class CommentService {
     try {
       logger.info('Adding reaction to comment', { commentId, userId, reactionType });
 
-      await this.prisma.commentReaction.upsert({
+      await prisma.commentReaction.upsert({
         where: {
           commentId_userId_reactionType: {
             commentId,
@@ -449,7 +431,7 @@ class CommentService {
     try {
       logger.info('Removing reaction from comment', { commentId, userId, reactionType });
 
-      await this.prisma.commentReaction.delete({
+      await prisma.commentReaction.delete({
         where: {
           commentId_userId_reactionType: {
             commentId,
@@ -495,16 +477,16 @@ class CommentService {
   }> {
     try {
       const [totalComments, openComments, resolvedComments, pinnedComments] = await Promise.all([
-        this.prisma.documentComment.count({
+        prisma.documentComment.count({
           where: { documentType, documentId }
         }),
-        this.prisma.documentComment.count({
+        prisma.documentComment.count({
           where: { documentType, documentId, status: CommentStatus.OPEN }
         }),
-        this.prisma.documentComment.count({
+        prisma.documentComment.count({
           where: { documentType, documentId, isResolved: true }
         }),
-        this.prisma.documentComment.count({
+        prisma.documentComment.count({
           where: { documentType, documentId, isPinned: true }
         })
       ]);
@@ -525,7 +507,7 @@ class CommentService {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

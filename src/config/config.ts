@@ -1,13 +1,12 @@
 import * as dotenv from 'dotenv';
 import * as joi from 'joi';
 
-// Load environment variables - respect existing environment variables in test mode
-// In test mode, global-setup.ts sets DATABASE_URL dynamically, so don't override it
-if (process.env.NODE_ENV !== 'test' || !process.env.DATABASE_URL) {
-  dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
-} else {
-  console.log('[Config] Test mode: Preserving dynamic environment variables from global setup');
-}
+// Load environment variables based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' :
+                process.env.NODE_ENV === 'development' ? '.env.development' :
+                '.env';
+
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || envFile });
 
 // Configuration schema validation
 const envSchema = joi.object({
@@ -95,6 +94,33 @@ const envSchema = joi.object({
   CYBERARK_CA_CERT_PATH: joi.string().allow(''),
   CYBERARK_CACHE_TTL: joi.number().min(60000).default(300000), // 5 minutes default
   CYBERARK_TIMEOUT: joi.number().min(1000).default(30000), // 30 seconds default
+
+  // Saviynt Identity Governance configuration
+  SAVIYNT_ENABLED: joi.boolean().default(false),
+  SAVIYNT_URL: joi.string().uri().when('SAVIYNT_ENABLED', {
+    is: true,
+    then: joi.required(),
+    otherwise: joi.optional().allow('')
+  }),
+  SAVIYNT_USERNAME: joi.string().when('SAVIYNT_ENABLED', {
+    is: true,
+    then: joi.required(),
+    otherwise: joi.optional().allow('')
+  }),
+  SAVIYNT_PASSWORD: joi.string().when('SAVIYNT_ENABLED', {
+    is: true,
+    then: joi.required(),
+    otherwise: joi.optional().allow('')
+  }),
+  SAVIYNT_API_KEY: joi.string().allow(''),
+  SAVIYNT_CLIENT_ID: joi.string().allow(''),
+  SAVIYNT_CLIENT_SECRET: joi.string().allow(''),
+  SAVIYNT_TOKEN_ENDPOINT: joi.string().uri().allow(''),
+  SAVIYNT_SYNC_INTERVAL_MINUTES: joi.number().min(5).default(60), // 1 hour default
+  SAVIYNT_WEBHOOK_SECRET: joi.string().allow(''),
+  SAVIYNT_TIMEOUT: joi.number().min(1000).default(30000), // 30 seconds default
+  SAVIYNT_RETRY_ATTEMPTS: joi.number().min(1).default(3),
+  SAVIYNT_CACHE_TTL: joi.number().min(60000).default(300000), // 5 minutes default
 }).unknown(true);
 
 // Validate environment variables
@@ -219,6 +245,23 @@ export const config = {
     caCertPath: envVars.CYBERARK_CA_CERT_PATH,
     cacheTtl: envVars.CYBERARK_CACHE_TTL,
     timeout: envVars.CYBERARK_TIMEOUT,
+  },
+
+  // Saviynt Identity Governance configuration
+  saviynt: {
+    enabled: envVars.SAVIYNT_ENABLED,
+    url: envVars.SAVIYNT_URL,
+    username: envVars.SAVIYNT_USERNAME,
+    password: envVars.SAVIYNT_PASSWORD,
+    apiKey: envVars.SAVIYNT_API_KEY,
+    clientId: envVars.SAVIYNT_CLIENT_ID,
+    clientSecret: envVars.SAVIYNT_CLIENT_SECRET,
+    tokenEndpoint: envVars.SAVIYNT_TOKEN_ENDPOINT,
+    syncIntervalMinutes: envVars.SAVIYNT_SYNC_INTERVAL_MINUTES,
+    webhookSecret: envVars.SAVIYNT_WEBHOOK_SECRET,
+    timeout: envVars.SAVIYNT_TIMEOUT,
+    retryAttempts: envVars.SAVIYNT_RETRY_ATTEMPTS,
+    cacheTtl: envVars.SAVIYNT_CACHE_TTL,
   },
 };
 

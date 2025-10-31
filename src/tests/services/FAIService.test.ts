@@ -12,41 +12,39 @@ import {
   UpdateCharacteristicInput,
 } from '../../types/fai';
 
-// Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     part: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
     fAIReport: {
-      findUnique: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      findMany: vi.fn(),
       count: vi.fn(),
     },
     fAICharacteristic: {
-      findUnique: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      findMany: vi.fn(),
     },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+    $transaction: vi.fn(),
+  },
+}));
 
 describe('FAIService', () => {
   let faiService: FAIService;
   let mockPrisma: any;
 
-  beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    faiService = new FAIService(mockPrisma);
+  beforeEach(async () => {
+    mockPrisma = (await import('../../lib/database')).default;
+    faiService = new FAIService();
     vi.clearAllMocks();
   });
 

@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import EquipmentService from '../../services/EquipmentService';
 
-// Mock Prisma Client
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     equipment: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -13,39 +13,35 @@ vi.mock('@prisma/client', () => {
       delete: vi.fn(),
     },
     equipmentCapability: {
+      create: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
-      create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
-    site: {
-      findUnique: vi.fn(),
-    },
-    area: {
-      findUnique: vi.fn(),
+    workUnit: {
+      findMany: vi.fn(),
     },
     workCenter: {
-      findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
-    workUnit: {
-      findUnique: vi.fn(),
+    area: {
+      findMany: vi.fn(),
+    },
+    site: {
+      findMany: vi.fn(),
     },
     enterprise: {
-      findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
+  },
+}));
 
 describe('EquipmentService - ISA-95 Hierarchy & Capabilities', () => {
   let mockPrisma: any;
 
-  beforeEach(() => {
-    mockPrisma = new PrismaClient();
+  beforeEach(async () => {
+    mockPrisma = (await import('../../lib/database')).default;
     vi.clearAllMocks();
   });
 

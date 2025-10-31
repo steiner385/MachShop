@@ -11,7 +11,13 @@
  * - Statistics and reporting
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../lib/database';
+
+// Guard check for prisma instance
+if (!prisma) {
+  throw new Error('Database connection not available. Check DATABASE_URL environment variable and database server connectivity.');
+}
 
 export interface CreateOperationData {
   operationCode: string;
@@ -65,11 +71,8 @@ export interface OperationFilters {
 }
 
 export class OperationService {
-  private prisma: PrismaClient;
 
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
-  }
+  constructor() {}
 
   // ==================== UOM HELPER METHODS ====================
 
@@ -84,7 +87,7 @@ export class OperationService {
     }
 
     // Look up by code (case-insensitive)
-    const uom = await this.prisma.unitOfMeasure.findFirst({
+    const uom = await prisma.unitOfMeasure.findFirst({
       where: {
         code: { equals: uomCode.toUpperCase(), mode: 'insensitive' },
         isActive: true
@@ -115,7 +118,7 @@ export class OperationService {
   async createOperation(data: CreateOperationData) {
     // Validate parent operation exists and prevent circular references
     if (data.parentOperationId) {
-      const parent = await this.prisma.operation.findUnique({
+      const parent = await prisma.operation.findUnique({
         where: { id: data.parentOperationId }
       });
 
@@ -137,7 +140,7 @@ export class OperationService {
     // Create operation WITHOUT include to avoid Prisma proxy object issues with foreign keys
     // Foreign keys like parentOperationId return null when using include with create
     // Tests can call GET endpoint if relations are needed
-    const operation = await this.prisma.operation.create({
+    const operation = await prisma.operation.create({
       data: {
         operationCode: data.operationCode,
         operationName: data.operationName,
@@ -168,7 +171,7 @@ export class OperationService {
    * Get operation by ID
    */
   async getOperationById(id: string, includeRelations = true) {
-    const operation = await this.prisma.operation.findUnique({
+    const operation = await prisma.operation.findUnique({
       where: { id },
       include: includeRelations ? {
         parentOperation: true,
@@ -202,7 +205,7 @@ export class OperationService {
    * Get operation by code
    */
   async getOperationByCode(operationCode: string, includeRelations = true) {
-    const operation = await this.prisma.operation.findUnique({
+    const operation = await prisma.operation.findUnique({
       where: { operationCode },
       include: includeRelations ? {
         parentOperation: true,
@@ -258,7 +261,7 @@ export class OperationService {
       where.isActive = filters.isActive;
     }
 
-    const operations = await this.prisma.operation.findMany({
+    const operations = await prisma.operation.findMany({
       where,
       include: includeRelations ? {
         parentOperation: true,
@@ -289,7 +292,7 @@ export class OperationService {
   async updateOperation(id: string, data: UpdateOperationData) {
     // Validate parent operation if changing
     if (data.parentOperationId) {
-      const parent = await this.prisma.operation.findUnique({
+      const parent = await prisma.operation.findUnique({
         where: { id: data.parentOperationId }
       });
 
@@ -310,7 +313,7 @@ export class OperationService {
     }
 
     // Update WITHOUT include to avoid Prisma proxy object issues with foreign keys
-    const operation = await this.prisma.operation.update({
+    const operation = await prisma.operation.update({
       where: { id },
       data: {
         operationName: data.operationName,
@@ -342,7 +345,7 @@ export class OperationService {
    */
   async deleteOperation(id: string, hardDelete = false) {
     // Check if operation has children
-    const childCount = await this.prisma.operation.count({
+    const childCount = await prisma.operation.count({
       where: { parentOperationId: id }
     });
 
@@ -352,14 +355,14 @@ export class OperationService {
 
     if (hardDelete) {
       // Hard delete - delete dependencies and related records first (cascade delete handles this)
-      await this.prisma.operation.delete({
+      await prisma.operation.delete({
         where: { id }
       });
 
       return { deleted: true, hardDelete: true };
     } else {
       // Soft delete - just mark as inactive
-      await this.prisma.operation.update({
+      await prisma.operation.update({
         where: { id },
         data: { isActive: false }
       });
@@ -376,7 +379,7 @@ export class OperationService {
    * Get child operations of an operation
    */
   async getChildOperations(operationId: string) {
-    const children = await this.prisma.operation.findMany({
+    const children = await prisma.operation.findMany({
       where: { parentOperationId: operationId },
       include: {
         childOperations: true,
@@ -392,7 +395,7 @@ export class OperationService {
    * Get root operations (top-level, no parent)
    */
   async getRootOperations() {
-    const roots = await this.prisma.operation.findMany({
+    const roots = await prisma.operation.findMany({
       where: { parentOperationId: null },
       include: {
         childOperations: true,
@@ -408,7 +411,7 @@ export class OperationService {
    * Get full hierarchy tree starting from an operation
    */
   async getOperationHierarchyTree(operationId: string): Promise<any> {
-    const operation = await this.prisma.operation.findUnique({
+    const operation = await prisma.operation.findUnique({
       where: { id: operationId },
       include: {
         childOperations: true,
@@ -441,7 +444,7 @@ export class OperationService {
     let currentId: string | null = operationId;
 
     while (currentId) {
-      const operation = await this.prisma.operation.findUnique({
+      const operation = await prisma.operation.findUnique({
         where: { id: currentId },
         include: { parentOperation: true }
       });
@@ -484,7 +487,7 @@ export class OperationService {
     // Prepare UOM data (both string and FK) if provided
     const uomData = parameterData.unitOfMeasure ? await this.prepareUomData(parameterData.unitOfMeasure) : { unitOfMeasure: null, unitOfMeasureId: null };
 
-    const parameter = await this.prisma.operationParameter.create({
+    const parameter = await prisma.operationParameter.create({
       data: {
         operationId,
         parameterName: parameterData.parameterName,
@@ -511,7 +514,7 @@ export class OperationService {
    * Get all parameters for an operation
    */
   async getOperationParameters(operationId: string) {
-    const parameters = await this.prisma.operationParameter.findMany({
+    const parameters = await prisma.operationParameter.findMany({
       where: { operationId },
       orderBy: [
         { displayOrder: 'asc' },
@@ -526,7 +529,7 @@ export class OperationService {
    * Update parameter
    */
   async updateParameter(parameterId: string, data: any) {
-    const parameter = await this.prisma.operationParameter.update({
+    const parameter = await prisma.operationParameter.update({
       where: { id: parameterId },
       data
     });
@@ -538,7 +541,7 @@ export class OperationService {
    * Delete parameter
    */
   async deleteParameter(parameterId: string) {
-    await this.prisma.operationParameter.delete({
+    await prisma.operationParameter.delete({
       where: { id: parameterId }
     });
 
@@ -562,7 +565,7 @@ export class OperationService {
       throw new Error('Operation cannot depend on itself');
     }
 
-    const dependency = await this.prisma.operationDependency.create({
+    const dependency = await prisma.operationDependency.create({
       data: {
         dependentOperationId: dependencyData.dependentOperationId,
         prerequisiteOperationId: dependencyData.prerequisiteOperationId,
@@ -589,12 +592,12 @@ export class OperationService {
   async getOperationDependencies(operationId: string) {
     const [dependencies, prerequisites] = await Promise.all([
       // This operation depends on these
-      this.prisma.operationDependency.findMany({
+      prisma.operationDependency.findMany({
         where: { dependentOperationId: operationId },
         include: { prerequisiteOperation: true }
       }),
       // These operations depend on this one
-      this.prisma.operationDependency.findMany({
+      prisma.operationDependency.findMany({
         where: { prerequisiteOperationId: operationId },
         include: { dependentOperation: true }
       })
@@ -610,7 +613,7 @@ export class OperationService {
    * Delete dependency
    */
   async deleteDependency(dependencyId: string) {
-    await this.prisma.operationDependency.delete({
+    await prisma.operationDependency.delete({
       where: { id: dependencyId }
     });
 
@@ -627,7 +630,7 @@ export class OperationService {
   async addPersonnelSpec(operationId: string, specData: any) {
     await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.personnelOperationSpecification.create({
+    const spec = await prisma.personnelOperationSpecification.create({
       data: {
         operationId,
         personnelClassId: specData.personnelClassId,
@@ -651,7 +654,7 @@ export class OperationService {
   async addEquipmentSpec(operationId: string, specData: any) {
     await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.equipmentOperationSpecification.create({
+    const spec = await prisma.equipmentOperationSpecification.create({
       data: {
         operationId,
         equipmentClass: specData.equipmentClass,
@@ -679,7 +682,7 @@ export class OperationService {
     // Prepare UOM data (both string and FK)
     const uomData = await this.prepareUomData(specData.unitOfMeasure);
 
-    const spec = await this.prisma.materialOperationSpecification.create({
+    const spec = await prisma.materialOperationSpecification.create({
       data: {
         operationId,
         materialDefinitionId: specData.materialDefinitionId,
@@ -706,7 +709,7 @@ export class OperationService {
   async addPhysicalAssetSpec(operationId: string, specData: any) {
     await this.getOperationById(operationId, false);
 
-    const spec = await this.prisma.physicalAssetOperationSpecification.create({
+    const spec = await prisma.physicalAssetOperationSpecification.create({
       data: {
         operationId,
         assetType: specData.assetType,
@@ -730,16 +733,16 @@ export class OperationService {
    */
   async getOperationResourceSpecs(operationId: string) {
     const [personnel, equipment, materials, assets] = await Promise.all([
-      this.prisma.personnelOperationSpecification.findMany({
+      prisma.personnelOperationSpecification.findMany({
         where: { operationId }
       }),
-      this.prisma.equipmentOperationSpecification.findMany({
+      prisma.equipmentOperationSpecification.findMany({
         where: { operationId }
       }),
-      this.prisma.materialOperationSpecification.findMany({
+      prisma.materialOperationSpecification.findMany({
         where: { operationId }
       }),
-      this.prisma.physicalAssetOperationSpecification.findMany({
+      prisma.physicalAssetOperationSpecification.findMany({
         where: { operationId }
       })
     ]);
@@ -767,18 +770,18 @@ export class OperationService {
       activeOperations,
       approvedOperations
     ] = await Promise.all([
-      this.prisma.operation.count(),
-      this.prisma.operation.groupBy({
+      prisma.operation.count(),
+      prisma.operation.groupBy({
         by: ['operationType'],
         _count: true
       }),
-      this.prisma.operation.groupBy({
+      prisma.operation.groupBy({
         by: ['level'],
         _count: true,
         orderBy: { level: 'asc' }
       }),
-      this.prisma.operation.count({ where: { isActive: true } }),
-      this.prisma.operation.count({ where: { requiresApproval: true, approvedAt: { not: null } } })
+      prisma.operation.count({ where: { isActive: true } }),
+      prisma.operation.count({ where: { requiresApproval: true, approvedAt: { not: null } } })
     ]);
 
     return {
@@ -825,7 +828,7 @@ export class OperationService {
     await this.getOperationById(operationId, false);
 
     // Validate work instruction exists
-    const workInstruction = await this.prisma.workInstruction.findUnique({
+    const workInstruction = await prisma.workInstruction.findUnique({
       where: { id: workInstructionId }
     });
 
@@ -834,7 +837,7 @@ export class OperationService {
     }
 
     // Update operation with standard WI
-    const updated = await this.prisma.operation.update({
+    const updated = await prisma.operation.update({
       where: { id: operationId },
       data: { standardWorkInstructionId: workInstructionId },
       include: {
@@ -851,7 +854,7 @@ export class OperationService {
   async removeStandardWorkInstruction(operationId: string) {
     await this.getOperationById(operationId, false);
 
-    const updated = await this.prisma.operation.update({
+    const updated = await prisma.operation.update({
       where: { id: operationId },
       data: { standardWorkInstructionId: null }
     });
@@ -863,7 +866,7 @@ export class OperationService {
    * Get standard work instruction for an operation
    */
   async getStandardWorkInstruction(operationId: string) {
-    const operation = await this.prisma.operation.findUnique({
+    const operation = await prisma.operation.findUnique({
       where: { id: operationId },
       include: {
         standardWorkInstruction: {
@@ -890,7 +893,7 @@ export class OperationService {
    * Searches operationCode field
    */
   async getByOperationCode(operationCode: string) {
-    const operation = await this.prisma.operation.findFirst({
+    const operation = await prisma.operation.findFirst({
       where: {
         operationCode,
         isActive: true
@@ -914,7 +917,7 @@ export class OperationService {
    * Get operations by classification (Oracle-style MAKE, ASSEMBLY, INSPECTION, etc.)
    */
   async getOperationsByClassification(classification: string) {
-    const operations = await this.prisma.operation.findMany({
+    const operations = await prisma.operation.findMany({
       where: {
         operationClassification: classification as any,
         isActive: true
@@ -947,7 +950,7 @@ export class OperationService {
 
     // Validate operationCode uniqueness if provided
     if (data.operationCode) {
-      const existing = await this.prisma.operation.findFirst({
+      const existing = await prisma.operation.findFirst({
         where: {
           operationCode: data.operationCode,
           id: { not: operationId }
@@ -961,7 +964,7 @@ export class OperationService {
       }
     }
 
-    const updated = await this.prisma.operation.update({
+    const updated = await prisma.operation.update({
       where: { id: operationId },
       data: {
         operationCode: data.operationCode,
@@ -977,7 +980,7 @@ export class OperationService {
    * Search operations (searches both ISA-95 and Oracle terminology)
    */
   async searchOperations(searchTerm: string) {
-    const operations = await this.prisma.operation.findMany({
+    const operations = await prisma.operation.findMany({
       where: {
         OR: [
           { operationCode: { contains: searchTerm, mode: 'insensitive' } },

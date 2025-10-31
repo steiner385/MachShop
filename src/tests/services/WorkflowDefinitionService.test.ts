@@ -19,7 +19,7 @@ vi.mock('@/utils/logger', () => ({
 }));
 
 // Mock Prisma Client
-vi.mock('@prisma/client', () => {
+vi.mock('../../lib/database', () => {
   const mockPrismaClient = {
     workflowDefinition: {
       create: vi.fn(),

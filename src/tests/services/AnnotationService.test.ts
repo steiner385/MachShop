@@ -1,40 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PrismaClient, DocumentAnnotation, AnnotationType } from '@prisma/client';
+import { DocumentAnnotation, AnnotationType } from '@prisma/client';
 import { AppError } from '../../middleware/errorHandler';
 import annotationService from '../../services/AnnotationService';
 import logger from '../../utils/logger';
+import prisma from '../../lib/database';
 
-// Mock the PrismaClient
-vi.mock('@prisma/client', () => {
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     documentAnnotation: {
-      create: vi.fn(),
+      findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      findMany: vi.fn(),
-      count: vi.fn(),
     },
     documentComment: {
       count: vi.fn(),
     },
-    $on: vi.fn(),
     $disconnect: vi.fn(),
-  };
-
-  return {
-    PrismaClient: vi.fn(() => mockPrisma),
-    AnnotationType: {
-      ARROW: 'ARROW',
-      RECTANGLE: 'RECTANGLE',
-      CIRCLE: 'CIRCLE',
-      FREEHAND: 'FREEHAND',
-      TEXT_LABEL: 'TEXT_LABEL',
-      HIGHLIGHT: 'HIGHLIGHT',
-      CALLOUT: 'CALLOUT',
-    },
-  };
-});
+  },
+}));
 
 // Mock the logger
 vi.mock('../../utils/logger', () => ({
@@ -51,7 +37,7 @@ describe('AnnotationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPrisma = (annotationService as any).prisma;
+    mockPrisma = prisma as any;
   });
 
   afterEach(() => {

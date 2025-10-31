@@ -1,4 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/database';
+
+// Guard check for prisma instance
+if (!prisma) {
+  throw new Error('Database connection not available. Check DATABASE_URL environment variable and database server connectivity.');
+}
+
 import type {
   MaterialClass,
   MaterialDefinition,
@@ -28,11 +34,7 @@ import type {
  * - State transition management
  */
 export class MaterialService {
-  private prisma: PrismaClient;
-
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
-  }
+  constructor() {}
 
   // ==================== UOM HELPER METHODS ====================
 
@@ -47,7 +49,7 @@ export class MaterialService {
     }
 
     // Look up by code (case-insensitive)
-    const uom = await this.prisma.unitOfMeasure.findFirst({
+    const uom = await prisma.unitOfMeasure.findFirst({
       where: {
         code: { equals: uomCode.toUpperCase(), mode: 'insensitive' },
         isActive: true
@@ -86,7 +88,7 @@ export class MaterialService {
     if (options?.level !== undefined) where.level = options.level;
     if (options?.isActive !== undefined) where.isActive = options.isActive;
 
-    return this.prisma.materialClass.findMany({
+    return prisma.materialClass.findMany({
       where,
       include: {
         parentClass: true,
@@ -101,7 +103,7 @@ export class MaterialService {
    * Get material class by ID
    */
   async getMaterialClassById(id: string) {
-    return this.prisma.materialClass.findUnique({
+    return prisma.materialClass.findUnique({
       where: { id },
       include: {
         parentClass: true,
@@ -122,7 +124,7 @@ export class MaterialService {
     let current = materialClass;
 
     while (current.parentClassId) {
-      const parent = await this.prisma.materialClass.findUnique({
+      const parent = await prisma.materialClass.findUnique({
         where: { id: current.parentClassId },
         include: {
           parentClass: true,
@@ -152,7 +154,7 @@ export class MaterialService {
     if (options?.materialType) where.materialType = options.materialType;
     if (options?.isActive !== undefined) where.isActive = options.isActive;
 
-    return this.prisma.materialDefinition.findMany({
+    return prisma.materialDefinition.findMany({
       where,
       include: options?.includeRelations ? {
         materialClass: true,
@@ -168,7 +170,7 @@ export class MaterialService {
    * Get material definition by ID
    */
   async getMaterialDefinitionById(id: string) {
-    return this.prisma.materialDefinition.findUnique({
+    return prisma.materialDefinition.findUnique({
       where: { id },
       include: {
         materialClass: true,
@@ -188,7 +190,7 @@ export class MaterialService {
    * Get material definition by material number
    */
   async getMaterialDefinitionByNumber(materialNumber: string) {
-    return this.prisma.materialDefinition.findUnique({
+    return prisma.materialDefinition.findUnique({
       where: { materialNumber },
       include: {
         materialClass: true,
@@ -205,7 +207,7 @@ export class MaterialService {
    * Update material definition
    */
   async updateMaterialDefinition(id: string, data: Partial<MaterialDefinition>) {
-    return this.prisma.materialDefinition.update({
+    return prisma.materialDefinition.update({
       where: { id },
       data,
       include: {
@@ -221,7 +223,7 @@ export class MaterialService {
    * Get material properties for a material
    */
   async getMaterialProperties(materialId: string) {
-    return this.prisma.materialProperty.findMany({
+    return prisma.materialProperty.findMany({
       where: { materialId },
       orderBy: { propertyName: 'asc' },
     });
@@ -233,7 +235,7 @@ export class MaterialService {
   async createMaterialProperty(data: any) {
     const { materialId, ...propertyData } = data;
 
-    return this.prisma.materialProperty.create({
+    return prisma.materialProperty.create({
       data: {
         ...propertyData,
         material: {
@@ -262,7 +264,7 @@ export class MaterialService {
     if (options?.qualityStatus) where.qualityStatus = options.qualityStatus;
     if (options?.location) where.location = { contains: options.location };
 
-    return this.prisma.materialLot.findMany({
+    return prisma.materialLot.findMany({
       where,
       include: options?.includeRelations ? {
         material: true,
@@ -279,7 +281,7 @@ export class MaterialService {
    * Get material lot by ID
    */
   async getMaterialLotById(id: string) {
-    return this.prisma.materialLot.findUnique({
+    return prisma.materialLot.findUnique({
       where: { id },
       include: {
         material: {
@@ -315,7 +317,7 @@ export class MaterialService {
 
     const normalizedUuid = normalizePersistentUUID(persistentUuid);
 
-    return this.prisma.materialLot.findFirst({
+    return prisma.materialLot.findFirst({
       where: { persistentUuid: normalizedUuid },
       include: {
         material: {
@@ -345,7 +347,7 @@ export class MaterialService {
    * Get material lot by lot number
    */
   async getMaterialLotByLotNumber(lotNumber: string) {
-    return this.prisma.materialLot.findUnique({
+    return prisma.materialLot.findUnique({
       where: { lotNumber },
       include: {
         material: true,
@@ -362,7 +364,7 @@ export class MaterialService {
    * Update material lot
    */
   async updateMaterialLot(id: string, data: Partial<MaterialLot>) {
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id },
       data: data as any,
       include: {
@@ -380,7 +382,7 @@ export class MaterialService {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
-    return this.prisma.materialLot.findMany({
+    return prisma.materialLot.findMany({
       where: {
         status: { in: ['AVAILABLE', 'RESERVED'] },
         expirationDate: {
@@ -401,7 +403,7 @@ export class MaterialService {
   async getExpiredLots(): Promise<MaterialLot[]> {
     const today = new Date();
 
-    return this.prisma.materialLot.findMany({
+    return prisma.materialLot.findMany({
       where: {
         status: { not: 'EXPIRED' },
         expirationDate: {
@@ -432,7 +434,7 @@ export class MaterialService {
     });
 
     // Update lot status
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id: lotId },
       data: {
         status: 'EXPIRED',
@@ -457,7 +459,7 @@ export class MaterialService {
     createdById?: string;
   }): Promise<MaterialSublot> {
     // Validate parent lot has sufficient quantity
-    const parentLot = await this.prisma.materialLot.findUnique({
+    const parentLot = await prisma.materialLot.findUnique({
       where: { id: data.parentLotId },
     });
 
@@ -475,7 +477,7 @@ export class MaterialService {
     const uomData = await this.prepareUomData(parentLot.unitOfMeasure);
 
     // Create sublot
-    const sublot = await this.prisma.materialSublot.create({
+    const sublot = await prisma.materialSublot.create({
       data: {
         sublotNumber: data.sublotNumber,
         parentLotId: data.parentLotId,
@@ -496,7 +498,7 @@ export class MaterialService {
     });
 
     // Update parent lot quantity
-    await this.prisma.materialLot.update({
+    await prisma.materialLot.update({
       where: { id: data.parentLotId },
       data: {
         currentQuantity: { decrement: data.quantity },
@@ -511,7 +513,7 @@ export class MaterialService {
    * Get sublots for a lot
    */
   async getSublotsForLot(lotId: string) {
-    return this.prisma.materialSublot.findMany({
+    return prisma.materialSublot.findMany({
       where: { parentLotId: lotId },
       include: {
         parentLot: true,
@@ -541,7 +543,7 @@ export class MaterialService {
     // Prepare UOM data (both string and FK)
     const uomData = await this.prepareUomData(data.unitOfMeasure);
 
-    return this.prisma.materialLotGenealogy.create({
+    return prisma.materialLotGenealogy.create({
       data: {
         ...data,
         unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
@@ -562,7 +564,7 @@ export class MaterialService {
     consumed: MaterialLotGenealogy[];
     produced: MaterialLotGenealogy[];
   }> {
-    const consumed = await this.prisma.materialLotGenealogy.findMany({
+    const consumed = await prisma.materialLotGenealogy.findMany({
       where: { parentLotId: lotId },
       include: {
         childLot: { include: { material: true } },
@@ -570,7 +572,7 @@ export class MaterialService {
       orderBy: { processDate: 'desc' },
     });
 
-    const produced = await this.prisma.materialLotGenealogy.findMany({
+    const produced = await prisma.materialLotGenealogy.findMany({
       where: { childLotId: lotId },
       include: {
         parentLot: { include: { material: true } },
@@ -646,7 +648,7 @@ export class MaterialService {
     // Prepare UOM data (both string and FK) if UOM is provided
     const uomData = data.unitOfMeasure ? await this.prepareUomData(data.unitOfMeasure) : { unitOfMeasure: null, unitOfMeasureId: null };
 
-    return this.prisma.materialStateHistory.create({
+    return prisma.materialStateHistory.create({
       data: {
         ...data,
         unitOfMeasure: uomData.unitOfMeasure || data.unitOfMeasure,
@@ -663,7 +665,7 @@ export class MaterialService {
    * Get state history for a lot
    */
   async getStateHistory(lotId: string) {
-    return this.prisma.materialStateHistory.findMany({
+    return prisma.materialStateHistory.findMany({
       where: { lotId },
       orderBy: { changedAt: 'desc' },
     });
@@ -720,7 +722,7 @@ export class MaterialService {
     });
 
     // Update lot
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id: lotId },
       data: {
         state: newState,
@@ -749,7 +751,7 @@ export class MaterialService {
       changedById,
     });
 
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id: lotId },
       data: {
         status: 'QUARANTINED',
@@ -773,7 +775,7 @@ export class MaterialService {
       changedById,
     });
 
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id: lotId },
       data: {
         status: 'AVAILABLE',
@@ -798,7 +800,7 @@ export class MaterialService {
       qualityNotes: reason,
     });
 
-    return this.prisma.materialLot.update({
+    return prisma.materialLot.update({
       where: { id: lotId },
       data: {
         status: 'REJECTED',
@@ -814,7 +816,7 @@ export class MaterialService {
    * Get material lot statistics by material
    */
   async getMaterialLotStatistics(materialId: string) {
-    const lots = await this.prisma.materialLot.findMany({
+    const lots = await prisma.materialLot.findMany({
       where: { materialId },
     });
 
@@ -867,7 +869,7 @@ export class MaterialService {
    */
   async getMaterialUsageByWorkOrder(workOrderId: string) {
     // Get sublots allocated to work order
-    const sublots = await this.prisma.materialSublot.findMany({
+    const sublots = await prisma.materialSublot.findMany({
       where: { workOrderId },
       include: {
         parentLot: {
@@ -877,7 +879,7 @@ export class MaterialService {
     });
 
     // Get genealogy records for work order
-    const genealogy = await this.prisma.materialLotGenealogy.findMany({
+    const genealogy = await prisma.materialLotGenealogy.findMany({
       where: { workOrderId },
       include: {
         parentLot: { include: { material: true } },

@@ -1,9 +1,10 @@
-import { PrismaClient, StorageClass } from '@prisma/client';
+import { StorageClass } from '@prisma/client';
 import { CloudStorageService } from './CloudStorageService';
 import { FileDeduplicationService } from './FileDeduplicationService';
 import { FileVersioningService } from './FileVersioningService';
 import { CDNIntegrationService } from './CDNIntegrationService';
 import { logger } from '../utils/logger';
+import prisma from '../lib/database';
 
 export interface StorageMetrics {
   timestamp: Date;
@@ -115,14 +116,12 @@ export interface AlertResult {
  * Provides comprehensive analytics, monitoring, and alerting for storage systems
  */
 export class StorageAnalyticsService {
-  private prisma: PrismaClient;
   private cloudStorageService: CloudStorageService;
   private deduplicationService: FileDeduplicationService;
   private versioningService: FileVersioningService;
   private cdnService: CDNIntegrationService;
 
   constructor() {
-    this.prisma = new PrismaClient();
     this.cloudStorageService = new CloudStorageService();
     this.deduplicationService = new FileDeduplicationService();
     this.versioningService = new FileVersioningService();
@@ -202,11 +201,10 @@ export class StorageAnalyticsService {
       const stats = await this.cloudStorageService.getStorageStatistics();
 
       // Get storage class distribution
-      const storageClassStats = await this.prisma.storedFile.groupBy({
+      const storageClassStats = await prisma.storedFile.groupBy({
         by: ['storageClass'],
-        where: { deletedAt: null },
         _count: { id: true },
-        _sum: { size: true },
+        _sum: { fileSize: true },
       });
 
       const storageClassDistribution: any = {};
@@ -215,7 +213,7 @@ export class StorageAnalyticsService {
 
       storageClassStats.forEach(stat => {
         const count = stat._count.id;
-        const size = stat._sum.size || 0;
+        const size = stat._sum.fileSize || 0;
         totalCount += count;
         totalSize += size;
 
@@ -304,9 +302,9 @@ export class StorageAnalyticsService {
    */
   async getAccessPatterns(startDate: Date, endDate: Date): Promise<AccessPatterns> {
     try {
-      const accessLogs = await this.prisma.fileAccessLog.findMany({
+      const accessLogs = await prisma.fileAccessLog.findMany({
         where: {
-          createdAt: {
+          accessedAt: {
             gte: startDate,
             lte: endDate,
           },
@@ -335,8 +333,8 @@ export class StorageAnalyticsService {
       const accessesByDay: Record<string, number> = {};
 
       accessLogs.forEach(log => {
-        const hour = log.createdAt.getHours();
-        const day = log.createdAt.toISOString().split('T')[0];
+        const hour = log.accessedAt.getUTCHours();
+        const day = log.accessedAt.toISOString().split('T')[0];
 
         accessesByTimeOfDay[hour.toString()]++;
         accessesByDay[day] = (accessesByDay[day] || 0) + 1;
@@ -353,12 +351,12 @@ export class StorageAnalyticsService {
               fileId,
               fileName: log.file.fileName,
               accessCount: 0,
-              lastAccessed: log.createdAt,
+              lastAccessed: log.accessedAt,
             };
           }
           fileAccessCounts[fileId].accessCount++;
-          if (log.createdAt > fileAccessCounts[fileId].lastAccessed) {
-            fileAccessCounts[fileId].lastAccessed = log.createdAt;
+          if (log.accessedAt > fileAccessCounts[fileId].lastAccessed) {
+            fileAccessCounts[fileId].lastAccessed = log.accessedAt;
           }
         }
       });
@@ -392,18 +390,18 @@ export class StorageAnalyticsService {
       // This is a simplified implementation
       // In practice, you would track actual upload/download times and speeds
 
-      const accessLogs = await this.prisma.fileAccessLog.findMany({
+      const accessLogs = await prisma.fileAccessLog.findMany({
         where: {
-          createdAt: {
+          accessedAt: {
             gte: startDate,
             lte: endDate,
           },
-          action: { in: ['UPLOAD', 'DOWNLOAD'] },
+          accessType: { in: ['READ', 'WRITE'] },
         },
       });
 
-      const uploads = accessLogs.filter(log => log.action === 'UPLOAD');
-      const downloads = accessLogs.filter(log => log.action === 'DOWNLOAD');
+      const uploads = accessLogs.filter(log => log.accessType === 'WRITE');
+      const downloads = accessLogs.filter(log => log.accessType === 'READ');
 
       // Simulated metrics (in production, you'd track real performance data)
       return {
@@ -505,7 +503,7 @@ export class StorageAnalyticsService {
       const metrics = await this.getStorageMetrics();
 
       // Store metrics in database for historical tracking
-      await this.prisma.storageMetrics.create({
+      await prisma.storageMetrics.create({
         data: {
           timestamp: metrics.timestamp,
           totalFiles: metrics.totalFiles,
@@ -545,7 +543,7 @@ export class StorageAnalyticsService {
   ): any {
     // Simplified cost calculation (AWS S3 pricing approximation)
     const costPerGBByClass = {
-      [StorageClass.STANDARD]: 0.023,
+      [StorageClass.HOT]: 0.023,
       [StorageClass.WARM]: 0.0125,
       [StorageClass.COLD]: 0.004,
       [StorageClass.ARCHIVE]: 0.00099,
@@ -580,7 +578,7 @@ export class StorageAnalyticsService {
     }
 
     // Storage class recommendations
-    if (analytics.storage.storageClassDistribution[StorageClass.STANDARD]?.percentage > 80) {
+    if (analytics.storage.storageClassDistribution[StorageClass.HOT]?.percentage > 80) {
       recommendations.push('Most files are in Standard storage. Consider implementing lifecycle policies to move older files to cheaper storage classes.');
     }
 
@@ -606,7 +604,7 @@ export class StorageAnalyticsService {
    * Format bytes to human readable string
    */
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0 || bytes < 0) return '0 B';
 
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];

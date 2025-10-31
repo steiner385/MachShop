@@ -10,7 +10,8 @@
  * - Part Site Availability
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../lib/database';
 import { VersionConflictError } from '../middleware/errorHandler';
 import {
   RoutingLifecycleState,
@@ -43,8 +44,6 @@ import {
   CreateRoutingWithVisualDTO,
   UpdateRoutingWithVisualDTO
 } from '../types/routing';
-
-const prisma = new PrismaClient();
 
 /**
  * RoutingService - Main service class for routing operations

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../../middleware/errorHandler';
 
-// Mock Prisma enums
+// Mock Prisma enums - these need to be exported from the mock
 const ConflictType = {
   CONCURRENT_EDIT: 'CONCURRENT_EDIT',
   FIELD_CONFLICT: 'FIELD_CONFLICT',
@@ -39,6 +39,17 @@ const mockPrisma = {
   $on: vi.fn()
 } as unknown as PrismaClient;
 
+// Mock @prisma/client to export enums
+vi.mock('@prisma/client', async () => {
+  const actual = await vi.importActual('@prisma/client');
+  return {
+    ...actual,
+    ConflictType,
+    ResolutionStrategy,
+    PrismaClient: vi.fn()
+  };
+});
+
 // Mock logger
 vi.mock('../../utils/logger', () => ({
   default: {
@@ -49,11 +60,9 @@ vi.mock('../../utils/logger', () => ({
   }
 }));
 
-// Mock PrismaClient constructor
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn(() => mockPrisma),
-  ConflictType: ConflictType,
-  ResolutionStrategy: ResolutionStrategy
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: mockPrisma,
 }));
 
 // Define interfaces for testing

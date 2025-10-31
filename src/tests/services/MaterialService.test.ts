@@ -10,11 +10,12 @@ import {
   StateTransitionType,
 } from '@prisma/client';
 
-// Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
+// Import the database module
+import prisma from '../../lib/database';
 
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
     materialClass: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -38,30 +39,30 @@ vi.mock('@prisma/client', async () => {
       create: vi.fn(),
     },
     materialLotGenealogy: {
-      create: vi.fn(),
       findMany: vi.fn(),
+      create: vi.fn(),
     },
     materialStateHistory: {
-      create: vi.fn(),
       findMany: vi.fn(),
+      create: vi.fn(),
     },
-  };
-
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+    unitOfMeasure: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  },
+}));
 
 describe('MaterialService', () => {
   let materialService: MaterialService;
-  let mockPrisma: any;
+  const mockPrisma = prisma as any;
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    materialService = new MaterialService(mockPrisma);
+    materialService = new MaterialService();
     vi.clearAllMocks();
   });
 

@@ -6,16 +6,14 @@
  * Following ISA-95 Part 3 specification for personnel information sync
  */
 
-import { PrismaClient, PersonnelActionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
+import { PersonnelActionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
+import prisma from '../lib/database';
 import { PersonnelInfoExchangeInput, PersonnelInfoSyncResult } from '../types/b2m';
 import B2MMessageBuilder from './B2MMessageBuilder';
 import { v4 as uuidv4 } from 'uuid';
 
 export class PersonnelInfoSyncService {
-  private prisma: PrismaClient;
-
-  constructor(prismaClient?: PrismaClient) {
-    this.prisma = prismaClient || new PrismaClient();
+  constructor() {
   }
 
   /**
@@ -32,7 +30,7 @@ export class PersonnelInfoSyncService {
 
     try {
       // Get user information
-      const user = await this.prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: userId },
       });
 
@@ -41,7 +39,7 @@ export class PersonnelInfoSyncService {
       }
 
       // Get integration config
-      const config = await this.prisma.integrationConfig.findUnique({
+      const config = await prisma.integrationConfig.findUnique({
         where: { id: configId },
       });
 
@@ -122,7 +120,7 @@ export class PersonnelInfoSyncService {
         messagePayload: isa95Message as any,
       };
 
-      const exchange = await this.prisma.personnelInfoExchange.create({
+      const exchange = await prisma.personnelInfoExchange.create({
         data: {
           ...exchangeInput,
           status: 'PENDING',
@@ -135,7 +133,7 @@ export class PersonnelInfoSyncService {
 
       // TODO: Send to ERP via IntegrationManager (to be implemented in future PR)
       // For now, mark as PROCESSED (would be SENT after actual transmission)
-      await this.prisma.personnelInfoExchange.update({
+      await prisma.personnelInfoExchange.update({
         where: { id: exchange.id },
         data: {
           status: 'PROCESSED',
@@ -186,7 +184,7 @@ export class PersonnelInfoSyncService {
       }
 
       // Get integration config
-      const config = await this.prisma.integrationConfig.findUnique({
+      const config = await prisma.integrationConfig.findUnique({
         where: { id: configId },
       });
 
@@ -195,7 +193,7 @@ export class PersonnelInfoSyncService {
       }
 
       // Find existing user by external ID (username)
-      let user = await this.prisma.user.findFirst({
+      let user = await prisma.user.findFirst({
         where: { username: message.personnel.externalId },
       });
 
@@ -214,7 +212,7 @@ export class PersonnelInfoSyncService {
           }
 
           // Create new user
-          user = await this.prisma.user.create({
+          user = await prisma.user.create({
             data: {
               username: message.personnel.externalId,
               firstName: message.personnel.firstName || message.personnel.externalId,
@@ -248,7 +246,7 @@ export class PersonnelInfoSyncService {
             updateData.employeeId = message.personnel.employeeNumber;
           }
 
-          user = await this.prisma.user.update({
+          user = await prisma.user.update({
             where: { id: user.id },
             data: updateData,
           });
@@ -277,7 +275,7 @@ export class PersonnelInfoSyncService {
           }
 
           // Soft delete - mark as inactive
-          user = await this.prisma.user.update({
+          user = await prisma.user.update({
             where: { id: user.id },
             data: {
               isActive: false,
@@ -299,7 +297,7 @@ export class PersonnelInfoSyncService {
       }
 
       // Create PersonnelInfoExchange record
-      const exchange = await this.prisma.personnelInfoExchange.create({
+      const exchange = await prisma.personnelInfoExchange.create({
         data: {
           messageId: message.messageId,
           configId,
@@ -328,7 +326,7 @@ export class PersonnelInfoSyncService {
       });
 
       // Mark as processed
-      await this.prisma.personnelInfoExchange.update({
+      await prisma.personnelInfoExchange.update({
         where: { id: exchange.id },
         data: {
           status: 'PROCESSED',
@@ -354,7 +352,7 @@ export class PersonnelInfoSyncService {
    * Get personnel info exchange status
    */
   async getExchangeStatus(messageId: string) {
-    const exchange = await this.prisma.personnelInfoExchange.findUnique({
+    const exchange = await prisma.personnelInfoExchange.findUnique({
       where: { messageId },
       include: {
         config: {
@@ -372,7 +370,7 @@ export class PersonnelInfoSyncService {
     // Get user info if personnelId exists
     let userInfo: any = undefined;
     if (exchange.personnelId) {
-      const user = await this.prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: exchange.personnelId },
         select: {
           username: true,
@@ -442,7 +440,7 @@ export class PersonnelInfoSyncService {
       }
     }
 
-    const exchanges = await this.prisma.personnelInfoExchange.findMany({
+    const exchanges = await prisma.personnelInfoExchange.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       select: {
@@ -467,7 +465,7 @@ export class PersonnelInfoSyncService {
    * Get all personnel exchanges by external ID
    */
   async getExternalPersonnelExchanges(externalPersonnelId: string) {
-    const exchanges = await this.prisma.personnelInfoExchange.findMany({
+    const exchanges = await prisma.personnelInfoExchange.findMany({
       where: { externalPersonnelId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -498,7 +496,7 @@ export class PersonnelInfoSyncService {
    * Retry failed personnel exchange
    */
   async retryExchange(messageId: string, createdBy: string) {
-    const exchange = await this.prisma.personnelInfoExchange.findUnique({
+    const exchange = await prisma.personnelInfoExchange.findUnique({
       where: { messageId },
     });
 
@@ -511,7 +509,7 @@ export class PersonnelInfoSyncService {
     }
 
     // Reset status to PENDING for retry
-    await this.prisma.personnelInfoExchange.update({
+    await prisma.personnelInfoExchange.update({
       where: { messageId },
       data: {
         status: 'PENDING',
@@ -597,7 +595,7 @@ export class PersonnelInfoSyncService {
 
     try {
       // Get all active users
-      const users = await this.prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: { isActive: true },
       });
 

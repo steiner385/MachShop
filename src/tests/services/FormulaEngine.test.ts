@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { FormulaEngineService } from '../../services/FormulaEngine';
 import { EvaluationTrigger } from '@prisma/client';
 
-// Mock PrismaClient
-vi.mock('@prisma/client', async () => {
-  const actual = await vi.importActual('@prisma/client');
-
-  const mockPrisma = {
+// Mock the database module
+vi.mock('../../lib/database', () => ({
+  default: {
+    operationParameter: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+    },
     parameterFormula: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -14,25 +16,17 @@ vi.mock('@prisma/client', async () => {
       update: vi.fn(),
       delete: vi.fn(),
     },
-    operationParameter: {
-      findMany: vi.fn(),
-    },
-  };
+  },
+}));
 
-  return {
-    ...actual,
-    PrismaClient: vi.fn(() => mockPrisma),
-  };
-});
-
-import { PrismaClient } from '@prisma/client';
+// Import mock database for use in tests
+import prisma from '../../lib/database';
 
 describe('FormulaEngineService', () => {
   let formulaEngine: FormulaEngineService;
-  let mockPrisma: any;
+  const mockPrisma = vi.mocked(prisma);
 
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
     formulaEngine = new FormulaEngineService();
     vi.clearAllMocks();
   });

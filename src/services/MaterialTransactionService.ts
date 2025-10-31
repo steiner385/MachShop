@@ -6,16 +6,15 @@
  * Following ISA-95 Part 3 specification for material transactions
  */
 
-import { PrismaClient, ERPTransactionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
+import { ERPTransactionType, B2MMessageStatus, IntegrationDirection } from '@prisma/client';
 import { ERPMaterialTransactionInput, MaterialTransactionSyncResult } from '../types/b2m';
 import B2MMessageBuilder from './B2MMessageBuilder';
 import { v4 as uuidv4 } from 'uuid';
+import prisma from '../lib/database';
 
 export class MaterialTransactionService {
-  private prisma: PrismaClient;
 
-  constructor(prismaClient?: PrismaClient) {
-    this.prisma = prismaClient || new PrismaClient();
+  constructor() {
   }
 
   /**
@@ -57,7 +56,7 @@ export class MaterialTransactionService {
 
     try {
       // Get part information
-      const part = await this.prisma.part.findUnique({
+      const part = await prisma.part.findUnique({
         where: { id: partId },
       });
 
@@ -66,7 +65,7 @@ export class MaterialTransactionService {
       }
 
       // Get integration config
-      const config = await this.prisma.integrationConfig.findUnique({
+      const config = await prisma.integrationConfig.findUnique({
         where: { id: configId },
       });
 
@@ -81,7 +80,7 @@ export class MaterialTransactionService {
       // Get work order if specified
       let externalWorkOrderId: string | undefined;
       if (workOrderId) {
-        const workOrder = await this.prisma.workOrder.findUnique({
+        const workOrder = await prisma.workOrder.findUnique({
           where: { id: workOrderId },
           select: { customerOrder: true, workOrderNumber: true },
         });
@@ -153,7 +152,7 @@ export class MaterialTransactionService {
         messagePayload: isa95Message as any,
       };
 
-      const transaction = await this.prisma.eRPMaterialTransaction.create({
+      const transaction = await prisma.eRPMaterialTransaction.create({
         data: {
           ...transactionInput,
           status: 'PENDING',
@@ -163,7 +162,7 @@ export class MaterialTransactionService {
 
       // TODO: Send to ERP via IntegrationManager (to be implemented in future PR)
       // For now, mark as PROCESSED (would be SENT after actual transmission)
-      await this.prisma.eRPMaterialTransaction.update({
+      await prisma.eRPMaterialTransaction.update({
         where: { id: transaction.id },
         data: {
           status: 'PROCESSED',
@@ -213,7 +212,7 @@ export class MaterialTransactionService {
       }
 
       // Get integration config
-      const config = await this.prisma.integrationConfig.findUnique({
+      const config = await prisma.integrationConfig.findUnique({
         where: { id: configId },
       });
 
@@ -222,7 +221,7 @@ export class MaterialTransactionService {
       }
 
       // Find part by external part number
-      const part = await this.prisma.part.findFirst({
+      const part = await prisma.part.findFirst({
         where: { partNumber: message.material.partNumber },
       });
 
@@ -233,7 +232,7 @@ export class MaterialTransactionService {
       // Find work order if referenced
       let workOrderId: string | undefined;
       if (message.workOrderReference) {
-        const workOrder = await this.prisma.workOrder.findFirst({
+        const workOrder = await prisma.workOrder.findFirst({
           where: {
             OR: [
               { workOrderNumber: message.workOrderReference },
@@ -248,7 +247,7 @@ export class MaterialTransactionService {
       }
 
       // Create ERPMaterialTransaction record
-      const transaction = await this.prisma.eRPMaterialTransaction.create({
+      const transaction = await prisma.eRPMaterialTransaction.create({
         data: {
           messageId: message.messageId,
           configId,
@@ -289,7 +288,7 @@ export class MaterialTransactionService {
       });
 
       // Mark as processed
-      await this.prisma.eRPMaterialTransaction.update({
+      await prisma.eRPMaterialTransaction.update({
         where: { id: transaction.id },
         data: {
           status: 'PROCESSED',
@@ -374,7 +373,7 @@ export class MaterialTransactionService {
     }
 
     // Validate that the part exists before creating inventory
-    const part = await this.prisma.part.findUnique({
+    const part = await prisma.part.findUnique({
       where: { id: partId },
       select: { id: true, partNumber: true, isActive: true }
     });
@@ -388,7 +387,7 @@ export class MaterialTransactionService {
     }
 
     // Find or create inventory record for this part
-    let inventory = await this.prisma.inventory.findFirst({
+    let inventory = await prisma.inventory.findFirst({
       where: {
         partId: partId,
         // Match on location if provided, otherwise use first available
@@ -398,7 +397,7 @@ export class MaterialTransactionService {
 
     // If no inventory exists for this part, create one
     if (!inventory) {
-      inventory = await this.prisma.inventory.create({
+      inventory = await prisma.inventory.create({
         data: {
           partId: partId,
           quantity: Math.max(0, quantityChange), // Ensure non-negative starting quantity
@@ -411,7 +410,7 @@ export class MaterialTransactionService {
     // Create MaterialTransaction record to update inventory
     // Note: Schema simplified - only core fields available
     // TODO: Extend schema with partId, lotNumber, serialNumber, locations, notes if needed
-    await this.prisma.materialTransaction.create({
+    await prisma.materialTransaction.create({
       data: {
         inventoryId: inventory.id, // Use actual inventory ID
         quantity: Math.abs(quantity),
@@ -425,7 +424,7 @@ export class MaterialTransactionService {
 
     // Update Part inventory quantity
     if (quantityChange !== 0) {
-      await this.prisma.part.update({
+      await prisma.part.update({
         where: { id: partId },
         data: {
           // TODO: Add quantityOnHand field to Part model to track inventory
@@ -442,7 +441,7 @@ export class MaterialTransactionService {
    * Get material transaction status
    */
   async getTransactionStatus(messageId: string) {
-    const transaction = await this.prisma.eRPMaterialTransaction.findUnique({
+    const transaction = await prisma.eRPMaterialTransaction.findUnique({
       where: { messageId },
       include: {
         part: {
@@ -515,7 +514,7 @@ export class MaterialTransactionService {
       }
     }
 
-    const transactions = await this.prisma.eRPMaterialTransaction.findMany({
+    const transactions = await prisma.eRPMaterialTransaction.findMany({
       where: whereClause,
       orderBy: { transactionDate: 'desc' },
       select: {
@@ -540,7 +539,7 @@ export class MaterialTransactionService {
    * Get all material transactions for a work order
    */
   async getWorkOrderTransactions(workOrderId: string) {
-    const transactions = await this.prisma.eRPMaterialTransaction.findMany({
+    const transactions = await prisma.eRPMaterialTransaction.findMany({
       where: { workOrderId },
       orderBy: { transactionDate: 'desc' },
       include: {
@@ -573,7 +572,7 @@ export class MaterialTransactionService {
    * Retry failed transaction
    */
   async retryTransaction(messageId: string, createdBy: string) {
-    const transaction = await this.prisma.eRPMaterialTransaction.findUnique({
+    const transaction = await prisma.eRPMaterialTransaction.findUnique({
       where: { messageId },
     });
 
@@ -586,7 +585,7 @@ export class MaterialTransactionService {
     }
 
     // Reset status to PENDING for retry
-    await this.prisma.eRPMaterialTransaction.update({
+    await prisma.eRPMaterialTransaction.update({
       where: { messageId },
       data: {
         status: 'PENDING',
@@ -640,7 +639,7 @@ export class MaterialTransactionService {
 
     try {
       // Get all material transactions for the work order
-      const materialTransactions = await this.prisma.materialTransaction.findMany({
+      const materialTransactions = await prisma.materialTransaction.findMany({
         where: {
           workOrderId,
           transactionType: 'ISSUE', // Using ISSUE instead of CONSUMPTION

@@ -7,7 +7,8 @@
  * Handles per-user defaults, per-workstation overrides, and workstation configurations.
  */
 
-import { PrismaClient, LayoutMode, PanelPosition } from '@prisma/client';
+import { LayoutMode, PanelPosition } from '@prisma/client';
+import prisma from '../lib/database';
 import { logger } from '../utils/logger';
 
 // Type definitions for preference operations
@@ -54,10 +55,7 @@ export interface PreferenceExport {
 }
 
 export class UserPreferenceService {
-  private prisma: PrismaClient;
-
   constructor() {
-    this.prisma = new PrismaClient();
   }
 
   /**
@@ -69,7 +67,7 @@ export class UserPreferenceService {
 
       // First try to get workstation-specific preferences
       if (workstationId) {
-        const workstationPrefs = await this.prisma.userWorkstationPreference.findUnique({
+        const workstationPrefs = await prisma.userWorkstationPreference.findUnique({
           where: {
             userId_workstationId: {
               userId,
@@ -85,7 +83,7 @@ export class UserPreferenceService {
       }
 
       // Fall back to default preferences (workstationId = null)
-      const defaultPrefs = await this.prisma.userWorkstationPreference.findUnique({
+      const defaultPrefs = await prisma.userWorkstationPreference.findUnique({
         where: {
           userId_workstationId: {
             userId,
@@ -101,7 +99,7 @@ export class UserPreferenceService {
 
       // If no preferences exist, create default preferences
       logger.info(`[UserPreference] Creating default preferences for user`);
-      const newPrefs = await this.prisma.userWorkstationPreference.create({
+      const newPrefs = await prisma.userWorkstationPreference.create({
         data: {
           userId,
           workstationId: null,
@@ -120,7 +118,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Get preferences failed:', error);
-      throw new Error(`Get user preferences failed: ${error.message}`);
+      throw new Error(`Get user preferences failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -151,7 +149,7 @@ export class UserPreferenceService {
         updateData.secondMonitorPosition = preferences.secondMonitorPosition;
       }
 
-      const updatedPrefs = await this.prisma.userWorkstationPreference.upsert({
+      const updatedPrefs = await prisma.userWorkstationPreference.upsert({
         where: {
           userId_workstationId: {
             userId,
@@ -178,7 +176,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Save preferences failed:', error);
-      throw new Error(`Save user preferences failed: ${error.message}`);
+      throw new Error(`Save user preferences failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -189,7 +187,7 @@ export class UserPreferenceService {
     try {
       logger.info(`[UserPreference] Getting workstation config: ${workstationId}`);
 
-      const config = await this.prisma.workstationDisplayConfig.findUnique({
+      const config = await prisma.workstationDisplayConfig.findUnique({
         where: { workstationId }
       });
 
@@ -197,7 +195,7 @@ export class UserPreferenceService {
         logger.info(`[UserPreference] No config found, creating default for workstation: ${workstationId}`);
 
         // Create default configuration
-        const defaultConfig = await this.prisma.workstationDisplayConfig.create({
+        const defaultConfig = await prisma.workstationDisplayConfig.create({
           data: {
             workstationId,
             isMultiMonitor: false,
@@ -217,7 +215,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Get workstation config failed:', error);
-      throw new Error(`Get workstation config failed: ${error.message}`);
+      throw new Error(`Get workstation config failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -241,7 +239,7 @@ export class UserPreferenceService {
         throw new Error('Screen height must be at least 600 pixels');
       }
 
-      const updatedConfig = await this.prisma.workstationDisplayConfig.upsert({
+      const updatedConfig = await prisma.workstationDisplayConfig.upsert({
         where: { workstationId },
         update: {
           ...config,
@@ -267,7 +265,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Update workstation config failed:', error);
-      throw new Error(`Update workstation config failed: ${error.message}`);
+      throw new Error(`Update workstation config failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -278,7 +276,7 @@ export class UserPreferenceService {
     try {
       logger.info(`[UserPreference] Resetting preferences to defaults for user: ${userId}${workstationId ? `, workstation: ${workstationId}` : ' (default)'}`);
 
-      const defaultPrefs = await this.prisma.userWorkstationPreference.upsert({
+      const defaultPrefs = await prisma.userWorkstationPreference.upsert({
         where: {
           userId_workstationId: {
             userId,
@@ -314,7 +312,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Reset to defaults failed:', error);
-      throw new Error(`Reset to defaults failed: ${error.message}`);
+      throw new Error(`Reset to defaults failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -348,7 +346,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Export preferences failed:', error);
-      throw new Error(`Export preferences failed: ${error.message}`);
+      throw new Error(`Export preferences failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -371,7 +369,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Import preferences failed:', error);
-      throw new Error(`Import preferences failed: ${error.message}`);
+      throw new Error(`Import preferences failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -382,7 +380,7 @@ export class UserPreferenceService {
     try {
       logger.info(`[UserPreference] Getting all preferences for user: ${userId}`);
 
-      const allPrefs = await this.prisma.userWorkstationPreference.findMany({
+      const allPrefs = await prisma.userWorkstationPreference.findMany({
         where: {
           userId,
           isActive: true
@@ -398,7 +396,7 @@ export class UserPreferenceService {
 
     } catch (error) {
       logger.error('[UserPreference] Get all preferences failed:', error);
-      throw new Error(`Get all user preferences failed: ${error.message}`);
+      throw new Error(`Get all user preferences failed: ${error?.message || error || 'Unknown error'}`);
     }
   }
 
@@ -428,7 +426,7 @@ export class UserPreferenceService {
    * Cleanup method for proper service shutdown
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

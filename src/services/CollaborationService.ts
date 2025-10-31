@@ -1,4 +1,5 @@
-import { PrismaClient, DocumentEditSession, ConflictResolution, DocumentSubscription, ConflictType, ResolutionStrategy } from '@prisma/client';
+import { DocumentEditSession, ConflictResolution, DocumentSubscription, ConflictType, ResolutionStrategy } from '@prisma/client';
+import prisma from '../lib/database';
 import logger from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { EventEmitter } from 'events';
@@ -94,32 +95,13 @@ export interface DocumentCollaborationState {
  * Collaboration Service - Manages real-time collaboration features
  */
 class CollaborationService extends EventEmitter {
-  private prisma: PrismaClient;
   private activeSessions: Map<string, ActiveSession>;
   private documentUsers: Map<string, Set<string>>;
 
   constructor() {
     super();
-    this.prisma = new PrismaClient({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'event', level: 'error' },
-        { emit: 'event', level: 'info' },
-        { emit: 'event', level: 'warn' },
-      ],
-    });
-
     this.activeSessions = new Map();
     this.documentUsers = new Map();
-
-    // Log Prisma events
-    this.prisma.$on('query', (e) => {
-      logger.debug('Prisma Query', { query: e.query, params: e.params, duration: e.duration });
-    });
-
-    this.prisma.$on('error', (e) => {
-      logger.error('Prisma Error', { error: e.message, target: e.target });
-    });
 
     // Clean up inactive sessions periodically
     setInterval(() => {
@@ -141,7 +123,7 @@ class CollaborationService extends EventEmitter {
       // End any existing session for this user on this document
       await this.endEditSession(input.documentType, input.documentId, input.userId);
 
-      const session = await this.prisma.documentEditSession.create({
+      const session = await prisma.documentEditSession.create({
         data: {
           documentType: input.documentType,
           documentId: input.documentId,
@@ -201,7 +183,7 @@ class CollaborationService extends EventEmitter {
       logger.info('Ending edit session', { documentType, documentId, userId });
 
       // Find and update existing session
-      const existingSession = await this.prisma.documentEditSession.findFirst({
+      const existingSession = await prisma.documentEditSession.findFirst({
         where: {
           documentType,
           documentId,
@@ -211,7 +193,7 @@ class CollaborationService extends EventEmitter {
       });
 
       if (existingSession) {
-        await this.prisma.documentEditSession.update({
+        await prisma.documentEditSession.update({
           where: { id: existingSession.id },
           data: { endedAt: new Date() }
         });
@@ -255,7 +237,7 @@ class CollaborationService extends EventEmitter {
       if (session) {
         session.lastActivity = new Date();
 
-        await this.prisma.documentEditSession.update({
+        await prisma.documentEditSession.update({
           where: { id: sessionId },
           data: { lastActivity: new Date() }
         });
@@ -296,7 +278,7 @@ class CollaborationService extends EventEmitter {
         conflictType: input.conflictType
       });
 
-      const conflict = await this.prisma.conflictResolution.create({
+      const conflict = await prisma.conflictResolution.create({
         data: {
           documentType: input.documentType,
           documentId: input.documentId,
@@ -340,7 +322,7 @@ class CollaborationService extends EventEmitter {
     try {
       logger.info('Resolving conflict', { conflictId: input.conflictId });
 
-      const resolvedConflict = await this.prisma.conflictResolution.update({
+      const resolvedConflict = await prisma.conflictResolution.update({
         where: { id: input.conflictId },
         data: {
           isResolved: true,
@@ -387,7 +369,7 @@ class CollaborationService extends EventEmitter {
         userId: input.userId
       });
 
-      const subscription = await this.prisma.documentSubscription.upsert({
+      const subscription = await prisma.documentSubscription.upsert({
         where: {
           documentType_documentId_userId: {
             documentType: input.documentType,
@@ -425,7 +407,7 @@ class CollaborationService extends EventEmitter {
     try {
       logger.info('Removing document subscription', { documentType, documentId, userId });
 
-      await this.prisma.documentSubscription.update({
+      await prisma.documentSubscription.update({
         where: {
           documentType_documentId_userId: {
             documentType,
@@ -448,7 +430,7 @@ class CollaborationService extends EventEmitter {
    */
   async getDocumentSubscribers(documentType: string, documentId: string): Promise<DocumentSubscription[]> {
     try {
-      const subscribers = await this.prisma.documentSubscription.findMany({
+      const subscribers = await prisma.documentSubscription.findMany({
         where: {
           documentType,
           documentId,
@@ -482,7 +464,7 @@ class CollaborationService extends EventEmitter {
       }));
 
       // Get unresolved conflicts
-      const conflicts = await this.prisma.conflictResolution.findMany({
+      const conflicts = await prisma.conflictResolution.findMany({
         where: {
           documentType,
           documentId,
@@ -681,7 +663,7 @@ class CollaborationService extends EventEmitter {
    */
   async getDocumentConflictHistory(documentType: string, documentId: string): Promise<ConflictResolution[]> {
     try {
-      const conflicts = await this.prisma.conflictResolution.findMany({
+      const conflicts = await prisma.conflictResolution.findMany({
         where: { documentType, documentId },
         orderBy: { detectedAt: 'desc' }
       });
@@ -715,7 +697,7 @@ class CollaborationService extends EventEmitter {
       }
 
       const [sessions, conflicts, resolutions, subscriptions] = await Promise.all([
-        this.prisma.documentEditSession.findMany({
+        prisma.documentEditSession.findMany({
           where: whereClause,
           select: {
             startedAt: true,
@@ -724,19 +706,19 @@ class CollaborationService extends EventEmitter {
             documentId: true
           }
         }),
-        this.prisma.conflictResolution.count({
+        prisma.conflictResolution.count({
           where: {
             detectedById: userId,
             ...(timeRange ? { detectedAt: { gte: timeRange.start, lte: timeRange.end } } : {})
           }
         }),
-        this.prisma.conflictResolution.count({
+        prisma.conflictResolution.count({
           where: {
             resolvedById: userId,
             ...(timeRange ? { resolvedAt: { gte: timeRange.start, lte: timeRange.end } } : {})
           }
         }),
-        this.prisma.documentSubscription.count({
+        prisma.documentSubscription.count({
           where: { userId, isActive: true }
         })
       ]);
@@ -770,7 +752,7 @@ class CollaborationService extends EventEmitter {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 
