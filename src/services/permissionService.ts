@@ -23,6 +23,16 @@ export interface ResolvedPermissions {
   permissions: string[];
   wildcardPermissions: string[];
   isSystemAdmin: boolean;
+  // Temporal permissions context
+  temporalRoles: Array<{
+    roleId: string;
+    roleName: string;
+    siteId?: string;
+    isTemporary: boolean;
+    grantReason?: string;
+    validFrom?: Date;
+    expiresAt?: Date;
+  }>;
 }
 
 /**
@@ -129,18 +139,32 @@ export async function resolveUserPermissions(
       siteRoles: [],
       permissions: cached.permissions,
       wildcardPermissions: [],
-      isSystemAdmin: cached.permissions.includes('*')
+      isSystemAdmin: cached.permissions.includes('*'),
+      temporalRoles: [] // Cache doesn't store temporal context for simplicity
     };
   }
 
   try {
-    // Get global role assignments
+    // Get global role assignments with temporal validation
+    const now = new Date();
     const globalRoleAssignments = await prisma.userRole.findMany({
       where: {
         userId,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
+        AND: [
+          // Role must be active (not expired)
+          {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: now } }
+            ]
+          },
+          // Role must have started (validFrom check)
+          {
+            OR: [
+              { validFrom: null },
+              { validFrom: { lte: now } }
+            ]
+          }
         ]
       },
       include: {
@@ -165,14 +189,26 @@ export async function resolveUserPermissions(
       }
     });
 
-    // Get site-specific role assignments
+    // Get site-specific role assignments with temporal validation
     const siteRoleAssignments = siteId ? await prisma.userSiteRole.findMany({
       where: {
         userId,
         siteId,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
+        AND: [
+          // Role must be active (not expired)
+          {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: now } }
+            ]
+          },
+          // Role must have started (validFrom check)
+          {
+            OR: [
+              { validFrom: null },
+              { validFrom: { lte: now } }
+            ]
+          }
         ]
       },
       include: {
@@ -208,11 +244,30 @@ export async function resolveUserPermissions(
     const siteRoles: Array<{ siteId: string; roles: string[] }> = [];
     const allPermissions = new Set<string>();
     const wildcardPermissions = new Set<string>();
+    const temporalRoles: Array<{
+      roleId: string;
+      roleName: string;
+      siteId?: string;
+      isTemporary: boolean;
+      grantReason?: string;
+      validFrom?: Date;
+      expiresAt?: Date;
+    }> = [];
 
     // Process global roles
     for (const assignment of globalRoleAssignments) {
       if (assignment.role.isActive) {
         globalRoles.push(assignment.role.roleName);
+
+        // Collect temporal role information
+        temporalRoles.push({
+          roleId: assignment.roleId,
+          roleName: assignment.role.roleName,
+          isTemporary: assignment.isTemporary,
+          grantReason: assignment.grantReason || undefined,
+          validFrom: assignment.validFrom || undefined,
+          expiresAt: assignment.expiresAt || undefined
+        });
 
         // Add permissions from this role
         for (const rolePermission of assignment.role.permissions) {
@@ -237,6 +292,17 @@ export async function resolveUserPermissions(
           siteRoleMap.set(siteId, []);
         }
         siteRoleMap.get(siteId)!.push(assignment.role.roleName);
+
+        // Collect temporal role information for site roles
+        temporalRoles.push({
+          roleId: assignment.roleId,
+          roleName: assignment.role.roleName,
+          siteId: siteId,
+          isTemporary: assignment.isTemporary,
+          grantReason: assignment.grantReason || undefined,
+          validFrom: assignment.validFrom || undefined,
+          expiresAt: assignment.expiresAt || undefined
+        });
 
         // Add permissions from this role
         for (const rolePermission of assignment.role.permissions) {
@@ -285,7 +351,8 @@ export async function resolveUserPermissions(
       siteRoles,
       permissions: finalPermissions,
       wildcardPermissions: Array.from(wildcardPermissions),
-      isSystemAdmin
+      isSystemAdmin,
+      temporalRoles
     };
 
   } catch (error: any) {
@@ -302,7 +369,8 @@ export async function resolveUserPermissions(
       siteRoles: [],
       permissions: [],
       wildcardPermissions: [],
-      isSystemAdmin: false
+      isSystemAdmin: false,
+      temporalRoles: []
     };
   }
 }
@@ -442,4 +510,327 @@ export async function hasAllPermissions(
  */
 export async function getUserEffectivePermissions(userId: string, siteId?: string) {
   return await resolveUserPermissions(userId, siteId);
+}
+
+/**
+ * Validate temporal permissions at specific point in time
+ */
+export async function resolveUserPermissionsAtTime(
+  userId: string,
+  effectiveDate: Date,
+  siteId?: string
+): Promise<ResolvedPermissions> {
+  const cacheKey = `${userId}:${effectiveDate.getTime()}:${siteId || 'global'}`;
+
+  try {
+    // Get global role assignments valid at specific time
+    const globalRoleAssignments = await prisma.userRole.findMany({
+      where: {
+        userId,
+        AND: [
+          // Role must be active at effective date (not expired)
+          {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: effectiveDate } }
+            ]
+          },
+          // Role must have started by effective date
+          {
+            OR: [
+              { validFrom: null },
+              { validFrom: { lte: effectiveDate } }
+            ]
+          }
+        ]
+      },
+      include: {
+        role: {
+          select: {
+            roleCode: true,
+            roleName: true,
+            isActive: true,
+            permissions: {
+              include: {
+                permission: {
+                  select: {
+                    permissionCode: true,
+                    isWildcard: true,
+                    isActive: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Get site-specific role assignments valid at specific time
+    const siteRoleAssignments = siteId ? await prisma.userSiteRole.findMany({
+      where: {
+        userId,
+        siteId,
+        AND: [
+          {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: effectiveDate } }
+            ]
+          },
+          {
+            OR: [
+              { validFrom: null },
+              { validFrom: { lte: effectiveDate } }
+            ]
+          }
+        ]
+      },
+      include: {
+        role: {
+          select: {
+            roleCode: true,
+            roleName: true,
+            isActive: true,
+            permissions: {
+              include: {
+                permission: {
+                  select: {
+                    permissionCode: true,
+                    isWildcard: true,
+                    isActive: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        site: {
+          select: {
+            id: true,
+            siteCode: true
+          }
+        }
+      }
+    }) : [];
+
+    // Process assignments similar to main function
+    const globalRoles: string[] = [];
+    const siteRoles: Array<{ siteId: string; roles: string[] }> = [];
+    const allPermissions = new Set<string>();
+    const wildcardPermissions = new Set<string>();
+    const temporalRoles: Array<{
+      roleId: string;
+      roleName: string;
+      siteId?: string;
+      isTemporary: boolean;
+      grantReason?: string;
+      validFrom?: Date;
+      expiresAt?: Date;
+    }> = [];
+
+    // Process global roles
+    for (const assignment of globalRoleAssignments) {
+      if (assignment.role.isActive) {
+        globalRoles.push(assignment.role.roleName);
+
+        temporalRoles.push({
+          roleId: assignment.roleId,
+          roleName: assignment.role.roleName,
+          isTemporary: assignment.isTemporary,
+          grantReason: assignment.grantReason || undefined,
+          validFrom: assignment.validFrom || undefined,
+          expiresAt: assignment.expiresAt || undefined
+        });
+
+        for (const rolePermission of assignment.role.permissions) {
+          const perm = rolePermission.permission;
+          if (perm.isActive) {
+            if (perm.isWildcard) {
+              wildcardPermissions.add(perm.permissionCode);
+            } else {
+              allPermissions.add(perm.permissionCode);
+            }
+          }
+        }
+      }
+    }
+
+    // Process site-specific roles
+    const siteRoleMap = new Map<string, string[]>();
+    for (const assignment of siteRoleAssignments) {
+      if (assignment.role.isActive) {
+        const siteId = assignment.site.id;
+        if (!siteRoleMap.has(siteId)) {
+          siteRoleMap.set(siteId, []);
+        }
+        siteRoleMap.get(siteId)!.push(assignment.role.roleName);
+
+        temporalRoles.push({
+          roleId: assignment.roleId,
+          roleName: assignment.role.roleName,
+          siteId: siteId,
+          isTemporary: assignment.isTemporary,
+          grantReason: assignment.grantReason || undefined,
+          validFrom: assignment.validFrom || undefined,
+          expiresAt: assignment.expiresAt || undefined
+        });
+
+        for (const rolePermission of assignment.role.permissions) {
+          const perm = rolePermission.permission;
+          if (perm.isActive) {
+            if (perm.isWildcard) {
+              wildcardPermissions.add(perm.permissionCode);
+            } else {
+              allPermissions.add(perm.permissionCode);
+            }
+          }
+        }
+      }
+    }
+
+    // Convert site role map to array
+    for (const [siteId, roles] of siteRoleMap.entries()) {
+      siteRoles.push({ siteId, roles });
+    }
+
+    // Expand wildcard permissions
+    const expandedPermissions = await expandWildcardPermissions(Array.from(wildcardPermissions));
+    expandedPermissions.forEach(p => allPermissions.add(p));
+
+    const finalPermissions = Array.from(allPermissions);
+    const isSystemAdmin = wildcardPermissions.has('*') || globalRoles.includes('System Administrator');
+
+    return {
+      globalRoles,
+      siteRoles,
+      permissions: finalPermissions,
+      wildcardPermissions: Array.from(wildcardPermissions),
+      isSystemAdmin,
+      temporalRoles
+    };
+
+  } catch (error: any) {
+    logger.error('Failed to resolve user permissions at time', {
+      userId,
+      siteId,
+      effectiveDate,
+      error: error.message
+    });
+
+    return {
+      globalRoles: [],
+      siteRoles: [],
+      permissions: [],
+      wildcardPermissions: [],
+      isSystemAdmin: false,
+      temporalRoles: []
+    };
+  }
+}
+
+/**
+ * Get all temporal role assignments for a user (expired, active, and future)
+ */
+export async function getUserTemporalRoles(userId: string, siteId?: string) {
+  try {
+    const whereClause = siteId ? { userId, siteId } : { userId };
+
+    const [globalRoles, siteRoles] = await Promise.all([
+      // Global roles
+      siteId ? Promise.resolve([]) : prisma.userRole.findMany({
+        where: whereClause,
+        include: {
+          role: {
+            select: {
+              roleCode: true,
+              roleName: true,
+              isActive: true
+            }
+          }
+        },
+        orderBy: [
+          { assignedAt: 'desc' }
+        ]
+      }),
+
+      // Site-specific roles
+      siteId ? prisma.userSiteRole.findMany({
+        where: whereClause,
+        include: {
+          role: {
+            select: {
+              roleCode: true,
+              roleName: true,
+              isActive: true
+            }
+          },
+          site: {
+            select: {
+              id: true,
+              siteCode: true,
+              siteName: true
+            }
+          }
+        },
+        orderBy: [
+          { assignedAt: 'desc' }
+        ]
+      }) : Promise.resolve([])
+    ]);
+
+    const now = new Date();
+
+    return {
+      globalRoles: globalRoles.map(assignment => ({
+        ...assignment,
+        status: getTemporalRoleStatus(assignment, now),
+        isActive: isTemporalRoleActive(assignment, now)
+      })),
+      siteRoles: siteRoles.map(assignment => ({
+        ...assignment,
+        status: getTemporalRoleStatus(assignment, now),
+        isActive: isTemporalRoleActive(assignment, now)
+      }))
+    };
+
+  } catch (error: any) {
+    logger.error('Failed to get user temporal roles', {
+      userId,
+      siteId,
+      error: error.message
+    });
+    return { globalRoles: [], siteRoles: [] };
+  }
+}
+
+/**
+ * Determine the status of a temporal role assignment
+ */
+function getTemporalRoleStatus(
+  assignment: { validFrom?: Date | null; expiresAt?: Date | null },
+  currentTime: Date = new Date()
+): 'pending' | 'active' | 'expired' {
+  const validFrom = assignment.validFrom;
+  const expiresAt = assignment.expiresAt;
+
+  if (expiresAt && currentTime > expiresAt) {
+    return 'expired';
+  }
+
+  if (validFrom && currentTime < validFrom) {
+    return 'pending';
+  }
+
+  return 'active';
+}
+
+/**
+ * Check if a temporal role assignment is currently active
+ */
+function isTemporalRoleActive(
+  assignment: { validFrom?: Date | null; expiresAt?: Date | null },
+  currentTime: Date = new Date()
+): boolean {
+  return getTemporalRoleStatus(assignment, currentTime) === 'active';
 }
