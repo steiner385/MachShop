@@ -9,7 +9,7 @@ import { SAPERPAdapter } from '../../../services/erp/adapters/SAPERPAdapter';
 import { OracleERPAdapter } from '../../../services/erp/adapters/OracleERPAdapter';
 import { ERPAdapterFactory } from '../../../services/erp/adapters/ERPAdapterFactory';
 
-// Mock logger
+// Mock logger and axios
 vi.mock('../../../utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -18,6 +18,96 @@ vi.mock('../../../utils/logger', () => ({
     debug: vi.fn(),
   },
 }));
+
+vi.mock('axios', () => {
+  const mockAxios = {
+    create: vi.fn().mockReturnValue({
+      get: vi.fn().mockResolvedValue({ data: { token: 'mock_token' } }),
+      post: vi.fn().mockImplementation((path, data) => {
+        // Return appropriate mock data based on path/BAPI
+        if (path.includes('purchase-orders')) {
+          // Impact format
+          return Promise.resolve({
+            data: {
+              id: `po-${Date.now()}`,
+              po_number: `PO-${Date.now()}`,
+              ...data,
+            },
+            status: 200,
+          });
+        }
+        if (path.includes('BAPI_PO_CREATE1')) {
+          // SAP format
+          return Promise.resolve({
+            data: {
+              PurchasingDocumentNumber: `4500${Date.now().toString().slice(-6)}`,
+              DocumentNumber: `SAP-${Date.now()}`,
+              ...data,
+            },
+            status: 200,
+          });
+        }
+        if (path.includes('purchase_orders')) {
+          // Oracle format
+          return Promise.resolve({
+            data: {
+              segment1: `PO${Date.now()}`,
+              po_header_id: `ORA-${Date.now()}`,
+              ...data,
+            },
+            status: 200,
+          });
+        }
+        return Promise.resolve({
+          data: { token: 'mock_token' },
+          status: 200,
+        });
+      }),
+      request: vi.fn().mockImplementation((config) => {
+        // Handle different request types for adapters
+        if (config.url?.includes('purchase-orders')) {
+          // Impact
+          return Promise.resolve({
+            data: {
+              po_number: `PO-${Date.now()}`,
+              id: `po-${Date.now()}`,
+            },
+            status: 200,
+          });
+        }
+        if (config.url?.includes('purchase_orders')) {
+          // Oracle
+          return Promise.resolve({
+            data: {
+              segment1: `PO${Date.now()}`,
+              po_header_id: `ORA-${Date.now()}`,
+            },
+            status: 200,
+          });
+        }
+        if (config.url?.includes('BAPI')) {
+          // SAP
+          return Promise.resolve({
+            data: {
+              PurchasingDocumentNumber: `4500${Date.now().toString().slice(-6)}`,
+              DocumentNumber: `SAP-${Date.now()}`,
+            },
+            status: 200,
+          });
+        }
+        return Promise.resolve({
+          data: [],
+          status: 200,
+        });
+      }),
+      defaults: { headers: { common: {} } },
+      interceptors: { response: { use: vi.fn() } },
+    }),
+  };
+  return {
+    default: mockAxios,
+  };
+});
 
 describe('ImpactERPAdapter', () => {
   let adapter: ImpactERPAdapter;
