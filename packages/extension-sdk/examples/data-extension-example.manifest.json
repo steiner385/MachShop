@@ -1,35 +1,78 @@
 {
   "id": "aerospace-custom-fields",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "name": "Aerospace Industry Custom Fields",
   "type": "data-extension",
   "category": "custom-field",
   "description": "Extends work order and quality modules with aerospace-specific custom fields including certification tracking, compliance documentation, and supplier AS9100 status.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "application",
   "author": {
     "name": "Aerospace Compliance Systems",
     "email": "info@aerospace-compliance.io"
   },
   "license": "Proprietary",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["aerospace", "custom-fields", "as9100", "compliance"],
+  "keywords": ["aerospace", "custom-fields", "as9100", "compliance", "data-extension"],
+  "tags": ["aerospace", "as9100", "nadcap", "compliance", "custom-fields"],
   "documentation": {
     "guide": "https://docs.aerospace-compliance.io/machshop-extension"
   },
-  "conflicts": [
-    {
-      "id": "aerospace-legacy-fields",
-      "reason": "Superseded by improved schema"
-    }
-  ],
+  "dependencies": {
+    "capabilities": [
+      {
+        "capability": "work-order-schema",
+        "minVersion": "v2"
+      },
+      {
+        "capability": "quality-schema",
+        "minVersion": "v2"
+      }
+    ]
+  },
+  "conflicts": {
+    "explicit": [
+      {
+        "id": "aerospace-legacy-fields",
+        "reason": "Superseded by improved schema"
+      }
+    ]
+  },
   "capabilities": {
+    "provides": [
+      {
+        "name": "aerospace-data-extension",
+        "version": "v2.0.0",
+        "implements": ["getCustomFields", "validateCompliance", "trackCertification"]
+      }
+    ],
     "dataSchema": {
       "fields": [
-        "work-order.certification-level",
-        "work-order.supplier-approval",
-        "quality.nadcap-status",
-        "quality.fracture-critical-tracking"
+        {
+          "name": "work-order.certification-level",
+          "type": "string",
+          "required": false,
+          "description": "Aerospace certification level"
+        },
+        {
+          "name": "work-order.supplier-approval",
+          "type": "string",
+          "required": false,
+          "description": "Supplier approval status"
+        },
+        {
+          "name": "quality.nadcap-status",
+          "type": "string",
+          "required": false,
+          "description": "NADCAP certification status"
+        },
+        {
+          "name": "quality.fracture-critical-tracking",
+          "type": "boolean",
+          "required": false,
+          "description": "Track fracture-critical items"
+        }
       ]
     }
   },
@@ -39,6 +82,10 @@
     "read:quality",
     "write:quality"
   ],
+  "compliance": {
+    "applicableRegulations": ["AS9100", "NADCAP", "FAA-PMA"],
+    "complianceModel": "enforced"
+  },
   "configuration": {
     "properties": {
       "enableCertificationTracking": {
@@ -54,7 +101,8 @@
       "complianceLevel": {
         "type": "string",
         "enum": ["basic", "standard", "strict"],
-        "default": "standard"
+        "default": "standard",
+        "description": "Level of compliance enforcement"
       }
     },
     "required": ["complianceLevel"]
@@ -65,11 +113,19 @@
   },
   "testing": {
     "hasTests": true,
-    "coverage": 88
+    "coverage": 88,
+    "testTypes": ["unit", "integration"],
+    "cicdIntegration": true
   },
   "security": {
-    "signatureRequired": true
+    "sandboxed": true,
+    "signatureRequired": true,
+    "securityLevel": "standard",
+    "vulnerabilityScanRequired": true
   },
-  "tags": ["aerospace", "as9100", "nadcap", "compliance", "custom-fields"],
+  "governance": {
+    "requiresPlatformApproval": false,
+    "approvalProcess": "standard"
+  },
   "releaseDate": "2024-03-01T09:00:00Z"
 }

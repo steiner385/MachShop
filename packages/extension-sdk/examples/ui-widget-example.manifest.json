@@ -1,10 +1,14 @@
 {
   "id": "quality-dashboard-widget",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "name": "Quality Dashboard Widget",
   "type": "ui-extension",
   "category": "dashboard-widget",
   "description": "Real-time quality metrics dashboard widget displaying defect rates, control limits, and trend analysis for manufacturing operations.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "application",
   "author": {
     "name": "MachShop Engineering",
     "email": "support@machshop.io",
@@ -13,10 +17,8 @@
   "license": "MIT",
   "repository": "https://github.com/machshop/quality-dashboard-widget",
   "homepage": "https://docs.machshop.io/extensions/quality-dashboard",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["quality", "dashboard", "metrics", "widget"],
+  "keywords": ["quality", "dashboard", "metrics", "widget", "monitoring"],
+  "tags": ["quality", "monitoring", "real-time", "manufacturing"],
   "documentation": {
     "guide": "https://docs.machshop.io/extensions/quality-dashboard/guide",
     "api": "https://docs.machshop.io/extensions/quality-dashboard/api",
@@ -24,18 +26,41 @@
     "support": "https://github.com/machshop/quality-dashboard-widget/issues"
   },
   "dependencies": {
-    "react": "^18.0.0",
-    "recharts": "^2.5.0"
+    "capabilities": [
+      {
+        "capability": "quality-data-provider",
+        "minVersion": "v2",
+        "provider": "core-mes-ui-foundation"
+      }
+    ]
   },
-  "conflicts": [
-    {
-      "id": "legacy-quality-widget",
-      "reason": "Incompatible data structure and UI framework"
-    }
-  ],
+  "conflicts": {
+    "explicit": [
+      {
+        "id": "legacy-quality-widget",
+        "reason": "Incompatible data structure and UI framework"
+      }
+    ]
+  },
   "capabilities": {
+    "provides": [
+      {
+        "name": "quality-dashboard",
+        "version": "v2.0.0",
+        "implements": ["render", "configure", "refresh"]
+      }
+    ],
     "ui": {
-      "widgets": ["quality-metrics-dashboard"]
+      "widgets": [
+        {
+          "id": "quality-metrics-dashboard",
+          "name": "Quality Metrics Dashboard",
+          "category": "dashboard-widget",
+          "slots": ["dashboard-right-panel", "quality-hub"],
+          "permissions": ["read:quality", "read:work-orders"],
+          "contract": "UIComponentContract"
+        }
+      ]
     }
   },
   "permissions": [
@@ -47,17 +72,22 @@
       "refreshInterval": {
         "type": "integer",
         "description": "Data refresh interval in seconds",
-        "default": 30
+        "default": 30,
+        "minimum": 5,
+        "maximum": 300
       },
       "chartHeight": {
         "type": "integer",
         "description": "Dashboard chart height in pixels",
-        "default": 400
+        "default": 400,
+        "minimum": 200,
+        "maximum": 800
       },
       "displayMode": {
         "type": "string",
         "enum": ["compact", "expanded"],
-        "default": "expanded"
+        "default": "expanded",
+        "description": "Display layout mode for widgets"
       }
     },
     "required": ["refreshInterval"]
@@ -72,18 +102,31 @@
   },
   "testing": {
     "hasTests": true,
-    "coverage": 85
+    "coverage": 85,
+    "testTypes": ["unit", "integration", "component"],
+    "cicdIntegration": true,
+    "performanceBaseline": {
+      "memoryUsageMB": 128,
+      "responseTimeMs": 500
+    }
   },
   "security": {
     "sandboxed": true,
-    "allowedOrigins": ["https://machshop.io"]
+    "signatureRequired": false,
+    "allowedOrigins": ["https://machshop.io"],
+    "securityLevel": "standard",
+    "vulnerabilityScanRequired": false,
+    "auditLog": false
+  },
+  "governance": {
+    "requiresPlatformApproval": false,
+    "approvalProcess": "standard"
   },
   "performance": {
     "lazyLoad": true,
     "bundleSize": "150KB",
     "asyncCapable": true
   },
-  "tags": ["quality", "monitoring", "real-time", "manufacturing"],
   "releaseDate": "2024-01-15T10:30:00Z",
   "deprecated": false
 }

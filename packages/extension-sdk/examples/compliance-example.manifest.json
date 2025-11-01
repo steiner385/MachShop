@@ -5,42 +5,71 @@
   "type": "compliance",
   "category": "aerospace-compliance",
   "description": "Complete AS9100 compliance module for aerospace manufacturing including configuration management, document control, traceability requirements, and audit trail for FAA and customer compliance.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "core-foundation",
   "author": {
     "name": "Aerospace Quality Systems",
     "email": "compliance@aerospace-quality.io"
   },
   "license": "Proprietary",
   "repository": "https://github.com/machshop/as9100-compliance",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["as9100", "aerospace", "compliance", "faa", "quality"],
+  "keywords": ["as9100", "aerospace", "compliance", "faa", "quality", "compliance"],
+  "tags": ["as9100", "aerospace", "faa", "compliance", "audit-trail"],
   "documentation": {
     "guide": "https://docs.aerospace-quality.io/as9100-module",
     "support": "https://compliance-support.aerospace-quality.io"
   },
-  "conflicts": [
-    {
-      "id": "iso-9001-basic-module",
-      "reason": "AS9100 supersedes ISO 9001; use one or the other"
-    }
-  ],
+  "dependencies": {
+    "capabilities": [
+      {
+        "capability": "audit-logging",
+        "minVersion": "v2"
+      },
+      {
+        "capability": "document-control",
+        "minVersion": "v2"
+      }
+    ]
+  },
+  "conflicts": {
+    "explicit": [
+      {
+        "id": "iso-9001-basic-module",
+        "reason": "AS9100 supersedes ISO 9001; use one or the other"
+      }
+    ]
+  },
   "capabilities": {
+    "provides": [
+      {
+        "name": "as9100-compliance",
+        "version": "v2.0.0",
+        "implements": ["audit", "trace", "controlDocuments", "enforceCompliance"]
+      }
+    ],
     "hooks": [
       {
         "hook": "document:before-store",
         "phase": "pre",
-        "priority": 200
+        "priority": 200,
+        "description": "Validate document before storage",
+        "contract": "DocumentComplianceContract"
       },
       {
         "hook": "work-order:before-release",
         "phase": "pre",
-        "priority": 150
+        "priority": 150,
+        "description": "Check compliance before releasing work order",
+        "contract": "WorkOrderComplianceContract"
       },
       {
         "hook": "audit:after-change",
         "phase": "post",
-        "priority": 100
+        "priority": 100,
+        "description": "Record audit trail after changes",
+        "contract": "AuditLogContract"
       }
     ]
   },
@@ -51,6 +80,26 @@
     "write:quality",
     "admin:system"
   ],
+  "compliance": {
+    "applicableRegulations": ["AS9100", "FAA", "NADCAP"],
+    "complianceModel": "enforced",
+    "delegations": [
+      {
+        "aspect": "document-control",
+        "delegatedTo": "quality-manager",
+        "requiresSignoff": true,
+        "documentation": "https://docs.aerospace-quality.io/document-control",
+        "auditTrail": true
+      },
+      {
+        "aspect": "traceability",
+        "delegatedTo": "quality-focal",
+        "requiresSignoff": true,
+        "documentation": "https://docs.aerospace-quality.io/traceability",
+        "auditTrail": true
+      }
+    ]
+  },
   "configuration": {
     "properties": {
       "auditTrailEnabled": {
@@ -61,7 +110,8 @@
       "traceabilityLevel": {
         "type": "string",
         "enum": ["basic", "full", "enhanced"],
-        "default": "full"
+        "default": "full",
+        "description": "Level of traceability enforcement"
       },
       "documentControlRequired": {
         "type": "boolean",
@@ -71,7 +121,9 @@
       "retentionPeriodYears": {
         "type": "integer",
         "description": "Data retention period in years",
-        "default": 7
+        "default": 7,
+        "minimum": 5,
+        "maximum": 20
       }
     },
     "required": ["traceabilityLevel", "retentionPeriodYears"]
@@ -86,12 +138,36 @@
   },
   "testing": {
     "hasTests": true,
-    "coverage": 95
+    "coverage": 95,
+    "testTypes": ["unit", "integration", "e2e", "compliance"],
+    "cicdIntegration": true,
+    "performanceBaseline": {
+      "memoryUsageMB": 256,
+      "responseTimeMs": 500
+    }
   },
   "security": {
     "sandboxed": false,
-    "signatureRequired": true
+    "signatureRequired": true,
+    "securityLevel": "foundation",
+    "vulnerabilityScanRequired": true,
+    "auditLog": true,
+    "dataEncryption": {
+      "atRest": true,
+      "inTransit": true
+    }
   },
-  "tags": ["as9100", "aerospace", "faa", "compliance", "audit-trail"],
+  "governance": {
+    "requiresPlatformApproval": true,
+    "approvalProcess": "compliance-review",
+    "certificationRequired": true,
+    "certifications": [
+      {
+        "type": "AS9100-Compliance",
+        "certifier": "Aerospace Quality Systems",
+        "validUntil": "2026-02-28"
+      }
+    ]
+  },
   "releaseDate": "2024-02-28T16:30:00Z"
 }

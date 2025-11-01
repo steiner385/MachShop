@@ -1,0 +1,31 @@
+{
+  "name": "@machshop/ui-extension-contracts",
+  "version": "2.0.0",
+  "description": "UI extension contracts and widget registry for composable extension architecture",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@machshop/extension-sdk": "^2.0.0",
+    "react": "^18.2.0",
+    "antd": "^5.12.8"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0"
+  },
+  "keywords": [
+    "extension-framework",
+    "ui-components",
+    "widget-registry",
+    "composable"
+  ],
+  "author": "MachShop",
+  "license": "MIT"
+}
