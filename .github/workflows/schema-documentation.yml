@@ -1,0 +1,218 @@
+name: Automated Schema Documentation Generation
+
+on:
+  # Run on push to main to keep documentation up-to-date
+  push:
+    branches:
+      - main
+    paths:
+      - 'prisma/schema.prisma'
+      - 'scripts/schema-extractor.ts'
+      - '.github/workflows/schema-documentation.yml'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+  # Run on pull requests to validate schema changes
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'prisma/schema.prisma'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Job 1: Validate schema changes
+  validate-schema:
+    name: Validate Schema Changes
+    runs-on: ubuntu-latest
+    outputs:
+      schema_changed: ${{ steps.check.outputs.schema_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if schema changed
+        id: check
+        run: |
+          if git diff origin/main...HEAD --name-only | grep -q "prisma/schema.prisma"; then
+            echo "schema_changed=true" >> $GITHUB_OUTPUT
+            echo "📝 Schema changes detected"
+          else
+            echo "schema_changed=false" >> $GITHUB_OUTPUT
+            echo "✅ No schema changes"
+          fi
+
+      - name: Get schema diff
+        if: steps.check.outputs.schema_changed == 'true'
+        run: |
+          echo "=== Schema Changes ===" >> $GITHUB_STEP_SUMMARY
+          git diff origin/main...HEAD -- prisma/schema.prisma >> $GITHUB_STEP_SUMMARY
+
+  # Job 2: Extract schema and generate documentation
+  generate-docs:
+    name: Generate Schema Documentation
+    runs-on: ubuntu-latest
+    needs: validate-schema
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile schema extractor
+        run: npx tsc scripts/schema-extractor.ts --outDir ./dist --module commonjs --target es2020 --lib es2020
+
+      - name: Extract schema and generate docs
+        run: node dist/scripts/schema-extractor.js
+        env:
+          NODE_OPTIONS: --max_old_space_size=4096
+
+      - name: Validate generated documentation
+        run: |
+          echo "Checking generated files..."
+          test -f docs/generated/schema-metadata.json || (echo "❌ schema-metadata.json not found" && exit 1)
+          test -f docs/generated/SCHEMA_DOCUMENTATION.md || (echo "❌ SCHEMA_DOCUMENTATION.md not found" && exit 1)
+          test -f docs/generated/schema-erd.mmd || (echo "❌ schema-erd.mmd not found" && exit 1)
+          echo "✅ All documentation files generated successfully"
+
+      - name: Upload schema metadata
+        uses: actions/upload-artifact@v3
+        with:
+          name: schema-metadata
+          path: docs/generated/schema-metadata.json
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: schema-documentation
+          path: |
+            docs/generated/SCHEMA_DOCUMENTATION.md
+            docs/generated/schema-erd.mmd
+
+      - name: Comment on PR with schema changes
+        if: github.event_name == 'pull_request' && needs.validate-schema.outputs.schema_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const metadata = JSON.parse(fs.readFileSync('docs/generated/schema-metadata.json', 'utf8'));
+
+            const comment = `## 📊 Schema Changes Detected
+
+            **Schema Summary:**
+            - Models: ${metadata.models.length}
+            - Enums: ${Object.keys(metadata.enums).length}
+            - Last Updated: ${metadata.lastUpdated}
+
+            **Actions:**
+            - ✅ Schema extracted and validated
+            - ✅ Documentation generated
+            - ✅ ERD created
+
+            Review the generated artifacts above for detailed schema information.
+
+            <details>
+            <summary>📋 Model List</summary>
+
+            ${metadata.models.map(m => `- ${m.name} (${m.fields.length} fields)`).join('\n')}
+
+            </details>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Job 3: Commit documentation updates (main branch only)
+  commit-docs:
+    name: Commit Documentation Updates
+    runs-on: ubuntu-latest
+    needs: generate-docs
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download documentation artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: schema-documentation
+          path: docs/generated
+
+      - name: Download metadata artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: schema-metadata
+          path: docs/generated
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet docs/generated/; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "✅ Documentation is up-to-date"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Documentation changes detected"
+          fi
+
+      - name: Commit documentation updates
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add docs/generated/
+          git commit -m "docs: Update automated schema documentation (Issue #167)"
+
+      - name: Push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: git push origin main
+
+  # Job 4: Quality checks
+  quality-check:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    needs: generate-docs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download metadata artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: schema-metadata
+          path: docs/generated
+
+      - name: Validate metadata JSON
+        run: |
+          node -e "
+            const metadata = require('./docs/generated/schema-metadata.json');
+            console.log('✅ Metadata is valid JSON');
+            console.log('   Models:', metadata.models.length);
+            console.log('   Enums:', Object.keys(metadata.enums).length);
+            console.log('   Version:', metadata.version);
+          "
+
+      - name: Summary
+        run: |
+          echo "## ✅ Schema Documentation Pipeline Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Generated artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 Schema Metadata JSON" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 Documentation Markdown" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Entity Relationship Diagram" >> $GITHUB_STEP_SUMMARY
