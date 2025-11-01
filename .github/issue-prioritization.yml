@@ -787,7 +787,7 @@ issues:
     business_value: 8
     effort_estimate: 8
     blocks: []
-    notes: "Automatic time tracking from equipment"
+    notes: "COMPLETED - Machine-based time tracking with multi-protocol signal processing and flexible cost calculation - Implemented in PR #325"
 
   - number: 51
     title: "Time Entry Management & Approvals"
@@ -878,7 +878,7 @@ issues:
     business_value: 8
     effort_estimate: 5
     blocks: [56, 57, 58, 266]
-    notes: "Foundation for structured root cause analysis"
+    notes: "COMPLETED - Multi-level hierarchical cause code system with audit trail and analytics - Implemented in PR #326"
 
   - number: 55
     title: "Enhanced NCR Workflow States & Disposition (CTP, DDR, MRB)"
@@ -889,8 +889,7 @@ issues:
     business_value: 9
     effort_estimate: 6
     blocks: [56, 57, 58, 266]
-    notes: "COMPLETED - Phase 1-2: Core services and API endpoints implemented in PR #330. Includes NCRStateTransitionService (state machine with 11 states), NCRApprovalService (approval workflow management), NCRWorkflowConfigService (per-site configuration), and 13 REST API endpoints for state transitions, approvals, and configuration management. Supports CTP/DDR/MRB aerospace dispositions. 3,700+ lines, 6 services. Extends existing NCR system with aerospace-specific dispositions."
-    phase_1_2_status: COMPLETED
+    notes: "COMPLETED - Phase 1-2 Implementation Complete. Phase 1 (PR #330): Core services (StateTransitionService, ApprovalService, ConfigService) and 13 REST API endpoints. Phase 2 (PR #332): Frontend components (NCRStateVisualizer, NCRApprovalDashboard, NotificationCenter), notification system (in-app + email), comprehensive tests (55+ test cases), and documentation. Total: ~4,500 lines of production code, tests, and docs. Unblocks #56, #57, #58, #266."
 
   - number: 56
     title: "CAPA (Corrective & Preventive Action) Tracking"
