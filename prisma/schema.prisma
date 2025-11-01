@@ -103,6 +103,13 @@ model Site {
   ncrDispositionRules   NCRDispositionRule[]  @relation("NCRDispositionRules")
   electronicSignatureRequirements ElectronicSignatureRequirement[] @relation("ElectronicSignatureRequirements")
 
+  // Quality Analytics Relations (Issue #58)
+  qualityConfiguration  QualityConfiguration? @relation("QualityAnalyticsConfig")
+  qualityMetrics        QualityMetric[]       @relation("QualityMetrics")
+  paretoAnalysis        ParetoAnalysis[]      @relation("ParetoAnalysis")
+  qualityAlerts         QualityAlert[]        @relation("QualityAlerts")
+  qualityCoqTracking    QualityCoqTracking[]  @relation("QualityCoqTracking")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -2280,14 +2287,25 @@ model NCR {
   mrbVotes         String?            // JSON array of {userId, vote, comments}
   mrbMinutes       String?            // Meeting minutes or attachment link
 
-  // Cost tracking fields
-  estimatedCost    Decimal?           @db.Decimal(15, 2)
-  actualCost       Decimal?           @db.Decimal(15, 2)
-  scrapCost        Decimal?           @db.Decimal(15, 2)
-  reworkCost       Decimal?           @db.Decimal(15, 2)
+  // Cost tracking fields (Issue #55 & #58)
+  estimatedCost      Decimal?           @db.Decimal(15, 2)
+  actualCost         Decimal?           @db.Decimal(15, 2)
+  scrapCost          Decimal?           @db.Decimal(15, 2)
+  reworkCost         Decimal?           @db.Decimal(15, 2)
+  sortingCost        Decimal?           @db.Decimal(15, 2)
+  engineeringCost    Decimal?           @db.Decimal(15, 2)
+  customerCost       Decimal?           @db.Decimal(15, 2)  // External failure cost
+  currencyCode       String?            @default("USD")
+  costApprovedBy     String?
+  costApprovedAt     DateTime?
 
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  // Detection and escape tracking (Issue #58)
+  detectionPoint     DetectionPoint?
+  escapePoint        String?            // Where defect was discovered after production
+  isEscapedDefect    Boolean?           @default(false)
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   // Relations
   assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
@@ -2301,6 +2319,9 @@ model NCR {
   stateHistory     NCRStateHistory[]
   approvalRequests NCRApprovalRequest[]
   buildDeviations  BuildDeviation[]
+
+  // Quality Analytics Relations (Issue #58)
+  qualityAlerts    QualityAlert[]     @relation("QualityAlerts")
 
   @@map("ncrs")
 }
@@ -7299,6 +7320,66 @@ enum NCRMRBVotingMethod {
   MAJORITY
   CHAIR_DECIDES
   NO_VOTE
+}
+
+// ============================================================================
+// Quality Analytics Enums (Issue #58)
+// ============================================================================
+
+enum QualityMetricType {
+  NCR_RATE
+  FIRST_PASS_YIELD
+  DPMO
+  COPQ_PERCENT
+  SCRAP_RATE
+  REWORK_RATE
+  CUSTOMER_COMPLAINT_RATE
+  CAPA_EFFECTIVENESS
+  ESCAPED_DEFECTS
+  SUPPLIER_QUALITY_INDEX
+}
+
+enum ParetoAnalysisType {
+  DEFECT_TYPE
+  ROOT_CAUSE
+  PRODUCT
+  SUPPLIER
+  WORK_CENTER
+  OPERATION
+  CUSTOMER
+  SEVERITY
+  DISPOSITION
+  DETECTION_POINT
+  COST_RANGE
+}
+
+enum QualityAlertType {
+  THRESHOLD_EXCEEDED
+  TREND_DEGRADATION
+  SPC_OUT_OF_CONTROL
+  ESCAPED_DEFECT
+  SUPPLIER_PERFORMANCE
+  CAPA_OVERDUE
+  TREND_IMPROVEMENT
+  ANOMALY_DETECTED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+  URGENT
+}
+
+enum DetectionPoint {
+  IN_PROCESS
+  FINAL_INSPECTION
+  RECEIVING
+  ASSEMBLY
+  SHIPPING
+  CUSTOMER
+  INTERNAL_AUDIT
+  SUPPLIER_AUDIT
 }
 
 enum EquipmentClass {
@@ -14140,4 +14221,213 @@ enum DataCollectionValidationType {
   MIN_MAX
   PATTERN
   CUSTOM
+}
+
+// ============================================================================
+// Quality Analytics Models (Issue #58)
+// ============================================================================
+
+/// Quality Analytics Configuration - Site-specific settings for analytics
+model QualityConfiguration {
+  id                    String   @id @default(cuid())
+  siteId                String   @unique
+  site                  Site     @relation("QualityAnalyticsConfig", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metric thresholds
+  ncrRateThreshold      Float?   @default(1.0)    // % NCRs per unit produced
+  fypThreshold          Float?   @default(95.0)   // % First Pass Yield minimum
+  dpmoThreshold         Float?   @default(10000)  // Defects Per Million Opportunities max
+  copqThreshold         Float?   @default(5.0)    // % Cost of Quality max
+  scrapRateThreshold    Float?   @default(2.0)    // % Scrap max
+  reworkRateThreshold   Float?   @default(3.0)    // % Rework max
+
+  // Alert configuration
+  alertEnabled          Boolean  @default(true)
+  alertRecipients       String[] // JSON array of user IDs for alerts
+  alertThresholdDays    Int      @default(7)     // Days to look back for trends
+  spcControlLimit       Float?   @default(3.0)   // SPC sigma limits
+
+  // Reporting configuration
+  reportingCurrency     String   @default("USD")
+  materialized          Boolean  @default(true)  // Use pre-aggregated metrics
+  refreshInterval       Int      @default(3600)  // Seconds between metric refresh
+
+  // Audit trail
+  createdBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("quality_configurations")
+}
+
+/// Quality Metrics - Aggregated quality metrics by dimension and time period
+model QualityMetric {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              Site     @relation("QualityMetrics", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metric identification
+  metricType        QualityMetricType
+  period            String   // "DAY", "WEEK", "MONTH", "QUARTER", "YEAR"
+  periodStart       DateTime
+  periodEnd         DateTime
+
+  // Dimension grouping - at least one must be set
+  defectType        String?
+  rootCause         String?
+  product           String?
+  supplier          String?
+  workCenter        String?
+  operation         String?
+  customer          String?
+  severity          NCRSeverity?
+  disposition       NCRDisposition?
+  detectionPoint    DetectionPoint?
+
+  // Metric values
+  value             Float    @default(0.0)
+  trend             Float?   // Change from previous period
+  targetValue       Float?
+  status            String?  // "GREEN", "YELLOW", "RED"
+
+  // Calculations detail
+  numerator         Int      @default(0)    // Count or sum for calculation
+  denominator       Int      @default(0)    // Total opportunities
+  sampleSize        Int      @default(0)
+
+  // Audit trail
+  calculatedAt      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  calculatedBy      String?  // System or user ID
+
+  @@index([siteId])
+  @@index([metricType])
+  @@index([periodStart, periodEnd])
+  @@index([defectType])
+  @@index([rootCause])
+  @@index([product])
+  @@unique([siteId, metricType, period, periodStart, defectType, rootCause, product, supplier, workCenter, operation, customer, severity, disposition, detectionPoint])
+  @@map("quality_metrics")
+}
+
+/// Pareto Analysis - 80/20 analysis for each dimension
+model ParetoAnalysis {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              Site     @relation("ParetoAnalysis", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Analysis configuration
+  analysisType      ParetoAnalysisType
+  period            String   // "DAY", "WEEK", "MONTH", "QUARTER", "YEAR"
+  periodStart       DateTime
+  periodEnd         DateTime
+
+  // Analysis results (top items by cumulative impact)
+  items             String   // JSON array of {category, count, value, percentage, cumulativePercentage}
+  vitalFewCount     Int      // Count of items representing 80%
+  totalItems        Int      // Total distinct categories
+  totalOccurrences  Int      // Sum of all occurrences
+  totalCost         Decimal? @db.Decimal(15, 2)
+
+  // Filter dimensions
+  defectType        String?
+  severity          NCRSeverity?
+  dispositionFilter NCRDisposition?
+
+  // Metadata
+  generatedAt       DateTime @default(now())
+  generatedBy       String?
+
+  @@index([siteId])
+  @@index([analysisType])
+  @@index([periodStart])
+  @@unique([siteId, analysisType, period, periodStart])
+  @@map("pareto_analyses")
+}
+
+/// Quality Alerts - System-generated alerts for quality trends and thresholds
+model QualityAlert {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              Site     @relation("QualityAlerts", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Alert identification
+  alertType         QualityAlertType
+  severity          AlertSeverity
+  title             String
+  description       String
+  context           String?  // JSON object with details
+
+  // Related data
+  metricType        QualityMetricType?
+  metricId          String?
+  ncrId             String?
+  ncr               NCR?     @relation("QualityAlerts", fields: [ncrId], references: [id], onDelete: SetNull)
+
+  // Threshold details
+  threshold         Float?
+  actualValue       Float?
+  trend             Float?   // Percentage change
+
+  // Alert lifecycle
+  status            String   @default("ACTIVE")  // ACTIVE, ACKNOWLEDGED, RESOLVED, SUPPRESSED
+  acknowledgement   String? // JSON with {userId, timestamp, comment}
+  resolution        String? // JSON with {userId, timestamp, comment}
+  resolvedAt        DateTime?
+
+  // Configuration
+  priority          Int      @default(0)
+  notificationSent  Boolean  @default(false)
+  sentAt            DateTime?
+
+  // Audit trail
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+
+  @@index([siteId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("quality_alerts")
+}
+
+/// Quality Cost Tracking - Detailed Cost of Quality (CoQ) by PAF model
+model QualityCoqTracking {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              Site     @relation("QualityCoqTracking", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Period tracking
+  period            String   // "DAY", "WEEK", "MONTH", "QUARTER", "YEAR"
+  periodStart       DateTime
+  periodEnd         DateTime
+
+  // PAF (Prevention, Appraisal, Failure) model
+  preventionCost    Decimal? @db.Decimal(15, 2)   // Training, prevention measures, quality planning
+  appraisalCost     Decimal? @db.Decimal(15, 2)   // Inspection, testing, audits
+  internalFailure   Decimal? @db.Decimal(15, 2)   // Scrap, rework, sorting
+  externalFailure   Decimal? @db.Decimal(15, 2)   // Returns, warranty, customer complaints
+
+  // Derived metrics
+  totalCoq          Decimal? @db.Decimal(15, 2)
+  copqPercent       Float?   // % of revenue
+  currency          String   @default("USD")
+
+  // Supporting data
+  ncrCount          Int      @default(0)
+  escapeCount       Int      @default(0)
+  capaCount         Int      @default(0)
+
+  // Metadata
+  approvedBy        String?
+  approvedAt        DateTime?
+  calculatedAt      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([siteId])
+  @@index([periodStart])
+  @@unique([siteId, period, periodStart])
+  @@map("quality_coq_tracking")
 }
