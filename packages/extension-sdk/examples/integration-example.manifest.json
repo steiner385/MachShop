@@ -1,0 +1,93 @@
+{
+  "id": "sap-erp-adapter",
+  "version": "3.1.0",
+  "name": "SAP ERP Integration Adapter",
+  "type": "integration",
+  "category": "erp-adapter",
+  "description": "Bi-directional integration adapter connecting MachShop manufacturing execution system with SAP ERP for real-time order synchronization, inventory updates, and production reporting.",
+  "author": {
+    "name": "SAP Integration Specialists",
+    "email": "sap-integration@machshop.io"
+  },
+    "license": "Apache-2.0",
+  "repository": "https://github.com/machshop/sap-erp-adapter",
+  "homepage": "https://docs.machshop.io/adapters/sap",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "1.0",
+  "keywords": ["sap", "erp", "integration", "adapter", "synchronization"],
+  "documentation": {
+    "guide": "https://docs.machshop.io/adapters/sap/setup-guide",
+    "api": "https://docs.machshop.io/adapters/sap/api-reference",
+    "changelog": "https://github.com/machshop/sap-erp-adapter/blob/main/CHANGELOG.md"
+  },
+  "dependencies": {
+    "@sap/async-odata": "^2.3.0",
+    "axios": "^1.4.0"
+  },
+  "capabilities": {
+    "integrations": [
+      {
+        "system": "SAP ERP",
+        "version": "S/4HANA 2023+"
+      }
+    ]
+  },
+  "permissions": [
+    "read:work-orders",
+    "write:work-orders",
+    "read:materials",
+    "write:materials",
+    "integration:external-systems"
+  ],
+  "configuration": {
+    "properties": {
+      "sapInstance": {
+        "type": "string",
+        "description": "SAP system instance URL"
+      },
+      "sapUsername": {
+        "type": "string",
+        "description": "SAP authentication username"
+      },
+      "sapPassword": {
+        "type": "string",
+        "description": "SAP authentication password"
+      },
+      "syncInterval": {
+        "type": "integer",
+        "description": "Synchronization interval in seconds",
+        "default": 60
+      },
+      "bidirectionalSync": {
+        "type": "boolean",
+        "description": "Enable bidirectional synchronization",
+        "default": true
+      }
+    },
+    "required": ["sapInstance", "sapUsername", "sapPassword"]
+  },
+  "entryPoint": {
+    "main": "dist/index.js",
+    "module": "dist/index.mjs"
+  },
+  "requirements": {
+    "nodeVersion": ">=16.0.0",
+    "memory": "1GB"
+  },
+  "testing": {
+    "testingUrl": "https://sap-test-system.company.com",
+    "hasTests": true,
+    "coverage": 79
+  },
+  "security": {
+    "allowedOrigins": ["https://sap-instance.company.com"],
+    "signatureRequired": true
+  },
+  "performance": {
+    "asyncCapable": true,
+    "bundleSize": "350KB"
+  },
+  "tags": ["sap", "erp", "integration", "synchronization", "manufacturing"],
+  "releaseDate": "2024-01-10T08:45:00Z"
+}

@@ -1,0 +1,89 @@
+{
+  "id": "quality-dashboard-widget",
+  "version": "1.2.0",
+  "name": "Quality Dashboard Widget",
+  "type": "ui-extension",
+  "category": "dashboard-widget",
+  "description": "Real-time quality metrics dashboard widget displaying defect rates, control limits, and trend analysis for manufacturing operations.",
+  "author": {
+    "name": "MachShop Engineering",
+    "email": "support@machshop.io",
+    "url": "https://machshop.io"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/machshop/quality-dashboard-widget",
+  "homepage": "https://docs.machshop.io/extensions/quality-dashboard",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "1.0",
+  "keywords": ["quality", "dashboard", "metrics", "widget"],
+  "documentation": {
+    "guide": "https://docs.machshop.io/extensions/quality-dashboard/guide",
+    "api": "https://docs.machshop.io/extensions/quality-dashboard/api",
+    "changelog": "https://github.com/machshop/quality-dashboard-widget/blob/main/CHANGELOG.md",
+    "support": "https://github.com/machshop/quality-dashboard-widget/issues"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "recharts": "^2.5.0"
+  },
+  "conflicts": [
+    {
+      "id": "legacy-quality-widget",
+      "reason": "Incompatible data structure and UI framework"
+    }
+  ],
+  "capabilities": {
+    "ui": {
+      "widgets": ["quality-metrics-dashboard"]
+    }
+  },
+  "permissions": [
+    "read:quality",
+    "read:work-orders"
+  ],
+  "configuration": {
+    "properties": {
+      "refreshInterval": {
+        "type": "integer",
+        "description": "Data refresh interval in seconds",
+        "default": 30
+      },
+      "chartHeight": {
+        "type": "integer",
+        "description": "Dashboard chart height in pixels",
+        "default": 400
+      },
+      "displayMode": {
+        "type": "string",
+        "enum": ["compact", "expanded"],
+        "default": "expanded"
+      }
+    },
+    "required": ["refreshInterval"]
+  },
+  "entryPoint": {
+    "module": "dist/index.mjs",
+    "browser": "dist/index.umd.js"
+  },
+  "requirements": {
+    "nodeVersion": ">=16.0.0",
+    "memory": "256MB"
+  },
+  "testing": {
+    "hasTests": true,
+    "coverage": 85
+  },
+  "security": {
+    "sandboxed": true,
+    "allowedOrigins": ["https://machshop.io"]
+  },
+  "performance": {
+    "lazyLoad": true,
+    "bundleSize": "150KB",
+    "asyncCapable": true
+  },
+  "tags": ["quality", "monitoring", "real-time", "manufacturing"],
+  "releaseDate": "2024-01-15T10:30:00Z",
+  "deprecated": false
+}

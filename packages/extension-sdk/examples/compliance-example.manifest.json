@@ -1,0 +1,97 @@
+{
+  "id": "as9100-compliance-module",
+  "version": "2.0.0",
+  "name": "AS9100 Aerospace Compliance Module",
+  "type": "compliance",
+  "category": "aerospace-compliance",
+  "description": "Complete AS9100 compliance module for aerospace manufacturing including configuration management, document control, traceability requirements, and audit trail for FAA and customer compliance.",
+  "author": {
+    "name": "Aerospace Quality Systems",
+    "email": "compliance@aerospace-quality.io"
+  },
+  "license": "Proprietary",
+  "repository": "https://github.com/machshop/as9100-compliance",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "1.0",
+  "keywords": ["as9100", "aerospace", "compliance", "faa", "quality"],
+  "documentation": {
+    "guide": "https://docs.aerospace-quality.io/as9100-module",
+    "support": "https://compliance-support.aerospace-quality.io"
+  },
+  "conflicts": [
+    {
+      "id": "iso-9001-basic-module",
+      "reason": "AS9100 supersedes ISO 9001; use one or the other"
+    }
+  ],
+  "capabilities": {
+    "hooks": [
+      {
+        "hook": "document:before-store",
+        "phase": "pre",
+        "priority": 200
+      },
+      {
+        "hook": "work-order:before-release",
+        "phase": "pre",
+        "priority": 150
+      },
+      {
+        "hook": "audit:after-change",
+        "phase": "post",
+        "priority": 100
+      }
+    ]
+  },
+  "permissions": [
+    "read:work-orders",
+    "write:work-orders",
+    "read:quality",
+    "write:quality",
+    "admin:system"
+  ],
+  "configuration": {
+    "properties": {
+      "auditTrailEnabled": {
+        "type": "boolean",
+        "description": "Enable comprehensive audit trail",
+        "default": true
+      },
+      "traceabilityLevel": {
+        "type": "string",
+        "enum": ["basic", "full", "enhanced"],
+        "default": "full"
+      },
+      "documentControlRequired": {
+        "type": "boolean",
+        "description": "Enforce document version control",
+        "default": true
+      },
+      "retentionPeriodYears": {
+        "type": "integer",
+        "description": "Data retention period in years",
+        "default": 7
+      }
+    },
+    "required": ["traceabilityLevel", "retentionPeriodYears"]
+  },
+  "entryPoint": {
+    "main": "dist/index.js"
+  },
+  "requirements": {
+    "nodeVersion": ">=18.0.0",
+    "memory": "512MB",
+    "disk": "2GB"
+  },
+  "testing": {
+    "hasTests": true,
+    "coverage": 95
+  },
+  "security": {
+    "sandboxed": false,
+    "signatureRequired": true
+  },
+  "tags": ["as9100", "aerospace", "faa", "compliance", "audit-trail"],
+  "releaseDate": "2024-02-28T16:30:00Z"
+}

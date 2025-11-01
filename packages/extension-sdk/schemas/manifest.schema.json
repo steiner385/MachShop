@@ -1,0 +1,511 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://machshop.io/schemas/extension-manifest/v1.0",
+  "title": "MachShop Extension Manifest Schema v1.0",
+  "description": "Standardized manifest schema for MachShop extensions. Defines extension metadata, dependencies, capabilities, and compatibility information.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "name",
+    "type",
+    "category",
+    "apiVersion",
+    "mesVersion",
+    "description"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$",
+      "minLength": 3,
+      "maxLength": 64,
+      "title": "Extension ID",
+      "description": "Unique identifier in kebab-case format. Must be globally unique within the extension registry."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "title": "Version",
+      "description": "Semantic versioning (SemVer) format: MAJOR.MINOR.PATCH[-prerelease][+build]"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "title": "Display Name",
+      "description": "Human-readable name for the extension"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "ui-extension",
+        "business-logic",
+        "data-extension",
+        "integration",
+        "compliance",
+        "infrastructure"
+      ],
+      "title": "Extension Type",
+      "description": "Primary extension type from the 6-tier taxonomy"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "dashboard-widget",
+        "page-extension",
+        "component-override",
+        "theme",
+        "report-template",
+        "workflow-hook",
+        "validation-rule",
+        "calculation-engine",
+        "state-machine",
+        "business-rule",
+        "custom-field",
+        "custom-entity",
+        "relationship",
+        "computed-field",
+        "virtual-entity",
+        "erp-adapter",
+        "equipment-integration",
+        "quality-system",
+        "document-management",
+        "identity-provider",
+        "aerospace-compliance",
+        "medical-device-compliance",
+        "automotive-compliance",
+        "quality-compliance",
+        "custom-auth",
+        "storage-backend",
+        "caching",
+        "monitoring",
+        "migration-tool",
+        "other"
+      ],
+      "title": "Category",
+      "description": "Specific category within the extension type for more granular classification"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "title": "Description",
+      "description": "Detailed description of the extension's purpose and functionality"
+    },
+    "author": {
+      "type": "object",
+      "title": "Author Information",
+      "description": "Author or organization responsible for the extension",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["name"]
+    },
+    "license": {
+      "type": "string",
+      "enum": [
+        "MIT",
+        "Apache-2.0",
+        "GPL-3.0",
+        "BSD-3-Clause",
+        "ISC",
+        "AGPL-3.0",
+        "Proprietary",
+        "Unlicense",
+        "Other"
+      ],
+      "title": "License",
+      "description": "License under which the extension is distributed"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "title": "Repository URL",
+      "description": "URL to the extension source code repository"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "title": "Homepage URL",
+      "description": "URL to the extension homepage or documentation"
+    },
+    "apiVersion": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+$",
+      "title": "API Version",
+      "description": "Minimum required MachShop API version (format: vMAJOR.MINOR)"
+    },
+    "mesVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "MES Version",
+      "description": "Minimum required MachShop MES version (format: MAJOR.MINOR.PATCH)"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "title": "Keywords",
+      "description": "Tags for searching and categorizing the extension"
+    },
+    "documentation": {
+      "type": "object",
+      "title": "Documentation Links",
+      "description": "Links to various documentation resources",
+      "properties": {
+        "guide": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to user/implementation guide"
+        },
+        "api": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to API documentation"
+        },
+        "changelog": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to changelog/release notes"
+        },
+        "support": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to support or issue tracker"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "title": "Extension Dependencies",
+      "description": "Other extensions required for this extension to function",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(\\d+\\.\\d+\\.\\d+|\\^\\d+\\.\\d+\\.\\d+|~\\d+\\.\\d+\\.\\d+|>=\\d+\\.\\d+\\.\\d+|<=\\d+\\.\\d+\\.\\d+)$",
+        "description": "Version constraint (SemVer range or pinned version)"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "title": "Conflicting Extensions",
+      "description": "Extensions that cannot be installed alongside this extension",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of conflicting extension"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the conflict"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "title": "Extension Capabilities",
+      "description": "Declares what functionality this extension provides",
+      "properties": {
+        "ui": {
+          "type": "object",
+          "description": "UI extension capabilities",
+          "properties": {
+            "widgets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of dashboard widgets provided"
+            },
+            "pages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of page extensions provided"
+            },
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of component overrides provided"
+            },
+            "reports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of report templates provided"
+            }
+          }
+        },
+        "hooks": {
+          "type": "array",
+          "description": "Hook points this extension registers",
+          "items": {
+            "type": "object",
+            "required": ["hook"],
+            "properties": {
+              "hook": {
+                "type": "string",
+                "description": "Hook point identifier"
+              },
+              "phase": {
+                "type": "string",
+                "enum": ["pre", "core", "post"],
+                "description": "Execution phase"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000,
+                "description": "Execution priority (higher = earlier)"
+              }
+            }
+          }
+        },
+        "dataSchema": {
+          "type": "object",
+          "description": "Data schema extensions",
+          "properties": {
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of custom entities provided"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Custom fields provided"
+            }
+          }
+        },
+        "integrations": {
+          "type": "array",
+          "description": "External system integrations provided",
+          "items": {
+            "type": "object",
+            "required": ["system"],
+            "properties": {
+              "system": {
+                "type": "string",
+                "description": "Name of integrated system"
+              },
+              "version": {
+                "type": "string",
+                "description": "Version of integrated system supported"
+              }
+            }
+          }
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "title": "Required Permissions",
+      "description": "Permissions required for the extension to function",
+      "items": {
+        "type": "string",
+        "enum": [
+          "read:work-orders",
+          "write:work-orders",
+          "read:routing",
+          "write:routing",
+          "read:materials",
+          "write:materials",
+          "read:equipment",
+          "write:equipment",
+          "read:quality",
+          "write:quality",
+          "read:users",
+          "write:users",
+          "admin:system",
+          "admin:security",
+          "integration:external-systems",
+          "data:export",
+          "data:import"
+        ]
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Configuration Schema",
+      "description": "Configuration options for the extension",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required configuration keys"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Configuration property definitions (similar to JSON Schema)",
+          "additionalProperties": true
+        }
+      }
+    },
+    "entryPoint": {
+      "type": "object",
+      "title": "Extension Entry Points",
+      "description": "Information about where/how to load the extension",
+      "properties": {
+        "main": {
+          "type": "string",
+          "description": "Main entry point (CommonJS or file path)"
+        },
+        "module": {
+          "type": "string",
+          "description": "ES module entry point"
+        },
+        "browser": {
+          "type": "string",
+          "description": "Browser-specific entry point"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "title": "System Requirements",
+      "description": "System requirements for the extension",
+      "properties": {
+        "nodeVersion": {
+          "type": "string",
+          "description": "Required Node.js version or range"
+        },
+        "memory": {
+          "type": "string",
+          "pattern": "^\\d+[GMK]B?$",
+          "description": "Minimum required memory (e.g., 256MB, 1GB)"
+        },
+        "disk": {
+          "type": "string",
+          "pattern": "^\\d+[GMK]B?$",
+          "description": "Minimum required disk space"
+        }
+      }
+    },
+    "testing": {
+      "type": "object",
+      "title": "Testing Configuration",
+      "description": "Testing and validation configuration",
+      "properties": {
+        "testingUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to test instance or testing environment"
+        },
+        "hasTests": {
+          "type": "boolean",
+          "description": "Whether extension includes test suite"
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Test coverage percentage"
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "title": "Security Configuration",
+      "description": "Security-related configuration",
+      "properties": {
+        "sandboxed": {
+          "type": "boolean",
+          "description": "Whether extension runs in sandboxed environment"
+        },
+        "allowedOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowed CORS origins for API calls"
+        },
+        "signatureRequired": {
+          "type": "boolean",
+          "description": "Whether extension must be cryptographically signed"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "title": "Performance Hints",
+      "description": "Performance characteristics and optimization hints",
+      "properties": {
+        "lazyLoad": {
+          "type": "boolean",
+          "description": "Can extension be lazy-loaded"
+        },
+        "bundleSize": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)?[KM]B$",
+          "description": "Approximate bundle size"
+        },
+        "asyncCapable": {
+          "type": "boolean",
+          "description": "Whether extension supports async operations"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "description": "Additional tags for categorization and search"
+    },
+    "releaseDate": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Release Date",
+      "description": "ISO 8601 timestamp of release date"
+    },
+    "deprecated": {
+      "type": "boolean",
+      "title": "Deprecated",
+      "description": "Whether extension is deprecated"
+    },
+    "deprecationNotice": {
+      "type": "string",
+      "title": "Deprecation Notice",
+      "description": "Message explaining deprecation and migration path"
+    },
+    "extensionSchemaVersion": {
+      "type": "string",
+      "const": "1.0",
+      "title": "Extension Schema Version",
+      "description": "Version of this manifest schema (must be 1.0)"
+    }
+  },
+  "additionalProperties": false
+}

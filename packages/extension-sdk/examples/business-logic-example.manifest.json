@@ -1,0 +1,86 @@
+{
+  "id": "work-order-validation-hook",
+  "version": "2.0.1",
+  "name": "Work Order Validation Hook",
+  "type": "business-logic",
+  "category": "workflow-hook",
+  "description": "Comprehensive validation hook for work orders enforcing business rules including resource availability, material allocation, and schedule feasibility before order release.",
+  "author": {
+    "name": "MachShop Manufacturing Systems",
+    "email": "hooks@machshop.io"
+  },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/machshop/work-order-validation",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "1.0",
+  "keywords": ["validation", "work-order", "business-rules", "hook"],
+  "documentation": {
+    "guide": "https://docs.machshop.io/hooks/work-order-validation",
+    "api": "https://docs.machshop.io/hooks/work-order-validation/api"
+  },
+  "dependencies": {
+    "lodash": "^4.17.0"
+  },
+  "capabilities": {
+    "hooks": [
+      {
+        "hook": "work-order:before-release",
+        "phase": "pre",
+        "priority": 100
+      },
+      {
+        "hook": "work-order:after-update",
+        "phase": "post",
+        "priority": 50
+      }
+    ]
+  },
+  "permissions": [
+    "read:work-orders",
+    "read:materials",
+    "read:equipment",
+    "read:routing"
+  ],
+  "configuration": {
+    "properties": {
+      "strictMode": {
+        "type": "boolean",
+        "description": "Enable strict validation (fail on warning)",
+        "default": false
+      },
+      "materialCheckEnabled": {
+        "type": "boolean",
+        "description": "Check material availability",
+        "default": true
+      },
+      "equipmentCheckEnabled": {
+        "type": "boolean",
+        "description": "Check equipment availability",
+        "default": true
+      },
+      "scheduleCheckEnabled": {
+        "type": "boolean",
+        "description": "Check schedule feasibility",
+        "default": true
+      }
+    }
+  },
+  "entryPoint": {
+    "main": "dist/index.js",
+    "module": "dist/index.mjs"
+  },
+  "requirements": {
+    "nodeVersion": ">=16.0.0",
+    "memory": "512MB"
+  },
+  "testing": {
+    "hasTests": true,
+    "coverage": 92
+  },
+  "performance": {
+    "asyncCapable": true
+  },
+  "tags": ["validation", "business-logic", "hooks", "work-orders"],
+  "releaseDate": "2024-02-20T14:15:00Z"
+}
