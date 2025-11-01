@@ -140,6 +140,9 @@ import errorSimulationRoutes from './routes/error-simulation';
 import migrationTemplatesRoutes from './routes/migration/templates';
 import etlRoutes from './routes/migration/etl';
 
+// ✅ GITHUB ISSUE #41: Flexible Workflow Enforcement Engine Routes
+import workflowEnforcementRoutes from './routes/workflowEnforcement';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
 import redisClientService from './services/RedisClientService';
@@ -376,6 +379,9 @@ apiRouter.use('/migration/templates', authMiddleware, migrationTemplatesRoutes);
 
 // GitHub Issue #34: Database Direct Import/ETL Engine API Routes
 apiRouter.use('/migration/etl', authMiddleware, etlRoutes);
+
+// ✅ GITHUB ISSUE #41: Flexible Workflow Enforcement Engine API Routes
+apiRouter.use('/workflow-enforcement', authMiddleware, workflowEnforcementRoutes);
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
