@@ -1,0 +1,199 @@
+/**
+ * ReactFlow Keyboard Navigation Styles
+ * Issue #279: Implement Keyboard Navigation for ReactFlow Components
+ *
+ * Provides visual focus indicators and accessibility styles for keyboard navigation
+ * WCAG 2.1 Level AA compliant focus indicators
+ */
+
+/* Focus indicators for keyboard navigation */
+[data-keyboard-focused="true"] {
+  outline: 3px solid #1890ff !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.2) !important;
+  transition: outline 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Enhanced focus for high contrast mode */
+@media (prefers-contrast: high) {
+  [data-keyboard-focused="true"] {
+    outline: 4px solid #000 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 7px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+/* ReactFlow node focus styles */
+.react-flow__node[data-keyboard-focused="true"] {
+  z-index: 1000 !important;
+}
+
+.react-flow__node[data-keyboard-focusable="true"]:focus {
+  outline: 3px solid #1890ff !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* ReactFlow edge focus styles */
+.react-flow__edge[data-keyboard-focused="true"] path {
+  stroke: #1890ff !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 6px rgba(24, 144, 255, 0.6)) !important;
+}
+
+.react-flow__edge[data-keyboard-focused="true"] .react-flow__edge-path {
+  stroke: #1890ff !important;
+  stroke-width: 4px !important;
+}
+
+/* ReactFlow edge markers focus */
+.react-flow__edge[data-keyboard-focused="true"] .react-flow__arrowhead {
+  fill: #1890ff !important;
+}
+
+/* ReactFlow handles focus */
+.react-flow__handle[data-keyboard-focused="true"] {
+  background: #1890ff !important;
+  border: 2px solid #fff !important;
+  box-shadow: 0 0 0 3px #1890ff, 0 0 8px rgba(24, 144, 255, 0.4) !important;
+  transform: scale(1.2) !important;
+}
+
+/* Skip to content link for keyboard users */
+.reactflow-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #1890ff;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  transition: top 0.2s ease;
+}
+
+.reactflow-skip-link:focus {
+  top: 6px;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Keyboard navigation announcement area */
+.reactflow-announcements {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Focus ring animation for better visibility */
+@keyframes focusRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(24, 144, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
+}
+
+[data-keyboard-focused="true"]:not(:hover) {
+  animation: focusRing 2s ease-in-out;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  [data-keyboard-focused="true"] {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .reactflow-skip-link {
+    transition: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  [data-keyboard-focused="true"] {
+    outline: 4px solid CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+
+  .react-flow__edge[data-keyboard-focused="true"] path {
+    stroke: CanvasText !important;
+    stroke-width: 5px !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  [data-keyboard-focused="true"] {
+    outline-color: #69b7ff !important;
+    box-shadow: 0 0 0 5px rgba(105, 183, 255, 0.3) !important;
+  }
+
+  .react-flow__edge[data-keyboard-focused="true"] path {
+    stroke: #69b7ff !important;
+  }
+
+  .reactflow-skip-link {
+    background: #69b7ff;
+    color: #000;
+  }
+}
+
+/* Focus indicators for routing step nodes */
+.routing-step-node[data-keyboard-focused="true"] {
+  transform: scale(1.05) !important;
+  z-index: 1000 !important;
+}
+
+/* Focus indicators for dependency visualizer nodes */
+.dependency-node[data-keyboard-focused="true"] {
+  border-width: 3px !important;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* Ensure focus indicators are visible above other elements */
+.react-flow__node[data-keyboard-focused="true"],
+.react-flow__edge[data-keyboard-focused="true"] {
+  z-index: 1001 !important;
+}
+
+/* Focus management for nested interactive elements */
+.react-flow__node button:focus-within,
+.react-flow__node input:focus-within {
+  outline: 2px solid #1890ff;
+  outline-offset: 1px;
+}
+
+/* Screen reader only class for accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus visible polyfill support */
+.js-focus-visible .react-flow__node:focus:not(.focus-visible) {
+  outline: none;
+}
+
+.js-focus-visible .react-flow__node.focus-visible {
+  outline: 3px solid #1890ff;
+  outline-offset: 2px;
+}

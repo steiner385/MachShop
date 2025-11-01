@@ -52,8 +52,9 @@ describe('SerializationService', () => {
   };
 
   beforeEach(() => {
-    service = new SerializationService();
     mockPrisma = prisma as any;
+    // Instantiate service with mock Prisma client for each test
+    service = new SerializationService(mockPrisma);
     vi.clearAllMocks();
   });
 

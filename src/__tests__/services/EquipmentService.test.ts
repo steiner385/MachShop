@@ -1,12 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PrismaClient, EquipmentClass, EquipmentState, EquipmentStatus, Equipment } from '@prisma/client';
-import EquipmentService, {
-  CreateEquipmentData,
-  UpdateEquipmentData,
-  EquipmentStateChange,
-  EquipmentFilters,
-  EquipmentWithRelations
-} from '../../services/EquipmentService';
+import { EquipmentService, CreateEquipmentData, UpdateEquipmentData, EquipmentStateChange, EquipmentFilters, EquipmentWithRelations } from '../../services/EquipmentService';
 import { ValidationError, NotFoundError, ConflictError } from '../../middleware/errorHandler';
 
 // Mock Prisma Client
@@ -44,12 +38,16 @@ const mockPrisma = {
 } as unknown as PrismaClient;
 
 // Mock the prisma instance in the service
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn(() => mockPrisma),
-}));
+vi.mock('@prisma/client', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    PrismaClient: vi.fn(() => mockPrisma),
+  };
+});
 
 describe('EquipmentService', () => {
-  let service: typeof EquipmentService;
+  let service: EquipmentService;
 
   // Test data
   const mockEquipment: Equipment = {
@@ -140,7 +138,8 @@ describe('EquipmentService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = EquipmentService;
+    // Instantiate service with mock Prisma client for each test
+    service = new EquipmentService(mockPrisma);
   });
 
   afterEach(() => {

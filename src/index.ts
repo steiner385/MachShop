@@ -21,6 +21,10 @@ import { csrfProtection } from './middleware/csrf';
 import authRoutes from './routes/auth';
 import workOrderRoutes from './routes/workOrders';
 import qualityRoutes from './routes/quality';
+import ncrApprovalsRoutes from './routes/ncrApprovals';
+import correctiveActionsRoutes from './routes/correctiveActions';
+import causeCodeRoutes from './routes/causeCode';
+import complianceRoutes from './routes/compliance';
 import materialRoutes from './routes/materials';
 import traceabilityRoutes from './routes/traceability';
 import equipmentRoutes from './routes/equipment';
@@ -83,6 +87,9 @@ import adminPermissionsRoutes from './routes/admin/permissions';
 import adminRolePermissionsRoutes from './routes/admin/role-permissions';
 import adminUserRolesRoutes from './routes/admin/user-roles';
 
+// GitHub Issue #79: Private Plugin Registry & Enterprise Distribution System Routes
+import pluginRegistryAdminRoutes from './routes/admin/pluginRegistryAdmin';
+
 // ✅ GITHUB ISSUE #126: Time-Based Permission Grants (Temporal Permissions) Routes
 import adminTemporalRolesRoutes from './routes/admin/temporal-roles';
 
@@ -117,13 +124,22 @@ import partInterchangeabilityRoutes from './routes/partInterchangeability';
 import maintenanceRoutes from './routes/maintenance';
 import downtimeRoutes from './routes/downtime';
 
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+import saviyntSurrogateRoutes from './routes/saviynt-surrogate';
+
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 import maximoSurrogateRoutes from './routes/maximo-surrogate';
 import indySoftSurrogateRoutes from './routes/indysoft-surrogate';
 import erpSurrogateRoutes from './routes/erp-surrogate';
 import errorSimulationRoutes from './routes/error-simulation';
 
+// GitHub Issue #31: Data Migration - Import Template System Routes
+import migrationTemplatesRoutes from './routes/migration/templates';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
+import { webSocketService } from './services/WebSocketService';
+import redisClientService from './services/RedisClientService';
+import PluginSystemService from './services/PluginSystemService';
 
 // Import OpenAPI specification - commented out for now
 // import * as openApiSpec from '../openapi.yaml';
@@ -240,6 +256,14 @@ apiRouter.use('/search', authMiddleware, searchRoutes);
 apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
 apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);
+// ✅ GITHUB ISSUE #55: NCR Workflow Approval Routes (Phase 3)
+apiRouter.use('/ncr/approvals', authMiddleware, ncrApprovalsRoutes);
+// ✅ GITHUB ISSUE #56: CAPA Tracking System Routes (Phase 1)
+apiRouter.use('/corrective-actions', authMiddleware, correctiveActionsRoutes);
+// GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
+apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
+// GitHub Issue #102: QMS Compliance Framework - Document Control & Training
+apiRouter.use('/compliance', authMiddleware, complianceRoutes);
 apiRouter.use('/materials', authMiddleware, materialRoutes);
 apiRouter.use('/traceability', authMiddleware, traceabilityRoutes);
 apiRouter.use('/equipment', authMiddleware, equipmentRoutes);
@@ -316,6 +340,9 @@ apiRouter.use('/admin/oidc', authMiddleware, oidcRoutes);
 // GitHub Issue #133: Azure AD/Entra ID Native Integration Admin Routes
 apiRouter.use('/admin/azure-ad', authMiddleware, azureAdGraphRoutes);
 
+// GitHub Issue #79: Private Plugin Registry & Enterprise Distribution System Admin Routes
+apiRouter.use('/admin', authMiddleware, pluginRegistryAdminRoutes);
+
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval API Routes
 apiRouter.use('/approvals', authMiddleware, unifiedApprovalRoutes);
 
@@ -336,6 +363,13 @@ apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeability
 // ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
 apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
 apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
+
+// GitHub Issue #31: Data Migration - Import Template System API Routes
+apiRouter.use('/migration/templates', authMiddleware, migrationTemplatesRoutes);
+
+// ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
+// Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
+apiRouter.use('/testing/saviynt-idm', saviyntSurrogateRoutes);
 
 // ✅ GITHUB ISSUE #243: Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)
 // Note: No auth middleware for testing surrogates to enable CI/CD testing without authentication
@@ -383,6 +417,32 @@ const server = app.listen(PORT, async () => {
     nodeVersion: process.version,
   });
 
+  // Initialize WebSocket service for real-time notifications
+  try {
+    webSocketService.initialize(server);
+    logger.info('WebSocket service initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize WebSocket service:', error);
+  }
+
+  // Initialize Redis and Event Bus (Issue #75 Phase 4)
+  // Skip Redis in test environment to avoid connection issues in CI/CD
+  if (!isTest) {
+    try {
+      await redisClientService.connect();
+      logger.info('Redis client connected successfully');
+
+      // Initialize Event Bus and Webhook Queue
+      await PluginSystemService.initializeEventBusAndQueue();
+      logger.info('Plugin Event Bus and Webhook Queue initialized successfully');
+    } catch (error) {
+      logger.warn('Failed to initialize Redis/Event Bus (non-blocking):', error);
+      // Don't throw - allow app to continue without Redis for development
+    }
+  } else {
+    logger.info('Redis/Event Bus initialization skipped (test environment)');
+  }
+
   // Initialize Integration Manager (ERP/PLM integrations)
   // Skip integration manager in test environment to prevent segfault in E2E tests
   if (!isTest) {
@@ -398,16 +458,36 @@ const server = app.listen(PORT, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  webSocketService.shutdown();
+
+  // Shutdown Event Bus and Redis (Issue #75 Phase 4)
+  try {
+    await PluginSystemService.shutdownEventBusAndQueue();
+    await redisClientService.disconnect();
+  } catch (error) {
+    logger.warn('Error during event bus/Redis shutdown:', error);
+  }
+
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  webSocketService.shutdown();
+
+  // Shutdown Event Bus and Redis (Issue #75 Phase 4)
+  try {
+    await PluginSystemService.shutdownEventBusAndQueue();
+    await redisClientService.disconnect();
+  } catch (error) {
+    logger.warn('Error during event bus/Redis shutdown:', error);
+  }
+
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
