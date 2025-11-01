@@ -1452,6 +1452,18 @@ issues:
     blocks: []
     notes: "Analytics and monitoring for extension ecosystem. Includes extension usage metrics, performance monitoring, health checks, dependency graph visualization, lifecycle analytics, and compliance reporting across sites."
 
+  # --- Phase 4: Next-Generation Capabilities (L2/L3) ---
+  - number: 445
+    title: "Model-Based Enterprise (MBE) Integration & CAD Support"
+    category: cad_mbe_integration
+    foundation_level: 2
+    dependencies: [220, 221]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 14
+    blocks: []
+    notes: "PHASE 4 - Model-Based Enterprise capabilities for digital thread from design to manufacturing. STEP AP242 file format support, PMI extraction and GD&T mapping, automatic routing generation from CAD, 3D model visualization, model-based inspection with CMM integration, assembly sequence optimization. 12-14 week effort. Enables aerospace digital manufacturing."
+
   # --- Production Alerts & Andon ---
   - number: 173
     title: "Production Alerts & Andon: External eAndon System Integration"
