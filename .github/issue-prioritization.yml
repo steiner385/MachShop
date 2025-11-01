@@ -1348,7 +1348,7 @@ issues:
     business_value: 9
     effort_estimate: 8
     blocks: []
-    notes: "Classification and migration tool for converting core platform features to extensions. Includes dependency mapping, impact analysis, service extraction tooling, and automated test generation. Enables phased migration of 222 services from core to extension architecture."
+    notes: "COMPLETED - Service dependency graph analyzer (744 lines), classification engine (502 lines), 35+ migration interfaces. Analyzes 322+ services: parses TypeScript, extracts dependencies, detects circular deps, identifies orphaned/root services. Classification: 6-factor scoring (dependencies/business logic/integration/complexity/test coverage/usage), confidence-based recommendations, business impact/technical debt assessment, risk levels. 22 comprehensive tests. Enables phased, data-driven migration planning. Implemented in PR #463"
 
   # --- Production Alerts & Andon ---
   - number: 172
