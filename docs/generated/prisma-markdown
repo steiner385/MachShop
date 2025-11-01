@@ -6866,6 +6866,172 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"test_cells" {
+  String id PK
+  String siteId FK
+  String cellName
+  String cellIdentifier UK
+  TestCellStatus status
+  String testType
+  String location
+  DateTime lastMaintenanceDate "nullable"
+  DateTime nextMaintenanceDate "nullable"
+  Int maintenanceIntervalDays "nullable"
+  DAQSystemType daqSystemType
+  String daqSystemId "nullable"
+  String daqApiEndpoint "nullable"
+  String daqApiKey "nullable"
+  String daqStatus "nullable"
+  Int maxConcurrentTests
+  Int estimatedTestDuration "nullable"
+  String certificationNumber "nullable"
+  DateTime certificationExpiry "nullable"
+  Boolean isCompliant
+  String complianceNotes "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_runs" {
+  String id PK
+  String testRunNumber UK
+  String buildRecordId FK
+  String testCellId FK
+  TestRunStatus status
+  DateTime scheduledStartTime
+  DateTime actualStartTime "nullable"
+  DateTime actualEndTime "nullable"
+  Int estimatedDuration "nullable"
+  Int actualDuration "nullable"
+  String operatorId FK "nullable"
+  String supervisorId FK "nullable"
+  Json testData "nullable"
+  String dataCollectionStatus "nullable"
+  String daqFileReference "nullable"
+  Boolean testPassed "nullable"
+  Boolean testCompletedSuccessfully
+  Boolean hasAnomolies
+  String anomolyNotes "nullable"
+  Boolean allCriteriaMet "nullable"
+  String failureReason "nullable"
+  String failureCode "nullable"
+  Boolean witnessedTest
+  Boolean qualityApproved
+  String qualityApprovedById FK "nullable"
+  DateTime qualityApprovedAt "nullable"
+  Boolean faaCompliant
+  String complianceNotes "nullable"
+  Boolean testCertificateGenerated
+  String testCertificatePath "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_parameters" {
+  String id PK
+  String testCellId FK
+  String parameterName
+  TestParameterType parameterType
+  String unit
+  Decimal minValue "nullable"
+  Decimal maxValue "nullable"
+  Decimal targetValue "nullable"
+  Decimal tolerance "nullable"
+  String daqChannelId "nullable"
+  String daqSensorType "nullable"
+  String sensorManufacturer "nullable"
+  String sensorModel "nullable"
+  DateTime calibrationDueDate "nullable"
+  Int recordingFrequency "nullable"
+  String dataProcessingMethod "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_measurements" {
+  String id PK
+  String testRunId FK
+  String testParameterId FK
+  Decimal value
+  String unit
+  Decimal timestampSeconds
+  DateTime recordedAt
+  Boolean isOutOfRange
+  Boolean isSuspicious
+  String dataQuality "nullable"
+  String daqRawId "nullable"
+  DateTime createdAt
+}
+"acceptance_criteria" {
+  String id PK
+  String testParameterId FK
+  AcceptanceCriteriaType criteriaType
+  Decimal minValue "nullable"
+  Decimal maxValue "nullable"
+  Decimal targetValue "nullable"
+  Decimal tolerance "nullable"
+  String assessmentMethod
+  String customFormula "nullable"
+  String passingCondition
+  String description "nullable"
+  String faaRequirement "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_run_acceptance_criteria" {
+  String id PK
+  String testRunId FK
+  String acceptanceCriteriaId FK
+  String criteria
+  Decimal testValue "nullable"
+  Decimal minRequired "nullable"
+  Decimal maxRequired "nullable"
+  Boolean passed "nullable"
+  String assessmentDetail "nullable"
+  DateTime assessedAt
+}
+"test_certificates" {
+  String id PK
+  String testRunId FK
+  String certificateNumber UK
+  String certificateType
+  DateTime issuedDate
+  String certificationStandards
+  Boolean allTestsPassed
+  String testSummary "nullable"
+  String failedCriteria
+  String issuedById FK "nullable"
+  DateTime approvalDate "nullable"
+  String approverComments "nullable"
+  String certificatePath "nullable"
+  Json certificateDataJson "nullable"
+  DateTime expirationDate "nullable"
+  Boolean isValid
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_run_status_history" {
+  String id PK
+  String testRunId FK
+  TestRunStatus previousStatus "nullable"
+  TestRunStatus newStatus
+  String reason "nullable"
+  String changedById FK "nullable"
+  DateTime changedAt
+}
+"test_cell_schedules" {
+  String id PK
+  String testCellId FK
+  DateTime scheduledDate
+  String startTime
+  String endTime
+  String scheduleType
+  String notes "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -7531,6 +7697,23 @@ erDiagram
 "shipping_labels" }o--|| "shipments" : shipment
 "containers" }o--|| "sites" : site
 "carrier_accounts" }o--|| "sites" : site
+"test_cells" }o--|| "sites" : site
+"test_runs" }o--|| "build_records" : buildRecord
+"test_runs" }o--|| "test_cells" : testCell
+"test_runs" }o--o| "users" : operator
+"test_runs" }o--o| "users" : supervisor
+"test_runs" }o--o| "users" : qualityApprovedBy
+"test_parameters" }o--|| "test_cells" : testCell
+"test_measurements" }o--|| "test_runs" : testRun
+"test_measurements" }o--|| "test_parameters" : testParameter
+"acceptance_criteria" }o--|| "test_parameters" : testParameter
+"test_run_acceptance_criteria" }o--|| "test_runs" : testRun
+"test_run_acceptance_criteria" }o--|| "acceptance_criteria" : acceptanceCriteria
+"test_certificates" }o--|| "test_runs" : testRun
+"test_certificates" }o--o| "users" : issuedBy
+"test_run_status_history" }o--|| "test_runs" : testRun
+"test_run_status_history" }o--o| "users" : changedBy
+"test_cell_schedules" }o--|| "test_cells" : testCell
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -15345,6 +15528,199 @@ Carrier Account - Credentials and configuration for shipping carriers
   - `apiSecret`: 
   - `apiEndpoint`: 
   - `defaultServiceLevel`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_cells`
+TestCell - Represents a test cell/test station for engine acceptance testing
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `cellName`: 
+  - `cellIdentifier`: 
+  - `status`: 
+  - `testType`: 
+  - `location`: 
+  - `lastMaintenanceDate`: 
+  - `nextMaintenanceDate`: 
+  - `maintenanceIntervalDays`: 
+  - `daqSystemType`: 
+  - `daqSystemId`: 
+  - `daqApiEndpoint`: 
+  - `daqApiKey`: 
+  - `daqStatus`: 
+  - `maxConcurrentTests`: 
+  - `estimatedTestDuration`: 
+  - `certificationNumber`: 
+  - `certificationExpiry`: 
+  - `isCompliant`: 
+  - `complianceNotes`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_runs`
+TestRun - Represents a single test execution for engine acceptance
+
+**Properties**
+  - `id`: 
+  - `testRunNumber`: 
+  - `buildRecordId`: 
+  - `testCellId`: 
+  - `status`: 
+  - `scheduledStartTime`: 
+  - `actualStartTime`: 
+  - `actualEndTime`: 
+  - `estimatedDuration`: 
+  - `actualDuration`: 
+  - `operatorId`: 
+  - `supervisorId`: 
+  - `testData`: 
+  - `dataCollectionStatus`: 
+  - `daqFileReference`: 
+  - `testPassed`: 
+  - `testCompletedSuccessfully`: 
+  - `hasAnomolies`: 
+  - `anomolyNotes`: 
+  - `allCriteriaMet`: 
+  - `failureReason`: 
+  - `failureCode`: 
+  - `witnessedTest`: 
+  - `qualityApproved`: 
+  - `qualityApprovedById`: 
+  - `qualityApprovedAt`: 
+  - `faaCompliant`: 
+  - `complianceNotes`: 
+  - `testCertificateGenerated`: 
+  - `testCertificatePath`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_parameters`
+TestParameter - Configuration parameters for a test
+
+**Properties**
+  - `id`: 
+  - `testCellId`: 
+  - `parameterName`: 
+  - `parameterType`: 
+  - `unit`: 
+  - `minValue`: 
+  - `maxValue`: 
+  - `targetValue`: 
+  - `tolerance`: 
+  - `daqChannelId`: 
+  - `daqSensorType`: 
+  - `sensorManufacturer`: 
+  - `sensorModel`: 
+  - `calibrationDueDate`: 
+  - `recordingFrequency`: 
+  - `dataProcessingMethod`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_measurements`
+TestMeasurement - Individual measurements taken during a test
+
+**Properties**
+  - `id`: 
+  - `testRunId`: 
+  - `testParameterId`: 
+  - `value`: 
+  - `unit`: 
+  - `timestampSeconds`: 
+  - `recordedAt`: 
+  - `isOutOfRange`: 
+  - `isSuspicious`: 
+  - `dataQuality`: 
+  - `daqRawId`: 
+  - `createdAt`: 
+
+### `acceptance_criteria`
+AcceptanceCriteria - Define what constitutes a passing test
+
+**Properties**
+  - `id`: 
+  - `testParameterId`: 
+  - `criteriaType`: 
+  - `minValue`: 
+  - `maxValue`: 
+  - `targetValue`: 
+  - `tolerance`: 
+  - `assessmentMethod`: 
+  - `customFormula`: 
+  - `passingCondition`: 
+  - `description`: 
+  - `faaRequirement`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_run_acceptance_criteria`
+TestRunAcceptanceCriteria - Links test runs to acceptance criteria with results
+
+**Properties**
+  - `id`: 
+  - `testRunId`: 
+  - `acceptanceCriteriaId`: 
+  - `criteria`: 
+  - `testValue`: 
+  - `minRequired`: 
+  - `maxRequired`: 
+  - `passed`: 
+  - `assessmentDetail`: 
+  - `assessedAt`: 
+
+### `test_certificates`
+TestCertificate - Certificate generated after successful engine acceptance test
+
+**Properties**
+  - `id`: 
+  - `testRunId`: 
+  - `certificateNumber`: 
+  - `certificateType`: 
+  - `issuedDate`: 
+  - `certificationStandards`: 
+  - `allTestsPassed`: 
+  - `testSummary`: 
+  - `failedCriteria`: 
+  - `issuedById`: 
+  - `approvalDate`: 
+  - `approverComments`: 
+  - `certificatePath`: 
+  - `certificateDataJson`: 
+  - `expirationDate`: 
+  - `isValid`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_run_status_history`
+TestRunStatusHistory - Audit trail of test run status changes
+
+**Properties**
+  - `id`: 
+  - `testRunId`: 
+  - `previousStatus`: 
+  - `newStatus`: 
+  - `reason`: 
+  - `changedById`: 
+  - `changedAt`: 
+
+### `test_cell_schedules`
+TestCellSchedule - Schedule test cell availability
+
+**Properties**
+  - `id`: 
+  - `testCellId`: 
+  - `scheduledDate`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `scheduleType`: 
+  - `notes`: 
   - `isActive`: 
   - `createdAt`: 
   - `updatedAt`: 
