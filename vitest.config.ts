@@ -38,7 +38,7 @@ export default defineConfig({
     hookTimeout: 30000,
 
     // File patterns
-    include: ['src/tests/services/**/*.test.ts'],
+    include: ['src/tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'src/tests/e2e/**', 'src/__tests__/**'],
 
     // Coverage settings
