@@ -1074,7 +1074,7 @@ model ParameterGroup {
   tags          String[]
   displayOrder  Int?
   icon          String?
-  color         String?
+  color         ParameterColor?      @default(PRIMARY)
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   parameters    OperationParameter[] @relation("ParameterGrouping")
@@ -1239,7 +1239,7 @@ model Part {
   releaseDate                DateTime?
   obsoleteDate               DateTime?
   replacementPartId          String?
-  makeOrBuy                  String?                     @default("MAKE")
+  makeOrBuy                  MakeOrBuyDecision?          @default(MAKE)
   leadTimeDays               Int?
   lotSizeMin                 Int?
   lotSizeMultiple            Int?
@@ -1844,7 +1844,7 @@ model ProductionSchedule {
   description      String?
   periodStart      DateTime
   periodEnd        DateTime
-  periodType       String                 @default("MONTHLY")
+  periodType       SchedulePeriodType     @default(MONTHLY)
   siteId           String?
   areaId           String?
   state            ScheduleState          @default(FORECAST)
@@ -16597,6 +16597,37 @@ enum ConflictSeverity {
   error
 }
 
+/// Parameter Group Color Enum
+/// UI color options for parameter group display
+enum ParameterColor {
+  PRIMARY
+  SECONDARY
+  SUCCESS
+  DANGER
+  WARNING
+  INFO
+  LIGHT
+  DARK
+}
+
+/// Make-or-Buy Decision Enum
+/// Manufacturing decision for parts - make internally or buy from supplier
+enum MakeOrBuyDecision {
+  MAKE
+  BUY
+  MAKE_OR_BUY
+}
+
+/// Schedule Period Type Enum
+/// Time period types for production schedules
+enum SchedulePeriodType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
 /// Extension Schema Registry
 /// Tracks all registered extension schemas with their current status
 model ExtensionSchema {
@@ -16740,7 +16771,7 @@ model ExtensionSchemaVersion {
 /// Tracks MES version and platform capability requirements for extensions
 model ExtensionCompatibilityMatrix {
   id                    String   @id @default(cuid())
-  extensionId           String
+  extensionId           String   @unique
   extensionVersion      String
   mesVersionMin         String
   mesVersionMax         String?

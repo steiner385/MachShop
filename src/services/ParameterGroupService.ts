@@ -1,8 +1,11 @@
-import { PrismaClient, ParameterGroup, ParameterGroupType } from '@prisma/client';
+import { PrismaClient, ParameterGroup, ParameterGroupType, ParameterColor } from '@prisma/client';
 import { createLogger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 const logger = createLogger('ParameterGroupService');
+
+// Valid parameter group colors
+export const VALID_PARAMETER_COLORS = ['PRIMARY', 'SECONDARY', 'SUCCESS', 'DANGER', 'WARNING', 'INFO', 'LIGHT', 'DARK'] as const;
 
 export interface ParameterGroupWithChildren extends ParameterGroup {
   childGroups?: ParameterGroupWithChildren[];
@@ -21,7 +24,7 @@ export interface CreateGroupInput {
   tags?: string[];
   displayOrder?: number;
   icon?: string;
-  color?: string;
+  color?: ParameterColor;
 }
 
 export class ParameterGroupService {

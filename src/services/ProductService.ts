@@ -11,7 +11,7 @@
  * This service implements ISA-95 Part 2 Section 5: Product Definition
  */
 
-import { ProductType, ProductLifecycleState, ConfigurationType, SpecificationType, Prisma } from '@prisma/client';
+import { ProductType, ProductLifecycleState, ConfigurationType, SpecificationType, Prisma, MakeOrBuyDecision } from '@prisma/client';
 import prisma from '../lib/database';
 
 // Guard check for prisma instance
@@ -84,7 +84,7 @@ export class ProductService {
   releaseDate?: Date;
   obsoleteDate?: Date;
   replacementPartId?: string;
-  makeOrBuy?: string;
+  makeOrBuy?: MakeOrBuyDecision;
   leadTimeDays?: number;
   lotSizeMin?: number;
   lotSizeMultiple?: number;
@@ -254,7 +254,7 @@ async getAllParts(filters: {
   partType?: string;
   productType?: ProductType;
   lifecycleState?: ProductLifecycleState;
-  makeOrBuy?: string;
+  makeOrBuy?: MakeOrBuyDecision;
   isActive?: boolean;
   isConfigurable?: boolean;
 }, includeRelations: boolean = false) {
@@ -319,7 +319,7 @@ async updatePart(id: string, data: Partial<{
   releaseDate: Date;
   obsoleteDate: Date;
   replacementPartId: string;
-  makeOrBuy: string;
+  makeOrBuy: MakeOrBuyDecision;
   leadTimeDays: number;
   lotSizeMin: number;
   lotSizeMultiple: number;

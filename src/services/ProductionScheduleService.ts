@@ -14,7 +14,7 @@
  * This service implements ISA-95 Part 2 Section 4: Production Scheduling
  */
 
-import { ScheduleState, SchedulePriority, ConstraintType, Prisma } from '@prisma/client';
+import { ScheduleState, SchedulePriority, ConstraintType, Prisma, SchedulePeriodType } from '@prisma/client';
 import prisma from '../lib/database';
 
 export class ProductionScheduleService {
@@ -35,7 +35,7 @@ export class ProductionScheduleService {
   description?: string;
   periodStart: Date;
   periodEnd: Date;
-  periodType?: string;
+  periodType?: SchedulePeriodType;
   siteId?: string;
   areaId?: string;
   priority?: SchedulePriority;
@@ -248,7 +248,7 @@ export class ProductionScheduleService {
   description: string;
   periodStart: Date;
   periodEnd: Date;
-  periodType: string;
+  periodType: SchedulePeriodType;
   priority: SchedulePriority;
   plannedBy: string;
   approvedBy: string;
