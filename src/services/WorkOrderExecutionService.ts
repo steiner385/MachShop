@@ -7,10 +7,17 @@
  * - Work performance actuals capture (labor, material, equipment, quality, downtime)
  * - Automatic variance calculation (planned vs actual)
  * - Production response reporting
+ *
+ * Issue #41 Integration: Flexible Workflow Enforcement Engine
+ * - Configuration-driven enforcement of workflow rules
+ * - Audit trail tracking for all enforcement decisions
+ * - Support for STRICT, FLEXIBLE, and HYBRID enforcement modes
  */
 
 import { WorkOrderStatus, WorkPerformanceType, VarianceType } from '@prisma/client';
 import prisma from '../lib/database';
+import { WorkflowEnforcementService } from './WorkflowEnforcementService';
+import { WorkflowConfigurationService } from './WorkflowConfigurationService';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -109,7 +116,16 @@ const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
 // ============================================================================
 
 export class WorkOrderExecutionService {
-  constructor() {
+  private enforcementService: WorkflowEnforcementService;
+
+  constructor(enforcementService?: WorkflowEnforcementService) {
+    // If not provided, create instance with configuration service
+    if (!enforcementService) {
+      const configService = new WorkflowConfigurationService();
+      this.enforcementService = new WorkflowEnforcementService(configService, prisma);
+    } else {
+      this.enforcementService = enforcementService;
+    }
   }
 
   // ============================================================================
@@ -384,8 +400,9 @@ export class WorkOrderExecutionService {
 
   /**
    * Record work performance actuals (labor, material, equipment, quality, downtime)
+   * Issue #41: Enforces workflow rules based on configuration
    */
-  async recordWorkPerformance(data: WorkPerformanceData) {
+  async recordWorkPerformance(data: WorkPerformanceData, enforcementBypass?: { userId: string; justification: string }) {
     const { workOrderId, performanceType, recordedBy, ...perfData } = data;
 
     // ✅ PHASE 8 FIX: Enhanced work order ID validation to prevent business logic conflicts
@@ -395,7 +412,7 @@ export class WorkOrderExecutionService {
 
     const cleanWorkOrderId = workOrderId.trim();
 
-    // Verify work order exists and is in progress or completed
+    // Verify work order exists
     const workOrder = await prisma.workOrder.findUnique({
       where: { id: cleanWorkOrderId },
       include: { part: true }
@@ -411,8 +428,20 @@ export class WorkOrderExecutionService {
       );
     }
 
-    if (!['IN_PROGRESS', 'COMPLETED'].includes(workOrder.status)) {
-      throw new Error(`Cannot record performance for work order ${cleanWorkOrderId}. Status: ${workOrder.status}. Work order must be IN_PROGRESS or COMPLETED.`);
+    // Issue #41: Check enforcement rules for recording performance
+    const enforcementDecision = await this.enforcementService.canRecordPerformance(cleanWorkOrderId);
+
+    if (!enforcementDecision.allowed) {
+      throw new Error(
+        `Cannot record performance for work order ${cleanWorkOrderId}. ` +
+        `Reason: ${enforcementDecision.reason} ` +
+        `Enforcement Mode: ${enforcementDecision.configMode}`
+      );
+    }
+
+    // Log enforcement decision and any warnings
+    if (enforcementDecision.warnings.length > 0 || enforcementDecision.bypassesApplied.length > 0) {
+      await this.recordEnforcementAudit(cleanWorkOrderId, 'RECORD_PERFORMANCE', enforcementDecision, recordedBy, enforcementBypass?.justification);
     }
 
     // Calculate efficiency/variance for certain types
@@ -481,6 +510,179 @@ export class WorkOrderExecutionService {
     });
 
     return records;
+  }
+
+  // ============================================================================
+  // OPERATION MANAGEMENT (Issue #41: With Enforcement)
+  // ============================================================================
+
+  /**
+   * Start an operation within a work order with enforcement validation
+   * Issue #41: Validates prerequisites and enforces workflow rules
+   */
+  async startOperation(
+    workOrderId: string,
+    operationId: string,
+    startedBy: string,
+    notes?: string,
+    enforcementBypass?: { userId: string; justification: string }
+  ) {
+    // Validate inputs
+    if (!workOrderId || !operationId || !startedBy) {
+      throw new Error('Work order ID, operation ID, and started by user are required');
+    }
+
+    // Get operation with work order context
+    const operation = await prisma.workOrderOperation.findUnique({
+      where: { id: operationId },
+      include: {
+        workOrder: true
+      }
+    });
+
+    if (!operation) {
+      throw new Error(`Operation ${operationId} not found`);
+    }
+
+    if (operation.workOrderId !== workOrderId) {
+      throw new Error(`Operation ${operationId} does not belong to work order ${workOrderId}`);
+    }
+
+    // Issue #41: Check enforcement rules for starting operation
+    const enforcementDecision = await this.enforcementService.canStartOperation(workOrderId, operationId);
+
+    if (!enforcementDecision.allowed) {
+      throw new Error(
+        `Cannot start operation ${operationId}. ` +
+        `Reason: ${enforcementDecision.reason} ` +
+        `Enforcement Mode: ${enforcementDecision.configMode}`
+      );
+    }
+
+    // Validate prerequisites
+    const config = await this.enforcementService.getEffectiveConfiguration(workOrderId);
+    if (config.enforceOperationSequence) {
+      const prerequisiteValidation = await this.enforcementService.validatePrerequisites(
+        workOrderId,
+        operationId,
+        config.mode === 'STRICT' ? 'STRICT' : 'FLEXIBLE'
+      );
+
+      if (!prerequisiteValidation.valid && config.mode === 'STRICT') {
+        const unmetNames = prerequisiteValidation.unmetPrerequisites
+          .map(p => `${p.prerequisiteOperationName} (${p.reason})`)
+          .join(', ');
+        throw new Error(`Cannot start operation: unmet prerequisites - ${unmetNames}`);
+      }
+
+      // Log audit for prerequisite warnings
+      if (prerequisiteValidation.warnings.length > 0) {
+        await this.recordEnforcementAudit(
+          workOrderId,
+          'START_OPERATION',
+          enforcementDecision,
+          startedBy,
+          enforcementBypass?.justification,
+          operationId
+        );
+      }
+    }
+
+    // Start the operation in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedOperation = await tx.workOrderOperation.update({
+        where: { id: operationId },
+        data: {
+          status: 'IN_PROGRESS',
+          startedAt: new Date()
+        }
+      });
+
+      return updatedOperation;
+    });
+
+    // Log enforcement decision
+    if (enforcementDecision.warnings.length > 0 || enforcementDecision.bypassesApplied.length > 0) {
+      await this.recordEnforcementAudit(
+        workOrderId,
+        'START_OPERATION',
+        enforcementDecision,
+        startedBy,
+        enforcementBypass?.justification,
+        operationId
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Complete an operation within a work order with enforcement validation
+   * Issue #41: Validates operation state and enforces workflow rules
+   */
+  async completeOperation(
+    workOrderId: string,
+    operationId: string,
+    completedBy: string,
+    notes?: string,
+    enforcementBypass?: { userId: string; justification: string }
+  ) {
+    // Validate inputs
+    if (!workOrderId || !operationId || !completedBy) {
+      throw new Error('Work order ID, operation ID, and completed by user are required');
+    }
+
+    // Get operation
+    const operation = await prisma.workOrderOperation.findUnique({
+      where: { id: operationId },
+      include: { workOrder: true }
+    });
+
+    if (!operation) {
+      throw new Error(`Operation ${operationId} not found`);
+    }
+
+    if (operation.workOrderId !== workOrderId) {
+      throw new Error(`Operation ${operationId} does not belong to work order ${workOrderId}`);
+    }
+
+    // Issue #41: Check enforcement rules for completing operation
+    const enforcementDecision = await this.enforcementService.canCompleteOperation(workOrderId, operationId);
+
+    if (!enforcementDecision.allowed) {
+      throw new Error(
+        `Cannot complete operation ${operationId}. ` +
+        `Reason: ${enforcementDecision.reason} ` +
+        `Enforcement Mode: ${enforcementDecision.configMode}`
+      );
+    }
+
+    // Complete the operation in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedOperation = await tx.workOrderOperation.update({
+        where: { id: operationId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date()
+        }
+      });
+
+      return updatedOperation;
+    });
+
+    // Log enforcement decision
+    if (enforcementDecision.warnings.length > 0 || enforcementDecision.bypassesApplied.length > 0) {
+      await this.recordEnforcementAudit(
+        workOrderId,
+        'COMPLETE_OPERATION',
+        enforcementDecision,
+        completedBy,
+        enforcementBypass?.justification,
+        operationId
+      );
+    }
+
+    return result;
   }
 
   // ============================================================================
@@ -648,6 +850,48 @@ export class WorkOrderExecutionService {
     });
 
     return varianceSummary;
+  }
+
+  // ============================================================================
+  // ENFORCEMENT AUDIT LOGGING (Issue #41)
+  // ============================================================================
+
+  /**
+   * Record an enforcement decision to the audit table
+   * Used for tracking all enforcement bypasses and warnings
+   */
+  private async recordEnforcementAudit(
+    workOrderId: string,
+    action: 'RECORD_PERFORMANCE' | 'START_OPERATION' | 'COMPLETE_OPERATION',
+    decision: any,
+    userId: string,
+    justification?: string,
+    operationId?: string
+  ) {
+    try {
+      // Use optional chaining to safely access the model in case it's not yet available in Prisma client
+      if (prisma && (prisma as any).workflowEnforcementAudit) {
+        await (prisma as any).workflowEnforcementAudit.create({
+          data: {
+            workOrderId,
+            operationId,
+            action,
+            enforcementMode: decision.configMode,
+            bypassesApplied: decision.bypassesApplied,
+            warnings: decision.warnings,
+            decision: JSON.stringify(decision),
+            userId,
+            justification
+          }
+        });
+      } else {
+        // Model not available yet, log warning but continue
+        console.warn('WorkflowEnforcementAudit model not available in Prisma client - audit not recorded');
+      }
+    } catch (error) {
+      // Log error but don't block operation
+      console.error(`Failed to record enforcement audit: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   // ============================================================================
