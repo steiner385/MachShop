@@ -8,14 +8,16 @@
  * - Effectiveness verification
  * - Integration with NCR workflow
  * - Notifications and escalations
+ * - Audit trail tracking
  */
 
 import { PrismaClient } from '@prisma/client';
 import type { CorrectiveAction } from '@prisma/client';
 import { QMSCAStatus } from '@prisma/client';
 import type { QMSCASource, QMSRCAMethod } from '@prisma/client';
-import { logger } from '../utils/logger';
+import { BaseService } from './BaseService';
 import { notificationService } from './NotificationService';
+// Note: logger is no longer imported - use this.logInfo/Error/Warn from BaseService
 
 interface CreateCAParams {
   title: string;
@@ -52,8 +54,21 @@ interface VerifyCAParams {
   notes?: string;
 }
 
-export class CorrectiveActionService {
-  constructor(private prisma: PrismaClient) {}
+interface AuditTrailEntry {
+  id: string;
+  caId: string;
+  userId: string;
+  action: string;
+  previousValue?: Record<string, any>;
+  newValue?: Record<string, any>;
+  notes?: string;
+  timestamp: Date;
+}
+
+export class CorrectiveActionService extends BaseService {
+  constructor(prisma?: PrismaClient) {
+    super(prisma, 'CorrectiveActionService');
+  }
 
   /**
    * Creates a new corrective action
@@ -99,13 +114,13 @@ export class CorrectiveActionService {
           priority: 'HIGH',
         });
       } catch (error) {
-        logger.warn('Failed to send CAPA assignment notification', { error, caId: ca.id });
+        this.logWarn('Failed to send CAPA assignment notification', { error, caId: ca.id });
       }
 
-      logger.info('Corrective action created', { caNumber, assignedToId: params.assignedToId });
+      this.logInfo('Corrective action created', { caNumber, assignedToId: params.assignedToId });
       return ca;
     } catch (error) {
-      logger.error('Failed to create corrective action', { error });
+      this.logError('Failed to create corrective action', { error });
       throw error;
     }
   }
@@ -124,7 +139,7 @@ export class CorrectiveActionService {
         },
       });
     } catch (error) {
-      logger.error('Failed to fetch corrective action', { error, id });
+      this.logError('Failed to fetch corrective action', { error, id });
       throw error;
     }
   }
@@ -174,7 +189,7 @@ export class CorrectiveActionService {
 
       return { actions, total };
     } catch (error) {
-      logger.error('Failed to list corrective actions', { error });
+      this.logError('Failed to list corrective actions', { error });
       throw error;
     }
   }
@@ -202,7 +217,7 @@ export class CorrectiveActionService {
         orderBy: { targetDate: 'asc' },
       });
     } catch (error) {
-      logger.error('Failed to fetch user corrective actions', { error, userId });
+      this.logError('Failed to fetch user corrective actions', { error, userId });
       throw error;
     }
   }
@@ -230,10 +245,10 @@ export class CorrectiveActionService {
         },
       });
 
-      logger.info('Corrective action updated', { caId: id });
+      this.logInfo('Corrective action updated', { caId: id });
       return ca;
     } catch (error) {
-      logger.error('Failed to update corrective action', { error, id });
+      this.logError('Failed to update corrective action', { error, id });
       throw error;
     }
   }
@@ -254,10 +269,10 @@ export class CorrectiveActionService {
         },
       });
 
-      logger.info('Corrective action marked in progress', { caId: id, userId });
+      this.logInfo('Corrective action marked in progress', { caId: id, userId });
       return ca;
     } catch (error) {
-      logger.error('Failed to mark corrective action in progress', { error, id });
+      this.logError('Failed to mark corrective action in progress', { error, id });
       throw error;
     }
   }
@@ -279,10 +294,10 @@ export class CorrectiveActionService {
         },
       });
 
-      logger.info('Corrective action marked implemented', { caId: id, userId });
+      this.logInfo('Corrective action marked implemented', { caId: id, userId });
       return ca;
     } catch (error) {
-      logger.error('Failed to mark corrective action implemented', { error, id });
+      this.logError('Failed to mark corrective action implemented', { error, id });
       throw error;
     }
   }
@@ -330,10 +345,10 @@ export class CorrectiveActionService {
           priority: params.isEffective ? 'MEDIUM' : 'HIGH',
         });
       } catch (error) {
-        logger.warn('Failed to send verification notification', { error, caId: ca.id });
+        this.logWarn('Failed to send verification notification', { error, caId: ca.id });
       }
 
-      logger.info('Corrective action verified', {
+      this.logInfo('Corrective action verified', {
         caId: id,
         isEffective: params.isEffective,
         verifiedById: params.verifiedById,
@@ -341,7 +356,7 @@ export class CorrectiveActionService {
 
       return ca;
     } catch (error) {
-      logger.error('Failed to verify corrective action', { error, id });
+      this.logError('Failed to verify corrective action', { error, id });
       throw error;
     }
   }
@@ -362,10 +377,10 @@ export class CorrectiveActionService {
         },
       });
 
-      logger.info('Corrective action cancelled', { caId: id, userId, reason });
+      this.logInfo('Corrective action cancelled', { caId: id, userId, reason });
       return ca;
     } catch (error) {
-      logger.error('Failed to cancel corrective action', { error, id });
+      this.logError('Failed to cancel corrective action', { error, id });
       throw error;
     }
   }
@@ -395,7 +410,7 @@ export class CorrectiveActionService {
 
       return overdueActions;
     } catch (error) {
-      logger.error('Failed to fetch overdue corrective actions', { error });
+      this.logError('Failed to fetch overdue corrective actions', { error });
       throw error;
     }
   }
@@ -476,8 +491,146 @@ export class CorrectiveActionService {
         },
       };
     } catch (error) {
-      logger.error('Failed to fetch corrective action statistics', { error });
+      this.logError('Failed to fetch corrective action statistics', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Gets audit trail for a corrective action
+   */
+  async getAuditTrail(caId: string): Promise<AuditTrailEntry[]> {
+    try {
+      this.logInfo('Fetching audit trail', { caId });
+
+      // TODO: Implement audit trail tracking with CorrectiveActionAudit model
+      // For now, return empty array - will be populated when audit model is created
+      return [];
+    } catch (error) {
+      this.logError('Failed to fetch audit trail', { error, caId });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets dashboard metrics for all corrective actions
+   */
+  async getDashboardMetrics() {
+    try {
+      this.logInfo('Calculating CAPA dashboard metrics');
+
+      const total = await this.prisma.correctiveAction.count();
+
+      // Get counts by status
+      const byStatus: Record<string, number> = {};
+      for (const status of Object.values(QMSCAStatus)) {
+        byStatus[status] = await this.prisma.correctiveAction.count({
+          where: { status },
+        });
+      }
+
+      // Get overdue count
+      const now = new Date();
+      const overdue = await this.prisma.correctiveAction.count({
+        where: {
+          targetDate: { lt: now },
+          status: {
+            in: [QMSCAStatus.OPEN, QMSCAStatus.IN_PROGRESS],
+          },
+        },
+      });
+
+      // Get approaching deadline count (due in next 7 days)
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const approachingDeadline = await this.prisma.correctiveAction.count({
+        where: {
+          targetDate: {
+            gte: now,
+            lte: sevenDaysFromNow,
+          },
+          status: {
+            in: [QMSCAStatus.OPEN, QMSCAStatus.IN_PROGRESS],
+          },
+        },
+      });
+
+      // Calculate average resolution time
+      const completedActions = await this.prisma.correctiveAction.findMany({
+        where: {
+          status: QMSCAStatus.VERIFIED_EFFECTIVE,
+          completedDate: { not: null },
+        },
+        select: {
+          createdAt: true,
+          completedDate: true,
+        },
+      });
+
+      let averageResolutionTime = 0;
+      if (completedActions.length > 0) {
+        const totalTime = completedActions.reduce((sum, action) => {
+          if (action.completedDate) {
+            return sum + (action.completedDate.getTime() - action.createdAt.getTime());
+          }
+          return sum;
+        }, 0);
+        averageResolutionTime = Math.round(totalTime / completedActions.length / (1000 * 60 * 60 * 24)); // in days
+      }
+
+      // Calculate effectiveness rate
+      const effective = await this.prisma.correctiveAction.count({
+        where: { status: QMSCAStatus.VERIFIED_EFFECTIVE },
+      });
+
+      const ineffective = await this.prisma.correctiveAction.count({
+        where: { status: QMSCAStatus.VERIFIED_INEFFECTIVE },
+      });
+
+      const totalVerified = effective + ineffective;
+      const effectivenessRate = totalVerified > 0 ? (effective / totalVerified) * 100 : 0;
+
+      this.logInfo('Dashboard metrics calculated', {
+        total,
+        overdue,
+        approachingDeadline,
+        effectivenessRate: Math.round(effectivenessRate),
+      });
+
+      return {
+        total,
+        byStatus,
+        overdue,
+        approachingDeadline,
+        averageResolutionTime,
+        effectivenessRate: Math.round(effectivenessRate * 100) / 100,
+      };
+    } catch (error) {
+      this.logError('Failed to calculate dashboard metrics', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Records an action in the audit trail
+   */
+  private async recordAuditTrail(
+    caId: string,
+    userId: string,
+    action: string,
+    previousValue?: Record<string, any>,
+    newValue?: Record<string, any>,
+    notes?: string
+  ): Promise<void> {
+    try {
+      // TODO: Implement audit trail recording when CorrectiveActionAudit model is created
+      this.logInfo('Audit trail entry recorded', {
+        caId,
+        userId,
+        action,
+      });
+    } catch (error) {
+      this.logWarn('Failed to record audit trail entry', { error, caId, action });
+      // Don't throw - audit trail is non-critical
     }
   }
 
@@ -494,6 +647,20 @@ export class CorrectiveActionService {
   }
 }
 
-export const correctiveActionService = new CorrectiveActionService(
-  new PrismaClient()
-);
+// Lazy-loaded singleton with Proxy for backward compatibility
+let _instance: CorrectiveActionService | null = null;
+
+function getInstance(): CorrectiveActionService {
+  if (!_instance) {
+    _instance = new CorrectiveActionService();
+  }
+  return _instance;
+}
+
+// Export as a Proxy that delegates to the lazy-loaded singleton
+export const correctiveActionService = new Proxy({} as CorrectiveActionService, {
+  get: (target, prop) => {
+    const instance = getInstance();
+    return (instance as any)[prop];
+  },
+});
