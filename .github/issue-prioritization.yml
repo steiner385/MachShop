@@ -1070,7 +1070,7 @@ issues:
     business_value: 9
     effort_estimate: 8
     blocks: []
-    notes: "Complete traceability for recalls and compliance"
+    notes: "COMPLETED - Complete traceability for recalls and compliance with ProductGenealogyService, AsBuiltBOMService, and RecallSimulationService - Implemented in PR #389"
 
   # --- Help Documentation & User Guidance ---
   - number: 139
