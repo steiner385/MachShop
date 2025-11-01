@@ -946,7 +946,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: [105, 149, 150]
-    notes: "Critical for traceability in aerospace manufacturing"
+    notes: "COMPLETED - Lot genealogy (splits/merges), forward/backward traceability, serial assignment, as-built BOM, holds/quarantine, recalls. 1700+ lines, 33 tests, PR #388. No conflicts with existing services."
 
   - number: 91
     title: "Inventory Transaction Engine & Cycle Counting"
