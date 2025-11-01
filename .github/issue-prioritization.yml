@@ -1951,7 +1951,7 @@ issues:
     business_value: 7
     effort_estimate: 6
     blocks: [37, 39]
-    notes: "File-based data import capabilities"
+    notes: "COMPLETED - Multi-format bulk import engine delivered in PR #312. CSV/Excel/JSON parsing with streaming support for >1M records. Batch processing with configurable batch sizes (100-10K), transaction-wrapped commits, error handling strategies (stop/continue/fail-batch). Dry-run mode for preview validation. Foreign key caching (90% query reduction), duplicate detection, partial success handling. Pre/during/post-import validation. Checkpoint-based resumable imports with rollback capability. ImportJob tracking with status API. Unblocks #37, #39"
 
   - number: 33
     title: "Data Validation Framework"
