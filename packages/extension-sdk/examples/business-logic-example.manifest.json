@@ -5,34 +5,56 @@
   "type": "business-logic",
   "category": "workflow-hook",
   "description": "Comprehensive validation hook for work orders enforcing business rules including resource availability, material allocation, and schedule feasibility before order release.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "foundation",
   "author": {
     "name": "MachShop Manufacturing Systems",
     "email": "hooks@machshop.io"
   },
   "license": "Apache-2.0",
   "repository": "https://github.com/machshop/work-order-validation",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["validation", "work-order", "business-rules", "hook"],
+  "keywords": ["validation", "work-order", "business-rules", "hook", "manufacturing"],
+  "tags": ["validation", "business-logic", "hooks", "work-orders"],
   "documentation": {
     "guide": "https://docs.machshop.io/hooks/work-order-validation",
     "api": "https://docs.machshop.io/hooks/work-order-validation/api"
   },
   "dependencies": {
-    "lodash": "^4.17.0"
+    "capabilities": [
+      {
+        "capability": "work-order-data",
+        "minVersion": "v2"
+      },
+      {
+        "capability": "material-availability",
+        "minVersion": "v1"
+      }
+    ]
   },
   "capabilities": {
+    "provides": [
+      {
+        "name": "work-order-validation",
+        "version": "v2.0.0",
+        "implements": ["validate", "checkMaterials", "checkEquipment", "checkSchedule"]
+      }
+    ],
     "hooks": [
       {
         "hook": "work-order:before-release",
         "phase": "pre",
-        "priority": 100
+        "priority": 100,
+        "description": "Validates work order before release",
+        "contract": "WorkOrderHookContract"
       },
       {
         "hook": "work-order:after-update",
         "phase": "post",
-        "priority": 50
+        "priority": 50,
+        "description": "Updates validation state after work order changes",
+        "contract": "WorkOrderHookContract"
       }
     ]
   },
@@ -76,11 +98,26 @@
   },
   "testing": {
     "hasTests": true,
-    "coverage": 92
+    "coverage": 92,
+    "testTypes": ["unit", "integration", "e2e"],
+    "cicdIntegration": true,
+    "performanceBaseline": {
+      "responseTimeMs": 200
+    }
+  },
+  "security": {
+    "sandboxed": true,
+    "signatureRequired": true,
+    "securityLevel": "foundation",
+    "vulnerabilityScanRequired": true,
+    "auditLog": true
+  },
+  "governance": {
+    "requiresPlatformApproval": true,
+    "approvalProcess": "standard"
   },
   "performance": {
     "asyncCapable": true
   },
-  "tags": ["validation", "business-logic", "hooks", "work-orders"],
   "releaseDate": "2024-02-20T14:15:00Z"
 }

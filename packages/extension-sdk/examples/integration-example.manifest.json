@@ -5,31 +5,50 @@
   "type": "integration",
   "category": "erp-adapter",
   "description": "Bi-directional integration adapter connecting MachShop manufacturing execution system with SAP ERP for real-time order synchronization, inventory updates, and production reporting.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "foundation",
   "author": {
     "name": "SAP Integration Specialists",
     "email": "sap-integration@machshop.io"
   },
-    "license": "Apache-2.0",
+  "license": "Apache-2.0",
   "repository": "https://github.com/machshop/sap-erp-adapter",
   "homepage": "https://docs.machshop.io/adapters/sap",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["sap", "erp", "integration", "adapter", "synchronization"],
+  "keywords": ["sap", "erp", "integration", "adapter", "synchronization", "integration"],
+  "tags": ["sap", "erp", "integration", "synchronization", "manufacturing"],
   "documentation": {
     "guide": "https://docs.machshop.io/adapters/sap/setup-guide",
     "api": "https://docs.machshop.io/adapters/sap/api-reference",
     "changelog": "https://github.com/machshop/sap-erp-adapter/blob/main/CHANGELOG.md"
   },
   "dependencies": {
-    "@sap/async-odata": "^2.3.0",
-    "axios": "^1.4.0"
+    "capabilities": [
+      {
+        "capability": "erp-connector",
+        "minVersion": "v2"
+      },
+      {
+        "capability": "work-order-data",
+        "minVersion": "v2"
+      }
+    ]
   },
   "capabilities": {
+    "provides": [
+      {
+        "name": "sap-erp-integration",
+        "version": "v3.1.0",
+        "implements": ["sync", "query", "transform", "mapData"]
+      }
+    ],
     "integrations": [
       {
         "system": "SAP ERP",
-        "version": "S/4HANA 2023+"
+        "version": "S/4HANA 2023+",
+        "description": "SAP ERP bidirectional integration",
+        "contract": "SAPIntegrationContract"
       }
     ]
   },
@@ -57,7 +76,9 @@
       "syncInterval": {
         "type": "integer",
         "description": "Synchronization interval in seconds",
-        "default": 60
+        "default": 60,
+        "minimum": 10,
+        "maximum": 3600
       },
       "bidirectionalSync": {
         "type": "boolean",
@@ -76,18 +97,34 @@
     "memory": "1GB"
   },
   "testing": {
-    "testingUrl": "https://sap-test-system.company.com",
     "hasTests": true,
-    "coverage": 79
+    "coverage": 79,
+    "testTypes": ["unit", "integration", "e2e"],
+    "cicdIntegration": true,
+    "performanceBaseline": {
+      "memoryUsageMB": 512,
+      "responseTimeMs": 1000
+    }
   },
   "security": {
+    "sandboxed": true,
+    "signatureRequired": true,
     "allowedOrigins": ["https://sap-instance.company.com"],
-    "signatureRequired": true
+    "securityLevel": "foundation",
+    "vulnerabilityScanRequired": true,
+    "auditLog": true,
+    "dataEncryption": {
+      "atRest": true,
+      "inTransit": true
+    }
+  },
+  "governance": {
+    "requiresPlatformApproval": true,
+    "approvalProcess": "standard"
   },
   "performance": {
     "asyncCapable": true,
     "bundleSize": "350KB"
   },
-  "tags": ["sap", "erp", "integration", "synchronization", "manufacturing"],
   "releaseDate": "2024-01-10T08:45:00Z"
 }

@@ -1,39 +1,56 @@
 {
   "id": "azure-ad-auth-provider",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "name": "Azure Active Directory Authentication Provider",
   "type": "infrastructure",
   "category": "custom-auth",
   "description": "Enterprise authentication provider integrating Microsoft Azure Active Directory for single sign-on, role mapping, and multi-tenant organization support.",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "2.0",
+  "foundationTier": "foundation",
   "author": {
     "name": "MachShop Enterprise",
     "email": "enterprise@machshop.io"
   },
   "license": "MIT",
   "repository": "https://github.com/machshop/azure-ad-auth",
-  "apiVersion": "v2.1",
-  "mesVersion": "3.2.0",
-  "extensionSchemaVersion": "1.0",
-  "keywords": ["azure", "authentication", "sso", "enterprise", "identity"],
+  "keywords": ["azure", "authentication", "sso", "enterprise", "identity", "infrastructure"],
+  "tags": ["azure", "authentication", "sso", "identity", "enterprise"],
   "documentation": {
     "guide": "https://docs.machshop.io/auth/azure-ad",
     "api": "https://docs.machshop.io/auth/azure-ad/api"
   },
   "dependencies": {
-    "@azure/msal-node": "^1.17.0",
-    "jsonwebtoken": "^9.0.0"
+    "capabilities": [
+      {
+        "capability": "authentication-provider",
+        "minVersion": "v2"
+      }
+    ]
   },
   "capabilities": {
+    "provides": [
+      {
+        "name": "azure-ad-authentication",
+        "version": "v2.0.0",
+        "implements": ["authenticate", "authorize", "refreshToken", "mapRoles"]
+      }
+    ],
     "hooks": [
       {
         "hook": "auth:authenticate",
         "phase": "core",
-        "priority": 500
+        "priority": 500,
+        "description": "Authenticate user with Azure AD",
+        "contract": "AuthenticationHookContract"
       },
       {
         "hook": "auth:authorize",
         "phase": "core",
-        "priority": 450
+        "priority": 450,
+        "description": "Authorize user access based on Azure AD roles",
+        "contract": "AuthorizationHookContract"
       }
     ]
   },
@@ -83,16 +100,31 @@
   },
   "testing": {
     "hasTests": true,
-    "coverage": 87
+    "coverage": 87,
+    "testTypes": ["unit", "integration", "security"],
+    "cicdIntegration": true,
+    "performanceBaseline": {
+      "responseTimeMs": 100
+    }
   },
   "security": {
     "sandboxed": false,
-    "signatureRequired": true
+    "signatureRequired": true,
+    "securityLevel": "foundation",
+    "vulnerabilityScanRequired": true,
+    "auditLog": true,
+    "dataEncryption": {
+      "atRest": true,
+      "inTransit": true
+    }
+  },
+  "governance": {
+    "requiresPlatformApproval": true,
+    "approvalProcess": "security-review"
   },
   "performance": {
     "asyncCapable": true,
     "bundleSize": "200KB"
   },
-  "tags": ["azure", "authentication", "sso", "identity", "enterprise"],
   "releaseDate": "2024-01-05T11:20:00Z"
 }
