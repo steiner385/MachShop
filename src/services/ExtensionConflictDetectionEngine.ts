@@ -327,6 +327,7 @@ export class ExtensionConflictDetectionEngine {
               'Test data integrity with concurrent hook execution',
               'Load test with realistic hook invocation patterns',
             ],
+            timestamp: new Date(),
           });
         }
 
