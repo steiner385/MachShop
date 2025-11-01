@@ -903,6 +903,116 @@ export class CorrectiveActionService extends BaseService {
   }
 
   /**
+   * Creates a CAPA from an SPC rule violation
+   */
+  async createCAFromSPCViolation(
+    violationId: string,
+    userId: string,
+    ruleViolation: any
+  ): Promise<CorrectiveAction> {
+    try {
+      this.logInfo('Creating CA from SPC violation', {
+        violationId,
+        ruleName: ruleViolation.ruleName,
+      });
+
+      // Determine priority based on violation severity
+      const priorityMap: Record<string, QMSCASource> = {
+        CRITICAL: 'SPC_VIOLATION',
+        HIGH: 'SPC_VIOLATION',
+        MEDIUM: 'SPC_VIOLATION',
+        LOW: 'SPC_VIOLATION',
+      };
+
+      // Create CA with SPC violation as source
+      const ca = await this.createCorrectiveAction({
+        title: `SPC Rule ${ruleViolation.ruleNumber} Violation: ${ruleViolation.ruleName}`,
+        description: `Automatic CAPA triggered by SPC rule violation. Value: ${ruleViolation.value}, Rule: ${ruleViolation.ruleName}, Severity: ${ruleViolation.severity}`,
+        source: 'SPC_VIOLATION' as any,
+        sourceReference: violationId,
+        assignedToId: userId,
+        targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        correctiveAction: `Investigate SPC rule ${ruleViolation.ruleNumber} violation and implement corrective measures`,
+        preventiveAction: 'Establish controls to prevent recurrence of this violation',
+        createdById: userId,
+        estimatedCost: 0,
+        verificationMethod: 'SPC monitoring',
+      });
+
+      // Link violation to CA
+      await this.prisma.sPCRuleViolation.update({
+        where: { id: violationId },
+        data: {
+          correctiveActionId: ca.id,
+        },
+      });
+
+      // Send notification
+      try {
+        await notificationService.createNotification({
+          userId,
+          type: 'APPROVAL_GRANTED' as any,
+          title: `Auto-triggered CA from SPC Violation`,
+          message: `CA created for rule ${ruleViolation.ruleNumber}: ${ruleViolation.ruleName}`,
+          relatedEntityType: 'CORRECTIVE_ACTION',
+          relatedEntityId: ca.id,
+          actionUrl: `/quality/corrective-actions/${ca.id}`,
+          priority: 'HIGH',
+        });
+      } catch (error) {
+        this.logWarn('Failed to send SPC violation notification', { error, caId: ca.id });
+      }
+
+      this.logInfo('CA created from SPC violation', {
+        caId: ca.id,
+        violationId,
+      });
+
+      return ca;
+    } catch (error) {
+      this.logError('Failed to create CA from SPC violation', { error, violationId });
+      throw error;
+    }
+  }
+
+  /**
+   * Links an existing CA to SPC violations for tracking
+   */
+  async linkCAToSPCViolations(caId: string, violationIds: string[]): Promise<void> {
+    try {
+      await this.prisma.sPCRuleViolation.updateMany({
+        where: { id: { in: violationIds } },
+        data: { correctiveActionId: caId },
+      });
+
+      this.logInfo('CA linked to SPC violations', {
+        caId,
+        violationCount: violationIds.length,
+      });
+    } catch (error) {
+      this.logError('Failed to link CA to SPC violations', { error, caId });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets SPC violations associated with a CA
+   */
+  async getSPCViolations(caId: string): Promise<any[]> {
+    try {
+      const violations = await this.prisma.sPCRuleViolation.findMany({
+        where: { correctiveActionId: caId },
+        orderBy: { timestamp: 'desc' },
+      });
+
+      return violations;
+    } catch (error) {
+      this.logError('Failed to fetch SPC violations', { error, caId });
+      throw error;
+    }
+  }
+
+  /**
    * Generates a unique CA number
    */
   private generateCANumber(): string {

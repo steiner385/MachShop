@@ -4012,11 +4012,17 @@ model SPCRuleViolation {
   acknowledgedBy  String?
   acknowledgedAt  DateTime?
   resolution      String?
+
+  // CAPA Integration - Link to corrective action
+  correctiveActionId String?
+  correctiveAction   CorrectiveAction? @relation(fields: [correctiveActionId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime         @default(now())
   configuration   SPCConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
 
   @@index([configurationId, timestamp])
   @@index([acknowledged])
+  @@index([correctiveActionId])
   @@map("spc_rule_violations")
 }
 
@@ -12309,6 +12315,7 @@ model CorrectiveAction {
   auditFindings       AuditFinding[]
   auditTrail          CorrectiveActionAudit[]
   approvalRequests    CAApprovalRequest[]
+  spcViolations       SPCRuleViolation[]
 
   // Metadata
   createdAt           DateTime @default(now())
