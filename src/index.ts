@@ -151,6 +151,7 @@ import ospRoutes from './routes/osp';
 
 // ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System Routes
 import movementRoutes from './routes/movements';
+import shipmentWebhookRoutes from './routes/shipment-webhooks';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -399,8 +400,9 @@ apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
 // ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System API Routes
 apiRouter.use('/osp', authMiddleware, ospRoutes);
 
-// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System API Routes (Phase 8)
+// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System API Routes (Phase 8-9)
 apiRouter.use('/movements', authMiddleware, movementRoutes);
+apiRouter.use('/webhooks', shipmentWebhookRoutes); // Public webhook endpoints - no auth required
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
