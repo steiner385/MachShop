@@ -1563,7 +1563,7 @@ issues:
     business_value: 7
     effort_estimate: 6
     blocks: []
-    notes: "Configurable quality checkpoints in workflows"
+    notes: "COMPLETED - Configurable quality enforcement (STRICT/RECOMMENDED/OPTIONAL/EXTERNAL modes) with NCR disposition rules and electronic signature requirements - Implemented in PR #368"
 
   - number: 45
     title: "Work Instruction Viewer with Data Collection"
