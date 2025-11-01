@@ -32,7 +32,9 @@ import {
   SearchOutlined,
   CloseOutlined,
   SwitcherOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  AppstoreOutlined,
+  BugOutlined
 } from '@ant-design/icons';
 
 // Import RBAC Admin Components
@@ -46,6 +48,11 @@ import AzureADPage from './AzureADPage';
 
 // Import Workflow Configuration Components
 import { SiteConfigurationPage, OverrideManagement } from './WorkflowConfiguration';
+
+// Import Plugin Management Components (Issue #75 Phase 5)
+import PluginManagementPage from './PluginManagementPage';
+import PluginDetailsPage from './PluginDetailsPage';
+import PluginEventBusDashboard from './PluginEventBusDashboard';
 
 const { Title, Text } = Typography;
 
@@ -372,6 +379,23 @@ const AdminPage: React.FC = () => {
         },
       ],
     },
+    {
+      key: 'plugins',
+      icon: <AppstoreOutlined />,
+      label: 'Plugin Management',
+      children: [
+        {
+          key: 'plugins-list',
+          icon: <AppstoreOutlined />,
+          label: 'Plugins',
+        },
+        {
+          key: 'event-bus',
+          icon: <BugOutlined />,
+          label: 'Event Bus & Webhooks',
+        },
+      ],
+    },
   ];
 
   const renderContent = () => {
@@ -444,6 +468,22 @@ const AdminPage: React.FC = () => {
             <ModuleErrorBoundary moduleName="Override Management">
               <Suspense fallback={<Spin size="large" tip="Loading Override Management..." />}>
                 <OverrideManagement siteId="DEFAULT_SITE" />
+              </Suspense>
+            </ModuleErrorBoundary>
+          );
+        case 'plugins-list':
+          return (
+            <ModuleErrorBoundary moduleName="Plugin Management">
+              <Suspense fallback={<Spin size="large" tip="Loading Plugin Management..." />}>
+                <PluginManagementPage />
+              </Suspense>
+            </ModuleErrorBoundary>
+          );
+        case 'event-bus':
+          return (
+            <ModuleErrorBoundary moduleName="Event Bus Dashboard">
+              <Suspense fallback={<Spin size="large" tip="Loading Event Bus Dashboard..." />}>
+                <PluginEventBusDashboard />
               </Suspense>
             </ModuleErrorBoundary>
           );
@@ -720,6 +760,20 @@ const AdminPage: React.FC = () => {
                         aria-label="Navigate to Azure AD Integration"
                       >
                         Azure AD
+                      </Button>
+                      <Button
+                        icon={<AppstoreOutlined aria-hidden="true" />}
+                        onClick={() => handleModuleSelection('plugins-list')}
+                        aria-label="Navigate to Plugin Management"
+                      >
+                        Plugins
+                      </Button>
+                      <Button
+                        icon={<BugOutlined aria-hidden="true" />}
+                        onClick={() => handleModuleSelection('event-bus')}
+                        aria-label="Navigate to Event Bus Dashboard"
+                      >
+                        Event Bus
                       </Button>
                     </Space>
                   </div>
