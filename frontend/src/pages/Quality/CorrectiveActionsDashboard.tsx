@@ -44,6 +44,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { qualityApi } from '@/services/qualityApi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -244,138 +245,25 @@ const CorrectiveActionsDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // TODO: Replace with actual API calls
-      // For now, show mock data that demonstrates the Phase 2 features
+      // Fetch real data from API
+      const [metricsResponse, actionsResponse] = await Promise.all([
+        qualityApi.getDashboardMetrics(),
+        qualityApi.getCorrectiveActions({ limit: 100 }),
+      ]);
 
-      const mockMetrics: DashboardMetrics = {
-        total: 12,
-        byStatus: {
-          OPEN: 3,
-          IN_PROGRESS: 4,
-          IMPLEMENTED: 3,
-          VERIFICATION_IN_PROGRESS: 2,
-          VERIFIED_EFFECTIVE: 0,
-          VERIFIED_INEFFECTIVE: 0,
-        },
-        overdue: 1,
-        approachingDeadline: 3,
-        averageResolutionDays: 14,
-        effectivenessRate: 0,
+      // Format metrics response
+      const metrics: DashboardMetrics = {
+        total: metricsResponse.total,
+        byStatus: metricsResponse.byStatus,
+        overdue: metricsResponse.overdue,
+        approachingDeadline: metricsResponse.approachingDeadline,
+        averageResolutionDays: metricsResponse.averageResolutionTime,
+        effectivenessRate: metricsResponse.effectivenessRate,
       };
 
-      const mockActions: CorrectiveAction[] = [
-        // OPEN Status
-        {
-          id: '1',
-          caNumber: 'CA-2025-0001',
-          title: 'Implement QC checkpoints on Line 3',
-          description: 'Add visual inspection checkpoints to prevent defects',
-          status: 'OPEN',
-          priority: 'HIGH',
-          assignedTo: {
-            id: 'user1',
-            firstName: 'John',
-            lastName: 'Smith',
-            email: 'john.smith@example.com',
-          },
-          targetDate: dayjs().add(5, 'days').toISOString(),
-          createdAt: dayjs().subtract(2, 'days').toISOString(),
-          source: 'NCR',
-          sourceReference: 'NCR-2025-001',
-        },
-        {
-          id: '2',
-          caNumber: 'CA-2025-0002',
-          title: 'Update maintenance schedule for equipment A',
-          description: 'Based on failure pattern analysis',
-          status: 'OPEN',
-          priority: 'MEDIUM',
-          assignedTo: {
-            id: 'user2',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            email: 'sarah.johnson@example.com',
-          },
-          targetDate: dayjs().subtract(2, 'days').toISOString(),
-          createdAt: dayjs().subtract(5, 'days').toISOString(),
-          source: 'PREVENTIVE',
-        },
-
-        // IN_PROGRESS Status
-        {
-          id: '3',
-          caNumber: 'CA-2025-0003',
-          title: 'Retrain operators on process protocol',
-          description: 'Update training materials and conduct sessions',
-          status: 'IN_PROGRESS',
-          priority: 'HIGH',
-          assignedTo: {
-            id: 'user3',
-            firstName: 'Mike',
-            lastName: 'Davis',
-            email: 'mike.davis@example.com',
-          },
-          targetDate: dayjs().add(3, 'days').toISOString(),
-          createdAt: dayjs().subtract(3, 'days').toISOString(),
-        },
-        {
-          id: '4',
-          caNumber: 'CA-2025-0004',
-          title: 'Upgrade control system firmware',
-          description: 'Install latest version with bug fixes',
-          status: 'IN_PROGRESS',
-          priority: 'MEDIUM',
-          assignedTo: {
-            id: 'user1',
-            firstName: 'John',
-            lastName: 'Smith',
-            email: 'john.smith@example.com',
-          },
-          targetDate: dayjs().add(7, 'days').toISOString(),
-          createdAt: dayjs().subtract(4, 'days').toISOString(),
-        },
-
-        // IMPLEMENTED Status (Awaiting Verification)
-        {
-          id: '5',
-          caNumber: 'CA-2025-0005',
-          title: 'Install additional pressure relief valve',
-          description: 'Enhance system safety margins',
-          status: 'IMPLEMENTED',
-          priority: 'HIGH',
-          assignedTo: {
-            id: 'user2',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            email: 'sarah.johnson@example.com',
-          },
-          implementedDate: dayjs().subtract(1, 'days').toISOString(),
-          targetDate: dayjs().subtract(3, 'days').toISOString(),
-          createdAt: dayjs().subtract(10, 'days').toISOString(),
-        },
-
-        // VERIFICATION_IN_PROGRESS Status
-        {
-          id: '6',
-          caNumber: 'CA-2025-0006',
-          title: 'Implement waste reduction program',
-          description: 'Reduce material waste by 20%',
-          status: 'VERIFICATION_IN_PROGRESS',
-          priority: 'MEDIUM',
-          assignedTo: {
-            id: 'user3',
-            firstName: 'Mike',
-            lastName: 'Davis',
-            email: 'mike.davis@example.com',
-          },
-          implementedDate: dayjs().subtract(5, 'days').toISOString(),
-          targetDate: dayjs().subtract(8, 'days').toISOString(),
-          createdAt: dayjs().subtract(15, 'days').toISOString(),
-        },
-      ];
-
-      setMetrics(mockMetrics);
-      setActions(mockActions);
+      // Format and set actions
+      setMetrics(metrics);
+      setActions(actionsResponse.correctiveActions);
     } catch (error) {
       console.error('Error loading dashboard:', error);
       message.error('Failed to load CAPA dashboard');
