@@ -1,0 +1,279 @@
+/**
+ * Traveler Review Form Styles
+ * Issue #36: Paper-Based Traveler Digitization
+ */
+
+.traveler-review-form-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.review-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f1f1f;
+  font-family: 'Courier New', monospace;
+}
+
+.review-header :global(.ant-space) {
+  flex-wrap: wrap;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.form-section h3:first-child {
+  margin-top: 0;
+}
+
+/* Field Review */
+.field-review {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border-left: 3px solid #1890ff;
+}
+
+.field-review label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #595959;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-value {
+  font-size: 14px;
+  color: #262626;
+  font-weight: 500;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.field-value :global(.ant-input),
+.field-value :global(.ant-input-number),
+.field-value :global(.ant-select) {
+  margin: 0;
+}
+
+.field-value :global(.ant-space-compact) {
+  width: 100%;
+}
+
+/* Edit Mode */
+.field-review.editing {
+  border-left-color: #faad14;
+  background-color: #fffbe6;
+}
+
+/* Corrections Table */
+.traveler-review-form-card :global(.ant-table) {
+  margin-bottom: 0;
+}
+
+.traveler-review-form-card :global(.ant-table-head > tr > th) {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.traveler-review-form-card :global(.ant-table-row:hover > td) {
+  background-color: #f5f5f5;
+}
+
+/* Alert */
+.traveler-review-form-card :global(.ant-alert) {
+  border-radius: 4px;
+  border: none;
+}
+
+.traveler-review-form-card :global(.ant-alert-warning) {
+  background-color: #fffbe6;
+  color: #ad6800;
+}
+
+.traveler-review-form-card :global(.ant-alert-warning .ant-alert-icon) {
+  color: #faad14;
+}
+
+/* Tags */
+.traveler-review-form-card :global(.ant-tag) {
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* Divider */
+.traveler-review-form-card :global(.ant-divider) {
+  margin: 24px 0;
+  border-color: #f0f0f0;
+}
+
+/* Form */
+.traveler-review-form-card :global(.ant-form-item) {
+  margin-bottom: 16px;
+}
+
+.traveler-review-form-card :global(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #262626;
+}
+
+/* TextArea */
+.traveler-review-form-card :global(.ant-input-textarea) {
+  border-radius: 4px;
+}
+
+.traveler-review-form-card :global(.ant-input-textarea:hover) {
+  border-color: #40a9ff;
+}
+
+.traveler-review-form-card :global(.ant-input-textarea:focus) {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Buttons */
+.traveler-review-form-card :global(.ant-button) {
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.traveler-review-form-card :global(.ant-button-primary) {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.traveler-review-form-card :global(.ant-button-primary:hover) {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.traveler-review-form-card :global(.ant-button-danger) {
+  color: #ff7875;
+  border-color: #ff7875;
+}
+
+.traveler-review-form-card :global(.ant-button-danger:hover) {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.traveler-review-form-card :global(.ant-button-text) {
+  color: #1890ff;
+}
+
+.traveler-review-form-card :global(.ant-button-text:hover) {
+  color: #40a9ff;
+}
+
+/* Space */
+.traveler-review-form-card :global(.ant-space-compact) {
+  display: flex;
+}
+
+.traveler-review-form-card :global(.ant-space-compact > *) {
+  flex: 1;
+}
+
+/* Row */
+.traveler-review-form-card :global(.ant-row-end) {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .review-header h2 {
+    font-size: 20px;
+  }
+
+  .form-section h3 {
+    font-size: 14px;
+  }
+
+  .field-review {
+    margin-bottom: 12px;
+    padding: 8px;
+  }
+
+  .field-value {
+    font-size: 13px;
+  }
+
+  .traveler-review-form-card :global(.ant-table-cell) {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .traveler-review-form-card :global(.ant-button) {
+    display: none;
+  }
+
+  .review-header {
+    border-bottom: 2px solid #1f1f1f;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+
+  .form-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.traveler-review-form-card {
+  animation: slideIn 0.3s ease;
+}
+
+/* Loading state */
+.traveler-review-form-card :global(.ant-spin) {
+  position: relative;
+  z-index: 1;
+}
