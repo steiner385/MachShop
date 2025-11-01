@@ -1,7 +1,8 @@
 /**
  * Extension Security Module
- * Comprehensive security model, sandboxing, and code signing for MachShop extensions
+ * Comprehensive security model, sandboxing, code signing, and code review framework for MachShop extensions
  * Issue #437: Extension Security Model & Sandboxing
+ * Issue #444: Extension Security & Code Review Framework
  */
 
 // Export security model types and classes
@@ -49,6 +50,39 @@ export {
   ExtensionPackageSigner,
   CODE_SIGNING_POLICY
 } from './code-signing';
+
+// Export code review and security scanning classes
+export {
+  ScanType,
+  FindingSeverity,
+  ReviewStatus,
+  SecurityScanner,
+  CodeQualityAnalyzer,
+  SecurityPolicyEnforcer,
+  SecurityReviewEngine,
+  ReviewWorkflowManager,
+  type SecurityFinding,
+  type CodeQualityMetrics,
+  type DependencyAnalysis,
+  type LicenseComplianceResult,
+  type PolicyViolation,
+  type SecurityReviewResult,
+  type ExtensionReviewRequest,
+  type ReviewApproval,
+  type VersionConstraint,
+  type RiskLevel,
+} from './code-review-framework';
+
+// Export audit logging and reporting classes
+export {
+  AuditEventType,
+  SecurityAuditLogger,
+  globalAuditLogger,
+  type AuditLogEntry,
+  type AuditLogQuery,
+  type ComplianceReport,
+  type SecurityEvent,
+} from './security-audit-log';
 
 /**
  * Extension Security Service - Unified interface for extension security
