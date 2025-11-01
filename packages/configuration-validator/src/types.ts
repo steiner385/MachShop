@@ -2,10 +2,21 @@
  * Core types for configuration validation service
  */
 
-import {
-  ValidationError,
-  ComplianceDelegationRole,
-} from '@machshop/extension-sdk';
+/**
+ * Validation error
+ */
+export interface ValidationError {
+  field: string;
+  message: string;
+  severity?: 'error' | 'warning' | 'info';
+  value?: any;
+  constraint?: string;
+}
+
+/**
+ * Compliance delegation role
+ */
+export type ComplianceDelegationRole = 'quality-focal' | 'quality-manager' | 'site-manager' | 'compliance-officer';
 
 /**
  * Configuration of an extension at a specific site
