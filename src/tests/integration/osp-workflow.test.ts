@@ -5,6 +5,7 @@
  * Tests the complete OSP operation lifecycle from creation to acceptance
  */
 
+import { describe, it, expect } from 'vitest';
 import axios from 'axios';
 import { OSPOperationStatus, OSPShipmentStatus } from '@prisma/client';
 

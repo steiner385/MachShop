@@ -3,29 +3,30 @@
  * Issue #59: Core OSP/Farmout Operations Management System
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import OSPService, { CreateOSPOperationRequest, UpdateOSPOperationRequest } from '../../services/OSPService';
 import { PrismaClient, OSPOperationStatus } from '@prisma/client';
 
 // Mock Prisma Client
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn(() => ({
+vi.mock('@prisma/client', () => ({
+  PrismaClient: vi.fn(() => ({
     operation: {
-      findUniqueOrThrow: jest.fn(),
+      findUniqueOrThrow: vi.fn(),
     },
     vendor: {
-      findUniqueOrThrow: jest.fn(),
+      findUniqueOrThrow: vi.fn(),
     },
     oSPCapability: {
-      findUniqueOrThrow: jest.fn(),
-      findMany: jest.fn(),
+      findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
     },
     oSPOperation: {
-      create: jest.fn(),
-      update: jest.fn(),
-      findUniqueOrThrow: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      count: jest.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      count: vi.fn(),
     },
   })),
 }));
@@ -36,7 +37,7 @@ describe('OSPService', () => {
 
   beforeEach(() => {
     // Clear all mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     ospService = new OSPService();
     mockPrisma = (ospService as any).prisma;
