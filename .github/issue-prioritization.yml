@@ -1360,6 +1360,86 @@ issues:
   # L2: ENHANCED FEATURES
   # ============================================================================
 
+  # --- Extension Framework (Phase 1: Critical Extension Points) ---
+  - number: 438
+    title: "Database Schema Extension Framework"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [405, 409]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: [441, 442, 443]
+    notes: "PHASE 1 CRITICAL - Enable extensions to register custom database entities and fields without modifying core schema. Plugin schema registry, dynamic table creation, Prisma integration, data safety validation. 7-8 week effort. Unblocks #441, #442, #443"
+
+  - number: 439
+    title: "Dynamic Route Registration for Extensions"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [426, 405]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 7
+    blocks: [441, 442]
+    notes: "PHASE 1 CRITICAL - Allow extensions to register custom API routes and endpoints. ExtensionRouteRegistry, OpenAPI generation, Zod validation, RBAC integration, rate limiting, audit logging. 3-4 week effort. Unblocks #441, #442"
+
+  - number: 440
+    title: "Service Locator & Dependency Injection Container"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [434]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: [442, 443]
+    notes: "PHASE 1 CRITICAL - DI container for extensions to register/consume services. ExtensionServiceContainer, lifecycle management, auto-discovery, circular dependency detection. 3-4 week effort. Unblocks #442, #443"
+
+  # --- Extension Framework (Phase 2: Service & Entity Layer) ---
+  - number: 441
+    title: "Custom Entity & Enum Extension System"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [438, 439, 440]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 8
+    blocks: [443, 444]
+    notes: "PHASE 2 - Enable extensions to define custom entities and enums. EntityRegistry, JSON Schema definitions, TypeScript generation, auto-generated CRUD endpoints, relationships, batch operations. 5-6 week effort. Unblocks #443, #444"
+
+  - number: 442
+    title: "Report Template Extension System"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [441]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: [444]
+    notes: "PHASE 2 - Allow extensions to define custom report templates and export formats. ReportTemplateRegistry, drag-and-drop designer, PDF/Excel/CSV export, entity binding, field-level access control. 6 week effort. Unblocks #444"
+
+  - number: 443
+    title: "Extension Event & Hook System Enhancements"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [426, 434]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "PHASE 2 - Enhance existing hook system with advanced event handling. Advanced hook types (LIFECYCLE, PERMISSION, VALIDATION, TRANSFORMATION, CACHE), conditional triggers (CEL), cross-extension communication, execution ordering, monitoring. 5 week effort."
+
+  # --- Extension Framework (Phase 3: Security & Monitoring) ---
+  - number: 444
+    title: "Extension Security & Code Review Framework"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [437]
+    strategic_focus: null
+    business_value: 10
+    effort_estimate: 7
+    blocks: []
+    notes: "PHASE 3 CRITICAL - Security framework for extension validation. OWASP scanning, code quality gates (90%+ coverage), license compliance, deployment authorization, vulnerability tracking, security monitoring. 4.5 week effort. Required for marketplace launch."
+
   # --- Extension Framework (L2) ---
   - number: 415
     title: "Extension Analytics & Monitoring Service"
