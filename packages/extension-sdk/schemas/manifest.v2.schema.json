@@ -1,0 +1,639 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://machshop.io/schemas/extension-manifest/v2.0",
+  "title": "MachShop Extension Manifest Schema v2.0",
+  "description": "Extension Manifest v2.0 - Enhanced schema with capability-based dependencies, policy-driven conflicts, compliance delegation, and foundation tier governance. BREAKING CHANGE from v1.0.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "name",
+    "type",
+    "category",
+    "apiVersion",
+    "mesVersion",
+    "description",
+    "extensionSchemaVersion",
+    "foundationTier"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://machshop.io/schemas/extension-manifest/v2.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$",
+      "minLength": 3,
+      "maxLength": 64,
+      "title": "Extension ID",
+      "description": "Unique identifier in kebab-case format. Must be globally unique within the extension registry."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "title": "Version",
+      "description": "Semantic versioning (SemVer) format: MAJOR.MINOR.PATCH[-prerelease][+build]"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "title": "Display Name",
+      "description": "Human-readable name for the extension"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "ui-extension",
+        "business-logic",
+        "data-extension",
+        "integration",
+        "compliance",
+        "infrastructure"
+      ],
+      "title": "Extension Type",
+      "description": "Primary extension type from the 6-tier taxonomy"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "dashboard-widget",
+        "page-extension",
+        "component-override",
+        "theme",
+        "report-template",
+        "workflow-hook",
+        "validation-rule",
+        "calculation-engine",
+        "state-machine",
+        "business-rule",
+        "custom-field",
+        "custom-entity",
+        "relationship",
+        "computed-field",
+        "virtual-entity",
+        "erp-adapter",
+        "equipment-integration",
+        "quality-system",
+        "document-management",
+        "identity-provider",
+        "aerospace-compliance",
+        "medical-device-compliance",
+        "automotive-compliance",
+        "quality-compliance",
+        "custom-auth",
+        "storage-backend",
+        "caching",
+        "monitoring",
+        "migration-tool",
+        "other"
+      ],
+      "title": "Category",
+      "description": "Specific category within the extension type"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "title": "Description",
+      "description": "Detailed description of the extension's purpose and functionality"
+    },
+    "extensionSchemaVersion": {
+      "type": "string",
+      "const": "2.0",
+      "title": "Extension Schema Version",
+      "description": "Manifest schema version (must be 2.0 for this schema)"
+    },
+    "foundationTier": {
+      "type": "string",
+      "enum": [
+        "core-foundation",
+        "foundation",
+        "application",
+        "optional"
+      ],
+      "title": "Foundation Tier Classification",
+      "description": "Extension tier: core-foundation (MES core, highest requirements), foundation (required infrastructure, high requirements), application (feature extensions, standard requirements), optional (nice-to-have, minimal requirements)"
+    },
+    "author": {
+      "type": "object",
+      "title": "Author Information",
+      "description": "Author or organization responsible for the extension",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["name"]
+    },
+    "license": {
+      "type": "string",
+      "enum": [
+        "MIT",
+        "Apache-2.0",
+        "GPL-3.0",
+        "BSD-3-Clause",
+        "ISC",
+        "AGPL-3.0",
+        "Proprietary",
+        "Unlicense",
+        "Other"
+      ],
+      "title": "License",
+      "description": "License under which the extension is distributed"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "title": "Repository URL",
+      "description": "URL to the extension source code repository"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "title": "Homepage URL",
+      "description": "URL to the extension homepage or documentation"
+    },
+    "apiVersion": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+$",
+      "title": "API Version",
+      "description": "Minimum required MachShop API version (format: vMAJOR.MINOR)"
+    },
+    "mesVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "MES Version",
+      "description": "Minimum required MachShop MES version (format: MAJOR.MINOR.PATCH)"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "title": "Keywords",
+      "description": "Tags for searching and categorizing the extension"
+    },
+    "documentation": {
+      "type": "object",
+      "title": "Documentation Links",
+      "description": "Links to various documentation resources",
+      "properties": {
+        "guide": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to user/implementation guide"
+        },
+        "api": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to API documentation"
+        },
+        "changelog": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to changelog/release notes"
+        },
+        "support": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to support or issue tracker"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "title": "Extension Dependencies",
+      "description": "Specific and capability-based dependencies",
+      "properties": {
+        "extensions": {
+          "type": "object",
+          "title": "Specific Extension Dependencies",
+          "description": "Dependencies on specific extension IDs with version constraints",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(\\d+\\.\\d+\\.\\d+|\\^\\d+\\.\\d+\\.\\d+|~\\d+\\.\\d+\\.\\d+|>=\\d+\\.\\d+\\.\\d+|<=\\d+\\.\\d+\\.\\d+)$",
+            "description": "Version constraint (SemVer range or pinned version)"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "title": "Capability Dependencies",
+          "description": "Dependencies on ANY extension providing a specific capability",
+          "items": {
+            "type": "object",
+            "required": ["capability"],
+            "properties": {
+              "capability": {
+                "type": "string",
+                "description": "Required capability identifier (e.g., 'erp-integration', 'work-instruction-authoring')"
+              },
+              "minVersion": {
+                "type": "string",
+                "pattern": "^v\\d+$|^v\\d+\\.\\d+$",
+                "description": "Minimum capability version (format: vMAJOR or vMAJOR.MINOR)"
+              },
+              "provider": {
+                "type": "string",
+                "description": "Optional: Specific preferred provider if multiple implementations exist"
+              }
+            }
+          }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "object",
+      "title": "Extension Conflicts",
+      "description": "Explicit and policy-based conflicts with other extensions",
+      "properties": {
+        "explicit": {
+          "type": "array",
+          "title": "Explicit Extension Conflicts",
+          "description": "Explicitly named conflicting extensions",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of conflicting extension"
+              },
+              "reason": {
+                "type": "string",
+                "description": "Reason for the conflict"
+              }
+            }
+          }
+        },
+        "policyExclusions": {
+          "type": "array",
+          "title": "Policy-Based Conflict Exclusions",
+          "description": "Hierarchical policy-based exclusions: global, capability-level, resource-level",
+          "items": {
+            "type": "object",
+            "required": ["scope", "policy"],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "enum": ["global", "capability", "resource"],
+                "description": "Conflict scope: global (system-wide), capability (specific capability), resource (specific resource)"
+              },
+              "capability": {
+                "type": "string",
+                "description": "Capability identifier (required if scope is 'capability' or 'resource')"
+              },
+              "resource": {
+                "type": "string",
+                "description": "Resource type (required only if scope is 'resource'). Example: 'work-instructions', 'routings'"
+              },
+              "policy": {
+                "type": "string",
+                "description": "This extension's policy (e.g., 'mes-authoring', 'plm-authoring', 'external-only')"
+              },
+              "conflictsWith": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "List of incompatible policies (e.g., ['plm-authoring', 'external-authoring'])"
+              },
+              "reason": {
+                "type": "string",
+                "description": "Explanation of policy conflict"
+              }
+            }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "title": "Extension Capabilities",
+      "description": "Capabilities this extension provides and declares",
+      "properties": {
+        "provides": {
+          "type": "array",
+          "title": "Provided Capabilities",
+          "description": "Capabilities this extension implements with contract reference",
+          "items": {
+            "type": "object",
+            "required": ["name", "version"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Capability identifier (e.g., 'erp-integration', 'work-instruction-authoring')"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^v\\d+(\\.\\d+)?(\\.\\d+)?$",
+                "description": "Capability contract version (format: vMAJOR[.MINOR[.PATCH]])"
+              },
+              "contract": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to capability contract definition/interface"
+              },
+              "implements": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "List of methods/APIs implemented from the contract"
+              },
+              "policy": {
+                "type": "string",
+                "description": "Policy enforced by this capability (e.g., 'mes-authoring' for work-instruction capability)"
+              }
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "description": "UI extension capabilities (for backward compatibility)"
+        },
+        "hooks": {
+          "type": "array",
+          "description": "Hook point registrations"
+        },
+        "dataSchema": {
+          "type": "object",
+          "description": "Data schema extensions"
+        },
+        "integrations": {
+          "type": "array",
+          "description": "External system integrations"
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "title": "Required Permissions",
+      "description": "Permissions required for the extension to function",
+      "items": {
+        "type": "string",
+        "enum": [
+          "read:work-orders",
+          "write:work-orders",
+          "read:routing",
+          "write:routing",
+          "read:materials",
+          "write:materials",
+          "read:equipment",
+          "write:equipment",
+          "read:quality",
+          "write:quality",
+          "read:users",
+          "write:users",
+          "admin:system",
+          "admin:security",
+          "integration:external-systems",
+          "data:export",
+          "data:import"
+        ]
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Configuration Schema",
+      "description": "Configuration options required by the extension"
+    },
+    "entryPoint": {
+      "type": "object",
+      "title": "Extension Entry Points",
+      "description": "Information about where/how to load the extension"
+    },
+    "requirements": {
+      "type": "object",
+      "title": "System Requirements"
+    },
+    "testing": {
+      "type": "object",
+      "title": "Testing Configuration",
+      "description": "Testing requirements and information",
+      "required": ["hasTests", "coverage"],
+      "properties": {
+        "hasTests": {
+          "type": "boolean",
+          "description": "Whether extension includes test suite"
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Test coverage percentage (minimum varies by foundation tier)"
+        },
+        "testingUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to test instance"
+        },
+        "testTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["unit", "integration", "e2e", "performance", "security", "regression"]
+          },
+          "description": "Types of tests included"
+        },
+        "cicdIntegration": {
+          "type": "boolean",
+          "description": "Whether tests run in CI/CD pipeline"
+        },
+        "performanceBaseline": {
+          "type": "object",
+          "description": "Performance characteristics"
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "title": "Security Configuration",
+      "description": "Security requirements and configuration",
+      "required": ["sandboxed", "signatureRequired"],
+      "properties": {
+        "sandboxed": {
+          "type": "boolean",
+          "description": "Whether extension runs in sandboxed environment"
+        },
+        "signatureRequired": {
+          "type": "boolean",
+          "description": "Whether extension must be cryptographically signed"
+        },
+        "allowedOrigins": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed CORS origins"
+        },
+        "securityLevel": {
+          "type": "string",
+          "enum": ["foundation", "standard", "restricted"],
+          "description": "Required security validation level"
+        },
+        "vulnerabilityScanRequired": {
+          "type": "boolean",
+          "description": "Whether extension must pass vulnerability scanning"
+        },
+        "auditLog": {
+          "type": "boolean",
+          "description": "Whether extension actions are audit-logged"
+        },
+        "dataEncryption": {
+          "type": "object",
+          "properties": {
+            "atRest": { "type": "boolean" },
+            "inTransit": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "title": "Compliance & Regulatory Configuration",
+      "description": "Compliance requirements and delegation model",
+      "properties": {
+        "applicableRegulations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of applicable regulations"
+        },
+        "complianceModel": {
+          "type": "string",
+          "enum": ["enforced", "enabled", "delegated"],
+          "description": "How compliance is handled"
+        },
+        "delegations": {
+          "type": "array",
+          "title": "Compliance Delegations to Site Personnel",
+          "description": "Compliance aspects delegated to site personnel with signoff requirements",
+          "items": {
+            "type": "object",
+            "required": ["aspect", "delegatedTo"],
+            "properties": {
+              "aspect": {
+                "type": "string",
+                "description": "Compliance aspect (e.g., 'electronic-signature-validation')"
+              },
+              "delegatedTo": {
+                "type": "string",
+                "enum": ["quality-focal", "quality-manager", "site-manager", "compliance-officer"],
+                "description": "Role responsible for this compliance aspect"
+              },
+              "requiresSignoff": {
+                "type": "boolean",
+                "description": "Whether signoff is required from designated role"
+              },
+              "documentation": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to documentation on how to fulfill this compliance aspect"
+              },
+              "auditTrail": {
+                "type": "boolean",
+                "description": "Whether delegation decisions and signoffs are audit-trailed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "title": "Governance & Approval Requirements",
+      "description": "Required for foundation-tier extensions",
+      "properties": {
+        "requiresPlatformApproval": {
+          "type": "boolean",
+          "description": "Whether platform team approval is required for deployment"
+        },
+        "approvalProcess": {
+          "type": "string",
+          "enum": ["standard", "expedited", "security-review", "compliance-review"],
+          "description": "Type of approval process required"
+        },
+        "certificationRequired": {
+          "type": "boolean",
+          "description": "Whether certification is required"
+        },
+        "certifications": {
+          "type": "array",
+          "description": "Certifications or attestations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "certifier": { "type": "string" },
+              "validUntil": { "type": "string", "format": "date" }
+            }
+          }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "title": "Tags",
+      "description": "Additional tags for categorization"
+    },
+    "releaseDate": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Release Date",
+      "description": "ISO 8601 timestamp"
+    },
+    "deprecated": {
+      "type": "boolean",
+      "title": "Deprecated",
+      "description": "Whether extension is deprecated"
+    },
+    "deprecationNotice": {
+      "type": "string",
+      "title": "Deprecation Notice",
+      "description": "Message explaining deprecation and migration path"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "foundationTier": {
+            "enum": ["core-foundation", "foundation"]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "testing",
+          "security",
+          "governance"
+        ],
+        "properties": {
+          "testing": {
+            "required": ["hasTests", "coverage", "testTypes", "cicdIntegration"],
+            "properties": {
+              "coverage": { "minimum": 80 }
+            }
+          },
+          "security": {
+            "required": ["sandboxed", "signatureRequired", "securityLevel", "vulnerabilityScanRequired", "auditLog"]
+          },
+          "governance": {
+            "required": ["requiresPlatformApproval", "approvalProcess"]
+          }
+        }
+      }
+    }
+  ]
+}
