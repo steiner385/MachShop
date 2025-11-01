@@ -811,7 +811,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: [414]
-    notes: "Hybrid multi-site control model - Enterprise catalog governance with site-level autonomy for enablement, per-site configuration, rollout scheduling, feature flags"
+    notes: "COMPLETED - Hybrid multi-site control model implementing: 5 Prisma models (SiteExtension, ExtensionSiteConfig, SiteExtensionLicense, DeploymentHistory, ExtensionHealthCheck), ConfigurationInheritanceResolver for 3-level config hierarchy, SiteExtensionDeploymentService with 12 core methods, 9 API endpoints, 3 rollout strategies (immediate/staged/canary), pre/post-deployment checks, auto-rollback on health failures, 19 comprehensive tests. Per-site enablement, configuration inheritance, deployment audit trail, health monitoring. Implemented in PR #460"
 
   - number: 409
     title: "Extension Conflict Detection Engine"
