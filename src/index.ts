@@ -149,6 +149,9 @@ import qualityAnalyticsRoutes from './routes/qualityAnalytics';
 // ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System Routes
 import ospRoutes from './routes/osp';
 
+// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System Routes
+import movementRoutes from './routes/movements';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
 import redisClientService from './services/RedisClientService';
@@ -395,6 +398,9 @@ apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
 
 // ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System API Routes
 apiRouter.use('/osp', authMiddleware, ospRoutes);
+
+// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System API Routes (Phase 8)
+apiRouter.use('/movements', authMiddleware, movementRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
