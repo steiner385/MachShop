@@ -122,6 +122,9 @@ model Site {
   // Test Cell & Engine Acceptance Testing Relations (Issue #233)
   testCells             TestCell[]            @relation("TestCells")
 
+  // 8D Problem Solving Framework Relations (Issue #57)
+  eightDConfigs         EightDConfig[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -426,6 +429,13 @@ model User {
   testRunsQualityApproved        TestRun[]                   @relation("TestRunQualityApprover")
   testCertificatesIssued         TestCertificate[]
   testRunStatusChanges           TestRunStatusHistory[]
+
+  // 8D Problem Solving Framework Relations (Issue #57)
+  eightDReportsCreated           EightDReport[]              @relation("EightDCreator")
+  eightDReportsLed               EightDReport[]              @relation("EightDLeader")
+  eightDTeamMemberships          EightDTeamMember[]
+  eightDAttachmentsUploaded      EightDAttachment[]
+  eightDApprovalsRequested       EightDApproval[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -2365,6 +2375,9 @@ model NCR {
 
   // Quality Analytics Relations (Issue #58)
   qualityAlerts    QualityAlert[]     @relation("QualityAlerts")
+
+  // 8D Problem Solving Framework Relations (Issue #57)
+  eightDReports    EightDReport[]
 
   @@map("ncrs")
 }
@@ -15866,4 +15879,240 @@ model TestCellSchedule {
   @@index([testCellId])
   @@index([scheduledDate])
   @@map("test_cell_schedules")
+}
+
+// ============================================================================
+// 8D Problem Solving Framework (Issue #57)
+// ============================================================================
+
+/// EightDReport - Master record for 8D problem-solving methodology
+model EightDReport {
+  id                      String              @id @default(cuid())
+  reportNumber            String              @unique  // 8D-2025-001
+  ncrId                   String?             // Optional link to NCR
+
+  // Basic Info
+  title                   String
+  status                  EightDStatus        @default(DRAFT)
+  priority                EightDPriority      @default(MEDIUM)
+  currentDiscipline       Int?                @default(0) // 0-8
+
+  // D0: Preparation
+  leader                  String              // User ID of 8D leader
+  champion                String?             // User ID of sponsor/champion
+  targetCompletionDate    DateTime?
+  customerNotificationDate DateTime?
+
+  // D1: Team
+  kickoffMeetingDate      DateTime?
+  teamCharter             String?             // Team scope and authority
+
+  // D2: Problem Description
+  problemStatement        String?
+  isIsNotAnalysis         Json?               // Matrix of Is/Is Not analysis
+  problemQuantification   Json?               // {quantity, frequency, rate, costImpact}
+  problemVerified         Boolean             @default(false)
+  problemVerificationDate DateTime?
+
+  // D3: Interim Containment
+  containmentPlan         String?
+  containmentActions      Json?               // Array of containment actions
+  containmentVerified     Boolean             @default(false)
+  containmentVerificationDate DateTime?
+
+  // D4: Root Cause Analysis
+  rootCauseAnalysis       String?
+  rootCauseTechniques     Json?               // Array: "5_WHYS", "FISHBONE", "FMEA", "DATA_ANALYSIS"
+  potentialCauses         Json?               // Array of {cause, verified, evidence}
+  verifiedRootCause       String?             // The determined root cause
+  causeCodeId             String?             // Link to cause code system
+  escapePoint             String?             // Where should defect have been caught
+  systemFailureAnalysis   String?             // Why did QA system fail
+
+  // D5: Verify PCA
+  proposedPCAs            Json?               // Array of proposed permanent corrective actions
+  pcaValidation           String?             // Validation plan and results
+  pcaVerified             Boolean             @default(false)
+  pcaVerificationDate     DateTime?
+  costBenefitAnalysis     String?
+
+  // D6: Implement PCA
+  implementationPlan      String?
+  implementationComplete  Boolean             @default(false)
+  implementationDate      DateTime?
+  validationResults       String?
+  beforeAfterComparison   Json?               // Process capability before/after
+
+  // D7: Prevent Recurrence
+  preventionActions       Json?               // Array of systemic actions
+  lessonsLearned          String?
+  horizontalDeployment    String?             // Applied to other products/sites
+  managementSystemUpdates String?
+
+  // D8: Team Recognition
+  teamRecognitionDate     DateTime?
+  teamRecognitionNotes    String?
+  successMetrics          Json?               // {costSavings, defectReduction, etc}
+  knowledgeShared         Boolean             @default(false)
+
+  // Report Metadata
+  revisionNumber          Int                 @default(1)
+  completedAt             DateTime?
+
+  createdBy               String
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  // Relations
+  teamMembers             EightDTeamMember[]
+  attachments             EightDAttachment[]
+  approvals               EightDApproval[]
+  ncr                     NCR?                @relation(fields: [ncrId], references: [id])
+  creator                 User                @relation("EightDCreator", fields: [createdBy], references: [id])
+  leader_user             User                @relation("EightDLeader", fields: [leader], references: [id])
+
+  @@index([reportNumber])
+  @@index([ncrId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([currentDiscipline])
+  @@map("eight_d_reports")
+}
+
+enum EightDStatus {
+  DRAFT
+  D0_PREPARATION
+  D1_TEAM
+  D2_PROBLEM
+  D3_CONTAINMENT
+  D4_ROOT_CAUSE
+  D5_VERIFY_PCA
+  D6_IMPLEMENT_PCA
+  D7_PREVENT_RECURRENCE
+  D8_RECOGNITION
+  COMPLETED
+  CANCELLED
+}
+
+enum EightDPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// EightDTeamMember - Members of 8D problem-solving team
+model EightDTeamMember {
+  id                      String              @id @default(cuid())
+  eightDReportId          String
+  userId                  String              // User who is team member
+  role                    TeamMemberRole      // Team role
+  expertiseArea           String?             // Area of expertise
+  authorityLevel          AuthorityLevel      @default(CONTRIBUTOR)
+  timeCommitment          String?             // Expected time to dedicate
+
+  addedAt                 DateTime            @default(now())
+
+  eightDReport            EightDReport        @relation(fields: [eightDReportId], references: [id], onDelete: Cascade)
+  user                    User                @relation(fields: [userId], references: [id])
+
+  @@unique([eightDReportId, userId])
+  @@index([eightDReportId])
+  @@map("eight_d_team_members")
+}
+
+enum TeamMemberRole {
+  LEADER
+  CHAMPION
+  CORE_MEMBER
+  SUBJECT_MATTER_EXPERT
+  ADVISOR
+}
+
+enum AuthorityLevel {
+  DECISION_MAKER
+  ADVISOR
+  CONTRIBUTOR
+}
+
+/// EightDAttachment - Files and evidence attached to 8D report
+model EightDAttachment {
+  id                      String              @id @default(cuid())
+  eightDReportId          String
+  discipline              String?             // D0, D1, D2, etc.
+  fileName                String
+  fileUrl                 String
+  fileType                String              // pdf, jpg, xlsx, etc.
+  description             String?
+  uploadedBy              String              // User ID
+  uploadedAt              DateTime            @default(now())
+
+  eightDReport            EightDReport        @relation(fields: [eightDReportId], references: [id], onDelete: Cascade)
+  uploader                User                @relation(fields: [uploadedBy], references: [id])
+
+  @@index([eightDReportId])
+  @@index([discipline])
+  @@map("eight_d_attachments")
+}
+
+/// EightDApproval - Approval workflow for 8D disciplines
+model EightDApproval {
+  id                      String              @id @default(cuid())
+  eightDReportId          String
+  approverUserId          String              // User who needs to approve
+  approverRole            String?             // Role that needs approval
+  discipline              String?             // Which discipline: D1, D2, etc.
+  status                  ApprovalStatus      @default(PENDING)
+  approvalNotes           String?
+  approvedAt              DateTime?
+
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  eightDReport            EightDReport        @relation(fields: [eightDReportId], references: [id], onDelete: Cascade)
+  approver                User                @relation(fields: [approverUserId], references: [id])
+
+  @@unique([eightDReportId, approverUserId, discipline])
+  @@index([eightDReportId])
+  @@index([status])
+  @@map("eight_d_approvals")
+}
+
+/// EightDConfig - Site-level 8D configuration
+model EightDConfig {
+  id                              String              @id @default(cuid())
+  siteId                          String?             // Null = global default
+
+  // Auto-suggest conditions
+  autoSuggestOnCustomerComplaint  Boolean             @default(true)
+  autoSuggestOnCriticalNCR        Boolean             @default(true)
+  autoSuggestOnCostThreshold      Boolean             @default(true)
+  costThreshold                   Decimal?            @db.Decimal(15, 2)
+  autoSuggestOnRecurrence         Boolean             @default(true)
+  recurrenceThreshold             Int?                // Suggest 8D after X occurrences
+
+  // Required approvals by discipline
+  requireQualityApprovalD4        Boolean             @default(true)
+  requireEngineeringApprovalD5    Boolean             @default(true)
+  requireManagementApprovalD8     Boolean             @default(true)
+
+  // Timing defaults (days)
+  defaultD1TargetDays             Int                 @default(3)
+  defaultD4TargetDays             Int                 @default(10)
+  defaultD6TargetDays             Int                 @default(30)
+  defaultCompletionTargetDays     Int                 @default(60)
+
+  // Report template
+  reportTemplate                  Json?               // Customizable template structure
+
+  isActive                        Boolean             @default(true)
+  createdAt                       DateTime            @default(now())
+  updatedAt                       DateTime            @updatedAt
+
+  site                            Site?               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId])
+  @@index([siteId])
+  @@map("eight_d_configs")
 }
