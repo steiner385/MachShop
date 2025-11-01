@@ -5046,6 +5046,10 @@ model EngineeringChangeOrder {
   icdChangeRequests      ICDChangeRequest[]    @relation("ICDChangeRequestECO")
   requestorDepartment    Department?           @relation("ECORequestorDept", fields: [requestorDeptId], references: [id])
 
+  // ICD System relationships
+  icdHistory             ICDHistory[]          @relation("ICDHistoryECO")
+  icdChangeRequests      ICDChangeRequest[]    @relation("ICDChangeRequestECO")
+
   @@index([ecoNumber])
   @@index([status])
   @@index([priority])
