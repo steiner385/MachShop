@@ -31,6 +31,27 @@ import { correctiveActionService } from '../services/CorrectiveActionService';
 const router = express.Router();
 
 /**
+ * Get CAPA dashboard metrics
+ * GET /api/v2/corrective-actions/dashboard/metrics
+ */
+router.get('/dashboard/metrics', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const metrics = await correctiveActionService.getDashboardMetrics();
+
+    return res.json({
+      success: true,
+      data: metrics,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch dashboard metrics', { error });
+    return res.status(500).json({
+      error: 'METRICS_FAILED',
+      message: 'Failed to retrieve dashboard metrics',
+    });
+  }
+});
+
+/**
  * List corrective actions with filtering
  * GET /api/v2/corrective-actions
  */
@@ -137,6 +158,30 @@ router.get('/statistics', authMiddleware, async (req: Request, res: Response) =>
     return res.status(500).json({
       error: 'STATS_FAILED',
       message: 'Failed to retrieve statistics',
+    });
+  }
+});
+
+/**
+ * Get audit trail for a corrective action
+ * GET /api/v2/corrective-actions/:id/audit-trail
+ */
+router.get('/:id/audit-trail', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const auditTrail = await correctiveActionService.getAuditTrail(id);
+
+    return res.json({
+      success: true,
+      data: auditTrail,
+      count: auditTrail.length,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch audit trail', { error });
+    return res.status(500).json({
+      error: 'FETCH_FAILED',
+      message: 'Failed to retrieve audit trail',
     });
   }
 });
@@ -406,6 +451,52 @@ router.post('/:id/verify', authMiddleware, async (req: Request, res: Response) =
     return res.status(500).json({
       error: 'VERIFICATION_FAILED',
       message: 'Failed to verify corrective action effectiveness',
+    });
+  }
+});
+
+/**
+ * Approve root cause analysis
+ * POST /api/v2/corrective-actions/:id/approve-rca
+ */
+router.post('/:id/approve-rca', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const { approved, notes } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'User not authenticated',
+      });
+    }
+
+    if (approved === undefined) {
+      return res.status(400).json({
+        error: 'INVALID_REQUEST',
+        message: 'approved field is required',
+      });
+    }
+
+    const action = await correctiveActionService.approveRCA(id, userId, approved, notes);
+
+    logger.info('RCA approved', {
+      caId: id,
+      userId,
+      approved,
+    });
+
+    return res.json({
+      success: true,
+      data: action,
+      message: `RCA ${approved ? 'approved' : 'rejected'}`,
+    });
+  } catch (error) {
+    logger.error('Failed to approve RCA', { error });
+    return res.status(500).json({
+      error: 'APPROVAL_FAILED',
+      message: 'Failed to approve root cause analysis',
     });
   }
 });
