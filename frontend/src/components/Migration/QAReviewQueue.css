@@ -1,0 +1,286 @@
+/**
+ * QA Review Queue Styles
+ * Issue #36: Paper-Based Traveler Digitization
+ */
+
+.qa-review-queue {
+  padding: 0;
+}
+
+.qa-review-queue :global(.ant-card) {
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+.qa-review-queue :global(.ant-statistic-title) {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+}
+
+.qa-review-queue :global(.ant-statistic-content) {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* Review Queue Table */
+.qa-review-queue .review-queue-table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.qa-review-queue .review-queue-table :global(.ant-table) {
+  margin: 0;
+}
+
+.qa-review-queue .review-queue-table :global(.ant-table-head > tr > th) {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.qa-review-queue .review-queue-table :global(.ant-table-row) {
+  transition: background-color 0.2s ease;
+}
+
+.qa-review-queue .review-queue-table :global(.ant-table-row:hover > td) {
+  background-color: #f5f5f5;
+}
+
+.qa-review-queue .review-queue-table :global(.ant-progress) {
+  margin: 0;
+}
+
+/* Filter Bar */
+.qa-review-queue :global(.ant-space) {
+  gap: 12px;
+}
+
+.qa-review-queue :global(.ant-input-search) {
+  border-radius: 4px;
+}
+
+.qa-review-queue :global(.ant-select) {
+  border-radius: 4px;
+}
+
+/* Badge and Priority */
+.qa-review-queue :global(.ant-badge) {
+  font-weight: 500;
+}
+
+.qa-review-queue :global(.ant-badge-color-red) {
+  color: #ff7875;
+}
+
+.qa-review-queue :global(.ant-badge-color-orange) {
+  color: #faad14;
+}
+
+.qa-review-queue :global(.ant-badge-color-green) {
+  color: #52c41a;
+}
+
+/* Traveler Review Details */
+.traveler-review-details {
+  padding: 16px 0;
+}
+
+.traveler-review-details h3 {
+  margin: 24px 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.traveler-review-details h3:first-child {
+  margin-top: 0;
+}
+
+.detail-item {
+  margin-bottom: 16px;
+}
+
+.detail-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #595959;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item p {
+  margin: 0;
+  color: #262626;
+  font-size: 14px;
+  word-break: break-all;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+.detail-item :global(.ant-progress) {
+  margin: 8px 0;
+}
+
+.detail-item :global(.ant-timeline) {
+  padding: 8px 0;
+}
+
+/* Buttons styling */
+.qa-review-queue :global(.ant-button) {
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.qa-review-queue :global(.ant-button-primary) {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.qa-review-queue :global(.ant-button-primary:hover) {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.qa-review-queue :global(.ant-button-danger) {
+  color: #ff7875;
+  border-color: #ff7875;
+}
+
+.qa-review-queue :global(.ant-button-danger:hover) {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+/* Modal styling */
+.qa-review-queue :global(.ant-modal-header) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.qa-review-queue :global(.ant-modal-content) {
+  border-radius: 8px;
+}
+
+.qa-review-queue :global(.ant-modal-footer) {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+/* Drawer styling */
+.qa-review-queue :global(.ant-drawer-header) {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 24px;
+}
+
+.qa-review-queue :global(.ant-drawer-title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.qa-review-queue :global(.ant-drawer-body) {
+  padding: 24px;
+}
+
+.qa-review-queue :global(.ant-drawer-footer) {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+/* Tooltip styling */
+.qa-review-queue :global(.ant-tooltip-inner) {
+  background-color: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  font-size: 13px;
+  max-width: 300px;
+}
+
+/* Empty state */
+.qa-review-queue :global(.ant-empty) {
+  padding: 32px 0;
+}
+
+.qa-review-queue :global(.ant-empty-description) {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+/* Pagination */
+.qa-review-queue :global(.ant-pagination-item-active) {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.qa-review-queue :global(.ant-pagination-item-active a) {
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .qa-review-queue :global(.ant-space) {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .qa-review-queue :global(.ant-input-search),
+  .qa-review-queue :global(.ant-select) {
+    width: 100%;
+  }
+
+  .qa-review-queue .review-queue-table :global(.ant-table-cell) {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .traveler-review-details {
+    padding: 12px 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .qa-review-queue :global(.ant-button) {
+    display: none;
+  }
+
+  .qa-review-queue :global(.ant-pagination) {
+    display: none;
+  }
+
+  .qa-review-queue .review-queue-table :global(.ant-table-row) {
+    break-inside: avoid;
+  }
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.qa-review-queue {
+  animation: slideIn 0.3s ease;
+}
+
+/* Loading state */
+.qa-review-queue :global(.ant-spin) {
+  position: relative;
+  z-index: 1;
+}
+
+.qa-review-queue :global(.ant-spin-spinning) {
+  opacity: 0.7;
+}
