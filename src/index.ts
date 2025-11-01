@@ -145,6 +145,9 @@ import etlRoutes from './routes/migration/etl';
 import workflowEnforcementRoutes from './routes/workflowEnforcement';
 import qualityEnforcementRoutes from './routes/qualityEnforcement';
 
+// ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System Routes
+import ospRoutes from './routes/osp';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
 import redisClientService from './services/RedisClientService';
@@ -388,6 +391,9 @@ apiRouter.use('/workflow-enforcement', authMiddleware, workflowEnforcementRoutes
 
 // ✅ GITHUB ISSUE #44: Flexible Quality & Compliance Controls API Routes
 apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
+
+// ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System API Routes
+apiRouter.use('/osp', authMiddleware, ospRoutes);
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing

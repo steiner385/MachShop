@@ -399,6 +399,7 @@ erDiagram
   Json viewOrientationData "nullable"
   Json pmiTolerances "nullable"
   Json pmiDimensions "nullable"
+  Boolean isOSPCapable
 }
 "operation_parameters" {
   String id PK
@@ -5502,6 +5503,17 @@ erDiagram
   DateTime updatedAt
   String createdBy
 }
+"workflow_enforcement_audits" {
+  String id PK
+  String workOrderId FK
+  String operationId "nullable"
+  String action
+  String enforcementMode
+  String bypassesApplied
+  String warnings
+  String userId "nullable"
+  DateTime timestamp
+}
 "controlled_documents" {
   String id PK
   String documentNumber UK
@@ -6146,6 +6158,348 @@ erDiagram
   String importedBy "nullable"
   DateTime completedAt "nullable"
 }
+"database_connections" {
+  String id PK
+  String name
+  String type
+  String host
+  Int port
+  String database
+  String username
+  String encryptedPassword
+  Boolean ssl
+  Boolean isActive
+  DateTime lastTestedAt "nullable"
+  Boolean lastTestSuccess "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy "nullable"
+}
+"etl_jobs" {
+  String id PK
+  String name
+  String description "nullable"
+  String sourceConnectionId FK
+  String targetEntityType
+  Json extractionConfig
+  Json transformationConfig
+  Json loadConfig
+  Json scheduleConfig "nullable"
+  Boolean isActive
+  DateTime lastExecutedAt "nullable"
+  String lastWatermark "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy "nullable"
+}
+"etl_job_executions" {
+  String id PK
+  String jobId FK
+  String status
+  DateTime startedAt
+  DateTime completedAt "nullable"
+  Int duration "nullable"
+  Int extractedRows
+  Int transformedRows
+  Int loadedRows
+  Int failedRows
+  Int skippedRows
+  String lastWatermark "nullable"
+  Json errorLog "nullable"
+  Json warningLog "nullable"
+}
+"traveler_templates" {
+  String id PK
+  String name UK
+  String description "nullable"
+  Int version
+  String documentType
+  Json fields
+  String matchPatterns
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"digitized_travelers" {
+  String id PK
+  String sourceFileName "nullable"
+  DateTime sourceUploadedAt "nullable"
+  String processingMethod
+  String workOrderNumber UK
+  String partNumber
+  String partDescription "nullable"
+  Int quantity
+  DateTime dueDate "nullable"
+  String priority "nullable"
+  String templateId FK "nullable"
+  Float matchConfidence "nullable"
+  String status
+  String reviewerNotes "nullable"
+  Float confidence
+  String warnings
+  String errors
+  String reviewedBy "nullable"
+  DateTime reviewedAt "nullable"
+  String createdBy "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String workOrderId "nullable"
+  DateTime workOrderCreatedAt "nullable"
+  String conversionStatus
+  String conversionErrors
+}
+"digitized_operations" {
+  String id PK
+  String travelerId FK
+  String operationNumber
+  String operationDescription "nullable"
+  String workCenter "nullable"
+  Int quantity "nullable"
+  DateTime startTime "nullable"
+  DateTime endTime "nullable"
+  String status "nullable"
+  String notes "nullable"
+  Float laborHours "nullable"
+  Json materialUsed "nullable"
+  String tools
+  String qualityNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"routing_quality_configurations" {
+  String id PK
+  String routingId FK
+  QualityEnforcementMode qualityEnforcementMode "nullable"
+  Boolean enforceInspectionPass "nullable"
+  Boolean requireElectronicSig "nullable"
+  Boolean isCriticalProcess
+  String regulatoryRequirement "nullable"
+  String overrideReason "nullable"
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"operation_quality_configurations" {
+  String id PK
+  String operationId FK
+  Boolean qualityRequired
+  String inspectionType "nullable"
+  Int sampleSize "nullable"
+  Boolean autoFailOnDefect
+  Boolean requireOperatorSig
+  Boolean requireQualitySig
+  Boolean requireEngineerSig
+  Boolean acceptExternalQuality
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"ncr_disposition_rules" {
+  String id PK
+  NCRSeverity severity
+  String allowedDisposition
+  Boolean requiresApproval
+  String approvalLevel "nullable"
+  Boolean isActive
+  String siteId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"electronic_signature_requirements" {
+  String id PK
+  String actionType
+  Boolean requiresSignature
+  String signatureLevel "nullable"
+  String siteId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"batch_jobs" {
+  String id PK
+  String jobId UK
+  Int fileCount
+  Int processedCount
+  Int successCount
+  Int failureCount
+  Int partialCount
+  String status
+  Int progress
+  Boolean autoApproval
+  Float autoApprovalThreshold
+  String templateIds
+  String travelersCreated
+  String errors
+  String createdBy "nullable"
+  DateTime createdAt
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
+}
+"batch_job_files" {
+  String id PK
+  String batchJobId FK
+  String fileName
+  Int fileSize "nullable"
+  String fileHash "nullable"
+  String status
+  String travelerId "nullable"
+  String processingMethod "nullable"
+  Float confidence "nullable"
+  String errors
+  String warnings
+  DateTime uploadedAt
+  DateTime processedAt "nullable"
+}
+"data_collection_forms" {
+  String id PK
+  String routingOperationId FK
+  String formName
+  String description "nullable"
+  String version
+  Json fields
+  Boolean requiredForCompletion
+  Int displayOrder
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"data_collection_submissions" {
+  String id PK
+  String workOrderOperationId FK
+  String formId FK
+  Json data
+  String validationStatus
+  Json validationErrors "nullable"
+  String submittedBy FK
+  DateTime submittedAt
+  String deviceInfo "nullable"
+  String locationCode "nullable"
+  Boolean offlineSubmitted
+  DateTime syncedAt "nullable"
+  String syncStatus
+  String notes "nullable"
+  String ipAddress "nullable"
+  String userAgent "nullable"
+}
+"work_instruction_views" {
+  String id PK
+  String workInstructionId FK
+  String workOrderOperationId FK "nullable"
+  String viewedBy FK
+  DateTime viewedAt
+  Int viewDuration "nullable"
+  Json stepsViewed "nullable"
+  String deviceType "nullable"
+  String deviceId "nullable"
+}
+"osp_capabilities" {
+  String id PK
+  String vendorId FK
+  String operationId "nullable"
+  String capabilityType
+  String certifications
+  Int minOrderQuantity
+  Int maxOrderQuantity "nullable"
+  Int standardLeadDays
+  String notes "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"osp_operations" {
+  String id PK
+  String ospNumber UK
+  String workOrderId FK "nullable"
+  String operationId FK
+  String vendorId FK
+  String capabilityId FK "nullable"
+  Int quantitySent
+  Int quantityReceived
+  Int quantityAccepted
+  Int quantityRejected
+  OSPOperationStatus status
+  DateTime requestedReturnDate
+  DateTime expectedReturnDate "nullable"
+  DateTime actualReturnDate "nullable"
+  Boolean inspectionRequired
+  String inspectionStatus "nullable"
+  String inspectionNotes "nullable"
+  DateTime inspectionCompletedAt "nullable"
+  Float estimatedCost "nullable"
+  Float actualCost "nullable"
+  Float costVariance "nullable"
+  String currencyCode
+  Boolean certificationRequired
+  String certificationDetails "nullable"
+  String sourceFileName "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"osp_shipments" {
+  String id PK
+  String ospOperationId FK
+  OSPShipmentType shipmentType
+  String shipmentNumber UK
+  String sendingVendorId FK
+  String receivingVendorId FK
+  Int quantity
+  OSPShipmentStatus status
+  String carrierName "nullable"
+  String trackingNumber "nullable"
+  String shippingMethod "nullable"
+  DateTime shipDate "nullable"
+  DateTime expectedDeliveryDate "nullable"
+  DateTime actualDeliveryDate "nullable"
+  String poNumber "nullable"
+  String notes "nullable"
+  String attachmentUrls
+  DateTime createdAt
+  DateTime updatedAt
+}
+"osp_inspections" {
+  String id PK
+  String ospOperationId FK
+  String inspectionNumber UK
+  DateTime inspectionDate
+  Int quantityInspected
+  Int quantityAccepted
+  Int quantityRejected
+  String status
+  String defectsFound "nullable"
+  String notes "nullable"
+  String inspectorId FK "nullable"
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"supplier_performance_metrics" {
+  String id PK
+  String vendorId FK
+  String ospOperationId FK "nullable"
+  SupplierMetricType metricType
+  DateTime periodStart
+  DateTime periodEnd
+  Int ordersOnTime
+  Int ordersLate
+  Float onTimeDeliveryPercent "nullable"
+  Int averageDeliveryDays "nullable"
+  Int itemsShipped
+  Int itemsAccepted
+  Int itemsRejected
+  Float qualityPercent "nullable"
+  Float estimatedTotalCost "nullable"
+  Float actualTotalCost "nullable"
+  Float costVariancePercent "nullable"
+  Float overallScore "nullable"
+  String notes "nullable"
+  DateTime createdAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -6700,6 +7054,7 @@ erDiagram
 "work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
 "workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
 "operation_workflow_configurations" |o--|| "operations" : operation
+"workflow_enforcement_audits" }o--|| "work_orders" : workOrder
 "controlled_documents" }o--o| "users" : approvedBy
 "controlled_documents" }o--o| "controlled_documents" : parentDocument
 "controlled_documents" }o--|| "users" : createdBy
@@ -6754,6 +7109,36 @@ erDiagram
 "digital_thread_traces" }o--o| "quality_characteristics" : qualityCharacteristic
 "model_view_states" }o--o| "operations" : operation
 "model_view_states" }o--o| "work_instructions" : workInstruction
+"etl_jobs" }o--|| "database_connections" : sourceConnection
+"etl_job_executions" }o--|| "etl_jobs" : job
+"digitized_travelers" }o--o| "traveler_templates" : template
+"digitized_operations" }o--|| "digitized_travelers" : traveler
+"routing_quality_configurations" |o--|| "routings" : routing
+"operation_quality_configurations" |o--|| "operations" : operation
+"ncr_disposition_rules" }o--o| "sites" : site
+"electronic_signature_requirements" }o--o| "sites" : site
+"batch_job_files" }o--|| "batch_jobs" : batchJob
+"data_collection_forms" }o--|| "routing_operations" : routingOperation
+"data_collection_forms" }o--|| "users" : createdBy
+"data_collection_submissions" }o--|| "work_order_operations" : workOrderOperation
+"data_collection_submissions" }o--|| "data_collection_forms" : form
+"data_collection_submissions" }o--|| "users" : submittedByUser
+"work_instruction_views" }o--|| "work_instructions" : workInstruction
+"work_instruction_views" }o--o| "work_order_operations" : workOrderOperation
+"work_instruction_views" }o--|| "users" : viewer
+"osp_capabilities" }o--|| "vendors" : vendor
+"osp_operations" }o--o| "work_orders" : workOrder
+"osp_operations" }o--|| "operations" : operation
+"osp_operations" }o--|| "vendors" : supplier
+"osp_operations" }o--o| "osp_capabilities" : capability
+"osp_shipments" }o--|| "osp_operations" : ospOperation
+"osp_shipments" }o--|| "vendors" : outboundSupplier
+"osp_shipments" }o--|| "vendors" : inboundSupplier
+"osp_inspections" }o--|| "osp_operations" : ospOperation
+"osp_inspections" }o--o| "users" : inspector
+"osp_inspections" }o--o| "users" : approver
+"supplier_performance_metrics" }o--|| "vendors" : vendor
+"supplier_performance_metrics" }o--o| "osp_operations" : ospOperation
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -7198,6 +7583,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `viewOrientationData`: 
   - `pmiTolerances`: 
   - `pmiDimensions`: 
+  - `isOSPCapable`: 
 
 ### `operation_parameters`
 
@@ -12994,6 +13380,22 @@ Granular configuration control per operation type
   - `updatedAt`: 
   - `createdBy`: 
 
+### `workflow_enforcement_audits`
+Workflow Enforcement Audit Trail (Issue #41)
+Records when enforcement rules are checked, bypassed, or applied
+Provides compliance and debugging information
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `action`: 
+  - `enforcementMode`: 
+  - `bypassesApplied`: 
+  - `warnings`: 
+  - `userId`: 
+  - `timestamp`: 
+
 ### `controlled_documents`
 Controlled Document - Core document management model (ISO 9001 Clause 7.5)
 
@@ -13740,6 +14142,403 @@ STEP File Import - Track STEP file imports and their status
   - `importedAt`: 
   - `importedBy`: 
   - `completedAt`: 
+
+### `database_connections`
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `type`: 
+  - `host`: 
+  - `port`: 
+  - `database`: 
+  - `username`: 
+  - `encryptedPassword`: 
+  - `ssl`: 
+  - `isActive`: 
+  - `lastTestedAt`: 
+  - `lastTestSuccess`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `etl_jobs`
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `description`: 
+  - `sourceConnectionId`: 
+  - `targetEntityType`: 
+  - `extractionConfig`: 
+  - `transformationConfig`: 
+  - `loadConfig`: 
+  - `scheduleConfig`: 
+  - `isActive`: 
+  - `lastExecutedAt`: 
+  - `lastWatermark`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `etl_job_executions`
+
+**Properties**
+  - `id`: 
+  - `jobId`: 
+  - `status`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `duration`: 
+  - `extractedRows`: 
+  - `transformedRows`: 
+  - `loadedRows`: 
+  - `failedRows`: 
+  - `skippedRows`: 
+  - `lastWatermark`: 
+  - `errorLog`: 
+  - `warningLog`: 
+
+### `traveler_templates`
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `description`: 
+  - `version`: 
+  - `documentType`: 
+  - `fields`: 
+  - `matchPatterns`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `digitized_travelers`
+
+**Properties**
+  - `id`: 
+  - `sourceFileName`: 
+  - `sourceUploadedAt`: 
+  - `processingMethod`: 
+  - `workOrderNumber`: 
+  - `partNumber`: 
+  - `partDescription`: 
+  - `quantity`: 
+  - `dueDate`: 
+  - `priority`: 
+  - `templateId`: 
+  - `matchConfidence`: 
+  - `status`: 
+  - `reviewerNotes`: 
+  - `confidence`: 
+  - `warnings`: 
+  - `errors`: 
+  - `reviewedBy`: 
+  - `reviewedAt`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `workOrderId`: 
+  - `workOrderCreatedAt`: 
+  - `conversionStatus`: 
+  - `conversionErrors`: 
+
+### `digitized_operations`
+
+**Properties**
+  - `id`: 
+  - `travelerId`: 
+  - `operationNumber`: 
+  - `operationDescription`: 
+  - `workCenter`: 
+  - `quantity`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `status`: 
+  - `notes`: 
+  - `laborHours`: 
+  - `materialUsed`: 
+  - `tools`: 
+  - `qualityNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `routing_quality_configurations`
+Routing-Level Quality Configuration (Issue #44)
+Allows quality requirement overrides from site defaults
+
+**Properties**
+  - `id`: 
+  - `routingId`: 
+  - `qualityEnforcementMode`: 
+  - `enforceInspectionPass`: 
+  - `requireElectronicSig`: 
+  - `isCriticalProcess`: 
+  - `regulatoryRequirement`: 
+  - `overrideReason`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `operation_quality_configurations`
+Operation-Level Quality Configuration (Issue #44)
+Allows operation-specific quality requirement overrides
+
+**Properties**
+  - `id`: 
+  - `operationId`: 
+  - `qualityRequired`: 
+  - `inspectionType`: 
+  - `sampleSize`: 
+  - `autoFailOnDefect`: 
+  - `requireOperatorSig`: 
+  - `requireQualitySig`: 
+  - `requireEngineerSig`: 
+  - `acceptExternalQuality`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `ncr_disposition_rules`
+NCR Disposition Rules (Issue #44)
+Configurable rules for allowed NCR dispositions per severity level
+
+**Properties**
+  - `id`: 
+  - `severity`: 
+  - `allowedDisposition`: 
+  - `requiresApproval`: 
+  - `approvalLevel`: 
+  - `isActive`: 
+  - `siteId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `electronic_signature_requirements`
+Electronic Signature Configuration (Issue #44)
+
+**Properties**
+  - `id`: 
+  - `actionType`: 
+  - `requiresSignature`: 
+  - `signatureLevel`: 
+  - `siteId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `batch_jobs`
+Batch Job Management (Issue #36 Phase 7)
+Tracks batch processing jobs for multiple document uploads
+
+**Properties**
+  - `id`: 
+  - `jobId`: 
+  - `fileCount`: 
+  - `processedCount`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `partialCount`: 
+  - `status`: 
+  - `progress`: 
+  - `autoApproval`: 
+  - `autoApprovalThreshold`: 
+  - `templateIds`: 
+  - `travelersCreated`: 
+  - `errors`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `startedAt`: 
+  - `completedAt`: 
+
+### `batch_job_files`
+
+**Properties**
+  - `id`: 
+  - `batchJobId`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `fileHash`: 
+  - `status`: 
+  - `travelerId`: 
+  - `processingMethod`: 
+  - `confidence`: 
+  - `errors`: 
+  - `warnings`: 
+  - `uploadedAt`: 
+  - `processedAt`: 
+
+### `data_collection_forms`
+Data collection form definition for routing operations
+Forms are configured per routing operation and used to collect data
+during work instruction execution on the shop floor
+
+**Properties**
+  - `id`: 
+  - `routingOperationId`: 
+  - `formName`: 
+  - `description`: 
+  - `version`: 
+  - `fields`: 
+  - `requiredForCompletion`: 
+  - `displayOrder`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `data_collection_submissions`
+Data collection submission - actual data collected by operators
+
+**Properties**
+  - `id`: 
+  - `workOrderOperationId`: 
+  - `formId`: 
+  - `data`: 
+  - `validationStatus`: 
+  - `validationErrors`: 
+  - `submittedBy`: 
+  - `submittedAt`: 
+  - `deviceInfo`: 
+  - `locationCode`: 
+  - `offlineSubmitted`: 
+  - `syncedAt`: 
+  - `syncStatus`: 
+  - `notes`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+
+### `work_instruction_views`
+Work instruction view tracking
+Tracks when operators view work instructions for analytics
+
+**Properties**
+  - `id`: 
+  - `workInstructionId`: 
+  - `workOrderOperationId`: 
+  - `viewedBy`: 
+  - `viewedAt`: 
+  - `viewDuration`: 
+  - `stepsViewed`: 
+  - `deviceType`: 
+  - `deviceId`: 
+
+### `osp_capabilities`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `operationId`: 
+  - `capabilityType`: 
+  - `certifications`: 
+  - `minOrderQuantity`: 
+  - `maxOrderQuantity`: 
+  - `standardLeadDays`: 
+  - `notes`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `osp_operations`
+
+**Properties**
+  - `id`: 
+  - `ospNumber`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `vendorId`: 
+  - `capabilityId`: 
+  - `quantitySent`: 
+  - `quantityReceived`: 
+  - `quantityAccepted`: 
+  - `quantityRejected`: 
+  - `status`: 
+  - `requestedReturnDate`: 
+  - `expectedReturnDate`: 
+  - `actualReturnDate`: 
+  - `inspectionRequired`: 
+  - `inspectionStatus`: 
+  - `inspectionNotes`: 
+  - `inspectionCompletedAt`: 
+  - `estimatedCost`: 
+  - `actualCost`: 
+  - `costVariance`: 
+  - `currencyCode`: 
+  - `certificationRequired`: 
+  - `certificationDetails`: 
+  - `sourceFileName`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `osp_shipments`
+
+**Properties**
+  - `id`: 
+  - `ospOperationId`: 
+  - `shipmentType`: 
+  - `shipmentNumber`: 
+  - `sendingVendorId`: 
+  - `receivingVendorId`: 
+  - `quantity`: 
+  - `status`: 
+  - `carrierName`: 
+  - `trackingNumber`: 
+  - `shippingMethod`: 
+  - `shipDate`: 
+  - `expectedDeliveryDate`: 
+  - `actualDeliveryDate`: 
+  - `poNumber`: 
+  - `notes`: 
+  - `attachmentUrls`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `osp_inspections`
+
+**Properties**
+  - `id`: 
+  - `ospOperationId`: 
+  - `inspectionNumber`: 
+  - `inspectionDate`: 
+  - `quantityInspected`: 
+  - `quantityAccepted`: 
+  - `quantityRejected`: 
+  - `status`: 
+  - `defectsFound`: 
+  - `notes`: 
+  - `inspectorId`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `supplier_performance_metrics`
+
+**Properties**
+  - `id`: 
+  - `vendorId`: 
+  - `ospOperationId`: 
+  - `metricType`: 
+  - `periodStart`: 
+  - `periodEnd`: 
+  - `ordersOnTime`: 
+  - `ordersLate`: 
+  - `onTimeDeliveryPercent`: 
+  - `averageDeliveryDays`: 
+  - `itemsShipped`: 
+  - `itemsAccepted`: 
+  - `itemsRejected`: 
+  - `qualityPercent`: 
+  - `estimatedTotalCost`: 
+  - `actualTotalCost`: 
+  - `costVariancePercent`: 
+  - `overallScore`: 
+  - `notes`: 
+  - `createdAt`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)

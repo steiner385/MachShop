@@ -384,6 +384,15 @@ model User {
   changesApproved           ChangeRequest[]                 @relation("ChangeApprovedBy")
   changesCreated            ChangeRequest[]                 @relation("ChangeCreatedBy")
 
+  // OSP/Farmout Operations Relations (Issue #59)
+  ospInspections            OSPInspection[]                 @relation("OSPInspections")
+  ospInspectionApprovals    OSPInspection[]                 @relation("OSPInspectionApprovals")
+
+  // Data Collection Relations (Issue #45)
+  dataCollectionFormsCreated DataCollectionForm[]          @relation("DataCollectionFormCreated")
+  dataCollectionSubmissions  DataCollectionSubmission[]     @relation("DataCollectionSubmissionCreated")
+  workInstructionViews       WorkInstructionView[]          @relation("WorkInstructionViews")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
@@ -934,6 +943,10 @@ model Operation {
   // Quality Configuration Relations (Issue #44)
   qualityConfiguration     OperationQualityConfiguration? @relation("OperationQualityConfig")
 
+  // OSP/Farmout Operations Relations (Issue #59)
+  isOSPCapable              Boolean                  @default(false) // Can be sent to external suppliers
+  ospOperations             OSPOperation[]           @relation("OperationOSPOperations")
+
   @@index([parentOperationId])
   @@index([persistentUuid])
   @@index([operationType])
@@ -942,6 +955,7 @@ model Operation {
   @@index([siteId])
   @@index([isStandardOperation])
   @@index([stepInstructionUuid])
+  @@index([isOSPCapable])
   @@map("operations")
 }
 
@@ -1514,6 +1528,9 @@ model WorkOrder {
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
+  // OSP/Farmout Operations Relations (Issue #59)
+  ospOperations OSPOperation[] @relation("OSPWorkOrders")
+
   @@index([persistentUuid])
   @@map("work_orders")
 }
@@ -1580,7 +1597,7 @@ model RoutingOperation {
   workCenter      WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrderOps    WorkOrderOperation[]
   torqueSpecifications TorqueSpecification[]
-  dataCollectionForms DataCollectionForm[]  // Issue #45: Data collection forms for this operation
+  dataCollectionForms DataCollectionForm[]  @relation("DataCollectionForms")  // Issue #45: Data collection forms for this operation
 
   @@map("routing_operations")
 }
@@ -1748,8 +1765,8 @@ model WorkOrderOperation {
   workOrder          WorkOrder                @relation(fields: [workOrderId], references: [id])
   workPerformance    WorkPerformance[]
   buildRecordOperations BuildRecordOperation[]
-  dataCollectionSubmissions DataCollectionSubmission[]  // Issue #45: Data collected for this operation
-  workInstructionViews WorkInstructionView[]  // Issue #45: Work instruction views for this operation
+  dataCollectionSubmissions DataCollectionSubmission[]  @relation("DataCollectionSubmissions")  // Issue #45: Data collected for this operation
+  workInstructionViews WorkInstructionView[]  @relation("WorkInstructionViews")  // Issue #45: Work instruction views for this operation
 
   @@map("work_order_operations")
 }
@@ -2729,7 +2746,7 @@ model WorkInstruction {
   modelViewStates       ModelViewState[]
 
   // Issue #45: Work instruction view tracking
-  workInstructionViews  WorkInstructionView[]
+  workInstructionViews  WorkInstructionView[]  @relation("WorkInstructionViews")
 
   @@index([status])
   @@index([partId])
@@ -9225,6 +9242,13 @@ model Vendor {
   preferredSupplierAnalytics PartShortageAnalytics[] @relation("PreferredSupplier")
   bestPerformingAnalytics PartShortageAnalytics[]    @relation("BestPerformingSupplier")
 
+  // OSP/Farmout Operations Relations (Issue #59)
+  ospCapabilities       OSPCapability[]
+  ospOperations         OSPOperation[]            @relation("SupplierOSPOperations")
+  ospPerformanceMetrics SupplierPerformanceMetric[]
+  ospOutboundShipments  OSPShipment[]             @relation("OutboundSupplier")
+  ospInboundShipments   OSPShipment[]             @relation("InboundSupplier")
+
   @@index([code])
   @@index([isActive])
   @@index([preferredVendor])
@@ -14117,6 +14141,229 @@ model WorkInstructionView {
 }
 
 // ============================================================================
+// OSP (Outside Processing/Farmout) Models
+// Issue #59: Core OSP/Farmout Operations Management System
+// ============================================================================
+
+// OSPCapability: Tracks capabilities/qualifications a supplier has for operations
+// Relies on ERP system for actual sourcing/procurement/costing functions
+model OSPCapability {
+  id                    String                @id @default(cuid())
+  vendorId              String
+  operationId           String?               // Can be null for generic capabilities
+  capabilityType        String                // e.g., "HEAT_TREAT", "PLATING", "MACHINING", "INSPECTION"
+  certifications        String[]              // AS9100, NADCAP, ISO qualifications required
+  minOrderQuantity      Int                   @default(1)
+  maxOrderQuantity      Int?
+  standardLeadDays      Int                   // Standard lead time in days from ERP
+  notes                 String?
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  vendor                Vendor                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  ospOperations         OSPOperation[]        @relation("CapabilityOSPOperations")
+
+  @@unique([vendorId, operationId, capabilityType])
+  @@index([vendorId])
+  @@index([capabilityType])
+  @@map("osp_capabilities")
+}
+
+// OSPOperation: Core entity representing a manufacturing operation sent to an external supplier
+// Tracks the complete lifecycle from decision to completion
+model OSPOperation {
+  id                    String                @id @default(cuid())
+  ospNumber             String                @unique               // Unique OSP reference number (e.g., OSP-2025-00001)
+  workOrderId           String?               // Link to internal work order
+  operationId           String
+  vendorId              String
+  capabilityId          String?               // Reference to specific supplier capability
+
+  // Quantity tracking
+  quantitySent          Int                   // Quantity sent to supplier
+  quantityReceived      Int                   @default(0)
+  quantityAccepted      Int                   @default(0)
+  quantityRejected      Int                   @default(0)
+
+  // Status tracking
+  status                OSPOperationStatus    @default(PENDING_SHIPMENT)
+
+  // Scheduling
+  requestedReturnDate   DateTime              // When we need it back
+  expectedReturnDate    DateTime?             // ERP-provided estimated return date
+  actualReturnDate      DateTime?             // When supplier actually returned items
+
+  // Inspection & Quality
+  inspectionRequired    Boolean               @default(true)
+  inspectionStatus      String?               @default("PENDING")  // PENDING, IN_PROGRESS, PASSED, FAILED
+  inspectionNotes       String?
+  inspectionCompletedAt DateTime?
+
+  // Cost tracking (from ERP)
+  estimatedCost         Float?                // From ERP purchase order
+  actualCost            Float?                // From ERP supplier invoice
+  costVariance          Float?                // Calculated: actualCost - estimatedCost
+  currencyCode          String                @default("USD")
+
+  // Traceability
+  certificationRequired Boolean               @default(false)
+  certificationDetails  String?
+  sourceFileName        String?               // If from digitized traveler
+
+  notes                 String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  workOrder             WorkOrder?            @relation("OSPWorkOrders", fields: [workOrderId], references: [id], onDelete: SetNull)
+  operation             Operation             @relation("OperationOSPOperations", fields: [operationId], references: [id], onDelete: Restrict)
+  supplier              Vendor                @relation("SupplierOSPOperations", fields: [vendorId], references: [id], onDelete: Restrict)
+  capability            OSPCapability?        @relation("CapabilityOSPOperations", fields: [capabilityId], references: [id], onDelete: SetNull)
+  shipments             OSPShipment[]         @relation("OSPOperationShipments")
+  inspectionRecords     OSPInspection[]       @relation("InspectionRecords")
+  performanceMetrics    SupplierPerformanceMetric[]
+
+  @@index([ospNumber])
+  @@index([workOrderId])
+  @@index([operationId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([requestedReturnDate])
+  @@index([expectedReturnDate])
+  @@map("osp_operations")
+}
+
+// OSPShipment: Tracks shipments related to OSP operations
+// Can be outbound (to supplier) or inbound (from supplier) or supplier-to-supplier
+model OSPShipment {
+  id                    String                @id @default(cuid())
+  ospOperationId        String
+  shipmentType          OSPShipmentType       // TO_SUPPLIER, FROM_SUPPLIER, SUPPLIER_TO_SUPPLIER
+  shipmentNumber        String                @unique               // Unique shipment identifier
+
+  // Shipment parties
+  sendingVendorId       String                // Who's sending (internal company for TO_SUPPLIER, supplier for FROM_SUPPLIER)
+  receivingVendorId     String                // Who's receiving (supplier for TO_SUPPLIER, internal for FROM_SUPPLIER)
+
+  // Shipment details
+  quantity              Int
+  status                OSPShipmentStatus     @default(DRAFT)
+
+  // Carrier & Tracking
+  carrierName           String?
+  trackingNumber        String?
+  shippingMethod        String?               // Ground, Air, Ocean, etc.
+
+  // Dates
+  shipDate              DateTime?
+  expectedDeliveryDate  DateTime?
+  actualDeliveryDate    DateTime?
+
+  // Documentation
+  poNumber              String?               // ERP Purchase Order number (for supplier reference)
+  notes                 String?
+  attachmentUrls        String[]              // Shipment documents, packing slips, etc.
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  ospOperation          OSPOperation          @relation("OSPOperationShipments", fields: [ospOperationId], references: [id], onDelete: Cascade)
+  outboundSupplier      Vendor                @relation("OutboundSupplier", fields: [sendingVendorId], references: [id], onDelete: Restrict)
+  inboundSupplier       Vendor                @relation("InboundSupplier", fields: [receivingVendorId], references: [id], onDelete: Restrict)
+
+  @@index([ospOperationId])
+  @@index([shipmentType])
+  @@index([status])
+  @@index([trackingNumber])
+  @@map("osp_shipments")
+}
+
+// OSPInspection: Records inspection results for OSP operations when items are received
+// Tracks quality assurance data
+model OSPInspection {
+  id                    String                @id @default(cuid())
+  ospOperationId        String
+
+  inspectionNumber      String                @unique
+  inspectionDate        DateTime              @default(now())
+
+  // Quantity inspected
+  quantityInspected     Int
+  quantityAccepted      Int
+  quantityRejected      Int
+
+  // Results
+  status                String                @default("IN_PROGRESS") // IN_PROGRESS, PASSED, FAILED, CONDITIONAL
+  defectsFound          String?               // Description of defects
+  notes                 String?
+
+  // Approvals
+  inspectorId           String?
+  approvedBy            String?
+  approvedAt            DateTime?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  ospOperation          OSPOperation          @relation("InspectionRecords", fields: [ospOperationId], references: [id], onDelete: Cascade)
+  inspector             User?                 @relation("OSPInspections", fields: [inspectorId], references: [id], onDelete: SetNull)
+  approver              User?                 @relation("OSPInspectionApprovals", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  @@index([ospOperationId])
+  @@index([inspectionDate])
+  @@map("osp_inspections")
+}
+
+// SupplierPerformanceMetric: Tracks supplier performance metrics for OSP operations
+// Used for supplier quality/delivery/cost tracking for ERP integration
+model SupplierPerformanceMetric {
+  id                    String                @id @default(cuid())
+  vendorId              String
+  ospOperationId        String?               // Can aggregate across operations or be specific
+
+  metricType            SupplierMetricType    @default(MONTHLY)
+  periodStart           DateTime
+  periodEnd             DateTime
+
+  // On-Time Delivery Metric
+  ordersOnTime          Int                   @default(0)
+  ordersLate            Int                   @default(0)
+  onTimeDeliveryPercent Float?
+  averageDeliveryDays   Int?
+
+  // Quality Metric
+  itemsShipped          Int                   @default(0)
+  itemsAccepted         Int                   @default(0)
+  itemsRejected         Int                   @default(0)
+  qualityPercent        Float?
+
+  // Cost Metric
+  estimatedTotalCost    Float?
+  actualTotalCost       Float?
+  costVariancePercent   Float?
+
+  // Score
+  overallScore          Float?                // 0-100 composite score for supplier ranking
+
+  notes                 String?
+  createdAt             DateTime              @default(now())
+
+  // Relationships
+  vendor                Vendor                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  ospOperation          OSPOperation?         @relation(fields: [ospOperationId], references: [id], onDelete: SetNull)
+
+  @@unique([vendorId, metricType, periodStart, periodEnd])
+  @@index([vendorId])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("supplier_performance_metrics")
+}
+
+// ============================================================================
 // Enums for Data Collection
 // ============================================================================
 
@@ -14140,4 +14387,43 @@ enum DataCollectionValidationType {
   MIN_MAX
   PATTERN
   CUSTOM
+}
+
+// ============================================================================
+// Enums for OSP (Outside Processing/Farmout) Operations
+// ============================================================================
+
+enum OSPOperationStatus {
+  PENDING_SHIPMENT      // Waiting to be shipped to supplier
+  SHIPPED               // Shipped to supplier, in transit
+  AT_SUPPLIER           // Received by supplier, waiting to be processed
+  IN_PROGRESS           // Actively being processed by supplier
+  INSPECTION            // Supplier processing complete, awaiting inspection
+  RECEIVED              // Received back at our facility, in inspection queue
+  ACCEPTED              // Inspection passed, accepted into inventory
+  REJECTED              // Inspection failed, requires return/rework
+  CANCELLED             // OSP operation cancelled
+}
+
+enum OSPShipmentType {
+  TO_SUPPLIER           // Sending parts TO external supplier
+  FROM_SUPPLIER         // Receiving parts FROM external supplier
+  SUPPLIER_TO_SUPPLIER  // Parts moving between multiple suppliers
+}
+
+enum OSPShipmentStatus {
+  DRAFT                 // Shipment planned but not yet released
+  RELEASED              // Ready to ship
+  PICKED                // Items picked and staged for shipping
+  SHIPPED               // Items shipped, in transit
+  IN_TRANSIT            // Confirmed in transit
+  DELIVERED             // Delivered to recipient
+  RECEIVED              // Received and verified at destination
+  CANCELLED             // Shipment cancelled
+}
+
+enum SupplierMetricType {
+  MONTHLY               // Monthly performance summary
+  QUARTERLY             // Quarterly performance summary
+  ANNUAL                // Annual performance summary
 }
