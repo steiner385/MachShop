@@ -269,6 +269,22 @@ export class CorrectiveActionService extends BaseService {
         },
       });
 
+      // Notify relevant parties
+      try {
+        await notificationService.createNotification({
+          userId: ca.assignedToId,
+          type: 'APPROVAL_GRANTED' as any,
+          title: `CA In Progress: ${ca.caNumber}`,
+          message: `You have started implementation of corrective action: ${ca.title}`,
+          relatedEntityType: 'CORRECTIVE_ACTION',
+          relatedEntityId: ca.id,
+          actionUrl: `/quality/corrective-actions/${ca.id}`,
+          priority: 'MEDIUM',
+        });
+      } catch (error) {
+        this.logWarn('Failed to send in-progress notification', { error, caId: ca.id });
+      }
+
       this.logInfo('Corrective action marked in progress', { caId: id, userId });
       return ca;
     } catch (error) {
@@ -293,6 +309,22 @@ export class CorrectiveActionService extends BaseService {
           createdBy: true,
         },
       });
+
+      // Notify quality team for verification
+      try {
+        await notificationService.createNotification({
+          userId: ca.assignedToId,
+          type: 'APPROVAL_GRANTED' as any,
+          title: `CA Implemented: ${ca.caNumber}`,
+          message: `Implementation complete for: ${ca.title}. Ready for effectiveness verification.`,
+          relatedEntityType: 'CORRECTIVE_ACTION',
+          relatedEntityId: ca.id,
+          actionUrl: `/quality/corrective-actions/${ca.id}`,
+          priority: 'MEDIUM',
+        });
+      } catch (error) {
+        this.logWarn('Failed to send implementation notification', { error, caId: ca.id });
+      }
 
       this.logInfo('Corrective action marked implemented', { caId: id, userId });
       return ca;
