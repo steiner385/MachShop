@@ -6679,6 +6679,193 @@ erDiagram
   DateTime calculatedAt
   DateTime updatedAt
 }
+"movement_types" {
+  String id PK
+  String siteId FK
+  String code
+  String name
+  String description "nullable"
+  Boolean requiresApproval
+  Boolean requiresCarrier
+  Boolean requiresPackingList
+  Boolean requiresForklift
+  Boolean autoPrintLabel
+  String defaultCarrier "nullable"
+  Int estimatedDuration "nullable"
+  Boolean trackCost
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"material_movements" {
+  String id PK
+  String movementNumber UK
+  String movementTypeId FK
+  MovementStatus status
+  Json workOrderIds
+  Json containerIds "nullable"
+  Json palletIds "nullable"
+  Int quantity "nullable"
+  Decimal weight "nullable"
+  Json dimensions "nullable"
+  String fromLocation
+  String toLocation
+  String fromSiteId "nullable"
+  String toSiteId "nullable"
+  String fromSupplier "nullable"
+  String toSupplier "nullable"
+  DateTime requestedAt
+  String requestedBy
+  DateTime pickedUpAt "nullable"
+  DateTime deliveredAt "nullable"
+  DateTime estimatedDeliveryAt "nullable"
+  String forkliftRequestId FK "nullable"
+  String forkliftOperatorId "nullable"
+  String forkliftId "nullable"
+  String shipmentId FK "nullable"
+  String carrier "nullable"
+  String trackingNumber "nullable"
+  Decimal freightCost "nullable"
+  String specialInstructions "nullable"
+  MovementPriority priority
+  Json attachments "nullable"
+  Boolean approvalRequired
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"forklift_move_requests" {
+  String id PK
+  String requestNumber UK
+  ForkliftRequestStatus status
+  MovementPriority priority
+  String fromLocation
+  String toLocation
+  Json workOrderIds
+  Json containerIds "nullable"
+  Int quantity "nullable"
+  Decimal weight "nullable"
+  Json dimensions "nullable"
+  String specialInstructions "nullable"
+  String assignedToForkliftId FK "nullable"
+  String assignedToOperatorId FK "nullable"
+  DateTime assignedAt "nullable"
+  DateTime pickedUpAt "nullable"
+  DateTime deliveredAt "nullable"
+  String requestedBy
+  DateTime requestedAt
+  String issueReported "nullable"
+  DateTime issueReportedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"forklifts" {
+  String id PK
+  String siteId FK
+  String forkliftNumber
+  String model "nullable"
+  ForkliftType type
+  ForkliftStatus status
+  Decimal maxLoadCapacity
+  Decimal maxLiftHeight "nullable"
+  String currentLocation "nullable"
+  String currentSiteId "nullable"
+  String currentOperatorId FK "nullable"
+  Decimal hoursUsed
+  DateTime lastMaintenanceDate "nullable"
+  DateTime nextMaintenanceDate "nullable"
+  String gpsDeviceId "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"shipments" {
+  String id PK
+  String shipmentNumber UK
+  ShipmentType shipmentType
+  ShipmentStatus status
+  String fromName
+  String fromAddress
+  String fromCity
+  String fromState
+  String fromZip
+  String fromCountry
+  String toName
+  String toAddress
+  String toCity
+  String toState
+  String toZip
+  String toCountry
+  String carrier
+  String serviceLevel "nullable"
+  String accountNumber "nullable"
+  String trackingNumber "nullable"
+  String trackingUrl "nullable"
+  DateTime shipDate
+  DateTime estimatedDeliveryDate "nullable"
+  DateTime actualDeliveryDate "nullable"
+  Json workOrderIds
+  Json containerIds "nullable"
+  Json palletIds "nullable"
+  Decimal totalWeight "nullable"
+  Decimal totalValue "nullable"
+  Decimal estimatedFreightCost "nullable"
+  Decimal actualFreightCost "nullable"
+  String packingListUrl "nullable"
+  String bolUrl "nullable"
+  String commercialInvoiceUrl "nullable"
+  String proofOfDeliveryUrl "nullable"
+  Boolean isHazmat
+  Boolean isInternational
+  Boolean requiresSignature
+  Decimal insuranceValue "nullable"
+  String specialInstructions "nullable"
+  Json trackingEvents "nullable"
+  String createdBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"shipping_labels" {
+  String id PK
+  String shipmentId FK
+  LabelType labelType
+  String labelUrl
+  DateTime printedAt "nullable"
+  String printedBy "nullable"
+  DateTime createdAt
+}
+"containers" {
+  String id PK
+  String siteId FK
+  String containerNumber
+  ContainerType containerType
+  ContainerStatus status
+  String size "nullable"
+  Decimal weightCapacity "nullable"
+  String rfidTag "nullable"
+  String currentLocation "nullable"
+  String currentSiteId "nullable"
+  Json currentWorkOrders "nullable"
+  String ownerId "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"carrier_accounts" {
+  String id PK
+  String siteId FK
+  CarrierType carrier
+  String accountNumber
+  String accountName
+  String apiKey "nullable"
+  String apiSecret "nullable"
+  String apiEndpoint "nullable"
+  String defaultServiceLevel "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -7333,6 +7520,17 @@ erDiagram
 "capa_verifications" }o--|| "users" : verifier
 "capa_state_history" }o--|| "capas" : capa
 "quality_coq_tracking" }o--|| "sites" : site
+"movement_types" }o--|| "sites" : site
+"material_movements" }o--|| "movement_types" : movementType
+"material_movements" }o--o| "forklift_move_requests" : forkliftRequest
+"material_movements" }o--o| "shipments" : shipment
+"forklift_move_requests" }o--o| "forklifts" : forklift
+"forklift_move_requests" }o--o| "users" : operator
+"forklifts" }o--|| "sites" : site
+"forklifts" }o--o| "users" : currentOperator
+"shipping_labels" }o--|| "shipments" : shipment
+"containers" }o--|| "sites" : site
+"carrier_accounts" }o--|| "sites" : site
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -14938,6 +15136,217 @@ Quality Cost Tracking - Detailed Cost of Quality (CoQ) by PAF model
   - `approvedBy`: 
   - `approvedAt`: 
   - `calculatedAt`: 
+  - `updatedAt`: 
+
+### `movement_types`
+Movement Type Configuration - Define how different material can be moved
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `requiresApproval`: 
+  - `requiresCarrier`: 
+  - `requiresPackingList`: 
+  - `requiresForklift`: 
+  - `autoPrintLabel`: 
+  - `defaultCarrier`: 
+  - `estimatedDuration`: 
+  - `trackCost`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `material_movements`
+Material Movement - Tracks movement of work orders between locations
+
+**Properties**
+  - `id`: 
+  - `movementNumber`: 
+  - `movementTypeId`: 
+  - `status`: 
+  - `workOrderIds`: 
+  - `containerIds`: 
+  - `palletIds`: 
+  - `quantity`: 
+  - `weight`: 
+  - `dimensions`: 
+  - `fromLocation`: 
+  - `toLocation`: 
+  - `fromSiteId`: 
+  - `toSiteId`: 
+  - `fromSupplier`: 
+  - `toSupplier`: 
+  - `requestedAt`: 
+  - `requestedBy`: 
+  - `pickedUpAt`: 
+  - `deliveredAt`: 
+  - `estimatedDeliveryAt`: 
+  - `forkliftRequestId`: 
+  - `forkliftOperatorId`: 
+  - `forkliftId`: 
+  - `shipmentId`: 
+  - `carrier`: 
+  - `trackingNumber`: 
+  - `freightCost`: 
+  - `specialInstructions`: 
+  - `priority`: 
+  - `attachments`: 
+  - `approvalRequired`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `forklift_move_requests`
+Forklift Move Request - Queue of material movement requests for forklift operators
+
+**Properties**
+  - `id`: 
+  - `requestNumber`: 
+  - `status`: 
+  - `priority`: 
+  - `fromLocation`: 
+  - `toLocation`: 
+  - `workOrderIds`: 
+  - `containerIds`: 
+  - `quantity`: 
+  - `weight`: 
+  - `dimensions`: 
+  - `specialInstructions`: 
+  - `assignedToForkliftId`: 
+  - `assignedToOperatorId`: 
+  - `assignedAt`: 
+  - `pickedUpAt`: 
+  - `deliveredAt`: 
+  - `requestedBy`: 
+  - `requestedAt`: 
+  - `issueReported`: 
+  - `issueReportedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `forklifts`
+Forklift - Fleet management for material handling equipment
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `forkliftNumber`: 
+  - `model`: 
+  - `type`: 
+  - `status`: 
+  - `maxLoadCapacity`: 
+  - `maxLiftHeight`: 
+  - `currentLocation`: 
+  - `currentSiteId`: 
+  - `currentOperatorId`: 
+  - `hoursUsed`: 
+  - `lastMaintenanceDate`: 
+  - `nextMaintenanceDate`: 
+  - `gpsDeviceId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `shipments`
+Shipment - Shipping tracking and carrier management
+
+**Properties**
+  - `id`: 
+  - `shipmentNumber`: 
+  - `shipmentType`: 
+  - `status`: 
+  - `fromName`: 
+  - `fromAddress`: 
+  - `fromCity`: 
+  - `fromState`: 
+  - `fromZip`: 
+  - `fromCountry`: 
+  - `toName`: 
+  - `toAddress`: 
+  - `toCity`: 
+  - `toState`: 
+  - `toZip`: 
+  - `toCountry`: 
+  - `carrier`: 
+  - `serviceLevel`: 
+  - `accountNumber`: 
+  - `trackingNumber`: 
+  - `trackingUrl`: 
+  - `shipDate`: 
+  - `estimatedDeliveryDate`: 
+  - `actualDeliveryDate`: 
+  - `workOrderIds`: 
+  - `containerIds`: 
+  - `palletIds`: 
+  - `totalWeight`: 
+  - `totalValue`: 
+  - `estimatedFreightCost`: 
+  - `actualFreightCost`: 
+  - `packingListUrl`: 
+  - `bolUrl`: 
+  - `commercialInvoiceUrl`: 
+  - `proofOfDeliveryUrl`: 
+  - `isHazmat`: 
+  - `isInternational`: 
+  - `requiresSignature`: 
+  - `insuranceValue`: 
+  - `specialInstructions`: 
+  - `trackingEvents`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `shipping_labels`
+Shipping Label - Physical labels for shipments
+
+**Properties**
+  - `id`: 
+  - `shipmentId`: 
+  - `labelType`: 
+  - `labelUrl`: 
+  - `printedAt`: 
+  - `printedBy`: 
+  - `createdAt`: 
+
+### `containers`
+Container - Totes, bins, pallets for material organization
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `containerNumber`: 
+  - `containerType`: 
+  - `status`: 
+  - `size`: 
+  - `weightCapacity`: 
+  - `rfidTag`: 
+  - `currentLocation`: 
+  - `currentSiteId`: 
+  - `currentWorkOrders`: 
+  - `ownerId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `carrier_accounts`
+Carrier Account - Credentials and configuration for shipping carriers
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `carrier`: 
+  - `accountNumber`: 
+  - `accountName`: 
+  - `apiKey`: 
+  - `apiSecret`: 
+  - `apiEndpoint`: 
+  - `defaultServiceLevel`: 
+  - `isActive`: 
+  - `createdAt`: 
   - `updatedAt`: 
 
 ### `_DepartmentToUser`

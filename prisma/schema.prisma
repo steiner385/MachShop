@@ -113,6 +113,12 @@ model Site {
   // CAPA System Relations (Issue #56)
   capas                 CAPA[]                @relation("SiteCapas")
 
+  // Material Movement & Logistics Management Relations (Issue #64)
+  movementTypes         MovementType[]        @relation("MovementTypes")
+  forklifts             Forklift[]            @relation("Forklifts")
+  containers            Container[]           @relation("Containers")
+  carrierAccounts       CarrierAccount[]      @relation("CarrierAccounts")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -406,6 +412,10 @@ model User {
   capasCreatedBy                 CAPA[]                      @relation("CapaCreatedBy")
   actionsOwned                   CapaAction[]                @relation("ActionOwner")
   verificationsPerformed         CapaVerification[]
+
+  // Material Movement & Logistics Management Relations (Issue #64)
+  forkliftRequestsAssigned       ForkliftMoveRequest[]       @relation("ForkliftOperator")
+  forkliftCurrentOperation       Forklift[]                  @relation("ForkliftCurrentOperator")
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -14903,4 +14913,456 @@ model QualityCoqTracking {
   @@index([periodStart])
   @@unique([siteId, period, periodStart])
   @@map("quality_coq_tracking")
+}
+
+// ============================================================================
+// Material Movement & Logistics Management System (Issue #64)
+// ============================================================================
+
+/// Movement Type Configuration - Define how different material can be moved
+model MovementType {
+  id                    String   @id @default(cuid())
+  siteId                String
+  code                  String   // MANUAL, FORKLIFT, SHIP_TO_SUPPLIER, etc.
+  name                  String
+  description           String?
+
+  // Configuration
+  requiresApproval      Boolean  @default(false)
+  requiresCarrier       Boolean  @default(false)
+  requiresPackingList   Boolean  @default(false)
+  requiresForklift      Boolean  @default(false)
+  autoPrintLabel        Boolean  @default(false)
+  defaultCarrier        String?
+  estimatedDuration     Int?     // minutes
+  trackCost             Boolean  @default(false)
+
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  site                  Site     @relation("MovementTypes", fields: [siteId], references: [id], onDelete: Cascade)
+  movements             MaterialMovement[]
+
+  @@unique([siteId, code])
+  @@index([siteId])
+  @@map("movement_types")
+}
+
+/// Material Movement - Tracks movement of work orders between locations
+model MaterialMovement {
+  id                    String   @id @default(cuid())
+  movementNumber        String   @unique  // auto-generated MOV-2025-001
+  movementTypeId        String
+  status                MovementStatus   @default(REQUESTED)
+
+  // What is moving
+  workOrderIds          Json     // array of work order IDs
+  containerIds          Json?    // array of container IDs
+  palletIds             Json?    // array of pallet IDs
+  quantity              Int?
+  weight                Decimal? @db.Decimal(15, 2)
+  dimensions            Json?    // {length, width, height}
+
+  // From/To
+  fromLocation          String
+  toLocation            String
+  fromSiteId            String?
+  toSiteId              String?
+  fromSupplier          String?  // for shipments to/from suppliers
+  toSupplier            String?
+
+  // Timing
+  requestedAt           DateTime @default(now())
+  requestedBy           String
+  pickedUpAt            DateTime?
+  deliveredAt           DateTime?
+  estimatedDeliveryAt   DateTime?
+
+  // Forklift (if applicable)
+  forkliftRequestId     String?
+  forkliftOperatorId    String?
+  forkliftId            String?
+
+  // Shipment (if applicable)
+  shipmentId            String?
+  carrier               String?
+  trackingNumber        String?
+  freightCost           Decimal? @db.Decimal(15, 2)
+
+  // Special instructions
+  specialInstructions   String?
+  priority              MovementPriority @default(NORMAL)
+
+  // Photos/attachments
+  attachments           Json?    // array of photo URLs
+
+  // Approval
+  approvalRequired      Boolean  @default(false)
+  approvedBy            String?
+  approvedAt            DateTime?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  movementType          MovementType     @relation(fields: [movementTypeId], references: [id], onDelete: Restrict)
+  forkliftRequest       ForkliftMoveRequest? @relation(fields: [forkliftRequestId], references: [id])
+  shipment              Shipment?        @relation(fields: [shipmentId], references: [id])
+
+  @@index([status])
+  @@index([movementNumber])
+  @@index([fromLocation])
+  @@index([toLocation])
+  @@index([requestedAt])
+  @@index([movementTypeId])
+  @@map("material_movements")
+}
+
+enum MovementStatus {
+  REQUESTED
+  APPROVED
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  EXCEPTION
+  CANCELLED
+}
+
+enum MovementPriority {
+  NORMAL
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+/// Forklift Move Request - Queue of material movement requests for forklift operators
+model ForkliftMoveRequest {
+  id                    String   @id @default(cuid())
+  requestNumber         String   @unique  // FLR-2025-001
+  status                ForkliftRequestStatus @default(PENDING)
+  priority              MovementPriority @default(NORMAL)
+
+  // Request details
+  fromLocation          String
+  toLocation            String
+  workOrderIds          Json     // array
+  containerIds          Json?
+  quantity              Int?
+  weight                Decimal? @db.Decimal(15, 2)
+  dimensions            Json?
+  specialInstructions   String?
+
+  // Assignment
+  assignedToForkliftId  String?
+  assignedToOperatorId  String?
+  assignedAt            DateTime?
+
+  // Execution
+  pickedUpAt            DateTime?
+  deliveredAt           DateTime?
+
+  // Request tracking
+  requestedBy           String
+  requestedAt           DateTime @default(now())
+
+  // Issues
+  issueReported         String?
+  issueReportedAt       DateTime?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  forklift              Forklift? @relation(fields: [assignedToForkliftId], references: [id])
+  operator              User?    @relation("ForkliftOperator", fields: [assignedToOperatorId], references: [id])
+  movements             MaterialMovement[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([requestedAt])
+  @@index([assignedToForkliftId])
+  @@map("forklift_move_requests")
+}
+
+enum ForkliftRequestStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  ISSUE_REPORTED
+  CANCELLED
+}
+
+/// Forklift - Fleet management for material handling equipment
+model Forklift {
+  id                    String   @id @default(cuid())
+  siteId                String
+  forkliftNumber        String   // FL-001, FL-002
+  model                 String?
+  type                  ForkliftType
+  status                ForkliftStatus  @default(AVAILABLE)
+
+  // Capacity
+  maxLoadCapacity       Decimal  @db.Decimal(15, 2) // lbs
+  maxLiftHeight         Decimal? @db.Decimal(15, 2) // feet
+
+  // Location
+  currentLocation       String?
+  currentSiteId         String?
+
+  // Operator
+  currentOperatorId     String?
+
+  // Maintenance
+  hoursUsed             Decimal  @default(0)
+  lastMaintenanceDate   DateTime?
+  nextMaintenanceDate   DateTime?
+
+  // Tracking
+  gpsDeviceId           String?  // for GPS tracking
+
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  site                  Site     @relation("Forklifts", fields: [siteId], references: [id], onDelete: Cascade)
+  currentOperator       User?    @relation("ForkliftCurrentOperator", fields: [currentOperatorId], references: [id])
+  moveRequests          ForkliftMoveRequest[]
+
+  @@unique([siteId, forkliftNumber])
+  @@index([siteId])
+  @@index([status])
+  @@map("forklifts")
+}
+
+enum ForkliftType {
+  STANDUP
+  SITDOWN
+  REACH_TRUCK
+  ORDER_PICKER
+  PALLET_JACK
+  TOW_TRACTOR
+}
+
+enum ForkliftStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  CHARGING
+  OUT_OF_SERVICE
+}
+
+/// Shipment - Shipping tracking and carrier management
+model Shipment {
+  id                    String   @id @default(cuid())
+  shipmentNumber        String   @unique  // SHIP-2025-001
+  shipmentType          ShipmentType
+  status                ShipmentStatus  @default(CREATED)
+
+  // Addresses
+  fromName              String
+  fromAddress           String
+  fromCity              String
+  fromState             String
+  fromZip               String
+  fromCountry           String
+
+  toName                String
+  toAddress             String
+  toCity                String
+  toState               String
+  toZip                 String
+  toCountry             String
+
+  // Carrier
+  carrier               String
+  serviceLevel          String?  // Ground, 2Day, Overnight
+  accountNumber         String?
+
+  // Tracking
+  trackingNumber        String?
+  trackingUrl           String?
+
+  // Dates
+  shipDate              DateTime
+  estimatedDeliveryDate DateTime?
+  actualDeliveryDate    DateTime?
+
+  // Contents
+  workOrderIds          Json
+  containerIds          Json?
+  palletIds             Json?
+  totalWeight           Decimal? @db.Decimal(15, 2)
+  totalValue            Decimal? @db.Decimal(15, 2)
+
+  // Costs
+  estimatedFreightCost  Decimal? @db.Decimal(15, 2)
+  actualFreightCost     Decimal? @db.Decimal(15, 2)
+
+  // Documents
+  packingListUrl        String?
+  bolUrl                String?  // Bill of Lading
+  commercialInvoiceUrl  String?  // for international
+  proofOfDeliveryUrl    String?
+
+  // Special handling
+  isHazmat              Boolean  @default(false)
+  isInternational       Boolean  @default(false)
+  requiresSignature     Boolean  @default(false)
+  insuranceValue        Decimal? @db.Decimal(15, 2)
+  specialInstructions   String?
+
+  // Tracking events
+  trackingEvents        Json?    // [{timestamp, location, status, description}]
+
+  createdBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  movements             MaterialMovement[]
+  labels                ShippingLabel[]
+
+  @@index([shipmentNumber])
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([createdAt])
+  @@map("shipments")
+}
+
+enum ShipmentType {
+  TO_SUPPLIER
+  FROM_SUPPLIER
+  SUPPLIER_TO_SUPPLIER
+  TO_CUSTOMER
+  TO_WAREHOUSE
+  INTER_SITE_TRANSFER
+  RETURN
+}
+
+enum ShipmentStatus {
+  CREATED
+  LABEL_PRINTED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+  CANCELLED
+}
+
+/// Shipping Label - Physical labels for shipments
+model ShippingLabel {
+  id                    String   @id @default(cuid())
+  shipmentId            String
+  labelType             LabelType
+  labelUrl              String   // file path or URL
+  printedAt             DateTime?
+  printedBy             String?
+
+  createdAt             DateTime @default(now())
+
+  shipment              Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@map("shipping_labels")
+}
+
+enum LabelType {
+  SHIPPING_LABEL
+  RETURN_LABEL
+  PACKING_LIST
+  CUSTOMS_FORM
+  HAZMAT_LABEL
+}
+
+/// Container - Totes, bins, pallets for material organization
+model Container {
+  id                    String   @id @default(cuid())
+  siteId                String
+  containerNumber       String   // unique ID, barcode
+  containerType         ContainerType
+  status                ContainerStatus @default(AVAILABLE)
+
+  // Attributes
+  size                  String?  // S, M, L or dimensions
+  weightCapacity        Decimal? @db.Decimal(15, 2)
+  rfidTag               String?
+
+  // Current state
+  currentLocation       String?
+  currentSiteId         String?
+  currentWorkOrders     Json?    // array of work order IDs
+
+  // Ownership
+  ownerId               String?  // if rented/leased
+
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  site                  Site     @relation("Containers", fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, containerNumber])
+  @@index([siteId])
+  @@index([status])
+  @@index([currentLocation])
+  @@map("containers")
+}
+
+enum ContainerType {
+  TOTE
+  BIN
+  PALLET
+  CRATE
+  BOX
+  DRUM
+  BAG
+}
+
+enum ContainerStatus {
+  AVAILABLE
+  IN_USE
+  DAMAGED
+  LOST
+  RETIRED
+}
+
+/// Carrier Account - Credentials and configuration for shipping carriers
+model CarrierAccount {
+  id                    String   @id @default(cuid())
+  siteId                String
+  carrier               CarrierType
+  accountNumber         String
+  accountName           String
+
+  // Credentials for API (encrypted)
+  apiKey                String?
+  apiSecret             String?
+  apiEndpoint           String?
+
+  // Preferences
+  defaultServiceLevel   String?
+  isActive              Boolean  @default(true)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  site                  Site     @relation("CarrierAccounts", fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, carrier, accountNumber])
+  @@index([siteId])
+  @@map("carrier_accounts")
+}
+
+enum CarrierType {
+  UPS
+  FEDEX
+  USPS
+  DHL
+  YRC
+  OLD_DOMINION
+  ESTES
+  SAIA
+  COURIER
+  OTHER
 }
