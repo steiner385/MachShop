@@ -1059,7 +1059,7 @@ issues:
     business_value: 9
     effort_estimate: 9
     blocks: []
-    notes: "Critical for aerospace and defense manufacturing"
+    notes: "COMPLETED - ITAR/export control compliance system with classification, screening, licensing, and auditing - Implemented in PR #390"
 
   - number: 105
     title: "Full Product Genealogy & Where-Used Traceability"
