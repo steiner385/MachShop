@@ -172,6 +172,7 @@ import erpDashboardRoutes from './routes/erp-dashboard';
 // ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System Routes
 import movementRoutes from './routes/movements';
 import shipmentWebhookRoutes from './routes/shipment-webhooks';
+import changeImpactAnalysisRoutes from './routes/changeImpactAnalysis';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -407,6 +408,9 @@ apiRouter.use('/vendor-kits', authMiddleware, vendorKitRoutes);
 
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework API Routes
 apiRouter.use('/part-interchangeability', authMiddleware, partInterchangeabilityRoutes);
+
+// ✅ GITHUB ISSUE #225: Quality Management: Change Impact Analysis & Where-Used Tool API Routes
+apiRouter.use('/change-impact', authMiddleware, changeImpactAnalysisRoutes);
 
 // ✅ GITHUB ISSUE #94: Equipment Registry & Maintenance Management System API Routes
 apiRouter.use('/maintenance', authMiddleware, maintenanceRoutes);
