@@ -566,4 +566,347 @@ router.get('/dashboard', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// ============================================================================
+// ISSUE #41: WORKFLOW ENFORCEMENT VALIDATION ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/v1/work-order-execution/:id/can-record-performance
+ * Check if work performance can be recorded for a work order
+ *
+ * Response:
+ * {
+ *   "allowed": boolean,
+ *   "reason": string (if not allowed),
+ *   "warnings": string[],
+ *   "configMode": "STRICT" | "FLEXIBLE" | "HYBRID",
+ *   "bypassesApplied": string[]
+ * }
+ */
+router.get('/:id/can-record-performance', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Work order ID is required',
+        code: 'MISSING_WORK_ORDER_ID'
+      });
+    }
+
+    const enforcementService = new (require('../services/WorkflowEnforcementService').default);
+    const decision = await enforcementService.canRecordPerformance(id);
+
+    res.json({
+      workOrderId: id,
+      action: 'RECORD_PERFORMANCE',
+      allowed: decision.allowed,
+      ...(decision.reason && { reason: decision.reason }),
+      warnings: decision.warnings,
+      configMode: decision.configMode,
+      bypassesApplied: decision.bypassesApplied,
+      timestamp: decision.appliedAt
+    });
+  } catch (error: any) {
+    console.error('Error checking performance recording permission:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        code: 'WORK_ORDER_NOT_FOUND'
+      });
+    }
+
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message,
+      code: 'ENFORCEMENT_CHECK_FAILED'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/work-order-execution/:id/operations/:operationId/can-start
+ * Check if an operation can be started
+ *
+ * Response:
+ * {
+ *   "allowed": boolean,
+ *   "reason": string (if not allowed),
+ *   "warnings": string[],
+ *   "configMode": "STRICT" | "FLEXIBLE" | "HYBRID",
+ *   "bypassesApplied": string[]
+ * }
+ */
+router.get('/:id/operations/:operationId/can-start', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id, operationId } = req.params;
+
+    if (!id || id.trim() === '' || !operationId || operationId.trim() === '') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Work order ID and operation ID are required',
+        code: 'MISSING_REQUIRED_PARAMS'
+      });
+    }
+
+    const enforcementService = new (require('../services/WorkflowEnforcementService').default);
+    const decision = await enforcementService.canStartOperation(id, operationId);
+
+    res.json({
+      workOrderId: id,
+      operationId,
+      action: 'START_OPERATION',
+      allowed: decision.allowed,
+      ...(decision.reason && { reason: decision.reason }),
+      warnings: decision.warnings,
+      configMode: decision.configMode,
+      bypassesApplied: decision.bypassesApplied,
+      timestamp: decision.appliedAt
+    });
+  } catch (error: any) {
+    console.error('Error checking operation start permission:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        code: 'OPERATION_NOT_FOUND'
+      });
+    }
+
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message,
+      code: 'ENFORCEMENT_CHECK_FAILED'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/work-order-execution/:id/operations/:operationId/can-complete
+ * Check if an operation can be completed
+ *
+ * Response:
+ * {
+ *   "allowed": boolean,
+ *   "reason": string (if not allowed),
+ *   "warnings": string[],
+ *   "configMode": "STRICT" | "FLEXIBLE" | "HYBRID",
+ *   "bypassesApplied": string[]
+ * }
+ */
+router.get('/:id/operations/:operationId/can-complete', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id, operationId } = req.params;
+
+    if (!id || id.trim() === '' || !operationId || operationId.trim() === '') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Work order ID and operation ID are required',
+        code: 'MISSING_REQUIRED_PARAMS'
+      });
+    }
+
+    const enforcementService = new (require('../services/WorkflowEnforcementService').default);
+    const decision = await enforcementService.canCompleteOperation(id, operationId);
+
+    res.json({
+      workOrderId: id,
+      operationId,
+      action: 'COMPLETE_OPERATION',
+      allowed: decision.allowed,
+      ...(decision.reason && { reason: decision.reason }),
+      warnings: decision.warnings,
+      configMode: decision.configMode,
+      bypassesApplied: decision.bypassesApplied,
+      timestamp: decision.appliedAt
+    });
+  } catch (error: any) {
+    console.error('Error checking operation complete permission:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: error.message,
+        code: 'OPERATION_NOT_FOUND'
+      });
+    }
+
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message,
+      code: 'ENFORCEMENT_CHECK_FAILED'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/work-order-execution/:id/enforcement-audit
+ * Get enforcement audit records for a work order
+ *
+ * Query Parameters:
+ * - page: number (default: 1)
+ * - limit: number (default: 50)
+ * - action: 'RECORD_PERFORMANCE' | 'START_OPERATION' | 'COMPLETE_OPERATION'
+ * - mode: 'STRICT' | 'FLEXIBLE' | 'HYBRID'
+ *
+ * Response:
+ * {
+ *   "total": number,
+ *   "page": number,
+ *   "limit": number,
+ *   "records": [
+ *     {
+ *       "id": string,
+ *       "workOrderId": string,
+ *       "operationId": string | null,
+ *       "action": string,
+ *       "enforcementMode": string,
+ *       "bypassesApplied": string[],
+ *       "warnings": string[],
+ *       "decision": object,
+ *       "userId": string | null,
+ *       "justification": string | null,
+ *       "timestamp": string
+ *     }
+ *   ]
+ * }
+ */
+router.get('/:id/enforcement-audit', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50, action, mode } = req.query;
+
+    if (!id || id.trim() === '') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Work order ID is required',
+        code: 'MISSING_WORK_ORDER_ID'
+      });
+    }
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Use optional chaining to safely access the model
+    const prisma = require('../lib/database').default;
+    if (!prisma || !(prisma as any).workflowEnforcementAudit) {
+      return res.status(503).json({
+        error: 'ServiceUnavailable',
+        message: 'Enforcement audit system not available',
+        code: 'AUDIT_SYSTEM_UNAVAILABLE'
+      });
+    }
+
+    const where: any = { workOrderId: id };
+    if (action) {
+      where.action = action;
+    }
+    if (mode) {
+      where.enforcementMode = mode;
+    }
+
+    const [records, total] = await Promise.all([
+      (prisma as any).workflowEnforcementAudit.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { timestamp: 'desc' }
+      }),
+      (prisma as any).workflowEnforcementAudit.count({ where })
+    ]);
+
+    res.json({
+      workOrderId: id,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      records: records.map((record: any) => ({
+        ...record,
+        decision: typeof record.decision === 'string' ? JSON.parse(record.decision) : record.decision
+      }))
+    });
+  } catch (error: any) {
+    console.error('Error fetching enforcement audit records:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message,
+      code: 'AUDIT_FETCH_FAILED'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/work-order-execution/:id/enforcement-audit/:auditId
+ * Get a specific enforcement audit record
+ *
+ * Response:
+ * {
+ *   "id": string,
+ *   "workOrderId": string,
+ *   "operationId": string | null,
+ *   "action": string,
+ *   "enforcementMode": string,
+ *   "bypassesApplied": string[],
+ *   "warnings": string[],
+ *   "decision": object,
+ *   "userId": string | null,
+ *   "justification": string | null,
+ *   "timestamp": string
+ * }
+ */
+router.get('/:id/enforcement-audit/:auditId', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id, auditId } = req.params;
+
+    if (!id || id.trim() === '' || !auditId || auditId.trim() === '') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Work order ID and audit ID are required',
+        code: 'MISSING_REQUIRED_PARAMS'
+      });
+    }
+
+    const prisma = require('../lib/database').default;
+    if (!prisma || !(prisma as any).workflowEnforcementAudit) {
+      return res.status(503).json({
+        error: 'ServiceUnavailable',
+        message: 'Enforcement audit system not available',
+        code: 'AUDIT_SYSTEM_UNAVAILABLE'
+      });
+    }
+
+    const record = await (prisma as any).workflowEnforcementAudit.findFirst({
+      where: {
+        id: auditId,
+        workOrderId: id
+      }
+    });
+
+    if (!record) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Audit record ${auditId} not found for work order ${id}`,
+        code: 'AUDIT_RECORD_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      ...record,
+      decision: typeof record.decision === 'string' ? JSON.parse(record.decision) : record.decision
+    });
+  } catch (error: any) {
+    console.error('Error fetching enforcement audit record:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message,
+      code: 'AUDIT_FETCH_FAILED'
+    });
+  }
+});
+
 export default router;

@@ -5,10 +5,8 @@
  */
 
 import { Prisma, WorkflowMode } from "@prisma/client";
-import { prisma } from "../db/client";
-import { Logger } from "../utils/logger";
-
-const logger = Logger.getInstance();
+import prisma from "../lib/database";
+import { logger } from "../utils/logger";
 
 export interface EffectiveWorkflowConfiguration {
   mode: WorkflowMode;
