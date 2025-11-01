@@ -110,6 +110,9 @@ model Site {
   qualityAlerts         QualityAlert[]        @relation("QualityAlerts")
   qualityCoqTracking    QualityCoqTracking[]  @relation("QualityCoqTracking")
 
+  // CAPA System Relations (Issue #56)
+  capas                 CAPA[]                @relation("SiteCapas")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -390,6 +393,19 @@ model User {
   reviewsCreated            ManagementReview[]              @relation("ReviewCreatedBy")
   changesApproved           ChangeRequest[]                 @relation("ChangeApprovedBy")
   changesCreated            ChangeRequest[]                 @relation("ChangeCreatedBy")
+
+  // Data Collection & Work Instructions Relations (Issue #45, #58, #59)
+  dataCollectionFormsCreated     DataCollectionForm[]        @relation("DataCollectionFormCreated")
+  dataCollectionSubmissions      DataCollectionSubmission[]  @relation("DataCollectionSubmissionCreated")
+  workInstructionViews           WorkInstructionView[]       @relation("UserWorkInstructionViews")
+  ospInspectionsPerformed        OSPInspection[]             @relation("OSPInspections")
+  ospInspectionsApproved         OSPInspection[]             @relation("OSPInspectionApprovals")
+
+  // CAPA System Relations (Issue #56)
+  capasOwned                     CAPA[]                      @relation("CapaOwner")
+  capasCreatedBy                 CAPA[]                      @relation("CapaCreatedBy")
+  actionsOwned                   CapaAction[]                @relation("ActionOwner")
+  verificationsPerformed         CapaVerification[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -940,6 +956,10 @@ model Operation {
 
   // Quality Configuration Relations (Issue #44)
   qualityConfiguration     OperationQualityConfiguration? @relation("OperationQualityConfig")
+
+  // OSP (Outside Processing) Relations (Issue #58, #59)
+  ospCapabilities          OSPCapability[]
+  ospOperations            OSPOperation[]
 
   @@index([parentOperationId])
   @@index([persistentUuid])
@@ -1521,6 +1541,9 @@ model WorkOrder {
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
+  // OSP (Outside Processing) Relations (Issue #58, #59)
+  ospOperations OSPOperation[]
+
   @@index([persistentUuid])
   @@map("work_orders")
 }
@@ -1587,7 +1610,7 @@ model RoutingOperation {
   workCenter      WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrderOps    WorkOrderOperation[]
   torqueSpecifications TorqueSpecification[]
-  dataCollectionForms DataCollectionForm[]  // Issue #45: Data collection forms for this operation
+  dataCollectionForms DataCollectionForm[] @relation("DataCollectionForms")  // Issue #45: Data collection forms for this operation
 
   @@map("routing_operations")
 }
@@ -1755,8 +1778,8 @@ model WorkOrderOperation {
   workOrder          WorkOrder                @relation(fields: [workOrderId], references: [id])
   workPerformance    WorkPerformance[]
   buildRecordOperations BuildRecordOperation[]
-  dataCollectionSubmissions DataCollectionSubmission[]  // Issue #45: Data collected for this operation
-  workInstructionViews WorkInstructionView[]  // Issue #45: Work instruction views for this operation
+  dataCollectionSubmissions DataCollectionSubmission[] @relation("DataCollectionSubmissions")  // Issue #45: Data collected for this operation
+  workInstructionViews WorkInstructionView[] @relation("WorkOrderOperationViews")  // Issue #45: Work instruction views for this operation
 
   @@map("work_order_operations")
 }
@@ -2750,7 +2773,7 @@ model WorkInstruction {
   modelViewStates       ModelViewState[]
 
   // Issue #45: Work instruction view tracking
-  workInstructionViews  WorkInstructionView[]
+  workInstructionViews  WorkInstructionView[] @relation("WorkInstructionViewTracking")
 
   @@index([status])
   @@index([partId])
@@ -9306,6 +9329,13 @@ model Vendor {
   preferredSupplierAnalytics PartShortageAnalytics[] @relation("PreferredSupplier")
   bestPerformingAnalytics PartShortageAnalytics[]    @relation("BestPerformingSupplier")
 
+  // OSP (Outside Processing) Relations (Issue #58, #59)
+  ospCapabilities       OSPCapability[]
+  ospOperations         OSPOperation[]
+  outboundShipments     OSPShipment[] @relation("OutboundSupplier")
+  inboundShipments      OSPShipment[] @relation("InboundSupplier")
+  supplierMetrics       SupplierPerformanceMetric[]
+
   @@index([code])
   @@index([isActive])
   @@index([preferredVendor])
@@ -14187,9 +14217,9 @@ model WorkInstructionView {
   deviceId                String?
 
   // Relations
-  workInstruction         WorkInstruction         @relation("WorkInstructionViews", fields: [workInstructionId], references: [id], onDelete: Cascade)
-  workOrderOperation      WorkOrderOperation?     @relation("WorkInstructionViews", fields: [workOrderOperationId], references: [id], onDelete: SetNull)
-  viewer                  User                    @relation("WorkInstructionViews", fields: [viewedBy], references: [id])
+  workInstruction         WorkInstruction         @relation("WorkInstructionViewTracking", fields: [workInstructionId], references: [id], onDelete: Cascade)
+  workOrderOperation      WorkOrderOperation?     @relation("WorkOrderOperationViews", fields: [workOrderOperationId], references: [id], onDelete: SetNull)
+  viewer                  User                    @relation("UserWorkInstructionViews", fields: [viewedBy], references: [id])
 
   @@index([workInstructionId])
   @@index([viewedAt])
@@ -14260,6 +14290,44 @@ enum SupplierMetricType {
   MONTHLY               // Monthly performance summary
   QUARTERLY             // Quarterly performance summary
   ANNUAL                // Annual performance summary
+}
+
+// ============================================================================
+// CAPA (Corrective & Preventive Action) System Enums (Issue #56)
+// ============================================================================
+
+enum CapaStatus {
+  DRAFT                 // Initial creation, not yet planned
+  PLANNED               // Reviewed and ready for execution
+  IN_PROGRESS           // Actions are being executed
+  PENDING_VERIFICATION  // Awaiting effectiveness verification
+  VERIFIED_EFFECTIVE    // Verified as effective
+  VERIFIED_INEFFECTIVE  // Verification failed, requires replanning
+  CLOSED                // Completed and archived
+  CANCELLED             // Cancelled before completion
+}
+
+enum CapaRiskLevel {
+  LOW                   // Low impact, minimal risk
+  MEDIUM                // Moderate impact and risk
+  HIGH                  // High impact, significant risk
+  CRITICAL              // Critical impact, severe risk
+}
+
+enum CapaActionType {
+  IMMEDIATE             // Immediate containment action (< 24 hours)
+  CORRECTIVE            // Addresses root cause
+  PREVENTIVE            // Prevents recurrence or similar issues
+  SYSTEMIC              // Organization-wide process change
+}
+
+enum CapaActionStatus {
+  OPEN                  // Not yet started
+  IN_PROGRESS           // Work in progress
+  COMPLETED             // Work finished, pending approval
+  APPROVED              // Approved by authority
+  OVERDUE               // Past due date without completion
+  CANCELLED             // Cancelled before completion
 }
 
 // ============================================================================
@@ -14637,6 +14705,165 @@ model QualityAlert {
   @@index([status])
   @@index([createdAt])
   @@map("quality_alerts")
+}
+
+// ============================================================================
+// CAPA (Corrective & Preventive Action) System Models (Issue #56)
+// ============================================================================
+
+/// CAPA: Root entity for Corrective & Preventive Action tracking
+model CAPA {
+  id                    String                @id @default(cuid())
+  capaNumber            String                @unique               // Auto-generated: CAPA-YYYY-####
+  siteId                String
+  ncrId                 String?               // Optional link to NCR that triggered this CAPA
+
+  // Basic information
+  title                 String
+  description           String                @db.Text
+  rootCauseAnalysis     String?               @db.Text
+  riskLevel             CapaRiskLevel
+  status                CapaStatus            @default(DRAFT)
+
+  // Ownership and accountability
+  ownerId               String
+  createdById           String
+
+  // Dates
+  plannedDueDate        DateTime?
+  actualCompletionDate  DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Cost tracking
+  estimatedCost         Decimal?              @db.Decimal(15, 2)
+  actualCost            Decimal?              @db.Decimal(15, 2)
+
+  // Status tracking
+  requiresReplanning    Boolean               @default(false)
+  replannedCount        Int                   @default(0)
+
+  // Relationships
+  site                  Site                  @relation("SiteCapas", fields: [siteId], references: [id], onDelete: Cascade)
+  owner                 User                  @relation("CapaOwner", fields: [ownerId], references: [id])
+  createdBy             User                  @relation("CapaCreatedBy", fields: [createdById], references: [id])
+  actions               CapaAction[]
+  verifications         CapaVerification[]
+  stateHistory          CapaStateHistory[]
+
+  @@index([siteId])
+  @@index([status])
+  @@index([riskLevel])
+  @@index([ownerId])
+  @@index([createdAt])
+  @@unique([siteId, capaNumber])
+  @@map("capas")
+}
+
+/// CapaAction: Individual action items within a CAPA
+model CapaAction {
+  id                    String                @id @default(cuid())
+  capaId                String
+  actionNumber          Int                   // Sequential within CAPA: 1, 2, 3...
+
+  // Action details
+  actionType            CapaActionType
+  description           String                @db.Text
+  status                CapaActionStatus      @default(OPEN)
+
+  // Ownership
+  ownerId               String
+
+  // Dates
+  plannedDueDate        DateTime
+  completedDate         DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Progress and effort
+  percentComplete       Int                   @default(0)
+  estimatedEffort       String?               // e.g., "40 hours", "2 weeks"
+  actualEffort          String?
+
+  // Cost tracking
+  estimatedCost         Decimal?              @db.Decimal(15, 2)
+  actualCost            Decimal?              @db.Decimal(15, 2)
+
+  // Approval workflow
+  approvedAt            DateTime?
+  approvedBy            String?
+
+  // Dependencies and notes
+  dependsOnActionId     String?               // Action this depends on
+  notes                 String?               @db.Text
+
+  // Relationships
+  capa                  CAPA                  @relation(fields: [capaId], references: [id], onDelete: Cascade)
+  owner                 User                  @relation("ActionOwner", fields: [ownerId], references: [id])
+  dependsOnAction       CapaAction?           @relation("ActionDependency", fields: [dependsOnActionId], references: [id])
+  dependentActions      CapaAction[]          @relation("ActionDependency")
+
+  @@unique([capaId, actionNumber])
+  @@index([capaId])
+  @@index([status])
+  @@index([ownerId])
+  @@index([plannedDueDate])
+  @@map("capa_actions")
+}
+
+/// CapaVerification: Effectiveness verification records
+model CapaVerification {
+  id                    String                @id @default(cuid())
+  capaId                String
+  verificationNumber    Int                   // Sequential: 1, 2, 3...
+
+  // Verification details
+  verificationDate      DateTime
+  verificationMethod    String                // e.g., "Statistical Process Control", "Audit"
+  sampleSize            Int?
+  result                String                // VERIFIED_EFFECTIVE, VERIFIED_INEFFECTIVE, INCONCLUSIVE
+
+  // Data
+  metrics               Json?                 // Flexible JSON for verification metrics
+  verificationNotes     String?               @db.Text
+
+  // If ineffective
+  rootCauseOfFailure    String?               @db.Text
+  recommendedActions    String?               @db.Text
+
+  // Audit
+  verifiedBy            String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  capa                  CAPA                  @relation(fields: [capaId], references: [id], onDelete: Cascade)
+  verifier              User                  @relation(fields: [verifiedBy], references: [id])
+
+  @@unique([capaId, verificationNumber])
+  @@index([capaId])
+  @@index([result])
+  @@index([verificationDate])
+  @@map("capa_verifications")
+}
+
+/// CapaStateHistory: Audit trail of status changes
+model CapaStateHistory {
+  id                    String                @id @default(cuid())
+  capaId                String
+
+  fromState             String?               // Previous status
+  toState               String                // New status
+  changeReason          String?               // Why the change was made
+  changedBy             String
+  changedAt             DateTime              @default(now())
+
+  // Relationships
+  capa                  CAPA                  @relation(fields: [capaId], references: [id], onDelete: Cascade)
+
+  @@index([capaId])
+  @@index([changedAt])
+  @@map("capa_state_history")
 }
 
 /// Quality Cost Tracking - Detailed Cost of Quality (CoQ) by PAF model
