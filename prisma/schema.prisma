@@ -1339,6 +1339,12 @@ model Part {
   mrpPeggingSupplies       MRPPegging[]           @relation("MRPPeggingSupply")
   mrpExceptions            MRPException[]         @relation("MRPExceptions")
 
+  // Issue #150: Advanced Serialization Workflows
+  vendorSerials             VendorSerial[]
+  serialAssignmentTriggers  SerialAssignmentTrigger[]
+  lateAssignmentPlaceholders LateAssignmentPlaceholder[]
+  serialUniquenessScopes    SerialUniquenessScope[]
+
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
@@ -2754,6 +2760,12 @@ model SerializedPart {
 
   // Build Record Relationships
   buildRecords          BuildRecord[]
+
+  // Issue #150: Advanced Serialization Workflows
+  vendorSerial          VendorSerial?
+  sourcePropagations    SerialPropagation[]        @relation("SourcePropagation")
+  targetPropagations    SerialPropagation[]        @relation("TargetPropagation")
+  lateAssignmentPlaceholder LateAssignmentPlaceholder?
 
   @@index([persistentUuid])
   @@map("serialized_parts")
@@ -11737,6 +11749,7 @@ model SerialNumberFormatConfig {
   // Assignment relationships
   partAssignments              SerialFormatPartAssignment[]
   partFamilyAssignments        SerialFormatPartFamilyAssignment[]
+  serialAssignmentTriggers     SerialAssignmentTrigger[]
 
   // Usage tracking
   usageTracking                SerialNumberUsageTracking?
@@ -11831,6 +11844,198 @@ model SerialNumberUsageTracking {
 
   @@index([formatConfigId])
   @@map("serial_number_usage_tracking")
+}
+
+// ============================================
+// Issue #150: Advanced Serialization Workflows
+// ============================================
+
+// Vendor Serial Registry - Track vendor-provided serial numbers
+model VendorSerial {
+  id                    String   @id @default(cuid())
+  vendorSerialNumber    String
+  vendorName            String
+  partId                String
+  internalSerialId      String?  @unique // Links to SerializedPart when internally assigned
+
+  // Validation
+  formatValid           Boolean  @default(false)
+  isUnique              Boolean  @default(false)
+  validationErrors      String[] // Array of validation error messages
+
+  // Tracking
+  receivedDate          DateTime @default(now())
+  acceptedDate          DateTime?
+  acceptedBy            String?
+  rejectionReason       String?
+  rejectedDate          DateTime?
+
+  // Audit
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  part                  Part     @relation(fields: [partId], references: [id])
+  internalSerial        SerializedPart? @relation(fields: [internalSerialId], references: [id])
+
+  @@unique([vendorSerialNumber, vendorName, partId])
+  @@index([partId])
+  @@index([vendorName])
+  @@map("vendor_serials")
+}
+
+// Serial Assignment Trigger Configuration
+model SerialAssignmentTrigger {
+  id                    String   @id @default(cuid())
+  partId                String
+  triggerType           String   // MATERIAL_RECEIPT, WORK_ORDER_CREATE, OPERATION_COMPLETE, QUALITY_CHECKPOINT, BATCH_COMPLETION
+  operationCode         String?  // Specific operation for trigger
+
+  // Trigger Conditions
+  isConditional         Boolean  @default(false)
+  conditions            String?  // JSON string with conditional logic
+
+  // Assignment Configuration
+  assignmentType        String   // VENDOR, SYSTEM_GENERATED, LATE_ASSIGNMENT
+  deferSerialization    Boolean  @default(false) // For LATE_ASSIGNMENT
+
+  // Batch Configuration
+  batchMode             Boolean  @default(false)
+  batchSize             Int?     // For batch serial generation
+
+  // Format Configuration
+  formatConfigId        String?
+
+  // Status
+  isActive              Boolean  @default(true)
+
+  // Audit
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdBy             String?
+
+  part                  Part     @relation(fields: [partId], references: [id])
+  formatConfig          SerialNumberFormatConfig? @relation(fields: [formatConfigId], references: [id])
+
+  @@index([partId])
+  @@index([triggerType])
+  @@map("serial_assignment_triggers")
+}
+
+// Late Assignment Placeholder - Tracks items awaiting serialization
+model LateAssignmentPlaceholder {
+  id                    String   @id @default(cuid())
+  placeholderId         String   @unique // Temporary ID for unserialied items
+  partId                String
+  workOrderId           String?
+  lotNumber             String?
+
+  // Status
+  status                String   // PENDING, SERIALIZED, FAILED
+  assignedSerialId      String?  @unique // Links to SerializedPart when assigned
+
+  // Trigger Information
+  triggeredAt           DateTime?
+  triggeredBy           String?
+  assignmentOperationCode String?
+
+  // Tracking
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  serializedDate        DateTime?
+
+  part                  Part     @relation(fields: [partId], references: [id])
+  serializedPart        SerializedPart? @relation(fields: [assignedSerialId], references: [id])
+
+  @@index([partId])
+  @@index([placeholderId])
+  @@index([status])
+  @@map("late_assignment_placeholders")
+}
+
+// Serial Propagation Record - Track serial movement through routing
+model SerialPropagation {
+  id                    String   @id @default(cuid())
+  sourceSerialId        String
+  targetSerialId        String?  // NULL for splitting, set for merging/transformation
+
+  // Propagation Type
+  propagationType       String   // PASS_THROUGH, SPLIT, MERGE, TRANSFORMATION
+  quantity              Int      // For splits/merges
+
+  // Routing
+  operationCode         String
+  workCenterId          String?
+  routingSequence       Int
+
+  // Parent-Child Relationships
+  parentSerialIds       String[] // For merges
+  childSerialIds        String[] // For splits
+
+  // Audit
+  createdAt             DateTime @default(now())
+  createdBy             String?
+  notes                 String?
+
+  sourceSerial          SerializedPart @relation("SourcePropagation", fields: [sourceSerialId], references: [id])
+  targetSerial          SerializedPart? @relation("TargetPropagation", fields: [targetSerialId], references: [id])
+
+  @@index([sourceSerialId])
+  @@index([targetSerialId])
+  @@index([propagationType])
+  @@map("serial_propagations")
+}
+
+// Serial Uniqueness Validation - Track uniqueness scope for serials
+model SerialUniquenessScope {
+  id                    String   @id @default(cuid())
+  serialNumber          String
+  partId                String
+
+  // Scope Levels
+  siteLevel             Boolean  @default(true)  // Must be unique within site
+  enterpriseLevel       Boolean  @default(false) // Must be unique across enterprise
+  partTypeLevel         Boolean  @default(true)  // Must be unique per part type
+
+  // Conflict Tracking
+  hasConflict           Boolean  @default(false)
+  conflictingSerialIds  String[] // Other serial numbers that conflict
+  conflictResolution    String?  // KEEP, RETIRE, MARK_INVALID
+
+  // Audit
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  validatedat           DateTime?
+
+  part                  Part     @relation(fields: [partId], references: [id])
+
+  @@unique([serialNumber, partId])
+  @@index([partId])
+  @@map("serial_uniqueness_scopes")
+}
+
+// Serial Assignment Audit Trail
+model SerialAssignmentAudit {
+  id                    String   @id @default(cuid())
+  serialNumber          String
+  serialId              String
+  partId                String
+
+  // Event Details
+  eventType             String   // CREATED, ACCEPTED, VALIDATED, PROPAGATED, SPLIT, MERGED, TRANSFORMED
+  eventSource           String   // VENDOR, SYSTEM_GENERATED, LATE_ASSIGNMENT, MANUAL
+
+  // User & System Info
+  performedBy           String
+  performedAt           DateTime @default(now())
+  systemContext         String?  // Operation, work order, etc.
+
+  // Details
+  details               String?  // JSON string with event-specific details
+
+  @@index([serialId])
+  @@index([partId])
+  @@index([eventType])
+  @@map("serial_assignment_audits")
 }
 
 // ============================================

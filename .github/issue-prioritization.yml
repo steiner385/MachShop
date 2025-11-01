@@ -762,6 +762,73 @@ issues:
     blocks: []
     notes: "COMPLETED - Mock Saviynt IDM APIs for user provisioning, access governance, authentication, role management. Foundational for SSO and user provisioning workflows. OAuth/SAML simulation - Implemented in previous session"
 
+  # --- Extension Framework Infrastructure (L0) ---
+  - number: 403
+    title: "Extension Type Taxonomy & Manifest Schema"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 5
+    blocks: [404, 405, 407, 409, 413, 414]
+    notes: "ROOT dependency for extension framework - Defines 6-tier taxonomy (UI, Business Logic, Data, Integration, Compliance, Infrastructure), extension manifest schema with compatibility/dependency metadata, JSON schema validation"
+
+  - number: 404
+    title: "Extension Compatibility Matrix Service"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [403]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: [414]
+    notes: "Pre-installation validation service preventing conflicting extension combinations, compatibility rule engine, conflict resolution recommendations"
+
+  - number: 405
+    title: "Extension Dependency Resolution Engine"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [403]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: []
+    notes: "Automatic dependency installation with circular dependency detection, DAG validation, deterministic installation order, version constraint resolution"
+
+  - number: 407
+    title: "Multi-Site Extension Deployment Service"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [403]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 7
+    blocks: [414]
+    notes: "Hybrid multi-site control model - Enterprise catalog governance with site-level autonomy for enablement, per-site configuration, rollout scheduling, feature flags"
+
+  - number: 409
+    title: "Extension Conflict Detection Engine"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [403, 404]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 5
+    blocks: []
+    notes: "Real-time conflict detection between extensions, runtime validation, graceful degradation, conflict notification system"
+
+  - number: 413
+    title: "Extension License Management System"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [403]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 6
+    blocks: []
+    notes: "License management for extensions - activation, compliance tracking, usage metering, license expiration handling, multi-site licensing rules"
+
   # ============================================================================
   # L1: ESSENTIAL CAPABILITIES
   # ============================================================================
@@ -1265,6 +1332,18 @@ issues:
     blocks: []
     notes: "STEP AP242 (ISO 10303-242) integration for Model-Based Enterprise - add CAD model UUIDs, PMI (Product Manufacturing Information) traceability, digital thread from design to manufacturing. Enables Boeing/Lockheed MBE requirements"
 
+  # --- Extension Framework (L1) ---
+  - number: 414
+    title: "Core vs Extension Migration & Classification Tool"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [403, 404, 407]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "Classification and migration tool for converting core platform features to extensions. Includes dependency mapping, impact analysis, service extraction tooling, and automated test generation. Enables phased migration of 222 services from core to extension architecture."
+
   # --- Production Alerts & Andon ---
   - number: 172
     title: "Production Alerts & Andon: Multi-Channel Escalation Engine"
@@ -1280,6 +1359,18 @@ issues:
   # ============================================================================
   # L2: ENHANCED FEATURES
   # ============================================================================
+
+  # --- Extension Framework (L2) ---
+  - number: 415
+    title: "Extension Analytics & Monitoring Service"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [403, 407]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 6
+    blocks: []
+    notes: "Analytics and monitoring for extension ecosystem. Includes extension usage metrics, performance monitoring, health checks, dependency graph visualization, lifecycle analytics, and compliance reporting across sites."
 
   # --- Production Alerts & Andon ---
   - number: 173
