@@ -1481,7 +1481,8 @@ issues:
     effort_estimate: 18
     blocks: [398, 399, 445]
     implementation_status: pending
-    notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts), (2) React canvas UI (5pts), (3) Node types & execution (4pts), (4) Multi-site deployment (3pts), (5) Documentation & examples (2pts). Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
+    sub_issues: [469, 470, 471, 472, 473]
+    notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts) #469, (2) React canvas UI (5pts) #470, (3) Node types & execution (4pts) #471, (4) Multi-site deployment (3pts) #472, (5) Documentation & examples (2pts) #473. Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
 
   # --- Phase 2B: Governance & Deployment ---
   - number: 427
