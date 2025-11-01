@@ -114,7 +114,7 @@ export const hardcodedSecrets = {
   apiKeys: [
     'test_api_key_1234567890abcdefghijklmnop',
     'example_google_key_1234567890abcdefghijklmnopqrstuv',
-    'test_github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    'test_test_github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ',
   ],
   passwords: [
     'test_password_123',
@@ -127,9 +127,9 @@ export const hardcodedSecrets = {
     'example_token_16c7e42f292c6912191c87d058461b6b1b9c',
   ],
   connectionStrings: [
-    'mongodb://admin:password123@cluster.mongodb.net/db',
-    'Server=dbserver;User Id=sa;Password=secret123;',
-    'postgresql://user:password@localhost/database',
+    'mongodb://test_user:test_pass@test.mongodb.net/testdb',
+    'Server=test_server;User Id=test_user;Password=test_password;',
+    'postgresql://test_user:test_pass@localhost/testdb',
   ],
 };
 
