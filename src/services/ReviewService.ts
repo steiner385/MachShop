@@ -856,4 +856,4 @@ export class ReviewService {
 }
 
 export const reviewService = new ReviewService();
-export default reviewService;
+export default ReviewService;
