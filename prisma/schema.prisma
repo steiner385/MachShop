@@ -93,6 +93,9 @@ model Site {
   // NCR Workflow Configuration Relations (Issue #55)
   ncrWorkflowConfigs NCRWorkflowConfig[] @relation("NCRWorkflowConfigs")
 
+  // Plugin System Relations (Issue #75)
+  plugins               Plugin[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -11529,6 +11532,7 @@ model ApiKey {
   usageLogs       ApiUsageLog[]
   versionUsage    ApiUsageByVersion[]
   capturedCalls   CapturedApiCall[]
+  plugins         Plugin[] // Plugin SDK API keys
 
   @@index([keyPrefix])
   @@index([siteId])
@@ -12645,4 +12649,254 @@ model ApiCompatibilityTest {
   @@index([compatible])
   @@unique([sourceVersion, targetVersion])
   @@map("api_compatibility_tests")
+}
+
+// ============================================================================
+// PLUGIN & HOOK SYSTEM (Issue #75)
+// ============================================================================
+
+// Hook Type Enums
+enum HookType {
+  WORKFLOW
+  UI
+  DATA
+  INTEGRATION
+  NOTIFICATION
+}
+
+enum PluginStatus {
+  PENDING_APPROVAL
+  INSTALLED
+  ACTIVE
+  DISABLED
+  FAILED
+  UNINSTALLED
+}
+
+enum ExecutionStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  TIMEOUT
+  REJECTED
+}
+
+// Core Plugin Model
+model Plugin {
+  id                  String          @id @default(cuid())
+  pluginId            String          @unique // identifier from manifest
+  name                String
+  version             String
+  description         String?
+  author              String?
+
+  // Manifest
+  manifest            Json // full manifest.json content
+
+  // Status
+  status              PluginStatus    @default(PENDING_APPROVAL)
+  isActive            Boolean         @default(false)
+
+  // Installation metadata
+  installedAt         DateTime        @default(now())
+  installedBy         String
+
+  // Version tracking
+  latestVersion       String?
+  updateAvailable     Boolean         @default(false)
+
+  // Configuration
+  configuration       Json? // plugin-specific settings
+
+  // File storage
+  packageUrl          String // path to plugin package
+
+  // API key for plugin SDK calls
+  apiKeyId            String?
+
+  // Dependencies and permissions
+  dependencies        Json? // {pluginId: version}
+  permissions         String[] @default([])
+
+  // Scoping
+  siteId              String?
+  site                Site? @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  hooks               PluginHook[]
+  executions          PluginExecution[]
+  configurations      PluginConfiguration[]
+  apiKey              ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([pluginId])
+  @@index([status])
+  @@index([isActive])
+  @@index([siteId])
+  @@map("plugins")
+}
+
+// Plugin Hook Registration
+model PluginHook {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Hook metadata
+  hookType            HookType
+  hookPoint           String // e.g., workOrder.beforeCreate
+
+  // Execution config
+  priority            Int             @default(50) // 0-100
+  isAsync             Boolean         @default(false)
+  timeout             Int             @default(5000) // milliseconds
+
+  // Handler reference
+  handlerFunction     String // function name in plugin code
+
+  // Status
+  isActive            Boolean         @default(true)
+  lastExecutedAt      DateTime?
+  executionCount      Int             @default(0)
+  errorCount          Int             @default(0)
+  lastError           String?
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, hookPoint])
+  @@index([hookType])
+  @@index([hookPoint])
+  @@index([priority])
+  @@map("plugin_hooks")
+}
+
+// Plugin Execution Tracking
+model PluginExecution {
+  id                  String          @id @default(cuid())
+  pluginId            String
+  hookPoint           String
+
+  // Execution timeline
+  startedAt           DateTime        @default(now())
+  completedAt         DateTime?
+  duration            Int? // milliseconds
+
+  // Execution result
+  status              ExecutionStatus
+  errorMessage        String?
+  errorStack          String?
+
+  // Context data
+  inputData           Json?
+  outputData          Json?
+
+  // Request context
+  userId              String?
+  requestId           String?
+  ipAddress           String?
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@index([pluginId])
+  @@index([hookPoint])
+  @@index([status])
+  @@index([startedAt])
+  @@map("plugin_executions")
+}
+
+// Plugin Configuration
+model PluginConfiguration {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Configuration data
+  key                 String
+  value               Json
+
+  // Versioning
+  version             Int             @default(1)
+  changedBy           String
+  changedAt           DateTime        @default(now())
+
+  // Scoping
+  siteId              String?
+  companyId           String?
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, key, siteId])
+  @@index([pluginId])
+  @@index([siteId])
+  @@map("plugin_configurations")
+}
+
+// Plugin Events (for pub/sub)
+model PluginEvent {
+  id                  String          @id @default(cuid())
+
+  // Event metadata
+  eventType           String // workOrder.created, operation.completed, etc
+  eventData           Json // full event payload
+  timestamp           DateTime        @default(now())
+
+  // Source context
+  sourceUserId        String?
+  sourceRequestId     String?
+
+  // Delivery tracking
+  subscribers         Json? // [{pluginId, status, deliveredAt}]
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("plugin_events")
+}
+
+// Plugin Webhooks
+model PluginWebhook {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Webhook metadata
+  eventType           String // which event types this webhook handles
+  webhookUrl          String
+
+  // Security
+  secret              String // HMAC secret for signature verification
+
+  // Retry configuration
+  maxRetries          Int             @default(3)
+  retryBackoff        Int             @default(1000) // milliseconds
+
+  // Status
+  isActive            Boolean         @default(true)
+  lastTriggeredAt     DateTime?
+  successCount        Int             @default(0)
+  failureCount        Int             @default(0)
+
+  // Dead letter queue
+  failedDeliveries    Json? // array of failed delivery attempts
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([pluginId])
+  @@index([eventType])
+  @@index([isActive])
+  @@map("plugin_webhooks")
 }
