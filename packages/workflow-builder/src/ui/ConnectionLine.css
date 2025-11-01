@@ -1,0 +1,46 @@
+/* Connection Line Styles */
+
+.connection-line {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.connection-line:hover .connection-path,
+.connection-line:hover .connection-arrow {
+  stroke: #1976D2;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+}
+
+.connection-line.selected .connection-path,
+.connection-line.selected .connection-arrow {
+  stroke: #2196F3;
+  stroke-width: 3;
+}
+
+.connection-line:focus {
+  outline: 2px solid #2196F3;
+  outline-offset: 2px;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .connection-line:hover .connection-path,
+  .connection-line:hover .connection-arrow {
+    stroke: #64B5F6;
+  }
+
+  .connection-line.selected .connection-path,
+  .connection-line.selected .connection-arrow {
+    stroke: #90CAF9;
+  }
+
+  .connection-label-background {
+    fill: #2a2a2a;
+    stroke: #444;
+  }
+
+  .connection-label {
+    fill: #e0e0e0;
+  }
+}
