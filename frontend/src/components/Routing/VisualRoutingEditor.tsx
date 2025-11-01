@@ -6,7 +6,7 @@
  * manufacturing routings with support for complex routing paradigms
  */
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -21,8 +21,10 @@ import ReactFlow, {
   ReactFlowProvider,
   NodeTypes,
   MarkerType,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import '../../styles/reactflow-keyboard.css';
 import { Button, Space, message, Tooltip } from 'antd';
 import {
   SaveOutlined,
@@ -31,6 +33,8 @@ import {
 } from '@ant-design/icons';
 import dagre from 'dagre';
 import { RoutingStep, RoutingStepDependency } from '@/types/routing';
+import { useReactFlowKeyboard, generateReactFlowAriaLabels } from '@/hooks/useReactFlowKeyboard';
+import { ARIA_ROLES } from '@/utils/ariaUtils';
 
 // Import custom node types (will create these next)
 import { RoutingStepNode } from './RoutingStepNode';
@@ -121,6 +125,10 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isLayouting, setIsLayouting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+
+  const reactFlowInstance = useReactFlow();
 
   // Custom node types
   const nodeTypes: NodeTypes = useMemo(
@@ -129,6 +137,91 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
     }),
     []
   );
+
+  // Keyboard navigation callbacks
+  const handleNodeSelect = useCallback((nodeId: string) => {
+    setSelectedNodes([nodeId]);
+    // Update ReactFlow selection
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        selected: node.id === nodeId,
+      }))
+    );
+    setHasChanges(true);
+  }, [setNodes]);
+
+  const handleEdgeSelect = useCallback((edgeId: string) => {
+    setSelectedEdges([edgeId]);
+    // Update ReactFlow selection
+    setEdges((eds) =>
+      eds.map((edge) => ({
+        ...edge,
+        selected: edge.id === edgeId,
+      }))
+    );
+    setHasChanges(true);
+  }, [setEdges]);
+
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    if (readOnly) return;
+
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setSelectedNodes((selected) => selected.filter((id) => id !== nodeId));
+    setHasChanges(true);
+  }, [readOnly, setNodes, setEdges]);
+
+  const handleEdgeDelete = useCallback((edgeId: string) => {
+    if (readOnly) return;
+
+    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+    setSelectedEdges((selected) => selected.filter((id) => id !== edgeId));
+    setHasChanges(true);
+  }, [readOnly, setEdges]);
+
+  /**
+   * Add new step to canvas
+   */
+  const handleAddStep = useCallback((stepType: StepType) => {
+    const newNode: Node = {
+      id: `step-${Date.now()}`,
+      type: 'routingStep',
+      position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+      data: {
+        label: `New ${stepType}`,
+        stepNumber: (nodes.length + 1).toString(),
+        stepType,
+      } as RoutingStepNodeData,
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+    setHasChanges(true);
+  }, [nodes.length, setNodes]);
+
+  const handleNodeCreate = useCallback((position: { x: number; y: number }) => {
+    if (readOnly) return;
+
+    handleAddStep('PROCESS'); // Default to PROCESS step type
+  }, [readOnly, handleAddStep]);
+
+  // Initialize keyboard navigation
+  const {
+    containerRef,
+    focusElement,
+    clearFocusIndicators,
+  } = useReactFlowKeyboard({
+    reactFlowInstance,
+    nodes,
+    edges,
+    onNodeSelect: handleNodeSelect,
+    onEdgeSelect: handleEdgeSelect,
+    onNodeDelete: handleNodeDelete,
+    onEdgeDelete: handleEdgeDelete,
+    onNodeCreate: handleNodeCreate,
+    enableNodeEdit: !readOnly,
+    enableConnection: !readOnly,
+  });
 
   /**
    * Convert routing steps to ReactFlow nodes
@@ -262,30 +355,48 @@ export const VisualRoutingEditor: React.FC<VisualRoutingEditorProps> = ({
     }
   };
 
-  /**
-   * Add new step to canvas
-   */
-  const handleAddStep = (stepType: StepType) => {
-    const newNode: Node = {
-      id: `step-${Date.now()}`,
-      type: 'routingStep',
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
-      data: {
-        label: `New ${stepType}`,
-        stepNumber: (nodes.length + 1).toString(),
-        stepType,
-      } as RoutingStepNodeData,
-    };
-
-    setNodes((nds) => [...nds, newNode]);
-    setHasChanges(true);
-  };
 
   return (
-    <div style={{ width: '100%', height: '800px', position: 'relative' }}>
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '800px', position: 'relative' }}
+      {...generateReactFlowAriaLabels.canvas()}
+    >
+      {/* Skip to content link for keyboard users */}
+      <a href="#reactflow-main-content" className="reactflow-skip-link">
+        Skip to routing diagram
+      </a>
+
+      {/* Screen reader instructions */}
+      <div id="reactflow-instructions" className="sr-only">
+        Workflow diagram editor. Use Tab to navigate between elements, arrow keys to move between nodes and connections.
+        Press Enter to select, Delete to remove, Ctrl+N to create new node, Ctrl+Plus/Minus to zoom.
+        {readOnly ? ' This diagram is read-only.' : ' You can edit nodes and connections.'}
+      </div>
+
+      {/* Live region for announcements */}
+      <div className="reactflow-announcements" aria-live="polite" aria-atomic="true"></div>
+
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        id="reactflow-main-content"
+        nodes={nodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            ...generateReactFlowAriaLabels.node(node),
+          },
+        }))}
+        edges={edges.map(edge => {
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          const targetNode = nodes.find(n => n.id === edge.target);
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              ...generateReactFlowAriaLabels.edge(edge, sourceNode, targetNode),
+            },
+          };
+        })}
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={onConnect}

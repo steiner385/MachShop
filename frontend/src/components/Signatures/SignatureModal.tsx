@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modal, Form, Input, Button, Alert, Space, Typography, Divider, Steps } from 'antd';
 import {
   LockOutlined,
@@ -8,6 +8,10 @@ import {
   SecurityScanOutlined,
 } from '@ant-design/icons';
 import { BiometricCapture } from './BiometricCapture';
+import { useFocusManagement } from '../../hooks/useFocusManagement';
+import { useKeyboardHandler } from '../../hooks/useKeyboardHandler';
+import { useComponentShortcuts } from '../../contexts/KeyboardShortcutContext';
+import { announceToScreenReader } from '../../utils/ariaUtils';
 
 const { Text, Title } = Typography;
 const { Step } = Steps;
@@ -71,9 +75,133 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   } | null>(null);
   const [showBiometricCapture, setShowBiometricCapture] = useState(false);
 
+  // Refs for focus management
+  const modalRef = useRef<HTMLDivElement>(null);
+  const stepContentRef = useRef<HTMLDivElement>(null);
+
+  // Focus management for modal
+  const {
+    focusFirst,
+    focusElement,
+  } = useFocusManagement({
+    containerRef: modalRef,
+    enableFocusTrap: visible,
+    restoreFocus: true,
+    autoFocus: true,
+  });
+
   // Determine if 2FA is required
   const requires2FA = signatureType === 'ADVANCED' || signatureType === 'QUALIFIED';
   const requiresBiometric = requireBiometric || signatureType === 'QUALIFIED';
+
+  // Keyboard handler for step navigation and actions
+  const { keyboardProps } = useKeyboardHandler({
+    enableActivation: false,
+    enableEscape: true,
+    onEscape: (event) => {
+      // Confirm before closing signature modal (regulatory requirement)
+      if (window.confirm('Are you sure you want to cancel the electronic signature? This action cannot be undone.')) {
+        handleCancel();
+      }
+      event.preventDefault();
+    },
+  });
+
+  // Register keyboard shortcuts for signature modal
+  useComponentShortcuts('signature-modal', [
+    {
+      description: 'Previous step',
+      keys: 'Alt+ArrowLeft',
+      handler: () => {
+        if (currentStep > 0 && !loading) {
+          navigateToStep(currentStep - 1);
+        }
+      },
+      category: 'signature',
+      priority: 3,
+    },
+    {
+      description: 'Next step',
+      keys: 'Alt+ArrowRight',
+      handler: () => {
+        if (!loading) {
+          handleNextStep();
+        }
+      },
+      category: 'signature',
+      priority: 3,
+    },
+    {
+      description: 'Submit signature',
+      keys: 'Ctrl+Enter',
+      handler: () => {
+        if (currentStep === 2 && !loading) {
+          handleSignature();
+        }
+      },
+      category: 'signature',
+      priority: 3,
+    },
+  ]);
+
+  // Step navigation with focus management
+  const navigateToStep = useCallback((stepIndex: number) => {
+    const maxSteps = requiresBiometric ? 2 : 1; // 0: auth, 1: biometric (optional), 2: review
+
+    if (stepIndex < 0 || stepIndex > maxSteps) return;
+
+    setCurrentStep(stepIndex);
+
+    // Announce step change to screen readers
+    const stepNames = ['Authentication', 'Biometric Verification', 'Review and Confirm'];
+    const stepName = stepNames[stepIndex] || 'Unknown Step';
+    announceToScreenReader(`Moved to ${stepName} step`, 'POLITE');
+
+    // Focus management after step change
+    setTimeout(() => {
+      if (stepContentRef.current) {
+        const firstInput = stepContentRef.current.querySelector('input, button') as HTMLElement;
+        if (firstInput) {
+          focusElement(firstInput);
+        } else {
+          focusFirst();
+        }
+      }
+    }, 100);
+  }, [requiresBiometric, focusElement, focusFirst]);
+
+  // Handle next step navigation
+  const handleNextStep = useCallback(async () => {
+    if (currentStep === 0) {
+      try {
+        await form.validateFields();
+        if (requiresBiometric) {
+          navigateToStep(1);
+        } else {
+          navigateToStep(2);
+        }
+      } catch (err) {
+        // Validation error - stay on current step
+        announceToScreenReader('Please correct the form errors before proceeding', 'ASSERTIVE');
+      }
+    } else if (currentStep === 1) {
+      // From biometric step to review
+      navigateToStep(2);
+    }
+  }, [currentStep, form, requiresBiometric, navigateToStep]);
+
+  // Enhanced focus management when modal opens
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => {
+        // Focus the first input when modal opens
+        const firstInput = modalRef.current?.querySelector('input') as HTMLElement;
+        if (firstInput) {
+          focusElement(firstInput);
+        }
+      }, 100);
+    }
+  }, [visible, focusElement]);
 
   // Handle signature submission
   const handleSignature = async () => {
@@ -104,6 +232,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       // Call sign handler
       await onSign(signatureData);
 
+      // Announce success to screen readers
+      announceToScreenReader('Electronic signature successfully applied', 'POLITE');
+
       // Reset form and close
       form.resetFields();
       setBiometricData(null);
@@ -112,9 +243,12 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     } catch (err: any) {
       if (err.errorFields) {
         // Form validation error
+        announceToScreenReader('Please correct the form errors before proceeding', 'ASSERTIVE');
         return;
       }
-      setError(err.message || 'Failed to apply electronic signature');
+      const errorMessage = err.message || 'Failed to apply electronic signature';
+      setError(errorMessage);
+      announceToScreenReader(`Error: ${errorMessage}`, 'ASSERTIVE');
     } finally {
       setLoading(false);
     }
@@ -124,18 +258,28 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const handleBiometricCapture = (template: string, score: number) => {
     setBiometricData({ template, score });
     setShowBiometricCapture(false);
-    setCurrentStep(2); // Move to review step
+    announceToScreenReader('Biometric verification completed successfully', 'POLITE');
+    navigateToStep(2); // Move to review step
   };
 
-  // Handle cancel
-  const handleCancel = () => {
+  // Handle cancel with confirmation
+  const handleCancel = useCallback(() => {
+    // Confirm before closing if user has entered data
+    const hasFormData = form.getFieldsValue().username || form.getFieldsValue().password;
+    if (hasFormData || currentStep > 0) {
+      if (!window.confirm('Are you sure you want to cancel the electronic signature? Any entered information will be lost.')) {
+        return;
+      }
+    }
+
     form.resetFields();
     setBiometricData(null);
     setCurrentStep(0);
     setError(null);
     setShowBiometricCapture(false);
+    announceToScreenReader('Electronic signature cancelled', 'POLITE');
     onCancel();
-  };
+  }, [form, currentStep, onCancel]);
 
   // Render step content
   const renderStepContent = () => {
@@ -332,6 +476,18 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       footer={null}
       destroyOnClose
       maskClosable={false}
+      modalRender={(modal) => (
+        <div
+          ref={modalRef}
+          {...keyboardProps}
+          role="dialog"
+          aria-labelledby="signature-modal-title"
+          aria-describedby="signature-modal-description"
+          aria-modal="true"
+        >
+          {modal}
+        </div>
+      )}
     >
       {description && (
         <Alert
@@ -362,7 +518,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
         />
       )}
 
-      {renderStepContent()}
+      <div ref={stepContentRef} aria-live="polite" aria-atomic="true">
+        {renderStepContent()}
+      </div>
 
       <div style={{ marginTop: '24px', textAlign: 'right' }}>
         <Space>
@@ -373,19 +531,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
           {currentStep === 0 && (
             <Button
               type="primary"
-              onClick={async () => {
-                try {
-                  await form.validateFields();
-                  if (requiresBiometric) {
-                    setCurrentStep(1);
-                  } else {
-                    setCurrentStep(2);
-                  }
-                } catch (err) {
-                  // Validation error - stay on current step
-                }
-              }}
+              onClick={handleNextStep}
               loading={loading}
+              aria-describedby="step-navigation-hint"
             >
               {requiresBiometric ? 'Next: Biometric' : 'Next: Review'}
             </Button>
@@ -393,18 +541,38 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 
           {currentStep === 2 && (
             <>
-              <Button onClick={() => setCurrentStep(0)}>Back</Button>
+              <Button
+                onClick={() => navigateToStep(0)}
+                aria-label="Go back to authentication step"
+              >
+                Back
+              </Button>
               <Button
                 type="primary"
                 onClick={handleSignature}
                 loading={loading}
                 icon={<LockOutlined />}
+                aria-describedby="signature-submit-hint"
               >
                 Apply Signature
               </Button>
             </>
           )}
         </Space>
+      </div>
+
+      {/* Hidden ARIA hints for screen readers */}
+      <div id="signature-modal-title" style={{ display: 'none' }}>
+        {title}
+      </div>
+      <div id="signature-modal-description" style={{ display: 'none' }}>
+        Electronic signature modal for {entityName || `${entityType} #${entityId}`}. Use Alt+Left/Right arrows to navigate steps, Escape to cancel, Ctrl+Enter to submit on review step.
+      </div>
+      <div id="step-navigation-hint" style={{ display: 'none' }}>
+        Use Alt+Right arrow or click to proceed to next step
+      </div>
+      <div id="signature-submit-hint" style={{ display: 'none' }}>
+        Use Ctrl+Enter or click to apply electronic signature
       </div>
     </Modal>
   );

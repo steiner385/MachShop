@@ -66,7 +66,7 @@ export interface ReviewProgress {
 /**
  * Review Service - Manages document review assignments and workflow
  */
-class ReviewService {
+export class ReviewService {
   private prisma: PrismaClient;
   // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
   private unifiedApprovalService: UnifiedApprovalIntegration;
@@ -856,4 +856,4 @@ class ReviewService {
 }
 
 export const reviewService = new ReviewService();
-export default reviewService;
+export default ReviewService;

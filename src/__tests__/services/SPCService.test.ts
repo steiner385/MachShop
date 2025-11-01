@@ -75,7 +75,8 @@ describe('SPCService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new SPCService();
+    // Instantiate service with mock Prisma client for each test
+    service = new SPCService(mockPrisma);
   });
 
   afterEach(() => {

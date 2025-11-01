@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -10,7 +9,9 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import App from './App';
 import { AuthProvider } from '@/store/AuthStore';
 import { SiteProvider } from '@/contexts/SiteContext';
+import { ThemeProvider } from '@/theme';
 import '@/styles/index.css';
+import '@/theme/globalStyles.css';
 
 // Configure dayjs plugins
 dayjs.extend(utc);
@@ -31,35 +32,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Ant Design theme configuration
-const antdTheme = {
-  token: {
-    colorPrimary: '#1890ff',
-    colorSuccess: '#52c41a',
-    colorWarning: '#faad14',
-    colorError: '#ff4d4f',
-    colorInfo: '#1890ff',
-    borderRadius: 6,
-    fontSize: 14,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
-  components: {
-    Layout: {
-      headerBg: '#ffffff',
-      siderBg: '#001529',
-    },
-    Menu: {
-      darkItemBg: '#001529',
-      darkSubMenuItemBg: '#000c17',
-    },
-    Table: {
-      headerBg: '#fafafa',
-    },
-    Card: {
-      headerBg: '#fafafa',
-    },
-  },
-};
+// Theme configuration is now handled by ThemeProvider
 
 // Error boundary component
 class ErrorBoundary extends React.Component<
@@ -109,13 +82,13 @@ const AppWrapper: React.FC = () => {
             v7_relativeSplatPath: true,
           }}
         >
-          <ConfigProvider theme={antdTheme}>
+          <ThemeProvider defaultTheme="light" storageKey="machshop-theme">
             <AuthProvider>
               <SiteProvider>
                 <App />
               </SiteProvider>
             </AuthProvider>
-          </ConfigProvider>
+          </ThemeProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

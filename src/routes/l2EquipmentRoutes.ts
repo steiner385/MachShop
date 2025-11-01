@@ -789,7 +789,8 @@ router.get('/equipment/material/:equipmentId/balance', async (req: Request, res:
  */
 router.post('/equipment/process/start', async (req: Request, res: Response): Promise<any> => {
   try {
-    const result = await ProcessDataCollectionService.startProcessDataCollection(req.body);
+    const service = new ProcessDataCollectionService();
+    const result = await service.startProcessDataCollection(req.body);
 
     res.status(200).json({
       success: true,
@@ -814,7 +815,8 @@ router.put('/equipment/process/:processDataCollectionId/complete', async (req: R
     const { processDataCollectionId } = req.params;
     const { endTimestamp: endTimestampString, ...otherFields } = req.body;
 
-    const result = await ProcessDataCollectionService.completeProcessDataCollection({
+    const service = new ProcessDataCollectionService();
+    const result = await service.completeProcessDataCollection({
       processDataCollectionId,
       endTimestamp: endTimestampString ? new Date(endTimestampString) : new Date(),
       ...otherFields,
@@ -850,7 +852,8 @@ router.put('/equipment/process/:processDataCollectionId/parameters', async (req:
       });
     }
 
-    const result = await ProcessDataCollectionService.updateProcessParameters(
+    const service = new ProcessDataCollectionService();
+    const result = await service.updateProcessParameters(
       processDataCollectionId,
       parameters
     );
@@ -875,6 +878,7 @@ router.put('/equipment/process/:processDataCollectionId/parameters', async (req:
  */
 router.get('/equipment/process/query', async (req: Request, res: Response): Promise<any> => {
   try {
+    const service = new ProcessDataCollectionService();
     const query = {
       equipmentId: req.query.equipmentId as string | undefined,
       processName: req.query.processName as string | undefined,
@@ -887,7 +891,7 @@ router.get('/equipment/process/query', async (req: Request, res: Response): Prom
       limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
     };
 
-    const result = await ProcessDataCollectionService.queryProcessData(query);
+    const result = await service.queryProcessData(query);
 
     res.status(200).json({
       success: true,
@@ -911,7 +915,8 @@ router.get('/equipment/process/:equipmentId/active', async (req: Request, res: R
   try {
     const { equipmentId } = req.params;
 
-    const result = await ProcessDataCollectionService.getActiveProcesses(equipmentId);
+    const service = new ProcessDataCollectionService();
+    const result = await service.getActiveProcesses(equipmentId);
 
     res.status(200).json({
       success: true,
@@ -942,7 +947,8 @@ router.get('/equipment/process/:equipmentId/summary', async (req: Request, res: 
       });
     }
 
-    const result = await ProcessDataCollectionService.generateProcessSummary(
+    const service = new ProcessDataCollectionService();
+    const result = await service.generateProcessSummary(
       equipmentId,
       processName as string,
       startDate ? new Date(startDate as string) : undefined,
@@ -978,7 +984,8 @@ router.get('/equipment/process/:equipmentId/trend', async (req: Request, res: Re
       });
     }
 
-    const result = await ProcessDataCollectionService.getProcessParameterTrend(
+    const service = new ProcessDataCollectionService();
+    const result = await service.getProcessParameterTrend(
       equipmentId,
       processName as string,
       parameterName as string,

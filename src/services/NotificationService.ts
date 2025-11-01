@@ -1,7 +1,7 @@
-import { UserNotification, NotificationType, NotificationChannel, NotificationStatus } from '@prisma/client';
-import prisma from '../lib/database';
-import logger from '../utils/logger';
+import { PrismaClient, UserNotification, NotificationType, NotificationChannel, NotificationStatus } from '@prisma/client';
+import defaultPrisma from '../lib/database';
 import { AppError } from '../middleware/errorHandler';
+import { BaseService } from './BaseService';
 
 /**
  * TypeScript interfaces for Notification Operations
@@ -58,8 +58,9 @@ export interface NotificationStats {
 /**
  * Notification Service - Manages user notifications and preferences
  */
-class NotificationService {
-  constructor() {
+class NotificationService extends BaseService {
+  constructor(prisma?: PrismaClient) {
+    super(prisma || defaultPrisma, 'NotificationService');
   }
 
   /**
@@ -67,13 +68,13 @@ class NotificationService {
    */
   async createNotification(input: NotificationInput): Promise<UserNotification> {
     try {
-      logger.info('Creating notification', {
+      this.logger.info('Creating notification', {
         userId: input.userId,
         type: input.type,
         title: input.title
       });
 
-      const notification = await prisma.userNotification.create({
+      const notification = await this.prisma.userNotification.create({
         data: {
           userId: input.userId,
           type: input.type,
@@ -93,10 +94,10 @@ class NotificationService {
       // Send notification through configured channels
       await this.sendNotificationThroughChannels(notification);
 
-      logger.info('Notification created successfully', { notificationId: notification.id });
+      this.logger.info('Notification created successfully', { notificationId: notification.id });
       return notification;
     } catch (error: any) {
-      logger.error('Failed to create notification', { error: error.message, input });
+      this.logger.error('Failed to create notification', { error: error.message, input });
       throw new AppError('Failed to create notification', 500, 'NOTIFICATION_CREATE_FAILED', error);
     }
   }
@@ -106,7 +107,7 @@ class NotificationService {
    */
   async createBulkNotifications(users: string[], notificationData: Omit<NotificationInput, 'userId'>): Promise<UserNotification[]> {
     try {
-      logger.info('Creating bulk notifications', { userCount: users.length, type: notificationData.type });
+      this.logger.info('Creating bulk notifications', { userCount: users.length, type: notificationData.type });
 
       const notifications = await Promise.all(
         users.map(userId =>
@@ -117,10 +118,10 @@ class NotificationService {
         )
       );
 
-      logger.info('Bulk notifications created successfully', { count: notifications.length });
+      this.logger.info('Bulk notifications created successfully', { count: notifications.length });
       return notifications;
     } catch (error: any) {
-      logger.error('Failed to create bulk notifications', { error: error.message, userCount: users.length });
+      this.logger.error('Failed to create bulk notifications', { error: error.message, userCount: users.length });
       throw new AppError('Failed to create bulk notifications', 500, 'BULK_NOTIFICATION_FAILED', error);
     }
   }
@@ -130,7 +131,7 @@ class NotificationService {
    */
   async getUserNotifications(userId: string, filters: NotificationFilters = {}): Promise<UserNotification[]> {
     try {
-      logger.info('Getting user notifications', { userId, filters });
+      this.logger.info('Getting user notifications', { userId, filters });
 
       const whereClause: any = {
         userId,
@@ -160,7 +161,7 @@ class NotificationService {
         whereClause.createdAt = { ...whereClause.createdAt, lte: filters.createdBefore };
       }
 
-      const notifications = await prisma.userNotification.findMany({
+      const notifications = await this.prisma.userNotification.findMany({
         where: whereClause,
         orderBy: [
           { priority: 'desc' },
@@ -170,10 +171,10 @@ class NotificationService {
         skip: filters.offset,
       });
 
-      logger.info('User notifications retrieved successfully', { userId, count: notifications.length });
+      this.logger.info('User notifications retrieved successfully', { userId, count: notifications.length });
       return notifications;
     } catch (error: any) {
-      logger.error('Failed to get user notifications', { error: error.message, userId });
+      this.logger.error('Failed to get user notifications', { error: error.message, userId });
       throw new AppError('Failed to get user notifications', 500, 'NOTIFICATION_GET_FAILED', error);
     }
   }
@@ -183,9 +184,9 @@ class NotificationService {
    */
   async markAsRead(notificationId: string, userId: string): Promise<UserNotification> {
     try {
-      logger.info('Marking notification as read', { notificationId, userId });
+      this.logger.info('Marking notification as read', { notificationId, userId });
 
-      const notification = await prisma.userNotification.findFirst({
+      const notification = await this.prisma.userNotification.findFirst({
         where: { id: notificationId, userId }
       });
 
@@ -193,7 +194,7 @@ class NotificationService {
         throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
-      const updatedNotification = await prisma.userNotification.update({
+      const updatedNotification = await this.prisma.userNotification.update({
         where: { id: notificationId },
         data: {
           isRead: true,
@@ -201,10 +202,10 @@ class NotificationService {
         }
       });
 
-      logger.info('Notification marked as read', { notificationId });
+      this.logger.info('Notification marked as read', { notificationId });
       return updatedNotification;
     } catch (error: any) {
-      logger.error('Failed to mark notification as read', { error: error.message, notificationId });
+      this.logger.error('Failed to mark notification as read', { error: error.message, notificationId });
       throw new AppError('Failed to mark notification as read', 500, 'NOTIFICATION_READ_FAILED', error);
     }
   }
@@ -214,9 +215,9 @@ class NotificationService {
    */
   async markAllAsRead(userId: string): Promise<number> {
     try {
-      logger.info('Marking all notifications as read', { userId });
+      this.logger.info('Marking all notifications as read', { userId });
 
-      const result = await prisma.userNotification.updateMany({
+      const result = await this.prisma.userNotification.updateMany({
         where: {
           userId,
           isRead: false,
@@ -231,10 +232,10 @@ class NotificationService {
         }
       });
 
-      logger.info('All notifications marked as read', { userId, count: result.count });
+      this.logger.info('All notifications marked as read', { userId, count: result.count });
       return result.count;
     } catch (error: any) {
-      logger.error('Failed to mark all notifications as read', { error: error.message, userId });
+      this.logger.error('Failed to mark all notifications as read', { error: error.message, userId });
       throw new AppError('Failed to mark all notifications as read', 500, 'NOTIFICATION_READ_ALL_FAILED', error);
     }
   }
@@ -244,9 +245,9 @@ class NotificationService {
    */
   async deleteNotification(notificationId: string, userId: string): Promise<void> {
     try {
-      logger.info('Deleting notification', { notificationId, userId });
+      this.logger.info('Deleting notification', { notificationId, userId });
 
-      const notification = await prisma.userNotification.findFirst({
+      const notification = await this.prisma.userNotification.findFirst({
         where: { id: notificationId, userId }
       });
 
@@ -254,13 +255,13 @@ class NotificationService {
         throw new AppError('Notification not found', 404, 'NOTIFICATION_NOT_FOUND');
       }
 
-      await prisma.userNotification.delete({
+      await this.prisma.userNotification.delete({
         where: { id: notificationId }
       });
 
-      logger.info('Notification deleted successfully', { notificationId });
+      this.logger.info('Notification deleted successfully', { notificationId });
     } catch (error: any) {
-      logger.error('Failed to delete notification', { error: error.message, notificationId });
+      this.logger.error('Failed to delete notification', { error: error.message, notificationId });
       throw new AppError('Failed to delete notification', 500, 'NOTIFICATION_DELETE_FAILED', error);
     }
   }
@@ -270,7 +271,7 @@ class NotificationService {
    */
   async getNotificationStats(userId: string): Promise<NotificationStats> {
     try {
-      const notifications = await prisma.userNotification.findMany({
+      const notifications = await this.prisma.userNotification.findMany({
         where: {
           userId,
           OR: [
@@ -303,7 +304,7 @@ class NotificationService {
         notificationsByStatus
       };
     } catch (error: any) {
-      logger.error('Failed to get notification statistics', { error: error.message, userId });
+      this.logger.error('Failed to get notification statistics', { error: error.message, userId });
       throw new AppError('Failed to get notification statistics', 500, 'NOTIFICATION_STATS_FAILED', error);
     }
   }
@@ -500,7 +501,7 @@ class NotificationService {
         }
       }
     } catch (error: any) {
-      logger.error('Failed to send notification through channels', {
+      this.logger.error('Failed to send notification through channels', {
         error: error.message,
         notificationId: notification.id
       });
@@ -561,9 +562,9 @@ class NotificationService {
    */
   async cleanupExpiredNotifications(): Promise<number> {
     try {
-      logger.info('Cleaning up expired notifications');
+      this.logger.info('Cleaning up expired notifications');
 
-      const result = await prisma.userNotification.deleteMany({
+      const result = await this.prisma.userNotification.deleteMany({
         where: {
           expiresAt: {
             lt: new Date()
@@ -571,10 +572,10 @@ class NotificationService {
         }
       });
 
-      logger.info('Expired notifications cleaned up', { count: result.count });
+      this.logger.info('Expired notifications cleaned up', { count: result.count });
       return result.count;
     } catch (error: any) {
-      logger.error('Failed to cleanup expired notifications', { error: error.message });
+      this.logger.error('Failed to cleanup expired notifications', { error: error.message });
       throw new AppError('Failed to cleanup expired notifications', 500, 'NOTIFICATION_CLEANUP_FAILED', error);
     }
   }
@@ -594,10 +595,10 @@ class NotificationService {
     try {
       // This would typically query the ReviewAssignment table
       // For now, return empty array as placeholder
-      logger.info('Getting overdue review notifications');
+      this.logger.info('Getting overdue review notifications');
       return [];
     } catch (error: any) {
-      logger.error('Failed to get overdue review notifications', { error: error.message });
+      this.logger.error('Failed to get overdue review notifications', { error: error.message });
       throw new AppError('Failed to get overdue review notifications', 500, 'OVERDUE_REVIEWS_FAILED', error);
     }
   }
@@ -606,9 +607,29 @@ class NotificationService {
    * Close database connection
    */
   async disconnect(): Promise<void> {
-    await prisma.$disconnect();
+    await this.prisma.$disconnect();
   }
 }
 
-export const notificationService = new NotificationService();
+// Lazy-loaded singleton for backward compatibility
+let _notificationServiceInstance: NotificationService | null = null;
+
+export function getNotificationService(): NotificationService {
+  if (!_notificationServiceInstance) {
+    _notificationServiceInstance = new NotificationService();
+  }
+  return _notificationServiceInstance;
+}
+
+// For backward compatibility with existing code that imports notificationService directly
+export const notificationService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getNotificationService() as any)[prop];
+    },
+  }
+) as any as NotificationService;
+
+export { NotificationService };
 export default notificationService;
