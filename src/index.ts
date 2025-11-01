@@ -128,6 +128,9 @@ import vendorKitRoutes from './routes/vendorKits';
 // ✅ GITHUB ISSUE #57: 8D Problem Solving Framework Routes
 import eightDRoutes from './routes/eightD';
 
+// ✅ GITHUB ISSUE #84: Material Requirements Planning (MRP) System Routes
+import mrpRoutes from './routes/mrp';
+
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
@@ -315,6 +318,7 @@ apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/data-collection', authMiddleware, dataCollectionRoutes); // Issue #45: Data Collection Forms
 apiRouter.use('/inventory', authMiddleware, inventoryRoutes); // Issue #88: Comprehensive Inventory Management
+apiRouter.use('/mrp', authMiddleware, mrpRoutes); // Issue #84: Material Requirements Planning (MRP) System
 apiRouter.use('/lot-tracking', authMiddleware, lotTrackingRoutes); // Issue #90: Lot Tracking & Serialization
 apiRouter.use('/product-genealogy', authMiddleware, productGenealogyRoutes); // Issue #105: Product Genealogy & BOM Management
 apiRouter.use('/export-control', authMiddleware, exportControlRoutes); // Issue #104: ITAR/Export Control Management
