@@ -128,6 +128,9 @@ model Site {
   // MRP System Relations (Issue #84)
   mrpRuns               MRPRun[]              @relation("MRPRuns")
 
+  // Multi-Site Extension Deployment Relations (Issue #407)
+  siteExtensions        SiteExtension[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -16838,4 +16841,169 @@ model ExtensionInstallationCompatibility {
   @@index([compatible])
   @@index([expiresAt])
   @@map("extension_installation_compatibility")
+}
+
+/// Site-Level Extension Deployment
+/// Controls which extensions are enabled/disabled for specific sites
+/// Enables hybrid governance: enterprise catalog + site autonomy
+model SiteExtension {
+  id                    String   @id @default(cuid())
+  siteId                String
+  extensionId           String
+  extensionVersion      String
+  enabledStatus         String   @default("enabled")  // 'enabled', 'disabled', 'scheduled', 'error'
+  deploymentStatus      String   @default("pending")  // 'pending', 'deploying', 'deployed', 'failed', 'rolling_back'
+  deployedAt            DateTime?
+  scheduledDeployAt     DateTime?
+  disabledAt            DateTime?
+  disabledReason        String?
+  errorMessage          String?
+  lastHealthCheckAt     DateTime?
+  healthStatus          String   @default("healthy")  // 'healthy', 'degraded', 'unhealthy'
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  site                  Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  configuration         ExtensionSiteConfig?
+  license               SiteExtensionLicense?
+  deploymentHistory     DeploymentHistory[]
+  healthChecks          ExtensionHealthCheck[]
+
+  @@unique([siteId, extensionId])
+  @@index([siteId])
+  @@index([extensionId])
+  @@index([enabledStatus])
+  @@index([deploymentStatus])
+  @@index([healthStatus])
+  @@map("site_extensions")
+}
+
+/// Per-Site Extension Configuration
+/// Stores site-specific overrides for extension settings
+/// Implements 3-level configuration hierarchy: extension default → enterprise override → site override
+model ExtensionSiteConfig {
+  id                    String   @id @default(cuid())
+  siteExtensionId       String   @unique
+  configData            Json     // Site-specific configuration overrides
+  featureFlags          Json?    // Site-specific feature toggles
+  performanceSettings   Json?    // Resource limits, throttling, timeouts
+  integrationSettings   Json?    // External system credentials per-site
+  customMetadata        Json?    // Custom business metadata
+  inheritFromEnterprise Boolean  @default(true)  // Fall back to enterprise config
+  inheritFromExtension  Boolean  @default(true)  // Fall back to extension defaults
+  configHash            String?  // For change detection
+  appliedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  siteExtension         SiteExtension @relation(fields: [siteExtensionId], references: [id], onDelete: Cascade)
+
+  @@index([siteExtensionId])
+  @@map("extension_site_configs")
+}
+
+/// Multi-Site Extension Licensing
+/// Tracks license compliance per-site
+/// Supports named, concurrent, and consumption-based licensing models
+model SiteExtensionLicense {
+  id                    String   @id @default(cuid())
+  siteExtensionId       String   @unique
+  licenseKey            String   @unique
+  licenseType           String   // 'named', 'concurrent', 'consumption', 'perpetual', 'trial'
+  licensedUsers         Int?     // For named licenses
+  concurrentSessions    Int?     // For concurrent licenses
+  consumptionLimit      Int?     // For consumption-based (e.g., API calls per month)
+  consumptionUsed       Int      @default(0)
+  resetConsumptionAt    DateTime?
+  activatedAt           DateTime?
+  expiresAt             DateTime?
+  isActive              Boolean  @default(false)
+  isOverride            Boolean  @default(false)  // Enterprise override for compliance
+  seatAllocation        Json?    // Per-user seat assignments
+  usageMetrics          Json?    // Historical usage data
+  lastValidationAt      DateTime?
+  validationStatus      String?  // 'valid', 'invalid', 'expired', 'over_limit'
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  siteExtension         SiteExtension @relation(fields: [siteExtensionId], references: [id], onDelete: Cascade)
+
+  @@index([siteExtensionId])
+  @@index([licenseKey])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("site_extension_licenses")
+}
+
+/// Extension Deployment History & Rollout Tracking
+/// Complete audit trail of deployment operations
+/// Supports staged rollout, blue-green deployment, canary deployments
+model DeploymentHistory {
+  id                    String   @id @default(cuid())
+  siteExtensionId       String
+  deploymentRequestId   String   @unique
+  deploymentType        String   // 'initial', 'upgrade', 'downgrade', 'rollback', 'hotfix'
+  rolloutStrategy       String?  // 'immediate', 'staged', 'canary', 'blue_green'
+  sourceVersion         String?  // Previous version (for upgrades/rollbacks)
+  targetVersion         String
+  requestedBy           String?  // User ID
+  requestedAt           DateTime
+  startedAt             DateTime?
+  completedAt           DateTime?
+  status                String   @default("pending")  // 'pending', 'in_progress', 'succeeded', 'failed', 'rolled_back'
+  errorCode             String?
+  errorDetails          String?
+  rolloutPhases         Json?    // Array of {phase, percentRollout, targetUsers, startTime, endTime, status}
+  preDeploymentChecks   Json?    // Pre-flight checks results
+  postDeploymentChecks  Json?    // Post-deployment validation results
+  healthMetricsBaseline Json?    // Baseline for comparison
+  healthMetricsAfter    Json?    // Post-deployment health metrics
+  affectedUsers         Int      @default(0)
+  successRate           Float?   // Percentage of successful deployments
+  downtime              Int?     // Minutes of downtime
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  siteExtension         SiteExtension @relation(fields: [siteExtensionId], references: [id], onDelete: Cascade)
+
+  @@index([siteExtensionId])
+  @@index([deploymentRequestId])
+  @@index([status])
+  @@index([deploymentType])
+  @@index([completedAt])
+  @@map("deployment_histories")
+}
+
+/// Extension Health Checks
+/// Post-deployment monitoring and health verification
+/// Enables automated rollback on health failures
+model ExtensionHealthCheck {
+  id                    String   @id @default(cuid())
+  siteExtensionId       String
+  checkType             String   // 'startup', 'periodic', 'on_demand', 'pre_rollback'
+  status                String   // 'healthy', 'degraded', 'unhealthy', 'unknown'
+  statusCode            Int?
+  responseTime          Int?     // Milliseconds
+  memoryUsage           Int?     // MB
+  cpuUsage              Float?   // Percentage
+  errorLog              String?
+  checkDetails          Json?    // Custom health check metrics
+  triggeredRollback     Boolean  @default(false)
+  rollbackReason        String?
+  checkedAt             DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  // Relations
+  siteExtension         SiteExtension @relation(fields: [siteExtensionId], references: [id], onDelete: Cascade)
+
+  @@index([siteExtensionId])
+  @@index([status])
+  @@index([checkType])
+  @@index([checkedAt])
+  @@map("extension_health_checks")
 }
