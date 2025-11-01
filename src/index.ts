@@ -151,6 +151,7 @@ import ospRoutes from './routes/osp';
 
 // ✅ GITHUB ISSUE #60: ERP & External System Integration Routes
 import erpRoutes from './routes/erp';
+import webhookRoutes from './routes/webhooks';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -401,6 +402,9 @@ apiRouter.use('/osp', authMiddleware, ospRoutes);
 
 // ✅ GITHUB ISSUE #60: ERP & External System Integration API Routes
 apiRouter.use('/erp', authMiddleware, erpRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Webhook Management Routes (Phase 9 - Real-Time Sync Notifications)
+apiRouter.use('/webhooks', authMiddleware, webhookRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
