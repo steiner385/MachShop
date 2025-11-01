@@ -13,6 +13,8 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
 import { UnifiedApprovalIntegration } from './UnifiedApprovalIntegration';
+// ✅ GITHUB ISSUE #55: NCR Workflow Enhancement
+import { NCRWorkflowEnhancement } from './NCRWorkflowEnhancement';
 import { PrismaClient } from '@prisma/client';
 
 // Static counters for unique number generation
@@ -22,11 +24,14 @@ let ncrCounter = 0;
 export class QualityService {
   // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine Integration
   private unifiedApprovalService: UnifiedApprovalIntegration;
+  // ✅ GITHUB ISSUE #55: NCR Workflow Enhancement
+  private workflowEnhancement: NCRWorkflowEnhancement;
 
   constructor(private prisma?: PrismaClient) {
     // Use provided prisma instance or create a new one
     this.prisma = prisma || new PrismaClient();
     this.unifiedApprovalService = new UnifiedApprovalIntegration(this.prisma);
+    this.workflowEnhancement = new NCRWorkflowEnhancement(this.prisma);
   }
 
   /**
@@ -490,5 +495,99 @@ export class QualityService {
     // Certificate required if any critical characteristics are inspected
     const criticalCharacteristics = characteristics.filter(c => c.isCritical);
     return criticalCharacteristics.length > 0;
+  }
+
+  // ✅ GITHUB ISSUE #55: NCR Workflow Methods (Phase 3)
+  // These methods delegate to NCRWorkflowEnhancement for state management and approvals
+
+  /**
+   * Transition NCR to new state with workflow validation and approvals
+   */
+  async transitionNCRState(
+    ncrId: string,
+    toState: NCRStatus,
+    userId: string,
+    reason?: string
+  ) {
+    return this.workflowEnhancement.transitionNCRState(ncrId, toState, userId, reason);
+  }
+
+  /**
+   * Set NCR disposition with workflow approval
+   */
+  async setNCRDispositionWithWorkflow(
+    ncrId: string,
+    disposition: NCRDisposition,
+    userId: string,
+    reason: string,
+    correctiveAction?: string
+  ) {
+    return this.workflowEnhancement.setNCRDispositionWithWorkflow(
+      ncrId,
+      disposition,
+      userId,
+      reason,
+      correctiveAction
+    );
+  }
+
+  /**
+   * Get available transitions for NCR
+   */
+  async getAvailableTransitions(ncrId: string) {
+    return this.workflowEnhancement.getAvailableTransitions(ncrId);
+  }
+
+  /**
+   * Get NCR workflow configuration
+   */
+  async getNCRWorkflowConfig(ncrId: string) {
+    return this.workflowEnhancement.getNCRWorkflowConfig(ncrId);
+  }
+
+  /**
+   * Get NCR state history
+   */
+  async getNCRStateHistory(ncrId: string) {
+    return this.workflowEnhancement.getNCRStateHistory(ncrId);
+  }
+
+  /**
+   * Get NCR approval history
+   */
+  async getNCRApprovalHistory(ncrId: string) {
+    return this.workflowEnhancement.getNCRApprovalHistory(ncrId);
+  }
+
+  /**
+   * Close NCR with final approval
+   */
+  async closeNCRWithApproval(
+    ncrId: string,
+    userId: string,
+    closureNotes: string
+  ) {
+    return this.workflowEnhancement.closeNCRWithApproval(ncrId, userId, closureNotes);
+  }
+
+  /**
+   * Escalate overdue NCR approvals
+   */
+  async escalateOverdueApprovals(): Promise<number> {
+    return this.workflowEnhancement.escalateOverdueApprovals();
+  }
+
+  /**
+   * Get NCR workflow statistics
+   */
+  async getNCRWorkflowStats(siteId?: string) {
+    return this.workflowEnhancement.getNCRWorkflowStats(siteId);
+  }
+
+  /**
+   * Validate NCR can transition to state
+   */
+  async validateTransition(ncrId: string, toState: NCRStatus) {
+    return this.workflowEnhancement.validateTransition(ncrId, toState);
   }
 }

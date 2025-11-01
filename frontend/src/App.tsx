@@ -15,6 +15,7 @@ import Inspections from '@/pages/Quality/Inspections';
 import InspectionDetail from '@/pages/Quality/InspectionDetail';
 import NCRs from '@/pages/Quality/NCRs';
 import NCRDetail from '@/pages/Quality/NCRDetail';
+import Approvals from '@/pages/Quality/Approvals';
 import Traceability from '@/pages/Traceability/Traceability';
 // Phase 3: Equipment Maintenance API Integration
 import { MaintenanceList } from '@/components/Equipment/MaintenanceList';
@@ -210,6 +211,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute roles={['Quality Engineer']}>
               <NCRDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quality/approvals"
+          element={
+            <ProtectedRoute roles={['Quality Engineer']}>
+              <Approvals />
             </ProtectedRoute>
           }
         />

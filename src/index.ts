@@ -21,6 +21,7 @@ import { csrfProtection } from './middleware/csrf';
 import authRoutes from './routes/auth';
 import workOrderRoutes from './routes/workOrders';
 import qualityRoutes from './routes/quality';
+import ncrApprovalsRoutes from './routes/ncrApprovals';
 import causeCodeRoutes from './routes/causeCode';
 import complianceRoutes from './routes/compliance';
 import materialRoutes from './routes/materials';
@@ -132,6 +133,7 @@ import errorSimulationRoutes from './routes/error-simulation';
 import migrationTemplatesRoutes from './routes/migration/templates';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
+import { webSocketService } from './services/WebSocketService';
 
 // Import OpenAPI specification - commented out for now
 // import * as openApiSpec from '../openapi.yaml';
@@ -248,6 +250,8 @@ apiRouter.use('/search', authMiddleware, searchRoutes);
 apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
 apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);
+// ✅ GITHUB ISSUE #55: NCR Workflow Approval Routes (Phase 3)
+apiRouter.use('/ncr/approvals', authMiddleware, ncrApprovalsRoutes);
 // GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
 apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
 // GitHub Issue #102: QMS Compliance Framework - Document Control & Training
@@ -402,6 +406,14 @@ const server = app.listen(PORT, async () => {
     nodeVersion: process.version,
   });
 
+  // Initialize WebSocket service for real-time notifications
+  try {
+    webSocketService.initialize(server);
+    logger.info('WebSocket service initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize WebSocket service:', error);
+  }
+
   // Initialize Integration Manager (ERP/PLM integrations)
   // Skip integration manager in test environment to prevent segfault in E2E tests
   if (!isTest) {
@@ -419,6 +431,7 @@ const server = app.listen(PORT, async () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  webSocketService.shutdown();
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
@@ -427,6 +440,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
+  webSocketService.shutdown();
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
