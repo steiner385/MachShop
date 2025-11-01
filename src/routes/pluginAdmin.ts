@@ -496,4 +496,128 @@ router.delete(
   })
 );
 
+// ============================================================================
+// EVENT BUS & WEBHOOK QUEUE MONITORING (PHASE 4)
+// ============================================================================
+
+/**
+ * GET /api/v1/admin/plugins/events/stats
+ * Get event bus statistics and metrics
+ */
+router.get(
+  '/events/stats',
+  requireAuth,
+  requireRole(['System Administrator']),
+  errorHandler(async (req, res) => {
+    const stats = PluginSystemService.getEventBusStats();
+    const queueStats = await PluginSystemService.getWebhookQueueStats();
+
+    res.json({
+      success: true,
+      data: {
+        eventBus: stats,
+        webhookQueue: queueStats,
+      },
+      timestamp: new Date(),
+    });
+  })
+);
+
+/**
+ * GET /api/v1/admin/plugins/:id/webhooks/:webhookId/metrics
+ * Get webhook delivery metrics
+ */
+router.get(
+  '/:id/webhooks/:webhookId/metrics',
+  requireAuth,
+  requireRole(['System Administrator']),
+  errorHandler(async (req, res) => {
+    const { webhookId } = req.params;
+
+    const metrics = await PluginSystemService.getWebhookMetrics(webhookId);
+    if (!metrics) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Webhook ${webhookId} not found` },
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({
+      success: true,
+      data: metrics,
+      timestamp: new Date(),
+    });
+  })
+);
+
+/**
+ * POST /api/v1/admin/plugins/:id/webhooks/:webhookId/retry
+ * Retry failed webhook delivery
+ */
+router.post(
+  '/:id/webhooks/:webhookId/retry',
+  requireAuth,
+  requireRole(['System Administrator']),
+  errorHandler(async (req, res) => {
+    const { id: pluginId, webhookId } = req.params;
+
+    await PluginSystemService.retryWebhookDelivery(webhookId, pluginId);
+
+    res.json({
+      success: true,
+      data: { webhookId },
+      message: 'Webhook queued for retry',
+      timestamp: new Date(),
+    });
+  })
+);
+
+/**
+ * GET /api/v1/admin/plugins/events
+ * Get recent events with optional filtering
+ */
+router.get(
+  '/events',
+  requireAuth,
+  requireRole(['System Administrator']),
+  errorHandler(async (req, res) => {
+    const { eventType, limit = '100', offset = '0' } = req.query;
+
+    const events = await PluginSystemService.getEvents({
+      ...(eventType && { eventType: eventType as string }),
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string),
+    });
+
+    res.json({
+      success: true,
+      data: events,
+      count: events.length,
+      timestamp: new Date(),
+    });
+  })
+);
+
+/**
+ * POST /api/v1/admin/plugins/:id/test-webhook
+ * Send test event to webhook
+ */
+router.post(
+  '/:id/webhooks/:webhookId/test',
+  requireAuth,
+  requireRole(['System Administrator']),
+  errorHandler(async (req, res) => {
+    const { id: pluginId, webhookId } = req.params;
+
+    await PluginSystemService.testWebhook(webhookId, pluginId);
+
+    res.json({
+      success: true,
+      message: 'Test event queued for webhook',
+      timestamp: new Date(),
+    });
+  })
+);
+
 export default router;

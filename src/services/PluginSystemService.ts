@@ -3,6 +3,8 @@ import { logger } from '../utils/logger';
 import { Plugin, PluginHook, PluginExecution, PluginEvent, HookType, PluginStatus, ExecutionStatus } from '@prisma/client';
 import * as vm from 'vm';
 import crypto from 'crypto';
+import eventBusService from './EventBusService';
+import webhookQueueService from './WebhookQueueService';
 
 /**
  * Plugin & Hook System Service (Issue #75)
@@ -883,6 +885,237 @@ export class PluginSystemService {
       logger.info(`Webhook unregistered: ${webhookId}`);
     } catch (error) {
       logger.error(`Failed to unregister webhook ${webhookId}`, error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // PHASE 4: EVENT BUS & WEBHOOK QUEUE INTEGRATION
+  // ============================================================================
+
+  /**
+   * Publish event to event bus (Redis pub/sub)
+   */
+  async publishEvent(
+    eventType: string,
+    eventData: Record<string, any>,
+    sourceUserId?: string,
+    sourceRequestId?: string
+  ): Promise<string> {
+    try {
+      const eventId = await eventBusService.publishEvent(
+        eventType,
+        eventData,
+        sourceUserId,
+        sourceRequestId
+      );
+
+      logger.debug(`Event published: ${eventId} (${eventType})`);
+      return eventId;
+    } catch (error) {
+      logger.error(`Failed to publish event ${eventType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Subscribe to events with callback
+   */
+  subscribeToEvent(
+    eventType: string,
+    handler: (event: any) => Promise<void>
+  ): string {
+    try {
+      const subscriptionId = eventBusService.subscribe(eventType, handler);
+      logger.debug(`Subscribed to event type: ${eventType} (${subscriptionId})`);
+      return subscriptionId;
+    } catch (error) {
+      logger.error(`Failed to subscribe to event ${eventType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unsubscribe from events
+   */
+  unsubscribeFromEvent(subscriptionId: string): boolean {
+    try {
+      const success = eventBusService.unsubscribe(subscriptionId);
+      if (success) {
+        logger.debug(`Unsubscribed from event: ${subscriptionId}`);
+      }
+      return success;
+    } catch (error) {
+      logger.error(`Failed to unsubscribe from event:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get event bus stats
+   */
+  getEventBusStats(): any {
+    try {
+      return eventBusService.getStats();
+    } catch (error) {
+      logger.error('Failed to get event bus stats:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get webhook queue stats
+   */
+  async getWebhookQueueStats(): Promise<any> {
+    try {
+      return await webhookQueueService.getQueueStats();
+    } catch (error) {
+      logger.error('Failed to get webhook queue stats:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get webhook delivery metrics
+   */
+  async getWebhookMetrics(webhookId: string): Promise<any> {
+    try {
+      return await webhookQueueService.getWebhookMetrics(webhookId);
+    } catch (error) {
+      logger.error(`Failed to get webhook metrics for ${webhookId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Retry failed webhook delivery
+   */
+  async retryWebhookDelivery(webhookId: string, pluginId: string): Promise<void> {
+    try {
+      await webhookQueueService.retryWebhook(webhookId, pluginId);
+      logger.info(`Webhook ${webhookId} queued for retry`);
+    } catch (error) {
+      logger.error(`Failed to retry webhook ${webhookId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Emit plugin lifecycle event
+   */
+  private async emitPluginEvent(
+    eventType: string,
+    pluginId: string,
+    pluginName: string,
+    userId?: string,
+    requestId?: string
+  ): Promise<void> {
+    try {
+      await this.publishEvent(
+        eventType,
+        {
+          pluginId,
+          pluginName,
+          timestamp: new Date(),
+          eventType,
+        },
+        userId,
+        requestId
+      );
+    } catch (error) {
+      logger.error(`Failed to emit plugin event ${eventType}:`, error);
+      // Don't throw - event bus failure shouldn't block plugin operations
+    }
+  }
+
+  /**
+   * Initialize event bus and webhook queue (called on app startup)
+   */
+  async initializeEventBusAndQueue(): Promise<void> {
+    try {
+      await eventBusService.initialize();
+      await webhookQueueService.startProcessor();
+      logger.info('[PluginSystem] Event bus and webhook queue initialized');
+    } catch (error) {
+      logger.error('[PluginSystem] Failed to initialize event bus and webhook queue:', error);
+      // Don't throw - allow app to continue even if event bus fails
+    }
+  }
+
+  /**
+   * Shutdown event bus and webhook queue (called on app shutdown)
+   */
+  async shutdownEventBusAndQueue(): Promise<void> {
+    try {
+      webhookQueueService.stopProcessor();
+      logger.info('[PluginSystem] Event bus and webhook queue shutdown');
+    } catch (error) {
+      logger.error('[PluginSystem] Error during event bus shutdown:', error);
+    }
+  }
+
+  /**
+   * Get events with optional filtering
+   */
+  async getEvents(options: {
+    eventType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PluginEvent[]> {
+    try {
+      const events = await prisma.pluginEvent.findMany({
+        where: {
+          ...(options.eventType && { eventType: options.eventType }),
+        },
+        orderBy: { timestamp: 'desc' },
+        take: options.limit || 100,
+        skip: options.offset || 0,
+      });
+
+      return events;
+    } catch (error) {
+      logger.error('Failed to get events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send test event to webhook
+   */
+  async testWebhook(webhookId: string, pluginId: string): Promise<void> {
+    try {
+      const webhook = await prisma.pluginWebhook.findUnique({
+        where: { id: webhookId },
+      });
+
+      if (!webhook) {
+        throw new Error(`Webhook ${webhookId} not found`);
+      }
+
+      // Create test event
+      const testEvent = {
+        id: `test-${Date.now()}`,
+        eventType: `${webhook.eventType}:test`,
+        eventData: {
+          test: true,
+          timestamp: new Date().toISOString(),
+          message: 'This is a test event from the plugin system',
+        },
+        timestamp: new Date(),
+      };
+
+      // Queue for delivery
+      await prisma.pluginEvent.create({
+        data: {
+          eventType: testEvent.eventType,
+          eventData: testEvent.eventData,
+          timestamp: testEvent.timestamp,
+        },
+      });
+
+      logger.info(`Test event queued for webhook ${webhookId}`);
+    } catch (error) {
+      logger.error(`Failed to send test webhook for ${webhookId}:`, error);
       throw error;
     }
   }
