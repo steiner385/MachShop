@@ -1501,6 +1501,9 @@ model WorkOrder {
   // Workflow Configuration Relations (Issue #40)
   workflowConfiguration        WorkOrderWorkflowConfiguration? @relation("WorkOrderWorkflowConfig")
 
+  // Workflow Enforcement Audit (Issue #41)
+  enforcementAudits            WorkflowEnforcementAudit[]      @relation("WorkflowEnforcementAudit")
+
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
@@ -11919,6 +11922,35 @@ model OperationWorkflowConfiguration {
 
   @@index([operationId])
   @@map("operation_workflow_configurations")
+}
+
+/// Workflow Enforcement Audit Trail (Issue #41)
+/// Records when enforcement rules are checked, bypassed, or applied
+/// Provides compliance and debugging information
+model WorkflowEnforcementAudit {
+  id                  String   @id @default(cuid())
+
+  // What happened
+  workOrderId         String
+  operationId         String?
+  action              String   // 'RECORD_PERFORMANCE', 'START_OPERATION', 'COMPLETE_OPERATION'
+
+  // Enforcement details
+  enforcementMode     String   // 'STRICT', 'FLEXIBLE', 'HYBRID'
+  bypassesApplied     String[] // Which rules were bypassed
+  warnings            String[] // Warnings generated
+
+  // Context
+  userId              String?
+  timestamp           DateTime @default(now())
+
+  // Relations
+  workOrder           WorkOrder @relation("WorkflowEnforcementAudit", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("workflow_enforcement_audits")
 }
 
 // ============================================================================
