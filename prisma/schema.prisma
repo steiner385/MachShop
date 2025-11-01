@@ -11620,6 +11620,7 @@ model SerialNumberFormatConfig {
   // Assignment relationships
   partAssignments              SerialFormatPartAssignment[]
   partFamilyAssignments        SerialFormatPartFamilyAssignment[]
+  serialAssignmentTriggers     SerialAssignmentTrigger[]
 
   // Usage tracking
   usageTracking                SerialNumberUsageTracking?
