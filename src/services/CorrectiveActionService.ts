@@ -117,6 +117,22 @@ export class CorrectiveActionService extends BaseService {
         this.logWarn('Failed to send CAPA assignment notification', { error, caId: ca.id });
       }
 
+      // Record creation in audit trail
+      await this.recordAuditTrail(
+        ca.id,
+        params.createdById,
+        'CREATED',
+        undefined,
+        {
+          caNumber: ca.caNumber,
+          title: ca.title,
+          status: ca.status,
+          assignedToId: ca.assignedToId,
+          targetDate: ca.targetDate,
+        },
+        'Corrective action created'
+      );
+
       this.logInfo('Corrective action created', { caNumber, assignedToId: params.assignedToId });
       return ca;
     } catch (error) {
@@ -285,6 +301,16 @@ export class CorrectiveActionService extends BaseService {
         this.logWarn('Failed to send in-progress notification', { error, caId: ca.id });
       }
 
+      // Record status change in audit trail
+      await this.recordAuditTrail(
+        id,
+        userId,
+        'STATUS_CHANGED',
+        { status: QMSCAStatus.OPEN },
+        { status: QMSCAStatus.IN_PROGRESS },
+        'Status updated to IN_PROGRESS'
+      );
+
       this.logInfo('Corrective action marked in progress', { caId: id, userId });
       return ca;
     } catch (error) {
@@ -325,6 +351,16 @@ export class CorrectiveActionService extends BaseService {
       } catch (error) {
         this.logWarn('Failed to send implementation notification', { error, caId: ca.id });
       }
+
+      // Record status change in audit trail
+      await this.recordAuditTrail(
+        id,
+        userId,
+        'STATUS_CHANGED',
+        { status: QMSCAStatus.IN_PROGRESS },
+        { status: QMSCAStatus.IMPLEMENTED },
+        'Status updated to IMPLEMENTED'
+      );
 
       this.logInfo('Corrective action marked implemented', { caId: id, userId });
       return ca;
@@ -379,6 +415,16 @@ export class CorrectiveActionService extends BaseService {
       } catch (error) {
         this.logWarn('Failed to send verification notification', { error, caId: ca.id });
       }
+
+      // Record verification in audit trail
+      await this.recordAuditTrail(
+        id,
+        params.verifiedById,
+        'VERIFIED',
+        { status: QMSCAStatus.IMPLEMENTED },
+        { status: newStatus, isEffective: params.isEffective },
+        `CA verified as ${params.isEffective ? 'effective' : 'ineffective'}`
+      );
 
       this.logInfo('Corrective action verified', {
         caId: id,
@@ -535,9 +581,31 @@ export class CorrectiveActionService extends BaseService {
     try {
       this.logInfo('Fetching audit trail', { caId });
 
-      // TODO: Implement audit trail tracking with CorrectiveActionAudit model
-      // For now, return empty array - will be populated when audit model is created
-      return [];
+      const auditEntries = await this.prisma.correctiveActionAudit.findMany({
+        where: { caId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { timestamp: 'desc' },
+      });
+
+      return auditEntries.map((entry) => ({
+        id: entry.id,
+        caId: entry.caId,
+        userId: entry.userId,
+        action: entry.action,
+        previousValue: entry.previousValue ? JSON.parse(entry.previousValue) : undefined,
+        newValue: entry.newValue ? JSON.parse(entry.newValue) : undefined,
+        notes: entry.notes || undefined,
+        timestamp: entry.timestamp,
+      }));
     } catch (error) {
       this.logError('Failed to fetch audit trail', { error, caId });
       throw error;
@@ -686,7 +754,17 @@ export class CorrectiveActionService extends BaseService {
     notes?: string
   ): Promise<void> {
     try {
-      // TODO: Implement audit trail recording when CorrectiveActionAudit model is created
+      await this.prisma.correctiveActionAudit.create({
+        data: {
+          caId,
+          userId,
+          action,
+          previousValue: previousValue ? JSON.stringify(previousValue) : null,
+          newValue: newValue ? JSON.stringify(newValue) : null,
+          notes,
+        },
+      });
+
       this.logInfo('Audit trail entry recorded', {
         caId,
         userId,
