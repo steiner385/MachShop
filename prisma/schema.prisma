@@ -119,6 +119,9 @@ model Site {
   containers            Container[]           @relation("Containers")
   carrierAccounts       CarrierAccount[]      @relation("CarrierAccounts")
 
+  // Test Cell & Engine Acceptance Testing Relations (Issue #233)
+  testCells             TestCell[]            @relation("TestCells")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -416,6 +419,13 @@ model User {
   // Material Movement & Logistics Management Relations (Issue #64)
   forkliftRequestsAssigned       ForkliftMoveRequest[]       @relation("ForkliftOperator")
   forkliftCurrentOperation       Forklift[]                  @relation("ForkliftCurrentOperator")
+
+  // Test Cell & Engine Acceptance Testing Relations (Issue #233)
+  testRunsAsOperator             TestRun[]                   @relation("TestRunOperator")
+  testRunsAsSupervisor           TestRun[]                   @relation("TestRunSupervisor")
+  testRunsQualityApproved        TestRun[]                   @relation("TestRunQualityApprover")
+  testCertificatesIssued         TestCertificate[]
+  testRunStatusChanges           TestRunStatusHistory[]
 
   @@index([employeeNumber])
   @@index([personnelClassId])
@@ -6598,6 +6608,7 @@ model BuildRecord {
   documents                 BuildRecordDocument[]
   statusHistory             BuildRecordStatusHistory[]
   signatures                BuildRecordSignature[]
+  testRuns                  TestRun[]
 
   @@index([workOrderId])
   @@index([serialNumber])
@@ -15365,4 +15376,404 @@ enum CarrierType {
   SAIA
   COURIER
   OTHER
+}
+
+// ============================================================================
+// TEST CELL & ENGINE ACCEPTANCE TESTING (Issue #233)
+// ============================================================================
+
+/// TestCell - Represents a test cell/test station for engine acceptance testing
+model TestCell {
+  id                      String              @id @default(cuid())
+  siteId                  String
+  cellName                String              // e.g., "Test Cell #1", "Engine Acceptance Test Bay A"
+  cellIdentifier          String              @unique // Unique identifier
+  status                  TestCellStatus      @default(OPERATIONAL)
+  testType                String              // e.g., "Engine Acceptance", "Performance Validation", "Thermal"
+
+  // Facility Information
+  location                String              // Physical location/building
+  lastMaintenanceDate     DateTime?           // Last maintenance timestamp
+  nextMaintenanceDate     DateTime?           // Scheduled maintenance date
+  maintenanceIntervalDays Int?                // Maintenance interval in days
+
+  // DAQ System Integration
+  daqSystemType           DAQSystemType       // Type of data acquisition system
+  daqSystemId             String?             // DAQ system identifier (vendor-specific)
+  daqApiEndpoint          String?             // API endpoint for DAQ system
+  daqApiKey               String?             // Encrypted API key for DAQ
+  daqStatus               String?             // Current DAQ system status
+
+  // Capacity & Scheduling
+  maxConcurrentTests      Int                 @default(1) // Number of simultaneous tests
+  estimatedTestDuration   Int?                // Estimated duration in minutes
+
+  // Compliance & Standards
+  certificationNumber     String?             // FAA or other certification
+  certificationExpiry     DateTime?           // Certification expiry date
+  isCompliant             Boolean             @default(true) // FAA AC 43-207 compliance
+  complianceNotes         String?
+
+  isActive                Boolean             @default(true)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  site                    Site                @relation("TestCells", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  testRuns                TestRun[]
+  schedules               TestCellSchedule[]
+  parameters              TestParameter[]
+
+  @@unique([siteId, cellIdentifier])
+  @@index([siteId])
+  @@index([status])
+  @@index([daqSystemType])
+  @@map("test_cells")
+}
+
+enum TestCellStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+  CALIBRATION_DUE
+  UNAVAILABLE
+}
+
+enum DAQSystemType {
+  NI_LABVIEW              // National Instruments LabVIEW
+  SIEMENS_TESTLAB         // Siemens TestLab
+  ETAS_INCA               // ETAS INCA
+  CUSTOM_SCADA            // Custom SCADA system
+  OTHER
+}
+
+/// TestRun - Represents a single test execution for engine acceptance
+model TestRun {
+  id                      String              @id @default(cuid())
+  testRunNumber           String              @unique // Auto-generated test number
+  buildRecordId           String              // Link to engine build
+  testCellId              String              // Which test cell
+  status                  TestRunStatus       @default(SCHEDULED)
+
+  // Test Execution Timeline
+  scheduledStartTime      DateTime            // When test is scheduled
+  actualStartTime         DateTime?           // When test actually started
+  actualEndTime           DateTime?           // When test actually ended
+  estimatedDuration       Int?                // Estimated duration in minutes
+  actualDuration          Int?                // Actual duration in minutes
+
+  // Test Operator
+  operatorId              String?             // Operator running the test
+  supervisorId            String?             // Supervisor overseeing test
+
+  // Performance Data
+  testData                Json?               // Raw test data from DAQ system
+  dataCollectionStatus    String?             // Status of data collection
+  daqFileReference        String?             // Reference to DAQ system file/ID
+
+  // Test Results
+  testPassed              Boolean?            // Overall pass/fail result
+  testCompletedSuccessfully Boolean          @default(false) // Test completed without errors
+  hasAnomolies            Boolean             @default(false) // Data anomalies detected
+  anomolyNotes            String?
+
+  // Acceptance Criteria
+  allCriteriaMet          Boolean?            // All acceptance criteria met
+  failureReason           String?             // Reason for failure if applicable
+  failureCode             String?             // Failure code for categorization
+
+  // Quality & Compliance
+  witnessedTest           Boolean             @default(false) // Test witnessed by quality
+  qualityApproved         Boolean             @default(false) // Quality approval of test
+  qualityApprovedById     String?
+  qualityApprovedAt       DateTime?
+
+  faaCompliant            Boolean             @default(false) // FAA AC 43-207 compliant
+  complianceNotes         String?
+
+  // Certificate
+  testCertificateGenerated Boolean            @default(false)
+  testCertificatePath     String?             // Path to generated certificate
+
+  // General
+  notes                   String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  // Relationships
+  buildRecord             BuildRecord         @relation(fields: [buildRecordId], references: [id], onDelete: Cascade)
+  testCell                TestCell            @relation(fields: [testCellId], references: [id])
+  operator                User?               @relation("TestRunOperator", fields: [operatorId], references: [id])
+  supervisor              User?               @relation("TestRunSupervisor", fields: [supervisorId], references: [id])
+  qualityApprovedBy       User?               @relation("TestRunQualityApprover", fields: [qualityApprovedById], references: [id])
+
+  // Child relationships
+  measurements            TestMeasurement[]
+  acceptanceCriteria      TestRunAcceptanceCriteria[]
+  certificates            TestCertificate[]
+  statusHistory           TestRunStatusHistory[]
+
+  @@index([buildRecordId])
+  @@index([testCellId])
+  @@index([status])
+  @@index([testPassed])
+  @@index([actualStartTime])
+  @@map("test_runs")
+}
+
+enum TestRunStatus {
+  SCHEDULED
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+  AWAITING_APPROVAL
+  APPROVED
+}
+
+/// TestParameter - Configuration parameters for a test
+model TestParameter {
+  id                      String              @id @default(cuid())
+  testCellId              String              // Which test cell
+  parameterName           String              // e.g., "RPM", "Temperature", "Fuel Flow"
+  parameterType           TestParameterType
+  unit                    String              // e.g., "RPM", "°C", "PSI", "GPH"
+
+  // Parameter Configuration
+  minValue                Decimal?            @db.Decimal(15, 4) // Minimum acceptable value
+  maxValue                Decimal?            @db.Decimal(15, 4) // Maximum acceptable value
+  targetValue             Decimal?            @db.Decimal(15, 4) // Target/nominal value
+  tolerance               Decimal?            @db.Decimal(15, 4) // +/- tolerance
+
+  // DAQ Configuration
+  daqChannelId            String?             // DAQ system channel identifier
+  daqSensorType           String?             // Type of sensor
+  sensorManufacturer      String?             // Sensor manufacturer
+  sensorModel             String?             // Sensor model number
+  calibrationDueDate      DateTime?           // Sensor calibration due date
+
+  // Recording & Processing
+  recordingFrequency      Int?                // Hz or samples per second
+  dataProcessingMethod    String?             // e.g., "Raw", "Averaged", "Filtered"
+
+  isActive                Boolean             @default(true)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  testCell                TestCell            @relation(fields: [testCellId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  measurements            TestMeasurement[]
+  acceptanceCriteria      AcceptanceCriteria[]
+
+  @@unique([testCellId, parameterName])
+  @@index([testCellId])
+  @@index([parameterType])
+  @@map("test_parameters")
+}
+
+enum TestParameterType {
+  PERFORMANCE             // Engine performance metrics
+  THERMAL                 // Temperature monitoring
+  VIBRATION               // Vibration analysis
+  ACOUSTIC                // Noise/acoustic data
+  EMISSIONS               // Emissions testing
+  PRESSURE                // Pressure measurements
+  FLOW                    // Flow rate measurements
+  ELECTRICAL              // Electrical parameters
+  FUEL                    // Fuel system parameters
+  OIL                     // Oil system parameters
+  COOLANT                 // Cooling system parameters
+  OTHER
+}
+
+/// TestMeasurement - Individual measurements taken during a test
+model TestMeasurement {
+  id                      String              @id @default(cuid())
+  testRunId               String              // Which test
+  testParameterId         String              // Which parameter
+
+  // Measurement Value
+  value                   Decimal             @db.Decimal(15, 4) // The measured value
+  unit                    String              // Unit of measurement
+
+  // Time Reference
+  timestampSeconds        Decimal             @db.Decimal(15, 2) // Seconds since test start
+  recordedAt              DateTime            // When measurement was recorded
+
+  // Quality & Status
+  isOutOfRange            Boolean             @default(false) // Value outside nominal range
+  isSuspicious            Boolean             @default(false) // Flagged for anomaly
+  dataQuality             String?             // "GOOD", "QUESTIONABLE", "REJECTED"
+
+  // Raw Data Reference
+  daqRawId                String?             // Reference to raw DAQ data
+
+  createdAt               DateTime            @default(now())
+
+  testRun                 TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testParameter           TestParameter       @relation(fields: [testParameterId], references: [id])
+
+  @@index([testRunId])
+  @@index([testParameterId])
+  @@index([recordedAt])
+  @@index([isOutOfRange])
+  @@map("test_measurements")
+}
+
+/// AcceptanceCriteria - Define what constitutes a passing test
+model AcceptanceCriteria {
+  id                      String              @id @default(cuid())
+  testParameterId         String              // Which parameter
+  criteriaType            AcceptanceCriteriaType
+
+  // Criteria Definition
+  minValue                Decimal?            @db.Decimal(15, 4) // Minimum required
+  maxValue                Decimal?            @db.Decimal(15, 4) // Maximum allowed
+  targetValue             Decimal?            @db.Decimal(15, 4) // Target value
+  tolerance               Decimal?            @db.Decimal(15, 4) // Tolerance band
+
+  // Assessment Method
+  assessmentMethod        String              // e.g., "AVERAGE", "PEAK", "RANGE", "CUSTOM"
+  customFormula           String?             // Custom calculation formula if needed
+  passingCondition        String              // e.g., "value >= minValue AND value <= maxValue"
+
+  // Metadata
+  description             String?
+  faaRequirement          String?             // FAA requirement reference (e.g., AC 43-207)
+  isActive                Boolean             @default(true)
+
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  testParameter           TestParameter       @relation(fields: [testParameterId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  testRunCriteria         TestRunAcceptanceCriteria[]
+
+  @@index([testParameterId])
+  @@index([criteriaType])
+  @@map("acceptance_criteria")
+}
+
+enum AcceptanceCriteriaType {
+  EXACT_MATCH             // Value must equal target
+  RANGE                   // Value must be within range
+  THRESHOLD               // Value must exceed threshold
+  TREND                   // Trend analysis
+  STATISTICAL             // Statistical test (e.g., Cpk)
+  CUSTOM                  // Custom acceptance logic
+}
+
+/// TestRunAcceptanceCriteria - Links test runs to acceptance criteria with results
+model TestRunAcceptanceCriteria {
+  id                      String              @id @default(cuid())
+  testRunId               String
+  acceptanceCriteriaId    String
+
+  // Assessment Result
+  criteria                String              // Text description of criteria
+  testValue               Decimal?            @db.Decimal(15, 4) // Value being tested
+  minRequired             Decimal?            @db.Decimal(15, 4)
+  maxRequired             Decimal?            @db.Decimal(15, 4)
+
+  // Result
+  passed                  Boolean?            // Did this criteria pass?
+  assessmentDetail        String?             // Detailed assessment notes
+
+  assessedAt              DateTime            @default(now())
+
+  testRun                 TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  acceptanceCriteria      AcceptanceCriteria  @relation(fields: [acceptanceCriteriaId], references: [id])
+
+  @@unique([testRunId, acceptanceCriteriaId])
+  @@index([testRunId])
+  @@index([passed])
+  @@map("test_run_acceptance_criteria")
+}
+
+/// TestCertificate - Certificate generated after successful engine acceptance test
+model TestCertificate {
+  id                      String              @id @default(cuid())
+  testRunId               String
+  certificateNumber       String              @unique // e.g., "TEST-CERT-2025-001"
+
+  // Certificate Details
+  certificateType         String              // "ENGINE_ACCEPTANCE", "PERFORMANCE_VALIDATION", etc.
+  issuedDate              DateTime            @default(now())
+  certificationStandards  String[]            // e.g., ["FAA AC 43-207", "AS9100"]
+
+  // Test Results Summary
+  allTestsPassed          Boolean
+  testSummary             String?             // Summary of test results
+  failedCriteria          String[]            // If applicable, which criteria failed
+
+  // Approval & Authority
+  issuedById              String?             // User who issued certificate
+  approvalDate            DateTime?
+  approverComments        String?
+
+  // File Reference
+  certificatePath         String?             // Path to PDF certificate
+  certificateDataJson     Json?               // Full certificate data
+
+  // Validity
+  expirationDate          DateTime?           // If certificate expires
+  isValid                 Boolean             @default(true)
+
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  testRun                 TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  issuedBy                User?               @relation(fields: [issuedById], references: [id])
+
+  @@index([testRunId])
+  @@index([certificateNumber])
+  @@index([isValid])
+  @@map("test_certificates")
+}
+
+/// TestRunStatusHistory - Audit trail of test run status changes
+model TestRunStatusHistory {
+  id                      String              @id @default(cuid())
+  testRunId               String
+
+  previousStatus          TestRunStatus?      // Status before change
+  newStatus               TestRunStatus       // Status after change
+  reason                  String?             // Reason for status change
+  changedById             String?             // User who made the change
+
+  changedAt               DateTime            @default(now())
+
+  testRun                 TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  changedBy               User?               @relation(fields: [changedById], references: [id])
+
+  @@index([testRunId])
+  @@index([changedAt])
+  @@map("test_run_status_history")
+}
+
+/// TestCellSchedule - Schedule test cell availability
+model TestCellSchedule {
+  id                      String              @id @default(cuid())
+  testCellId              String
+
+  // Schedule Details
+  scheduledDate           DateTime
+  startTime               String              // HH:MM format
+  endTime                 String              // HH:MM format
+  scheduleType            String              // "AVAILABLE", "MAINTENANCE", "RESERVED"
+  notes                   String?
+
+  isActive                Boolean             @default(true)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  testCell                TestCell            @relation(fields: [testCellId], references: [id], onDelete: Cascade)
+
+  @@index([testCellId])
+  @@index([scheduledDate])
+  @@map("test_cell_schedules")
 }
