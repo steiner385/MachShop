@@ -1,0 +1,261 @@
+/**
+ * Traveler Digitization Page Styles
+ * Issue #36: Paper-Based Traveler Digitization
+ */
+
+.traveler-digitization-page {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 100px);
+}
+
+.page-header-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+}
+
+.page-header-card :global(.ant-statistic-title) {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+}
+
+.page-header-card :global(.ant-statistic-content) {
+  color: white;
+  font-size: 28px;
+}
+
+.page-header-card :global(.ant-statistic-content-value) {
+  color: white;
+}
+
+.page-header-card :global(.anticon) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Tabs styling */
+.traveler-digitization-page :global(.ant-tabs) {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.traveler-digitization-page :global(.ant-tabs-tab) {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 16px 24px;
+}
+
+.traveler-digitization-page :global(.ant-tabs-tab-active) {
+  color: #1890ff;
+  border-bottom-color: #1890ff;
+}
+
+/* Upload Dragger */
+.traveler-digitization-page :global(.ant-upload-drag) {
+  padding: 48px 0;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.traveler-digitization-page :global(.ant-upload-drag:hover) {
+  border-color: #1890ff;
+  background-color: #f0f8ff;
+}
+
+.traveler-digitization-page :global(.ant-upload-drag-icon) {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.traveler-digitization-page .ant-upload-text {
+  font-size: 16px;
+  color: #262626;
+  margin: 8px 0;
+}
+
+.traveler-digitization-page .ant-upload-hint {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+/* Processing Results */
+.traveler-digitization-page :global(.ant-timeline) {
+  padding: 16px 0;
+}
+
+.traveler-digitization-page :global(.ant-timeline-item) {
+  padding-bottom: 24px;
+}
+
+.traveler-digitization-page :global(.ant-timeline-item-content) {
+  padding-left: 16px;
+}
+
+/* Table styling */
+.traveler-digitization-page :global(.ant-table) {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.traveler-digitization-page :global(.ant-table-head > tr > th) {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #262626;
+}
+
+.traveler-digitization-page :global(.ant-table-row) {
+  transition: background-color 0.2s ease;
+}
+
+.traveler-digitization-page :global(.ant-table-row:hover > td) {
+  background-color: #f5f5f5;
+}
+
+/* Details Drawer */
+.traveler-details {
+  padding: 16px 0;
+}
+
+.traveler-details h3 {
+  margin: 24px 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.traveler-details h3:first-child {
+  margin-top: 0;
+}
+
+.detail-item {
+  margin-bottom: 16px;
+}
+
+.detail-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #595959;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item p {
+  margin: 0;
+  color: #262626;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+/* Statistics card responsive */
+@media (max-width: 768px) {
+  .traveler-digitization-page {
+    padding: 12px;
+  }
+
+  .page-header-card {
+    margin-bottom: 16px;
+  }
+
+  .page-header-card :global(.ant-statistic-content) {
+    font-size: 24px;
+  }
+
+  .traveler-digitization-page :global(.ant-tabs-tab) {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .traveler-digitization-page :global(.ant-upload-drag) {
+    padding: 32px 0;
+  }
+}
+
+/* Progress circle styling */
+.traveler-digitization-page :global(.ant-progress-inner) {
+  border-radius: 50%;
+}
+
+/* Tag styling */
+.traveler-digitization-page :global(.ant-tag) {
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Alert styling */
+.traveler-digitization-page :global(.ant-alert) {
+  border-radius: 4px;
+  border: none;
+}
+
+/* Alert info styling */
+.traveler-digitization-page :global(.ant-alert-info) {
+  background-color: #e6f7ff;
+  color: #0050b3;
+}
+
+.traveler-digitization-page :global(.ant-alert-info .ant-alert-icon) {
+  color: #1890ff;
+}
+
+/* Button styling in drawer */
+.traveler-digitization-page :global(.ant-drawer-body .ant-space-item > button) {
+  width: 100%;
+}
+
+/* Loading state */
+.traveler-digitization-page :global(.ant-spin) {
+  position: relative;
+}
+
+/* Empty state styling */
+.traveler-digitization-page :global(.ant-empty) {
+  padding: 32px 0;
+}
+
+.traveler-digitization-page :global(.ant-empty-description) {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+/* Drawer header styling */
+.traveler-digitization-page :global(.ant-drawer-header) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.traveler-digitization-page :global(.ant-drawer-title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+/* Smooth transitions */
+.traveler-digitization-page :global(*) {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Print styles */
+@media print {
+  .traveler-digitization-page {
+    background-color: white;
+    padding: 0;
+  }
+
+  .traveler-digitization-page :global(.ant-tabs) {
+    box-shadow: none;
+  }
+
+  .traveler-digitization-page :global(.ant-btn) {
+    display: none;
+  }
+}
