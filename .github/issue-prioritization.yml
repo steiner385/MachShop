@@ -1081,7 +1081,7 @@ issues:
     business_value: 9
     effort_estimate: 9
     blocks: []
-    notes: "Material demand calculation based on production schedule"
+    notes: "COMPLETED - Comprehensive MRP system with BOM explosion, net requirements calculation, lead time offsetting, lot sizing, pegging, and exception detection - Implemented in PR #421"
 
   - number: 85
     title: "Master Production Schedule (MPS)"
