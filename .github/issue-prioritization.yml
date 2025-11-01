@@ -1973,7 +1973,7 @@ issues:
     business_value: 7
     effort_estimate: 8
     blocks: []
-    notes: "COMPLETED - All 8 phases implemented in PR #363. Comprehensive ETL engine with multi-database support (SQL Server, Oracle, MySQL, PostgreSQL), transformation engine, job scheduling, REST API (10 endpoints), Prisma models, and 20+ integration tests. 3,390 lines of production code."
+    notes: "COMPLETED - All 8 phases implemented in PR #363. Comprehensive ETL engine with multi-database support (SQL Server, Oracle, MySQL, PostgreSQL), transformation engine, job scheduling, REST API (10 endpoints), Prisma models, and 20+ integration tests. 3,390 lines of production code. Design document (1037 lines) in PR #347 (commit 47215b3)"
 
   - number: 36
     title: "Paper-Based Traveler Digitization"
