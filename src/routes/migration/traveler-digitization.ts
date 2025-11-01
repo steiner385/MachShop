@@ -14,6 +14,7 @@ import TravelerDigitizationService, {
   TravelerReviewData,
   BatchProcessingConfig
 } from '../../services/migration/TravelerDigitizationService';
+import WorkOrderIntegrationService from '../../services/migration/WorkOrderIntegrationService';
 import { TravelerTemplate, FieldDefinition } from '../../services/migration/TemplateMatcher';
 import { OCRConfig } from '../../services/migration/OCRService';
 import { PrismaClient } from '@prisma/client';
@@ -37,6 +38,7 @@ const ocrConfig: OCRConfig = {
 };
 
 const digitizationService = new TravelerDigitizationService(ocrConfig);
+const workOrderIntegrationService = new WorkOrderIntegrationService();
 
 // ============================================================================
 // Template Management
@@ -578,6 +580,155 @@ router.post('/batch', async (req: Request, res: Response) => {
     logger.error('Batch processing failed:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Batch processing failed'
+    });
+  }
+});
+
+// ============================================================================
+// Work Order Integration (Phase 8)
+// ============================================================================
+
+/**
+ * POST /api/v1/migration/travelers/:travelerId/create-work-order
+ * Create work order from approved traveler
+ */
+router.post('/travelers/:travelerId/create-work-order', async (req: Request, res: Response) => {
+  try {
+    const { travelerId } = req.params;
+
+    const result = await workOrderIntegrationService.createWorkOrderFromTraveler(
+      travelerId,
+      (req as any).user?.id
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    logger.info('Work order created from traveler', {
+      travelerId,
+      workOrderId: result.workOrderId
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        travelerId,
+        workOrderId: result.workOrderId,
+        workOrderNumber: result.workOrderNumber,
+        warnings: result.warnings
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to create work order from traveler:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to create work order'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/migration/travelers/work-order-candidates
+ * Get list of travelers ready for work order creation
+ */
+router.get('/travelers/work-order-candidates', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+    const result = await workOrderIntegrationService.getWorkOrderCandidates({
+      limit,
+      offset
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        candidates: result.candidates,
+        total: result.total,
+        limit,
+        offset
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get work order candidates:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get candidates'
+    });
+  }
+});
+
+/**
+ * POST /api/v1/migration/travelers/bulk-create-work-orders
+ * Create work orders for multiple approved travelers
+ */
+router.post('/travelers/bulk-create-work-orders', async (req: Request, res: Response) => {
+  try {
+    const { travelerIds } = req.body;
+
+    if (!Array.isArray(travelerIds) || travelerIds.length === 0) {
+      return res.status(400).json({
+        error: 'travelerIds must be a non-empty array'
+      });
+    }
+
+    const result = await workOrderIntegrationService.bulkCreateWorkOrders(
+      travelerIds,
+      (req as any).user?.id
+    );
+
+    logger.info('Bulk work order creation submitted', {
+      submitted: result.submitted,
+      successful: result.successful,
+      failed: result.failed
+    });
+
+    res.status(202).json({
+      success: true,
+      data: {
+        submitted: result.submitted,
+        completed: result.completed,
+        successful: result.successful,
+        failed: result.failed,
+        duration: result.duration,
+        results: result.results
+      }
+    });
+  } catch (error) {
+    logger.error('Bulk work order creation failed:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Bulk creation failed'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/migration/travelers/:travelerId/work-order
+ * Get work order linked to traveler
+ */
+router.get('/travelers/:travelerId/work-order', async (req: Request, res: Response) => {
+  try {
+    const { travelerId } = req.params;
+
+    const workOrder = await workOrderIntegrationService.getTravelerWorkOrder(travelerId);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        error: 'No work order found for this traveler'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: workOrder
+    });
+  } catch (error) {
+    logger.error('Failed to get traveler work order:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get work order'
     });
   }
 });

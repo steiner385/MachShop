@@ -1514,9 +1514,6 @@ model WorkOrder {
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
-  // Workflow Enforcement Audit Relations (Issue #41)
-  enforcementAudits WorkflowEnforcementAudit[]
-
   @@index([persistentUuid])
   @@map("work_orders")
 }
@@ -13450,37 +13447,6 @@ model PluginSubmission {
   @@map("plugin_submissions")
 }
 
-// Workflow Enforcement Audit Trail
-// Tracks all enforcement decisions and rule bypasses
-model WorkflowEnforcementAudit {
-  id                String                @id @default(cuid())
-
-  // What happened
-  workOrderId       String
-  operationId       String?
-  action            String                // 'RECORD_PERFORMANCE', 'START_OPERATION', 'COMPLETE_OPERATION'
-  enforcementMode   String                // 'STRICT', 'FLEXIBLE', 'HYBRID'
-
-  // Enforcement details
-  bypassesApplied   String[]              // Rules that were bypassed
-  warnings          String[]              // Warnings generated
-  decision          Json                  // Full enforcement decision object
-
-  // Context
-  userId            String?               // Who triggered the action
-  justification     String?               // Why flexible enforcement was used
-  timestamp         DateTime              @default(now())
-
-  // Relations
-  workOrder         WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-
-  @@index([workOrderId])
-  @@index([operationId])
-  @@index([timestamp])
-  @@index([enforcementMode])
-  @@map("workflow_enforcement_audits")
-}
-
 // ============================================================================
 // STEP AP242 Integration Models (Issue #220)
 // ============================================================================
@@ -13782,6 +13748,12 @@ model DigitizedTraveler {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  // Work Order Integration (Phase 8)
+  workOrderId           String?  // FK to WorkOrder after creation
+  workOrderCreatedAt    DateTime?
+  conversionStatus      String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, FAILED
+  conversionErrors      String[]
+
   // Related data
   operations            DigitizedOperation[]
 
@@ -13790,6 +13762,7 @@ model DigitizedTraveler {
   @@index([status])
   @@index([templateId])
   @@index([createdAt])
+  @@index([conversionStatus])
   @@map("digitized_travelers")
 }
 
