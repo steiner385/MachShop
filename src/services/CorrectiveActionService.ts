@@ -711,22 +711,98 @@ export class CorrectiveActionService extends BaseService {
   }
 
   /**
+   * Requests RCA approval from a designated approver
+   */
+  async requestRCAApproval(
+    caId: string,
+    requesterId: string,
+    approverId: string,
+    dueDate?: Date
+  ): Promise<any> {
+    try {
+      const approvalRequest = await this.prisma.cAApprovalRequest.create({
+        data: {
+          caId,
+          approvalType: 'RCA_APPROVAL',
+          requestedBy: requesterId,
+          approverUserId: approverId,
+          status: 'PENDING',
+          dueDate,
+        },
+      });
+
+      // Send notification to approver
+      try {
+        await notificationService.createNotification({
+          userId: approverId,
+          type: 'APPROVAL_GRANTED' as any,
+          title: 'RCA Approval Request',
+          message: `Root cause analysis requires your approval for corrective action`,
+          relatedEntityType: 'CORRECTIVE_ACTION',
+          relatedEntityId: caId,
+          actionUrl: `/quality/corrective-actions/${caId}`,
+          priority: 'HIGH',
+        });
+      } catch (error) {
+        this.logWarn('Failed to send approval request notification', { error, caId });
+      }
+
+      this.logInfo('RCA approval requested', {
+        caId,
+        approverId,
+        requesterId,
+      });
+
+      return approvalRequest;
+    } catch (error) {
+      this.logError('Failed to request RCA approval', { error, caId });
+      throw error;
+    }
+  }
+
+  /**
    * Approves root cause analysis
    */
   async approveRCA(id: string, userId: string, approved: boolean, notes?: string): Promise<CorrectiveAction> {
     try {
-      const ca = await this.prisma.correctiveAction.update({
+      // Update approval request
+      if (approved) {
+        await this.prisma.cAApprovalRequest.updateMany({
+          where: {
+            caId: id,
+            approvalType: 'RCA_APPROVAL',
+            approverUserId: userId,
+          },
+          data: {
+            status: 'APPROVED',
+            approvalNotes: notes,
+            approvedAt: new Date(),
+          },
+        });
+      }
+
+      const ca = await this.prisma.correctiveAction.findUnique({
         where: { id },
-        data: {
-          // TODO: Add rcaApprovedById and rcaApprovedAt fields to schema when audit model is added
-          // For now, we'll just track that RCA has been reviewed
-        },
         include: {
           assignedTo: true,
           createdBy: true,
           verifiedBy: true,
         },
       });
+
+      if (!ca) {
+        throw new Error('Corrective action not found');
+      }
+
+      // Record approval in audit trail
+      await this.recordAuditTrail(
+        id,
+        userId,
+        'APPROVED',
+        { rcaApprovalStatus: 'PENDING' },
+        { rcaApprovalStatus: approved ? 'APPROVED' : 'REJECTED' },
+        `RCA ${approved ? 'approved' : 'rejected'}: ${notes || 'No comments'}`
+      );
 
       this.logInfo('RCA approval recorded', {
         caId: id,
@@ -738,6 +814,56 @@ export class CorrectiveActionService extends BaseService {
       return ca;
     } catch (error) {
       this.logError('Failed to approve RCA', { error, id });
+      throw error;
+    }
+  }
+
+  /**
+   * Requests effectiveness verification approval
+   */
+  async requestEffectivenessApproval(
+    caId: string,
+    requesterId: string,
+    approverId: string,
+    dueDate?: Date
+  ): Promise<any> {
+    try {
+      const approvalRequest = await this.prisma.cAApprovalRequest.create({
+        data: {
+          caId,
+          approvalType: 'EFFECTIVENESS_APPROVAL',
+          requestedBy: requesterId,
+          approverUserId: approverId,
+          status: 'PENDING',
+          dueDate,
+        },
+      });
+
+      // Send notification to approver
+      try {
+        await notificationService.createNotification({
+          userId: approverId,
+          type: 'APPROVAL_GRANTED' as any,
+          title: 'Effectiveness Verification Request',
+          message: `Effectiveness verification requires your approval for corrective action`,
+          relatedEntityType: 'CORRECTIVE_ACTION',
+          relatedEntityId: caId,
+          actionUrl: `/quality/corrective-actions/${caId}`,
+          priority: 'HIGH',
+        });
+      } catch (error) {
+        this.logWarn('Failed to send verification approval notification', { error, caId });
+      }
+
+      this.logInfo('Effectiveness approval requested', {
+        caId,
+        approverId,
+        requesterId,
+      });
+
+      return approvalRequest;
+    } catch (error) {
+      this.logError('Failed to request effectiveness approval', { error, caId });
       throw error;
     }
   }

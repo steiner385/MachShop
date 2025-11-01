@@ -372,6 +372,8 @@ model User {
   capasVerified             CorrectiveAction[]              @relation("CAVerifiedBy")
   capasCreated              CorrectiveAction[]              @relation("CACreatedBy")
   caAuditTrail              CorrectiveActionAudit[]
+  caApprovalsApproved       CAApprovalRequest[]
+  caApprovalsRequested      CAApprovalRequest[]             @relation("CAApprovalRequester")
   reviewsChaired            ManagementReview[]              @relation("ReviewChairperson")
   reviewActionsAssigned     ManagementReviewAction[]
   reviewsCreated            ManagementReview[]              @relation("ReviewCreatedBy")
@@ -12306,6 +12308,7 @@ model CorrectiveAction {
   // Linkages
   auditFindings       AuditFinding[]
   auditTrail          CorrectiveActionAudit[]
+  approvalRequests    CAApprovalRequest[]
 
   // Metadata
   createdAt           DateTime @default(now())
@@ -12348,6 +12351,33 @@ model CorrectiveActionAudit {
   @@index([action])
   @@index([timestamp])
   @@map("corrective_action_audits")
+}
+
+/// CorrectiveAction Approval Request - Tracks RCA and effectiveness verification approvals
+model CAApprovalRequest {
+  id              String   @id @default(cuid())
+  caId            String
+  approvalType    String   // RCA_APPROVAL, EFFECTIVENESS_APPROVAL
+  requestedBy     String
+  requestedAt     DateTime @default(now())
+  approverUserId  String
+  status          String   // PENDING, APPROVED, REJECTED
+  approvalNotes   String?
+  approvedAt      DateTime?
+  dueDate         DateTime?
+  escalated       Boolean  @default(false)
+  escalatedAt     DateTime?
+
+  // Relations
+  correctiveAction CorrectiveAction @relation(fields: [caId], references: [id], onDelete: Cascade)
+  approver        User             @relation(fields: [approverUserId], references: [id], onDelete: Restrict)
+  requester       User             @relation("CAApprovalRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+
+  @@index([caId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("ca_approval_requests")
 }
 
 /// Management Review - Management review sessions (ISO 9001 Clause 9.3)
