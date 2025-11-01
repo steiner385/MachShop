@@ -10,6 +10,9 @@ CREATE TYPE "CourseType" AS ENUM ('CLASSROOM', 'ONLINE', 'ON_THE_JOB', 'EXTERNAL
 -- CreateEnum QuestionType
 CREATE TYPE "QuestionType" AS ENUM ('MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'ESSAY');
 
+-- CreateEnum ApprovalStatus
+CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
 -- CreateTable ControlledDocument
 CREATE TABLE "controlled_documents" (
     "id" TEXT NOT NULL,
