@@ -13944,3 +13944,78 @@ model ElectronicSignatureRequirement {
   @@index([siteId])
   @@map("electronic_signature_requirements")
 }
+
+/// Batch Job Management (Issue #36 Phase 7)
+/// Tracks batch processing jobs for multiple document uploads
+model BatchJob {
+  id                    String   @id @default(cuid())
+  jobId                 String   @unique // Human-readable job identifier
+
+  // File and processing info
+  fileCount             Int      @default(0)
+  processedCount        Int      @default(0)
+  successCount          Int      @default(0)
+  failureCount          Int      @default(0)
+  partialCount          Int      @default(0)
+
+  // Status tracking
+  status                String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  progress              Int      @default(0) // 0-100 percentage
+
+  // Configuration
+  autoApproval          Boolean  @default(false)
+  autoApprovalThreshold Float    @default(0.9)
+  templateIds           String[]
+
+  // Results
+  travelersCreated      String[]
+  errors                String[]
+
+  // Audit info
+  createdBy             String?
+  createdAt             DateTime @default(now())
+  startedAt             DateTime?
+  completedAt           DateTime?
+
+  // Relations
+  files                 BatchJobFile[]
+
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("batch_jobs")
+}
+
+model BatchJobFile {
+  id                    String   @id @default(cuid())
+
+  // Relationship
+  batchJobId            String
+  batchJob              BatchJob @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+
+  // File info
+  fileName              String
+  fileSize              Int?
+  fileHash              String?  // For deduplication
+
+  // Processing status
+  status                String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+
+  // Results
+  travelerId            String?  // Reference to created DigitizedTraveler
+  processingMethod      String?  // 'ocr', 'manual', 'hybrid'
+  confidence            Float?
+
+  // Error tracking
+  errors                String[]
+  warnings              String[]
+
+  // Timestamps
+  uploadedAt            DateTime @default(now())
+  processedAt           DateTime?
+
+  @@index([batchJobId])
+  @@index([status])
+  @@index([fileName])
+  @@map("batch_job_files")
+}
