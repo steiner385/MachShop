@@ -1850,7 +1850,7 @@ issues:
     business_value: 6
     effort_estimate: 8
     blocks: [79, 80]
-    notes: "COMPLETED Phase 1, 2, 3 & 4 - Phase 1 & 2 (Core Architecture & Hook System) PR #333. Phase 3 (Admin API & Routes) PR #335. Phase 4 (Event Bus & Webhook Queue) PR #336. Implemented: 6 plugin tables, hook engine, Redis pub/sub event bus, webhook delivery with exponential backoff, Plugin SDK, 19 REST API endpoints (14 admin + 5 monitoring), RedisClientService, EventBusService, WebhookQueueService with background processor. Future: Phase 5 (UI dashboard), Phase 6 (SDK & docs)"
+    notes: "COMPLETED Phase 1-5 - Phase 1 & 2 (Core Architecture & Hook System) PR #333. Phase 3 (Admin API & Routes) PR #335. Phase 4 (Event Bus & Webhook Queue) PR #336. Phase 5 (Admin UI Dashboard) PR #337. Implemented: 6 plugin tables, hook engine, Redis pub/sub event bus, webhook delivery with exponential backoff, Plugin SDK, 19 REST API endpoints, 3 admin UI pages (PluginManagementPage, PluginDetailsPage, PluginEventBusDashboard), Zustand plugin store with full API integration. Future: Phase 6 (complete SDK & docs)"
 
   - number: 76
     title: "API Versioning & Backward Compatibility"
