@@ -1470,6 +1470,19 @@ issues:
     completed_date: "2025-11-01"
     notes: "COMPLETED - Comprehensive security framework for extension validation. Includes SecurityScanner (OWASP vulnerabilities, dependency analysis, license compliance, secrets detection), CodeQualityAnalyzer (test coverage, cyclomatic complexity, maintainability index), SecurityPolicyEnforcer (dangerous API detection, resource limits), SecurityReviewEngine (risk scoring 0-100, recommendations), ReviewWorkflowManager (approval workflows), SecurityAuditLogger (audit trail, compliance reporting). Implemented in PR #457. Unblocks marketplace launch and security governance."
 
+  # --- Low-Code/No-Code Platform ---
+  - number: 394
+    title: "Low-Code/No-Code Workflow Builder - Visual Workflow Designer"
+    category: low_code_platform
+    foundation_level: 2
+    dependencies: [426, 434, 438, 440]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 18
+    blocks: [398, 399, 445]
+    implementation_status: pending
+    notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts), (2) React canvas UI (5pts), (3) Node types & execution (4pts), (4) Multi-site deployment (3pts), (5) Documentation & examples (2pts). Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
+
   # --- Phase 2B: Governance & Deployment ---
   - number: 427
     title: "Navigation Extension Framework with Approval Workflow"
@@ -2355,6 +2368,10 @@ categories:
   sdk_extensibility:
     name: "SDK & Extensibility"
     description: "Platform extensibility and third-party development"
+
+  low_code_platform:
+    name: "Low-Code/No-Code Platform"
+    description: "Visual workflow builder, rules engine, form builder, and other low-code capabilities enabling non-developers to configure manufacturing processes"
 
   data_migration:
     name: "Data Migration Tools"
