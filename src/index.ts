@@ -153,6 +153,7 @@ import ospRoutes from './routes/osp';
 import erpRoutes from './routes/erp';
 import webhookRoutes from './routes/webhooks';
 import monitoringRoutes from './routes/monitoring';
+import reconciliationRoutes from './routes/reconciliation';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -409,6 +410,9 @@ apiRouter.use('/webhooks', authMiddleware, webhookRoutes);
 
 // ✅ GITHUB ISSUE #60: ERP Monitoring & Observability Routes (Phase 11 - Advanced Monitoring)
 apiRouter.use('/monitoring', authMiddleware, monitoringRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Data Reconciliation Routes (Phase 12 - Data Reconciliation System)
+apiRouter.use('/reconciliation', authMiddleware, reconciliationRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
