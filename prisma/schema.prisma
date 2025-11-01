@@ -16568,3 +16568,167 @@ enum ExceptionSeverity {
   ERROR
   CRITICAL
 }
+
+// ============================================================================
+// Extension Schema Framework Models (Issue #438)
+// ============================================================================
+// Enable plugins to register custom database entities and fields
+
+enum ExtensionSchemaStatus {
+  pending
+  validating
+  active
+  failed
+}
+
+enum ExtensionMigrationStatus {
+  pending
+  executing
+  executed
+  failed
+  rolled_back
+}
+
+enum ConflictSeverity {
+  warning
+  error
+}
+
+/// Extension Schema Registry
+/// Tracks all registered extension schemas with their current status
+model ExtensionSchema {
+  id                  String                       @id @default(cuid())
+  pluginId            String                       @unique
+  version             String
+  schemaDefinition    Json
+  status              ExtensionSchemaStatus        @default(pending)
+  validationErrors    Json?
+  registeredAt        DateTime                     @default(now())
+  activatedAt         DateTime?
+  deactivatedAt       DateTime?
+  lastError           String?
+  createdBy           String?
+  updatedBy           String?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  migrations          ExtensionMigration[]
+  conflicts           ExtensionSchemaConflict[]    @relation("plugin1")
+  conflictsAsPlugin2  ExtensionSchemaConflict[]    @relation("plugin2")
+  auditLogs           ExtensionSchemaAuditLog[]
+  tableMetadata       ExtensionTableMetadata[]
+  versionHistory      ExtensionSchemaVersion[]
+
+  @@index([status])
+  @@index([pluginId])
+  @@map("extension_schemas")
+}
+
+/// Extension Migration Records
+/// Tracks all executed migrations for schema changes
+model ExtensionMigration {
+  id              String                    @id @default(cuid())
+  pluginId        String
+  migrationId     String
+  version         String
+  migrationSql    String
+  rollbackSql     String?
+  checksumSchema  String?
+  checksumSql     String?
+  status          ExtensionMigrationStatus  @default(pending)
+  executionStart  DateTime?
+  executionEnd    DateTime?
+  errorMessage    String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  schema          ExtensionSchema           @relation(fields: [pluginId], references: [pluginId], onDelete: Cascade)
+
+  @@unique([pluginId, migrationId])
+  @@index([pluginId, status])
+  @@index([createdAt])
+  @@index([status])
+  @@map("extension_migrations")
+}
+
+/// Extension Schema Conflicts
+/// Tracks potential conflicts between extension schemas
+model ExtensionSchemaConflict {
+  id              String           @id @default(cuid())
+  plugin1Id       String
+  plugin2Id       String
+  conflictType    String
+  item1           String?
+  item2           String?
+  message         String
+  severity        ConflictSeverity @default(warning)
+  resolved        Boolean          @default(false)
+  resolvedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  plugin1         ExtensionSchema  @relation("plugin1", fields: [plugin1Id], references: [pluginId], onDelete: Cascade)
+  plugin2         ExtensionSchema  @relation("plugin2", fields: [plugin2Id], references: [pluginId], onDelete: Cascade)
+
+  @@index([plugin1Id, plugin2Id])
+  @@index([resolved])
+  @@map("extension_schema_conflicts")
+}
+
+/// Extension Schema Audit Log
+/// Tracks all changes to extension schemas for audit and debugging
+model ExtensionSchemaAuditLog {
+  id          String          @id @default(cuid())
+  pluginId    String
+  action      String
+  changes     Json?
+  errorDetails String?
+  performedBy String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime        @default(now())
+  schema      ExtensionSchema @relation(fields: [pluginId], references: [pluginId], onDelete: Cascade)
+
+  @@index([pluginId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("extension_schema_audit_log")
+}
+
+/// Extension Table Metadata
+/// Tracks metadata about dynamically created extension tables
+model ExtensionTableMetadata {
+  id              String          @id @default(cuid())
+  pluginId        String
+  tableName       String
+  displayName     String?
+  description     String?
+  namespace       String
+  fieldCount      Int             @default(0)
+  indexCount      Int             @default(0)
+  estimatedRows   BigInt          @default(0)
+  estimatedSize   BigInt          @default(0)
+  lastAnalyzedAt  DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  schema          ExtensionSchema @relation(fields: [pluginId], references: [pluginId], onDelete: Cascade)
+
+  @@unique([pluginId, tableName])
+  @@index([pluginId])
+  @@index([namespace])
+  @@map("extension_table_metadata")
+}
+
+/// Extension Schema Version History
+/// Maintains complete version history of extension schemas
+model ExtensionSchemaVersion {
+  id                  String          @id @default(cuid())
+  pluginId            String
+  version             String
+  schemaDefinition    Json
+  changesSummary      String?
+  migrationsRequired  Json?
+  createdAt           DateTime        @default(now())
+  schema              ExtensionSchema @relation(fields: [pluginId], references: [pluginId], onDelete: Cascade)
+
+  @@unique([pluginId, version])
+  @@index([pluginId])
+  @@index([createdAt])
+  @@map("extension_schema_versions")
+}
