@@ -11530,6 +11530,8 @@ model ApiKey {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   usageLogs       ApiUsageLog[]
+  versionUsage    ApiUsageByVersion[]
+  capturedCalls   CapturedApiCall[]
   plugins         Plugin[] // Plugin SDK API keys
 
   @@index([keyPrefix])
@@ -12414,6 +12416,239 @@ model ChangeRequest {
   @@index([changeType])
   @@index([status])
   @@map("change_requests")
+}
+
+/// API Version - Manages API versioning and backward compatibility
+model ApiVersion {
+  id                  String   @id @default(cuid())
+  version             String   @unique // e.g., v1, v2
+  semver              String   // e.g., 1.0.0, 2.1.5
+  releaseDate         DateTime
+  status              String   @default("BETA") // BETA, CURRENT, MAINTENANCE, DEPRECATED, SUNSET
+
+  // Support timeline
+  maintenanceUntil    DateTime?
+  deprecatedAt        DateTime?
+  sunsetDate          DateTime?
+
+  // Metadata & Links
+  changelogUrl        String?
+  migrationGuideUrl   String?
+  documentationUrl    String?
+
+  // Relationships
+  breakingChanges     ApiBreakingChange[]
+  deprecations        ApiDeprecation[]
+  usageStats          ApiUsageByVersion[]
+
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status])
+  @@index([releaseDate])
+  @@index([sunsetDate])
+  @@map("api_versions")
+}
+
+/// API Breaking Change - Tracks breaking changes between versions
+model ApiBreakingChange {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  fromVersion         String // e.g., v1
+  toVersion           String // e.g., v2
+  changeType          String // ENDPOINT_REMOVED, FIELD_REMOVED, FIELD_TYPE_CHANGED, etc.
+
+  // What changed
+  endpoint            String?
+  field               String?
+  description         String
+
+  // Migration help
+  before              Json? // Example before
+  after               Json? // Example after
+  migrationSteps      Json? // Array of migration steps
+  migrationGuideUrl   String?
+
+  // Timeline
+  announcedAt         DateTime
+  effectiveDate       DateTime
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([fromVersion])
+  @@index([toVersion])
+  @@index([changeType])
+  @@map("api_breaking_changes")
+}
+
+/// API Deprecation - Tracks deprecated features
+model ApiDeprecation {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  feature             String // endpoint or field being deprecated
+  deprecatedAt        DateTime
+  sunsetDate          DateTime
+
+  // Replacement
+  replacement         String? // new endpoint/field
+  migrationGuideUrl   String?
+
+  // Communication
+  affectedAccounts    Int @default(0)
+  notificationsSent   Int @default(0)
+
+  // Impact
+  severity            String @default("medium") // low, medium, high
+  description         String
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([feature])
+  @@index([sunsetDate])
+  @@map("api_deprecations")
+}
+
+/// API Usage by Version - Analytics for API version adoption
+model ApiUsageByVersion {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  apiKey              ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  apiKeyId            String?
+
+  // Usage stats
+  requestCount        Int @default(0)
+  lastRequestAt       DateTime?
+  failureCount        Int @default(0)
+  lastFailureAt       DateTime?
+
+  // Tracking
+  date                DateTime // Date these stats are for
+
+  // Metadata
+  clientName          String?
+  integrationName     String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([apiKeyId])
+  @@index([date])
+  @@unique([versionId, apiKeyId, date])
+  @@map("api_usage_by_version")
+}
+
+/// API Changelog - Published changelog entries
+model ApiChangelog {
+  id                  String   @id @default(cuid())
+  version             String   // e.g., 2.0.0
+  releaseDate         DateTime
+  category            String   // breaking, feature, deprecation, fix, security
+
+  // Content
+  title               String
+  description         String
+  endpoint            String?
+  field               String?
+
+  // Migration info
+  migrationGuide      String?
+  alternativeFeature  String?
+
+  // Impact
+  severity            String? // low, medium, high
+  affectedApiKeys     Int?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([version])
+  @@index([category])
+  @@index([releaseDate])
+  @@map("api_changelog")
+}
+
+/// Captured API Call - For compatibility testing
+model CapturedApiCall {
+  id                  String   @id @default(cuid())
+  apiKey              ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId            String
+
+  apiVersion          String
+
+  // Request
+  method              String
+  endpoint            String
+  requestPath         String
+  requestHeaders      Json // Record of headers
+  requestBody         Json?
+  requestQuery        Json?
+
+  // Response
+  statusCode          Int
+  responseHeaders     Json
+  responseBody        Json?
+
+  // Metadata
+  timestamp           DateTime @default(now())
+  duration            Int // milliseconds
+  success             Boolean
+  errorMessage        String?
+
+  @@index([apiKeyId])
+  @@index([apiVersion])
+  @@index([timestamp])
+  @@index([method, endpoint])
+  @@map("captured_api_calls")
+}
+
+/// API Compatibility Test - Test results for version compatibility
+model ApiCompatibilityTest {
+  id                  String   @id @default(cuid())
+  sourceVersion       String // e.g., v1
+  targetVersion       String // e.g., v2
+
+  compatible          Boolean
+
+  // Issues
+  breakingChanges     Json? // Array of breaking changes found
+  deprecatedFeatures  Json? // Array of deprecated features
+  unsupportedEndpoints Json? // Array of endpoints
+  unsupportedFields   Json? // Array of fields
+
+  // Recommendations
+  recommendations     Json? // Array of strings
+  estimatedMigrationEffort String? // low, medium, high
+  migrationGuideUrl   String?
+
+  // Test details
+  testedEndpoints     Int
+  compatibleEndpoints Int
+  failingEndpoints    Int
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  expiresAt           DateTime // When test results expire
+
+  @@index([sourceVersion])
+  @@index([targetVersion])
+  @@index([compatible])
+  @@unique([sourceVersion, targetVersion])
+  @@map("api_compatibility_tests")
 }
 
 // ============================================================================
