@@ -112,6 +112,9 @@ import roleTemplateRoutes from './routes/roleTemplates';
 // ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability
 import llpRoutes from './routes/llp';
 
+// ✅ GITHUB ISSUE #220: STEP AP242 Integration for Model-Based Enterprise (MBE)
+import stepAp242Routes from './routes/stepAp242Routes';
+
 // ✅ GITHUB ISSUE #229: Kitting & Material Staging System Routes
 import kitRoutes from './routes/api/kits';
 import stagingRoutes from './routes/api/staging';
@@ -351,6 +354,9 @@ apiRouter.use('/role-templates', authMiddleware, roleTemplateRoutes);
 
 // ✅ GITHUB ISSUE #231: Life-Limited Parts (LLP) Back-to-Birth Traceability API Routes
 apiRouter.use('/llp', authMiddleware, llpRoutes);
+
+// ✅ GITHUB ISSUE #220: STEP AP242 Integration for Model-Based Enterprise (MBE) API Routes
+apiRouter.use('/step-ap242', authMiddleware, stepAp242Routes);
 
 // ✅ GITHUB ISSUE #229: Kitting & Material Staging System API Routes
 apiRouter.use('/kits', authMiddleware, kitRoutes);
