@@ -6,7 +6,7 @@
  * @module extension-validation-framework/validators/manifestValidator
  */
 
-import Ajv, { JSONSchemaType } from 'ajv';
+import Ajv from 'ajv';
 import { ValidationContext, ValidationIssue, ManifestSchema } from '../types';
 
 const ajv = new Ajv();
@@ -14,7 +14,7 @@ const ajv = new Ajv();
 /**
  * Manifest JSON schema v2.0
  */
-const MANIFEST_SCHEMA: JSONSchemaType<any> = {
+const MANIFEST_SCHEMA: any = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   title: 'MachShop Extension Manifest v2.0',
   type: 'object',
@@ -96,14 +96,15 @@ export async function validateManifestSchema(
   const valid = validate(context.manifest);
 
   if (!valid && validate.errors) {
-    validate.errors.forEach((error) => {
+    validate.errors.forEach((error: any) => {
+      const path = error.instancePath || 'root';
       issues.push({
         code: 'MANIFEST_SCHEMA_ERROR',
-        message: `${error.instancePath || 'root'}: ${error.message}`,
+        message: `${path}: ${error.message}`,
         severity: 'error',
         file: context.manifestPath,
         ruleId: 'manifest-schema',
-        fix: `Check manifest structure at ${error.instancePath}`,
+        fix: `Check manifest structure at ${path}`,
       });
     });
   }
