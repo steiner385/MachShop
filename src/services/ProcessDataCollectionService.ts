@@ -15,13 +15,17 @@ import {
   ProcessParameterTrend,
 } from '../types/l2equipment';
 
-const prisma = new PrismaClient();
-
 export class ProcessDataCollectionService {
+  private prisma: PrismaClient;
+
+  constructor(prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
+  }
+
   /**
    * Start a new process data collection
    */
-  static async startProcessDataCollection(
+  async startProcessDataCollection(
     input: StartProcessDataCollectionInput
   ): Promise<ProcessDataCollectionRecord> {
     const {
@@ -39,7 +43,7 @@ export class ProcessDataCollectionService {
     } = input;
 
     // Validate equipment exists
-    const equipment = await prisma.equipment.findUnique({
+    const equipment = await this.prisma.equipment.findUnique({
       where: { id: equipmentId },
     });
 
@@ -49,7 +53,7 @@ export class ProcessDataCollectionService {
 
     // Validate work order if provided
     if (workOrderId) {
-      const workOrder = await prisma.workOrder.findUnique({
+      const workOrder = await this.prisma.workOrder.findUnique({
         where: { id: workOrderId },
       });
 
@@ -59,7 +63,7 @@ export class ProcessDataCollectionService {
     }
 
     // Create process data collection record
-    const processData = await prisma.processDataCollection.create({
+    const processData = await this.prisma.processDataCollection.create({
       data: {
         equipmentId,
         processName,
@@ -82,7 +86,7 @@ export class ProcessDataCollectionService {
   /**
    * Complete a process data collection
    */
-  static async completeProcessDataCollection(
+  async completeProcessDataCollection(
     input: CompleteProcessDataCollectionInput
   ): Promise<ProcessDataCollectionRecord> {
     const {
@@ -101,7 +105,7 @@ export class ProcessDataCollectionService {
     } = input;
 
     // Get existing process data
-    const existingData = await prisma.processDataCollection.findUnique({
+    const existingData = await this.prisma.processDataCollection.findUnique({
       where: { id: processDataCollectionId },
     });
 
@@ -120,7 +124,7 @@ export class ProcessDataCollectionService {
       : existingData.parameters;
 
     // Update process data
-    const updatedData = await prisma.processDataCollection.update({
+    const updatedData = await this.prisma.processDataCollection.update({
       where: { id: processDataCollectionId },
       data: {
         endTimestamp,
@@ -144,11 +148,11 @@ export class ProcessDataCollectionService {
   /**
    * Update process parameters during collection
    */
-  static async updateProcessParameters(
+  async updateProcessParameters(
     processDataCollectionId: string,
     parameters: Record<string, any>
   ): Promise<ProcessDataCollectionRecord> {
-    const existingData = await prisma.processDataCollection.findUnique({
+    const existingData = await this.prisma.processDataCollection.findUnique({
       where: { id: processDataCollectionId },
     });
 
@@ -161,7 +165,7 @@ export class ProcessDataCollectionService {
     // Merge parameters
     const mergedParameters = { ...(existingData.parameters as any), ...parameters };
 
-    const updatedData = await prisma.processDataCollection.update({
+    const updatedData = await this.prisma.processDataCollection.update({
       where: { id: processDataCollectionId },
       data: { parameters: mergedParameters },
     });
@@ -172,7 +176,7 @@ export class ProcessDataCollectionService {
   /**
    * Increment alarm counts
    */
-  static async incrementAlarmCount(
+  async incrementAlarmCount(
     processDataCollectionId: string,
     critical: boolean = false
   ): Promise<ProcessDataCollectionRecord> {
@@ -184,7 +188,7 @@ export class ProcessDataCollectionService {
       updateData.criticalAlarmCount = { increment: 1 };
     }
 
-    const updatedData = await prisma.processDataCollection.update({
+    const updatedData = await this.prisma.processDataCollection.update({
       where: { id: processDataCollectionId },
       data: updateData,
     });
@@ -195,7 +199,7 @@ export class ProcessDataCollectionService {
   /**
    * Query process data collections
    */
-  static async queryProcessData(
+  async queryProcessData(
     query: QueryProcessDataInput
   ): Promise<ProcessDataCollectionRecord[]> {
     const {
@@ -246,7 +250,7 @@ export class ProcessDataCollectionService {
       }
     }
 
-    const processData = await prisma.processDataCollection.findMany({
+    const processData = await this.prisma.processDataCollection.findMany({
       where,
       orderBy: { startTimestamp: 'desc' },
       take: limit || 100,
@@ -258,10 +262,10 @@ export class ProcessDataCollectionService {
   /**
    * Get active (incomplete) process data collections for equipment
    */
-  static async getActiveProcesses(
+  async getActiveProcesses(
     equipmentId: string
   ): Promise<ProcessDataCollectionRecord[]> {
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where: {
         equipmentId,
         endTimestamp: null,
@@ -275,14 +279,14 @@ export class ProcessDataCollectionService {
   /**
    * Generate process data summary
    */
-  static async generateProcessSummary(
+  async generateProcessSummary(
     equipmentId: string,
     processName: string,
     startDate?: Date,
     endDate?: Date
   ): Promise<ProcessDataSummary> {
     // Get equipment details
-    const equipment = await prisma.equipment.findUnique({
+    const equipment = await this.prisma.equipment.findUnique({
       where: { id: equipmentId },
       select: {
         id: true,
@@ -313,7 +317,7 @@ export class ProcessDataCollectionService {
     }
 
     // Get process data
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where,
     });
 
@@ -399,7 +403,7 @@ export class ProcessDataCollectionService {
   /**
    * Get process parameter trend
    */
-  static async getProcessParameterTrend(
+  async getProcessParameterTrend(
     equipmentId: string,
     processName: string,
     parameterName: string,
@@ -421,7 +425,7 @@ export class ProcessDataCollectionService {
       }
     }
 
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where,
       orderBy: { startTimestamp: 'asc' },
     });
@@ -481,10 +485,10 @@ export class ProcessDataCollectionService {
   /**
    * Get process data for work order
    */
-  static async getProcessDataForWorkOrder(
+  async getProcessDataForWorkOrder(
     workOrderId: string
   ): Promise<ProcessDataCollectionRecord[]> {
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where: { workOrderId },
       orderBy: { startTimestamp: 'asc' },
     });
@@ -495,10 +499,10 @@ export class ProcessDataCollectionService {
   /**
    * Get process data by serial number
    */
-  static async getProcessDataBySerialNumber(
+  async getProcessDataBySerialNumber(
     serialNumber: string
   ): Promise<ProcessDataCollectionRecord[]> {
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where: { serialNumber },
       orderBy: { startTimestamp: 'asc' },
     });
@@ -509,10 +513,10 @@ export class ProcessDataCollectionService {
   /**
    * Get process data by lot number
    */
-  static async getProcessDataByLotNumber(
+  async getProcessDataByLotNumber(
     lotNumber: string
   ): Promise<ProcessDataCollectionRecord[]> {
-    const processes = await prisma.processDataCollection.findMany({
+    const processes = await this.prisma.processDataCollection.findMany({
       where: { lotNumber },
       orderBy: { startTimestamp: 'asc' },
     });
@@ -523,10 +527,10 @@ export class ProcessDataCollectionService {
   /**
    * Delete old process data (data retention)
    */
-  static async deleteOldProcessData(
+  async deleteOldProcessData(
     beforeDate: Date
   ): Promise<{ deletedCount: number }> {
-    const result = await prisma.processDataCollection.deleteMany({
+    const result = await this.prisma.processDataCollection.deleteMany({
       where: {
         startTimestamp: {
           lt: beforeDate,
@@ -540,10 +544,10 @@ export class ProcessDataCollectionService {
   /**
    * Get process data by ID
    */
-  static async getProcessDataById(
+  async getProcessDataById(
     processDataCollectionId: string
   ): Promise<ProcessDataCollectionRecord | null> {
-    const processData = await prisma.processDataCollection.findUnique({
+    const processData = await this.prisma.processDataCollection.findUnique({
       where: { id: processDataCollectionId },
     });
 
@@ -560,7 +564,7 @@ export class ProcessDataCollectionService {
    * @param processDataCollectionId - Optional process data collection record ID
    * @returns Array of rule violations detected (if any)
    */
-  static async evaluateSPCForParameter(
+  async evaluateSPCForParameter(
     parameterId: string,
     value: number,
     timestamp: Date,
@@ -568,7 +572,7 @@ export class ProcessDataCollectionService {
   ): Promise<any[]> {
     try {
       // Check if parameter has active SPC configuration
-      const spcConfig = await prisma.sPCConfiguration.findUnique({
+      const spcConfig = await this.prisma.sPCConfiguration.findUnique({
         where: { parameterId },
       });
 
@@ -585,7 +589,7 @@ export class ProcessDataCollectionService {
       // Query historical measurements from process data collections
       // Note: This is a simplified approach. In production, you'd want a dedicated
       // measurement tracking table for better performance
-      const historicalRecords = await prisma.processDataCollection.findMany({
+      const historicalRecords = await this.prisma.processDataCollection.findMany({
         where: {
           startTimestamp: {
             gte: since,
@@ -652,7 +656,7 @@ export class ProcessDataCollectionService {
       for (const violation of violations) {
         // Check if this is a new violation for the current data point
         if (violation.dataPointIndices.includes(historicalValues.length - 1)) {
-          const createdViolation = await prisma.sPCRuleViolation.create({
+          const createdViolation = await this.prisma.sPCRuleViolation.create({
             data: {
               configurationId: spcConfig.id,
               ruleNumber: violation.ruleNumber,
@@ -689,7 +693,7 @@ export class ProcessDataCollectionService {
    * @param processDataCollectionId - Process data collection record ID
    * @returns Summary of SPC evaluation results
    */
-  static async evaluateSPCForProcessData(
+  async evaluateSPCForProcessData(
     processDataCollectionId: string
   ): Promise<{
     evaluatedParameters: number;
@@ -697,7 +701,7 @@ export class ProcessDataCollectionService {
     criticalViolations: number;
     violations: any[];
   }> {
-    const processData = await prisma.processDataCollection.findUnique({
+    const processData = await this.prisma.processDataCollection.findUnique({
       where: { id: processDataCollectionId },
     });
 
@@ -755,13 +759,13 @@ export class ProcessDataCollectionService {
    * @param limit - Maximum number of violations to return
    * @returns Array of SPC rule violations
    */
-  static async getSPCViolationsForParameter(
+  async getSPCViolationsForParameter(
     parameterId: string,
     acknowledged?: boolean,
     limit: number = 50
   ): Promise<any[]> {
     // Get SPC configuration for parameter
-    const spcConfig = await prisma.sPCConfiguration.findUnique({
+    const spcConfig = await this.prisma.sPCConfiguration.findUnique({
       where: { parameterId },
     });
 
@@ -777,7 +781,7 @@ export class ProcessDataCollectionService {
       where.acknowledged = acknowledged;
     }
 
-    const violations = await prisma.sPCRuleViolation.findMany({
+    const violations = await this.prisma.sPCRuleViolation.findMany({
       where,
       orderBy: {
         timestamp: 'desc',
@@ -796,12 +800,12 @@ export class ProcessDataCollectionService {
    * @param resolution - Resolution description
    * @returns Updated violation record
    */
-  static async acknowledgeSPCViolation(
+  async acknowledgeSPCViolation(
     violationId: string,
     acknowledgedBy: string,
     resolution: string
   ): Promise<any> {
-    const violation = await prisma.sPCRuleViolation.update({
+    const violation = await this.prisma.sPCRuleViolation.update({
       where: { id: violationId },
       data: {
         acknowledged: true,

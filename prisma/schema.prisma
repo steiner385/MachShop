@@ -64,6 +64,41 @@ model Site {
   roleTemplateInstances     RoleTemplateInstance[]
   roleTemplateUsageLogs     RoleTemplateUsageLog[]
 
+  // Time Entry Management Relations (Issue #51)
+  autoStopConfiguration     AutoStopConfiguration?
+
+  // Location Management Relations (Issue #207)
+  locations                 Location[]
+
+  // Temporal permissions audit trail
+  temporalAccessLogs        TemporalAccessLog[]
+
+  // Department Management Relations (Issue #209)
+  departments               Department[]
+
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration     SiteWorkflowConfiguration? @relation("SiteWorkflowConfig")
+
+  // Andon System Relations (Issue #171)
+  andonAlerts               AndonAlert[]
+  andonIssueTypes           AndonIssueType[]
+  andonEscalationRules      AndonEscalationRule[]
+  andonSiteConfigurations   AndonSiteConfiguration[]
+  andonNotificationTemplates AndonNotificationTemplate[]
+  andonSystemSettings       AndonSystemSettings[]
+
+  // Serial Number Format Configuration Relations (Issue #149)
+  serialNumberFormatConfigs SerialNumberFormatConfig[]
+
+  // NCR Workflow Configuration Relations (Issue #55)
+  ncrWorkflowConfigs NCRWorkflowConfig[] @relation("NCRWorkflowConfigs")
+
+  // Plugin System Relations (Issue #75)
+  plugins               Plugin[]
+
+  // Plugin Registry Relations (Issue #79)
+  pluginInstallations   PluginInstallation[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -81,9 +116,54 @@ model Area {
   equipment   Equipment[]
   workCenters WorkCenter[]
   stagingLocations StagingLocation[]
+  locations   Location[]
+
+  // Andon System Relations (Issue #171)
+  andonAlerts AndonAlert[]
 
   @@index([siteId])
   @@map("areas")
+}
+
+model Department {
+  id                String      @id @default(cuid())
+  departmentCode    String      @unique   // e.g., "ENG", "QA", "PROD", "MFG"
+  departmentName    String                 // e.g., "Engineering", "Quality Assurance"
+  description       String?
+
+  // Organizational hierarchy
+  parentDepartmentId String?
+  parentDepartment  Department? @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments  Department[] @relation("DepartmentHierarchy")
+
+  // Optional associations
+  siteId            String?
+  site              Site?       @relation(fields: [siteId], references: [id])
+
+  // Cost center tracking
+  costCenter        String?
+  budgetCode        String?
+
+  // Department manager
+  managerId         String?     @unique
+  manager           User?       @relation("DepartmentManager", fields: [managerId], references: [id])
+
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations back to entities
+  users                       User[]                  @relation("UserDepartment")
+  personnelInfoExchanges      PersonnelInfoExchange[] @relation("PersonnelDepartment")
+  ecoRequestorDepts           EngineeringChangeOrder[] @relation("ECORequestorDept")
+  ecoTaskAssignments          ECOTask[]               @relation("ECOTaskDept")
+  icdChangeRequestDepts       ICDChangeRequest[]      @relation("ICDChangeRequestDept")
+
+  @@index([departmentCode])
+  @@index([siteId])
+  @@index([parentDepartmentId])
+  @@index([managerId])
+  @@map("departments")
 }
 
 model User {
@@ -107,6 +187,7 @@ model User {
   emergencyContact          String?
   emergencyPhone            String?
   department                String?
+  departmentId              String?
   supervisorId              String?
   costCenter                String?
   laborRate                 Float?
@@ -167,6 +248,7 @@ model User {
   personnelClass            PersonnelClass?                 @relation(fields: [personnelClassId], references: [id])
   supervisor                User?                           @relation("SupervisorRelation", fields: [supervisorId], references: [id])
   subordinates              User[]                          @relation("SupervisorRelation")
+  departmentRelation        Department?                     @relation("UserDepartment", fields: [departmentId], references: [id])
   workInstructionExecutions WorkInstructionExecution[]      @relation("WIExecutionOperator")
   signedStepExecutions      WorkInstructionStepExecution[]  @relation("WIStepExecutionSignedBy")
   approvedWorkInstructions  WorkInstruction[]               @relation("WorkInstructionApprovedBy")
@@ -194,6 +276,14 @@ model User {
   kitStatusChanges          KitStatusHistory[]              @relation("KitStatusChanged")
   shortageAlertsAssigned    KitShortageAlert[]              @relation("ShortageAssigned")
   shortageAlertsResolved    KitShortageAlert[]              @relation("ShortageResolved")
+
+  // Expedite workflow relationships
+  expeditRequestsCreated    ExpeditRequest[]                @relation("ExpeditRequestedBy")
+  expeditRequestsApproved   ExpeditRequest[]                @relation("ExpeditApprovedBy")
+  supplierCommunicationsSent SupplierCommunication[]
+  shortageResolutionsCreated ShortageResolution[]
+  expeditStatusChanges      ExpeditStatusHistory[]
+
   // OAuth/OIDC relationships
   oidcSessions              OidcSession[]
   // SAML relationships
@@ -223,6 +313,14 @@ model User {
   buildRecordSignatures     BuildRecordSignature[]          @relation("BuildRecordSigner")
   buildRecordInvalidatedSignatures BuildRecordSignature[]    @relation("BuildRecordSignatureInvalidator")
 
+  // Time Entry Management Relations (Issue #51)
+  timeEntryEditsCreated     TimeEntryEdit[]                 @relation("TimeEntryEditEditor")
+  timeEntryEditsApproved    TimeEntryEdit[]                 @relation("TimeEntryEditApprover")
+  timeEntryApprovals        TimeEntryApproval[]
+  timeEntryBatchesSubmitted TimeEntryBatch[]                @relation("TimeEntryBatchEmployee")
+  timeEntryBatchesApproved  TimeEntryBatch[]                @relation("TimeEntryBatchApprover")
+  timeEntryLocks            TimeEntryLock[]
+
   // Part Interchangeability Framework relationships
   createdInterchangeabilityGroups PartInterchangeabilityGroup[] @relation("InterchangeabilityGroupCreator")
   createdPartSubstitutions  PartSubstitution[]              @relation("PartSubstitutionCreator")
@@ -232,9 +330,60 @@ model User {
   createdSubstitutions      WorkOrderPartSubstitution[]     @relation("SubstitutionCreator")
   auditLogActions           InterchangeabilityAuditLog[]    @relation("AuditLogPerformer")
 
+  // Temporal permissions audit trail
+  temporalAccessLogs        TemporalAccessLog[]
+
+  // Department Management Relations (Issue #209)
+  managedDepartments             Department[]              @relation("DepartmentManager")
+
+  // Equipment & Maintenance Management Relations (Issue #94)
+  assignedMaintenanceWorkOrders  MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderAssignedTo")
+  createdMaintenanceWorkOrders   MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderCreatedBy")
+  updatedMaintenanceWorkOrders   MaintenanceWorkOrder[]    @relation("MaintenanceWorkOrderUpdatedBy")
+  laborEntries                   LaborEntry[]              @relation("LaborEntryTechnician")
+  reportedDowntimeEvents         DowntimeEvent[]           @relation("DowntimeEventReportedBy")
+
+  // Andon System Relations (Issue #171)
+  andonAlertsRaised         AndonAlert[]                    @relation("AndonAlertsRaised")
+  andonAlertsAssigned       AndonAlert[]                    @relation("AndonAlertsAssigned")
+  andonAlertsResolved       AndonAlert[]                    @relation("AndonAlertsResolved")
+  andonIssueTypes           AndonIssueType[]
+  andonEscalationRules      AndonEscalationRule[]
+  andonConfigurations       AndonConfiguration[]
+  andonSiteConfigurations   AndonSiteConfiguration[]
+  andonSystemSettings       AndonSystemSettings[]
+
+  // QMS Compliance Framework Relations (Issue #102)
+  documentsApprovedBy       ControlledDocument[]            @relation("DocumentApprovedBy")
+  documentDistribution      ControlledDocument[]            @relation("DocumentDistribution")
+  documentsCreated          ControlledDocument[]            @relation("DocumentCreatedBy")
+  documentApprovalsGiven    DocumentApproval[]
+  coursesCreated            TrainingCourse[]                @relation("CourseCreatedBy")
+  trainingRecordsAsTrainee  TrainingRecord[]                @relation("TrainingRecordTrainee")
+  trainingRecordsAsInstructor TrainingRecord[]              @relation("TrainingRecordInstructor")
+
+  // QMS Phase 2: Audit, CAPA, Management Review, Change Management
+  auditsLead                InternalAudit[]                 @relation("AuditLeadAuditor")
+  auditsAsAuditee           InternalAudit[]                 @relation("Auditee")
+  auditsClosed              InternalAudit[]                 @relation("AuditClosedBy")
+  auditsCreated             InternalAudit[]                 @relation("AuditCreatedBy")
+  findingsVerified          AuditFinding[]
+  capasAssigned             CorrectiveAction[]              @relation("CAAssignedTo")
+  capasVerified             CorrectiveAction[]              @relation("CAVerifiedBy")
+  capasCreated              CorrectiveAction[]              @relation("CACreatedBy")
+  caAuditTrail              CorrectiveActionAudit[]
+  caApprovalsApproved       CAApprovalRequest[]
+  caApprovalsRequested      CAApprovalRequest[]             @relation("CAApprovalRequester")
+  reviewsChaired            ManagementReview[]              @relation("ReviewChairperson")
+  reviewActionsAssigned     ManagementReviewAction[]
+  reviewsCreated            ManagementReview[]              @relation("ReviewCreatedBy")
+  changesApproved           ChangeRequest[]                 @relation("ChangeApprovedBy")
+  changesCreated            ChangeRequest[]                 @relation("ChangeCreatedBy")
+
   @@index([employeeNumber])
   @@index([personnelClassId])
   @@index([supervisorId])
+  @@index([departmentId])
   @@map("users")
 }
 
@@ -427,6 +576,8 @@ model UnitOfMeasure {
   materialTransactions        MaterialTransaction[]       @relation("MaterialTransactionUOM")
   kitItems                    KitItem[]                   @relation("KitItemUOM")
   vendorKitItems              VendorKitItem[]             @relation("VendorKitItemUOM")
+  locationCapacityUnits       Location[]                  @relation("LocationCapacityUOM")
+  locationDimensionUnits      Location[]                  @relation("LocationDimensionUOM")
 
   @@index([code])
   @@index([unitType])
@@ -482,7 +633,8 @@ model MaterialDefinition {
   lotNumberFormat        String?
   defaultShelfLifeDays   Int?
   standardCost           Float?
-  currency               String?              @default("USD")
+  currency               String?              @default("USD")    // Legacy field (to be deprecated)
+  currencyId             String?                                 // FK to Currency
   requiresInspection     Boolean              @default(false)
   inspectionFrequency    String?
   primarySupplierId      String?
@@ -503,6 +655,7 @@ model MaterialDefinition {
   replacedMaterials      MaterialDefinition[] @relation("MaterialReplacement")
   baseUnitOfMeasureRef   UnitOfMeasure?       @relation("MaterialDefinitionBaseUOM", fields: [baseUnitOfMeasureId], references: [id])
   alternateUnitOfMeasureRef UnitOfMeasure?    @relation("MaterialDefinitionAlternateUOM", fields: [alternateUnitOfMeasureId], references: [id])
+  currencyRef            Currency?            @relation("MaterialDefinitionCurrency", fields: [currencyId], references: [id])
   lots                   MaterialLot[]
   properties             MaterialProperty[]
 
@@ -555,7 +708,8 @@ model MaterialLot {
   currentQuantity     Float
   unitOfMeasure       String
   unitOfMeasureId     String?              // FK to UnitOfMeasure
-  location            String?
+  location            String?              // Legacy location field (to be deprecated)
+  locationId          String?              // FK to Location
   warehouseId         String?
   manufactureDate     DateTime?
   receivedDate        DateTime
@@ -578,7 +732,8 @@ model MaterialLot {
   countryOfOrigin     String?
   unitCost            Float?
   totalCost           Float?
-  currency            String?                @default("USD")
+  currency            String?                @default("USD")    // Legacy field (to be deprecated)
+  currencyId          String?                                   // FK to Currency
   parentLotId         String?
   isSplit             Boolean                @default(false)
   isMerged            Boolean                @default(false)
@@ -592,6 +747,8 @@ model MaterialLot {
   parentLot           MaterialLot?           @relation("LotGenealogy", fields: [parentLotId], references: [id])
   childLots           MaterialLot[]          @relation("LotGenealogy")
   unitOfMeasureRef    UnitOfMeasure?         @relation("MaterialLotUOM", fields: [unitOfMeasureId], references: [id])
+  locationRef         Location?              @relation(fields: [locationId], references: [id])
+  currencyRef         Currency?              @relation("MaterialLotCurrency", fields: [currencyId], references: [id])
   stateHistory        MaterialStateHistory[]
   sublots             MaterialSublot[]
   kitItems            KitItem[]
@@ -681,14 +838,18 @@ model MaterialStateHistory {
   inspectionId   String?
   changedById    String?
   changedAt      DateTime            @default(now())
-  fromLocation   String?
-  toLocation     String?
+  fromLocation   String?             // Legacy location field (to be deprecated)
+  fromLocationId String?             // FK to Location
+  toLocation     String?             // Legacy location field (to be deprecated)
+  toLocationId   String?             // FK to Location
   qualityNotes   String?
   notes          String?
   metadata       Json?
   createdAt      DateTime            @default(now())
   lot            MaterialLot         @relation(fields: [lotId], references: [id])
   unitOfMeasureRef UnitOfMeasure?     @relation("MaterialStateHistoryUOM", fields: [unitOfMeasureId], references: [id])
+  fromLocationRef  Location?          @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocationRef    Location?          @relation("ToLocation", fields: [toLocationId], references: [id])
 
   @@index([lotId])
   @@index([changedAt])
@@ -744,6 +905,12 @@ model Operation {
   kits                      Kit[]
   // Part Interchangeability Framework relationships
   partSubstitutions         WorkOrderPartSubstitution[]
+
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration     OperationWorkflowConfiguration? @relation("OperationWorkflowConfig")
+
+  // Andon System Relations (Issue #171)
+  andonAlerts AndonAlert[]
 
   @@index([parentOperationId])
   @@index([persistentUuid])
@@ -991,7 +1158,8 @@ model Part {
   lotSizeMultiple            Int?
   standardCost               Float?
   targetCost                 Float?
-  currency                   String?                     @default("USD")
+  currency                   String?                     @default("USD")    // Legacy field (to be deprecated)
+  currencyId                 String?                                        // FK to Currency
   isActive                   Boolean                     @default(true)
   isConfigurable             Boolean                     @default(false)
   requiresFAI                Boolean                     @default(false)
@@ -1015,6 +1183,7 @@ model Part {
   serializedParts            SerializedPart[]
   workOrders                 WorkOrder[]
   unitOfMeasureRef           UnitOfMeasure?              @relation("PartUOM", fields: [unitOfMeasureId], references: [id])
+  currencyRef                Currency?                   @relation("PartCurrency", fields: [currencyId], references: [id])
   torqueSpecifications       TorqueSpecification[]
   // Part Interchangeability Framework relationships
   primarySubstitutions       PartSubstitution[]          @relation("PrimaryPartSubstitutions")
@@ -1039,10 +1208,19 @@ model Part {
   shortageAlerts             KitShortageAlert[]
   vendorKitItems             VendorKitItem[]
 
+  // Expedite workflow relationships
+  expeditRequests            ExpeditRequest[]
+  supplierCommunications     SupplierCommunication[]
+  alternativePartResolutions ShortageResolution[]         @relation("AlternativePartUsed")
+  partShortageAnalytics      PartShortageAnalytics[]
+
   // ICD System relationships
   icdImplementations         ICDPartImplementation[]     @relation("PartICDImplementations")
   icdConsumptions            ICDPartConsumption[]        @relation("PartICDConsumptions")
   icdComplianceChecks        ICDComplianceCheck[]        @relation("PartICDComplianceChecks")
+
+  // Serial Number Format Assignments (Issue #149)
+  serialFormatAssignments    SerialFormatPartAssignment[]
 
   @@index([productType])
   @@index([lifecycleState])
@@ -1277,6 +1455,12 @@ model WorkOrder {
   // Part Interchangeability Framework relationships
   partSubstitutions            WorkOrderPartSubstitution[]
 
+  // Workflow Configuration Relations (Issue #40)
+  workflowConfiguration        WorkOrderWorkflowConfiguration? @relation("WorkOrderWorkflowConfig")
+
+  // Andon System Relations (Issue #171)
+  andonAlerts AndonAlert[]
+
   @@index([persistentUuid])
   @@map("work_orders")
 }
@@ -1313,6 +1497,7 @@ model Routing {
   site            Site?                 @relation(fields: [siteId], references: [id])
   scheduleEntries ScheduleEntry[]
   workOrders      WorkOrder[]
+  workflowConfiguration RoutingWorkflowConfiguration? @relation("RoutingWorkflowConfig")
 
   @@unique([partId, siteId, version])
   @@index([siteId])
@@ -1463,6 +1648,9 @@ model WorkCenter {
   area                 Area?                           @relation(fields: [areaId], references: [id])
   workUnits            WorkUnit[]
   buildRecordOperations BuildRecordOperation[]
+
+  // Andon System Relations (Issue #171)
+  andonAlerts AndonAlert[]
 
   @@index([areaId])
   @@map("work_centers")
@@ -1868,6 +2056,100 @@ model QualityMeasurement {
   @@map("quality_measurements")
 }
 
+// ============================================================================
+// HIERARCHICAL CAUSE CODE SYSTEM (Issue #54)
+// ============================================================================
+
+/// Cause Code Category - Top-level grouping (e.g., Material, Equipment, Process)
+model CauseCodeCategory {
+  id          String   @id @default(cuid())
+  code        String              // E.g., "MAT", "EQP", "PRO"
+  name        String              // E.g., "Material", "Equipment", "Process"
+  description String?
+
+  // Hierarchy
+  parentId    String?
+  parent      CauseCodeCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    CauseCodeCategory[] @relation("CategoryHierarchy")
+
+  // Metadata
+  enabled     Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String
+
+  // Relations
+  causeCodes  CauseCode[]
+
+  @@index([parentId])
+  @@index([enabled])
+  @@map("cause_code_categories")
+}
+
+/// Cause Code - Detailed root cause classification (hierarchical)
+model CauseCode {
+  id          String   @id @default(cuid())
+  code        String              // E.g., "MAT-001", "MAT-001-A"
+  name        String              // Display name
+  description String?             // Detailed description
+
+  // Hierarchy - can have parent cause codes (e.g., MAT > MAT-001 > MAT-001-A)
+  parentId    String?
+  parent      CauseCode?         @relation("CauseCodeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    CauseCode[]        @relation("CauseCodeHierarchy")
+
+  // Classification
+  categoryId  String
+  category    CauseCodeCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Properties
+  enabled     Boolean            @default(true)
+  level       Int                // Depth in hierarchy (1 = top, 2 = subcategory, etc.)
+  sortOrder   Int                @default(0)
+
+  // Statistics (cached for performance)
+  usageCount  Int                @default(0)
+  lastUsedAt  DateTime?
+
+  // Metadata
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdBy   String
+
+  // Relations
+  ncrRootCauses         NCR[]              @relation("RootCause")
+  causeCodeHistory      CauseCodeHistory[]
+
+  @@index([categoryId])
+  @@index([parentId])
+  @@index([level])
+  @@index([enabled])
+  @@unique([code])
+  @@map("cause_codes")
+}
+
+/// Cause Code Change History - Audit trail for cause code modifications
+model CauseCodeHistory {
+  id           String   @id @default(cuid())
+  causeCodeId  String
+  causeCode    CauseCode  @relation(fields: [causeCodeId], references: [id], onDelete: Cascade)
+
+  // Change tracking
+  changeType   String   // "CREATED", "UPDATED", "ENABLED", "DISABLED", "HIERARCHY_CHANGED"
+  oldValue     String?  // JSON of previous values
+  newValue     String?  // JSON of new values
+  changeReason String?
+
+  // Metadata
+  changedAt    DateTime @default(now())
+  changedBy    String
+
+  @@index([causeCodeId])
+  @@index([changedAt])
+  @@map("cause_code_history")
+}
+
 model NCR {
   id               String             @id @default(cuid())
   ncrNumber        String             @unique
@@ -1884,20 +2166,157 @@ model NCR {
   createdById      String
   assignedToId     String?
   dueDate          DateTime?
-  rootCause        String?
+  rootCauseId      String?            // Hierarchical cause code (Issue #54)
   correctiveAction String?
   preventiveAction String?
   closedAt         DateTime?
+
+  // ✅ ISSUE #55: Enhanced NCR Workflow - Phase 1-2
+  // Disposition fields
+  disposition      NCRDisposition?
+  dispositionJustification String?
+  dispositionApprovedBy String?
+  dispositionApprovedAt DateTime?
+
+  // CTP (Continue to Process) fields
+  ctpAuthorized    Boolean? @default(false)
+  ctpApprovedBy    String?
+  ctpApprovedAt    DateTime?
+  ctpJustification String?
+  ctpConditions    String?
+  ctpOperations    String?            // JSON array of operations material proceeded through
+
+  // DDR (Delayed Disposition) fields
+  ddrExpectedDate  DateTime?
+  ddrPendingItems  String?            // JSON array of pending items with status
+  ddrEscalated     Boolean? @default(false)
+  ddrEscalatedAt   DateTime?
+
+  // MRB (Material Review Board) fields
+  mrbRequired      Boolean? @default(false)
+  mrbMeetingDate   DateTime?
+  mrbAttendees     String?            // JSON array of user IDs
+  mrbDecision      String?
+  mrbVotes         String?            // JSON array of {userId, vote, comments}
+  mrbMinutes       String?            // Meeting minutes or attachment link
+
+  // Cost tracking fields
+  estimatedCost    Decimal?           @db.Decimal(15, 2)
+  actualCost       Decimal?           @db.Decimal(15, 2)
+  scrapCost        Decimal?           @db.Decimal(15, 2)
+  reworkCost       Decimal?           @db.Decimal(15, 2)
+
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  // Relations
   assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
   inspection       QualityInspection? @relation(fields: [inspectionId], references: [id])
   site             Site?              @relation(fields: [siteId], references: [id])
   workOrder        WorkOrder?         @relation(fields: [workOrderId], references: [id])
+  rootCause        CauseCode?         @relation("RootCause", fields: [rootCauseId], references: [id])
+
+  // Workflow relations (Issue #55)
+  stateHistory     NCRStateHistory[]
+  approvalRequests NCRApprovalRequest[]
   buildDeviations  BuildDeviation[]
 
   @@map("ncrs")
+}
+
+/// ✅ ISSUE #55: NCR State History - Track all state transitions
+model NCRStateHistory {
+  id              String   @id @default(cuid())
+  ncrId           String
+  fromState       NCRStatus?
+  toState         NCRStatus
+  changedBy       String
+  changeReason    String?
+  approvalRequired Boolean
+  approvedBy      String?
+  approvedAt      DateTime?
+  timestamp       DateTime @default(now())
+
+  // Relations
+  ncr             NCR      @relation(fields: [ncrId], references: [id], onDelete: Cascade)
+
+  @@index([ncrId])
+  @@index([timestamp])
+  @@map("ncr_state_history")
+}
+
+/// ✅ ISSUE #55: NCR Approval Requests - Track pending approvals
+model NCRApprovalRequest {
+  id              String   @id @default(cuid())
+  ncrId           String
+  requestType     NCRApprovalRequestType
+  requestedBy     String
+  requestedAt     DateTime @default(now())
+  approverUserId  String
+  status          NCRApprovalStatus
+  approvalNotes   String?
+  approvedAt      DateTime?
+  dueDate         DateTime?
+  escalated       Boolean  @default(false)
+  escalatedAt     DateTime?
+
+  // Relations
+  ncr             NCR      @relation(fields: [ncrId], references: [id], onDelete: Cascade)
+
+  @@index([ncrId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("ncr_approval_requests")
+}
+
+/// ✅ ISSUE #55: NCR Workflow Configuration - Per-site and per-severity workflow rules
+model NCRWorkflowConfig {
+  id                        String   @id @default(cuid())
+  siteId                    String?
+  severityLevel             NCRSeverity?  // null = applies to all severity levels
+
+  // State configuration (JSON serialized)
+  enabledStates             String        // JSON array of enabled states
+  initialState              NCRStatus
+  stateTransitions          String        // JSON: {fromState: [allowedToStates]}
+  requiredFieldsByState     String?       // JSON: {state: [requiredFields]}
+
+  // CTP configuration
+  ctpEnabled                Boolean       @default(true)
+  ctpApprovalRole           String?       // Role required to approve CTP
+  ctpPreventFinalShip       Boolean       @default(true)
+
+  // DDR configuration
+  ddrEnabled                Boolean       @default(true)
+  ddrAutoTriggerHours       Int?          // Auto-DDR if no disposition after X hours
+  ddrEscalationThreshold    Int           @default(24)  // Hours before escalation
+
+  // MRB configuration
+  mrbEnabled                Boolean       @default(true)
+  mrbValueThreshold         Decimal?      @db.Decimal(15, 2)  // Trigger if cost > $X
+  mrbTriggerConditions      String?       // JSON array of conditions
+  mrbRequiredAttendees      String?       // JSON array of role IDs
+  mrbVotingMethod           NCRMRBVotingMethod @default(UNANIMOUS)
+
+  // Disposition rules (JSON serialized)
+  allowedDispositions       String        // JSON array of allowed dispositions
+  dispositionApprovalRules  String?       // JSON: {disposition: {minRole, requiresMRB}}
+
+  // Metadata
+  isActive                  Boolean       @default(true)
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  createdBy                 String
+
+  // Relations
+  site                      Site?         @relation("NCRWorkflowConfigs", fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, severityLevel])
+  @@index([siteId])
+  @@index([severityLevel])
+  @@map("ncr_workflow_configs")
 }
 
 model Equipment {
@@ -1928,6 +2347,26 @@ model Equipment {
   oee                        Float?                      @default(0)
   ratedCapacity              Float?
   currentCapacity            Float?
+
+  // Enhanced maintenance fields for Issue #94
+  equipmentTypeId            String?
+  assetTag                   String?                     @unique
+  purchaseDate               DateTime?
+  warrantyExpiration         DateTime?
+  criticality                CriticalityLevel            @default(MEDIUM)
+  capacityUnit               String?
+  acquisitionCost            Decimal?
+  currentValue               Decimal?
+  depreciationMethod         String?
+  maintenanceInterval        Int?                        // Days
+  lastMaintenanceDate        DateTime?
+  nextMaintenanceDate        DateTime?
+  totalRunTime               Int                         @default(0) // Minutes
+  totalDownTime              Int                         @default(0) // Minutes
+  mtbf                       Decimal?                    // Mean Time Between Failures (hours)
+  mttr                       Decimal?                    // Mean Time To Repair (hours)
+  requiresCalibration        Boolean                     @default(false)
+
   isActive                   Boolean                     @default(true)
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
@@ -1937,6 +2376,11 @@ model Equipment {
   site                       Site?                       @relation(fields: [siteId], references: [id])
   workCenter                 WorkCenter?                 @relation(fields: [workCenterId], references: [id])
   workUnit                   WorkUnit?                   @relation(fields: [workUnitId], references: [id])
+
+  // Enhanced maintenance relations for Issue #94
+  equipmentTypeRef           EquipmentType?              @relation("EquipmentToEquipmentType", fields: [equipmentTypeId], references: [id])
+  downtimeEvents             DowntimeEvent[]             @relation("EquipmentDowntimeEvents")
+
   capabilities               EquipmentCapability[]
   equipmentCommands          EquipmentCommand[]
   equipmentDataCollections   EquipmentDataCollection[]
@@ -1949,6 +2393,9 @@ model Equipment {
   processDataCollections     ProcessDataCollection[]
   productionScheduleRequests ProductionScheduleRequest[]
 
+  // Andon System Relations (Issue #171)
+  andonAlerts AndonAlert[]
+
   @@index([parentEquipmentId])
   @@index([workUnitId])
   @@index([workCenterId])
@@ -1956,6 +2403,10 @@ model Equipment {
   @@index([siteId])
   @@index([currentState])
   @@index([equipmentClass])
+  @@index([equipmentTypeId])
+  @@index([criticality])
+  @@index([nextMaintenanceDate])
+  @@index([assetTag])
   @@map("equipment")
 }
 
@@ -2056,7 +2507,8 @@ model EquipmentPerformanceLog {
 model Inventory {
   id            String                @id @default(cuid())
   partId        String
-  location      String
+  location      String               // Legacy location field (to be deprecated)
+  locationId    String?              // FK to Location
   lotNumber     String?
   quantity      Float
   unitOfMeasure String
@@ -2070,6 +2522,7 @@ model Inventory {
   part          Part                  @relation(fields: [partId], references: [id])
   transactions  MaterialTransaction[]
   unitOfMeasureRef UnitOfMeasure?      @relation("InventoryUOM", fields: [unitOfMeasureId], references: [id])
+  locationRef   Location?             @relation(fields: [locationId], references: [id])
   kitItems      KitItem[]
 
   @@index([partId])
@@ -2108,7 +2561,8 @@ model SerializedPart {
   workOrderId           String?
   lotNumber             String?
   status                String
-  currentLocation       String?
+  currentLocation       String?              // Legacy location field (to be deprecated)
+  currentLocationId     String?              // FK to Location
   manufactureDate       DateTime?
   shipDate              DateTime?
   customerInfo          String?
@@ -2119,6 +2573,7 @@ model SerializedPart {
   genealogy             PartGenealogy[]        @relation("ParentPart")
   qifMeasurementResults QIFMeasurementResult[]
   part                  Part                   @relation(fields: [partId], references: [id])
+  currentLocationRef    Location?              @relation(fields: [currentLocationId], references: [id])
 
   // Life-Limited Parts (LLP) Relationships
   llpLifeHistory        LLPLifeHistory[]
@@ -2361,30 +2816,91 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+/// Enhanced maintenance work order model for comprehensive maintenance management (Issue #94)
 model MaintenanceWorkOrder {
-  id                      String     @id @default(cuid())
-  externalWorkOrderNumber String     @unique
+  id                      String            @id @default(cuid())
+  workOrderNumber         String            @unique
+  externalWorkOrderNumber String?           @unique
+  equipmentId             String
+
+  // Work order classification
+  type                    MaintenanceType
+  priority                Priority          @default(NORMAL)
+  status                  MaintenanceStatus @default(PENDING)
+
+  // Scheduling
+  scheduledDate           DateTime?
+  dueDate                 DateTime?
+  startedAt               DateTime?
+  completedAt             DateTime?
+
+  // Description and analysis
   description             String
-  workType                String
-  status                  String
-  equipmentId             String?
+  problemDescription      String?
+  rootCause               String?
+  correctiveAction        String?
+  workPerformed           String?
+  notes                   String?
+
+  // Assignment
+  assignedToId            String?
+  assignedTeam            String?
+
+  // Labor tracking
+  estimatedLaborHours     Decimal?
+  actualLaborHours        Decimal?
+
+  // Parts tracking
+  estimatedPartsCost      Decimal?
+  actualPartsCost         Decimal?
+
+  // Downtime impact
+  causedDowntime          Boolean           @default(false)
+  downtimeMinutes         Int?
+
+  // Follow-up tracking
+  requiresFollowUp        Boolean           @default(false)
+  followUpDate            DateTime?
+  followUpWorkOrderId     String?
+
+  // Legacy fields for backwards compatibility
+  workType                String?
   scheduledStart          DateTime?
   scheduledFinish         DateTime?
   actualStart             DateTime?
   actualFinish            DateTime?
-  priority                Int        @default(3)
   failureCode             String?
   problemCode             String?
   causeCode               String?
   remedyCode              String?
   lastSyncedAt            DateTime?
-  createdAt               DateTime   @default(now())
-  updatedAt               DateTime   @updatedAt
-  equipment               Equipment? @relation(fields: [equipmentId], references: [id])
 
+  // Audit fields
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  createdById             String
+  updatedById             String
+
+  // Relations
+  equipment               Equipment         @relation(fields: [equipmentId], references: [id])
+  assignedTo              User?             @relation("MaintenanceWorkOrderAssignedTo", fields: [assignedToId], references: [id])
+  laborEntries            LaborEntry[]      @relation("MaintenanceWorkOrderLabor")
+  partsUsed               MaintenancePart[] @relation("MaintenanceWorkOrderParts")
+  downtimeEvents          DowntimeEvent[]   @relation("DowntimeToMaintenanceWorkOrder")
+  followUpWorkOrder       MaintenanceWorkOrder? @relation("FollowUpWorkOrder", fields: [followUpWorkOrderId], references: [id])
+  parentWorkOrders        MaintenanceWorkOrder[] @relation("FollowUpWorkOrder")
+  createdBy               User              @relation("MaintenanceWorkOrderCreatedBy", fields: [createdById], references: [id])
+  updatedBy               User              @relation("MaintenanceWorkOrderUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workOrderNumber])
   @@index([externalWorkOrderNumber])
   @@index([equipmentId])
   @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([scheduledDate])
   @@map("maintenance_work_orders")
 }
 
@@ -2561,6 +3077,349 @@ model Alert {
   @@index([resolved])
   @@index([createdAt])
   @@map("alerts")
+}
+
+// ============================================================================
+// ANDON SYSTEM MODELS (GitHub Issue #171)
+// ============================================================================
+
+model AndonAlert {
+  id                    String              @id @default(cuid())
+  alertNumber           String              @unique // Auto-generated sequential alert number
+  title                 String              // Brief alert title
+  description           String?             // Detailed description
+
+  // Classification
+  issueTypeId           String
+  issueType             AndonIssueType      @relation(fields: [issueTypeId], references: [id])
+  severity              AndonSeverity       // CRITICAL, HIGH, MEDIUM, LOW
+  priority              AndonPriority       // URGENT, HIGH, NORMAL, LOW
+
+  // Location context
+  siteId                String?
+  site                  Site?               @relation(fields: [siteId], references: [id])
+  areaId                String?
+  area                  Area?               @relation(fields: [areaId], references: [id])
+  workCenterId          String?
+  workCenter            WorkCenter?         @relation(fields: [workCenterId], references: [id])
+  equipmentId           String?
+  equipment             Equipment?          @relation(fields: [equipmentId], references: [id])
+
+  // Work Order context (if applicable)
+  workOrderId           String?
+  workOrder             WorkOrder?          @relation(fields: [workOrderId], references: [id])
+  operationId           String?
+  operation             Operation?          @relation(fields: [operationId], references: [id])
+
+  // Personnel
+  raisedById            String              // User who raised the alert
+  raisedBy              User                @relation("AndonAlertsRaised", fields: [raisedById], references: [id])
+  assignedToId          String?             // Current assignee
+  assignedTo            User?               @relation("AndonAlertsAssigned", fields: [assignedToId], references: [id])
+
+  // Status tracking
+  status                AndonAlertStatus    // OPEN, IN_PROGRESS, ESCALATED, RESOLVED, CLOSED
+  statusHistory         Json[]              // Array of status changes with timestamps
+
+  // Escalation tracking
+  currentEscalationLevel Int                @default(0)
+  nextEscalationAt      DateTime?           // When next escalation should occur
+  escalationHistory     Json[]              // Array of escalation events
+
+  // Resolution
+  resolvedAt            DateTime?
+  resolvedById          String?
+  resolvedBy            User?               @relation("AndonAlertsResolved", fields: [resolvedById], references: [id])
+  resolutionNotes       String?
+  resolutionActionTaken String?
+
+  // Timing
+  responseTime          Int?                // Minutes from raised to first response
+  resolutionTime        Int?                // Minutes from raised to resolution
+
+  // Metadata and attachments
+  metadata              Json?               // Flexible data storage
+  attachments           Json[]              // File references, photos, etc.
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  escalationRuleResults AndonEscalationRuleResult[]
+
+  @@index([alertNumber])
+  @@index([status])
+  @@index([severity])
+  @@index([priority])
+  @@index([issueTypeId])
+  @@index([raisedById])
+  @@index([assignedToId])
+  @@index([siteId])
+  @@index([createdAt])
+  @@index([nextEscalationAt])
+  @@map("andon_alerts")
+}
+
+model AndonIssueType {
+  id                    String              @id @default(cuid())
+  typeCode              String              @unique // QUALITY, SAFETY, EQUIPMENT, MATERIAL, etc.
+  typeName              String              // Display name
+  description           String?             // Detailed description
+
+  // Configuration
+  defaultSeverity       AndonSeverity       @default(MEDIUM)
+  defaultPriority       AndonPriority       @default(NORMAL)
+  requiresAttachment    Boolean             @default(false)
+  requiresWorkOrder     Boolean             @default(false)
+  requiresEquipment     Boolean             @default(false)
+
+  // Auto-assignment rules
+  autoAssignRole        String?             // Auto-assign to users with this role
+  autoAssignUserId      String?             // Auto-assign to specific user
+  autoAssignUser        User?               @relation(fields: [autoAssignUserId], references: [id])
+
+  // Escalation behavior
+  enableEscalation      Boolean             @default(true)
+  escalationTimeoutMins Int?                @default(30) // Minutes before first escalation
+
+  // Site-specific configuration
+  siteId                String?             // null = global, specific site ID = site-specific
+  site                  Site?               @relation(fields: [siteId], references: [id])
+
+  // Visual configuration
+  iconName              String?             // Icon for UI display
+  colorCode             String?             // Color code for visual distinction
+
+  // Status
+  isActive              Boolean             @default(true)
+  displayOrder          Int?                // Sort order in UI
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String
+  updatedBy             String?
+
+  // Relations
+  alerts                AndonAlert[]
+  escalationRules       AndonEscalationRule[]
+
+  @@index([typeCode])
+  @@index([siteId])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("andon_issue_types")
+}
+
+model AndonEscalationRule {
+  id                    String              @id @default(cuid())
+  ruleName              String              // Display name for the rule
+  description           String?             // Rule description
+
+  // Rule scope
+  siteId                String?             // null = global, specific site ID = site-specific
+  site                  Site?               @relation(fields: [siteId], references: [id])
+  issueTypeId           String?             // null = all types, specific ID = type-specific
+  issueType             AndonIssueType?     @relation(fields: [issueTypeId], references: [id])
+
+  // Trigger conditions
+  triggerSeverity       AndonSeverity[]     // Which severities trigger this rule
+  triggerAfterMinutes   Int                 // Minutes after alert creation to trigger
+  escalationLevel       Int                 // Which escalation level this rule applies to (0, 1, 2, etc.)
+
+  // Escalation actions
+  notifyUserIds         String[]            // User IDs to notify
+  notifyRoles           String[]            // Role names to notify
+  notifyChannels        String[]            // EMAIL, SMS, PUSH, etc.
+  assignToUserId        String?             // Reassign alert to this user
+  assignToUser          User?               @relation(fields: [assignToUserId], references: [id])
+  assignToRole          String?             // Reassign to user with this role
+
+  // Advanced conditions (JSON for flexibility)
+  conditions            Json?               // Complex rule conditions
+
+  // Rule execution tracking
+  isActive              Boolean             @default(true)
+  executionCount        Int                 @default(0)
+  lastExecutedAt        DateTime?
+
+  // Rule priority (for conflict resolution)
+  priority              Int                 @default(100)
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String
+  updatedBy             String?
+
+  // Relations
+  results               AndonEscalationRuleResult[]
+
+  @@index([siteId])
+  @@index([issueTypeId])
+  @@index([escalationLevel])
+  @@index([isActive])
+  @@index([priority])
+  @@map("andon_escalation_rules")
+}
+
+model AndonEscalationRuleResult {
+  id                    String              @id @default(cuid())
+  alertId               String
+  alert                 AndonAlert          @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  ruleId                String
+  rule                  AndonEscalationRule @relation(fields: [ruleId], references: [id])
+
+  // Execution details
+  executedAt            DateTime            @default(now())
+  escalationLevel       Int
+  success               Boolean             @default(true)
+  errorMessage          String?
+
+  // Actions taken
+  actionsTaken          Json                // Details of notifications sent, assignments made, etc.
+  notifiedUsers         String[]            // User IDs that were notified
+
+  @@index([alertId])
+  @@index([ruleId])
+  @@index([executedAt])
+  @@map("andon_escalation_rule_results")
+}
+
+model AndonConfiguration {
+  id                    String              @id @default(cuid())
+  configKey             String              @unique // Unique configuration key
+  configValue           Json                // Configuration value (flexible JSON)
+  description           String?             // Description of the configuration
+  dataType              String              // STRING, NUMBER, BOOLEAN, JSON, ARRAY
+  category              String              // GENERAL, ESCALATION, NOTIFICATION, UI, etc.
+
+  // Validation
+  isRequired            Boolean             @default(false)
+  validationRules       Json?               // Validation constraints
+  defaultValue          Json?               // Default value for the configuration
+
+  // Security and access
+  isEncrypted           Boolean             @default(false)
+  accessLevel           String              @default("ADMIN") // ADMIN, MANAGER, SUPERVISOR
+
+  // Status
+  isActive              Boolean             @default(true)
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  lastModifiedBy        String
+  lastModifiedByUser    User                @relation(fields: [lastModifiedBy], references: [id])
+
+  @@index([configKey])
+  @@index([category])
+  @@index([isActive])
+  @@map("andon_configurations")
+}
+
+model AndonSiteConfiguration {
+  id                    String              @id @default(cuid())
+  siteId                String
+  site                  Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  configKey             String              // References AndonConfiguration.configKey
+  configValue           Json                // Site-specific override value
+
+  // Override behavior
+  isOverride            Boolean             @default(true) // Whether this overrides global config
+  inheritFromGlobal     Boolean             @default(false) // Whether to inherit when not explicitly set
+
+  // Status
+  isActive              Boolean             @default(true)
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  lastModifiedBy        String
+  lastModifiedByUser    User                @relation(fields: [lastModifiedBy], references: [id])
+
+  @@unique([siteId, configKey]) // Ensures one override per site per config key
+  @@index([siteId])
+  @@index([configKey])
+  @@index([isActive])
+  @@map("andon_site_configurations")
+}
+
+model AndonNotificationTemplate {
+  id                    String              @id @default(cuid())
+  templateKey           String              @unique // ALERT_CREATED, ESCALATED, RESOLVED, etc.
+  templateName          String              // Display name
+  description           String?             // Template description
+
+  // Template content
+  subject               String              // Email subject or notification title
+  bodyTemplate          String              // Template body with placeholders
+  variables             Json                // Available template variables
+
+  // Channel-specific templates
+  emailTemplate         String?             // HTML email template
+  smsTemplate           String?             // SMS message template
+  pushTemplate          String?             // Push notification template
+
+  // Site-specific template
+  siteId                String?             // null = global, specific site ID = site-specific
+  site                  Site?               @relation(fields: [siteId], references: [id])
+
+  // Template settings
+  isActive              Boolean             @default(true)
+  priority              Int                 @default(100) // Priority for template selection
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String
+  updatedBy             String?
+
+  @@index([templateKey])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("andon_notification_templates")
+}
+
+model AndonSystemSettings {
+  id                    String              @id @default(cuid())
+  siteId                String?             // null = global, specific site ID = site-specific
+  site                  Site?               @relation(fields: [siteId], references: [id])
+
+  // Core feature toggles
+  andonEnabled          Boolean             @default(true)
+  escalationEnabled     Boolean             @default(true)
+  notificationsEnabled  Boolean             @default(true)
+
+  // Default behaviors
+  defaultSeverity       AndonSeverity       @default(MEDIUM)
+  defaultPriority       AndonPriority       @default(NORMAL)
+  autoAssignEnabled     Boolean             @default(false)
+
+  // Timing settings
+  defaultResponseTimeMin Int?               @default(15) // Default response time target in minutes
+  maxEscalationLevels   Int                 @default(3)
+  baseEscalationDelayMin Int                @default(30) // Base escalation delay in minutes
+
+  // UI/UX settings
+  enableMobileAccess    Boolean             @default(true)
+  enableKioskMode       Boolean             @default(true)
+  requireComments       Boolean             @default(false)
+  allowAnonymousReports Boolean             @default(false)
+
+  // Integration settings
+  integrationSettings   Json?               // Settings for external integrations
+
+  // Audit trail
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  lastModifiedBy        String
+  lastModifiedByUser    User                @relation(fields: [lastModifiedBy], references: [id])
+
+  @@unique([siteId]) // One settings record per site (null for global)
+  @@index([siteId])
+  @@map("andon_system_settings")
 }
 
 model IntegrationConfig {
@@ -2758,7 +3617,8 @@ model ERPMaterialTransaction {
   serialNumber        String?
   unitCost            Float?
   totalCost           Float?
-  currency            String?              @default("USD")
+  currency            String?              @default("USD")    // Legacy field (to be deprecated)
+  currencyId          String?                                 // FK to Currency
   movementType        String
   reasonCode          String?
   status              B2MMessageStatus
@@ -2772,6 +3632,7 @@ model ERPMaterialTransaction {
   config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
   part                Part?                @relation(fields: [partId], references: [id])
   workOrder           WorkOrder?           @relation(fields: [workOrderId], references: [id])
+  currencyRef         Currency?            @relation("ERPTransactionCurrency", fields: [currencyId], references: [id])
 
   @@index([configId])
   @@index([transactionType])
@@ -2794,6 +3655,7 @@ model PersonnelInfoExchange {
   email               String?
   employeeNumber      String?
   department          String?
+  departmentId        String?
   jobTitle            String?
   skills              Json?
   certifications      Json?
@@ -2811,12 +3673,14 @@ model PersonnelInfoExchange {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   config              IntegrationConfig    @relation(fields: [configId], references: [id], onDelete: Cascade)
+  departmentRelation  Department?          @relation("PersonnelDepartment", fields: [departmentId], references: [id])
 
   @@index([configId])
   @@index([actionType])
   @@index([status])
   @@index([externalPersonnelId])
   @@index([personnelId])
+  @@index([departmentId])
   @@map("personnel_info_exchanges")
 }
 
@@ -3148,11 +4012,17 @@ model SPCRuleViolation {
   acknowledgedBy  String?
   acknowledgedAt  DateTime?
   resolution      String?
+
+  // CAPA Integration - Link to corrective action
+  correctiveActionId String?
+  correctiveAction   CorrectiveAction? @relation(fields: [correctiveActionId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime         @default(now())
   configuration   SPCConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
 
   @@index([configurationId, timestamp])
   @@index([acknowledged])
+  @@index([correctiveActionId])
   @@map("spc_rule_violations")
 }
 
@@ -3658,7 +4528,8 @@ model ToolDrawing {
   vendorPartNumber     String?
   catalogNumber        String?
   cost                 Float?
-  costCurrency         String?
+  costCurrency         String?                     // Legacy field (to be deprecated)
+  costCurrencyId       String?                     // FK to Currency
   applicablePartIds    String[]
   applicableOperations String[]
   usageInstructions    String?
@@ -3696,6 +4567,7 @@ model ToolDrawing {
   updatedBy            User                    @relation("ToolDrawingUpdatedBy", fields: [updatedById], references: [id])
   maintenanceRecords   ToolMaintenanceRecord[]
   usageLogs            ToolUsageLog[]
+  costCurrencyRef      Currency?               @relation("ToolDrawingCostCurrency", fields: [costCurrencyId], references: [id])
 
   @@index([documentNumber])
   @@index([status])
@@ -4131,6 +5003,7 @@ model EngineeringChangeOrder {
   requestorId            String
   requestorName          String
   requestorDept          String?
+  requestorDeptId        String?
   requestDate            DateTime              @default(now())
   sponsorId              String?
   sponsorName            String?
@@ -4141,7 +5014,8 @@ model EngineeringChangeOrder {
   actualCost             Float?
   estimatedSavings       Float?
   actualSavings          Float?
-  costCurrency           String                @default("USD")
+  costCurrency           String                @default("USD")    // Legacy field (to be deprecated)
+  costCurrencyId         String?                                  // FK to Currency
   requestedEffectiveDate DateTime?
   plannedEffectiveDate   DateTime?
   actualEffectiveDate    DateTime?
@@ -4165,6 +5039,12 @@ model EngineeringChangeOrder {
   relatedECOs            ECORelation[]         @relation("ParentECO")
   parentRelations        ECORelation[]         @relation("RelatedECO")
   tasks                  ECOTask[]
+  costCurrencyRef        Currency?             @relation("ECOCostCurrency", fields: [costCurrencyId], references: [id])
+
+  // ICD System relationships
+  icdHistory             ICDHistory[]          @relation("ICDHistoryECO")
+  icdChangeRequests      ICDChangeRequest[]    @relation("ICDChangeRequestECO")
+  requestorDepartment    Department?           @relation("ECORequestorDept", fields: [requestorDeptId], references: [id])
 
   // ICD System relationships
   icdHistory             ICDHistory[]          @relation("ICDHistoryECO")
@@ -4175,6 +5055,7 @@ model EngineeringChangeOrder {
   @@index([priority])
   @@index([requestDate])
   @@index([requestorId])
+  @@index([requestorDeptId])
   @@map("engineering_change_orders")
 }
 
@@ -4214,6 +5095,7 @@ model ECOTask {
   assignedToId      String?
   assignedToName    String?
   assignedToDept    String?
+  assignedToDeptId  String?
   status            ECOTaskStatus          @default(PENDING)
   dueDate           DateTime?
   startedAt         DateTime?
@@ -4225,11 +5107,13 @@ model ECOTask {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   eco               EngineeringChangeOrder @relation(fields: [ecoId], references: [id], onDelete: Cascade)
+  assignedDepartment Department?           @relation("ECOTaskDept", fields: [assignedToDeptId], references: [id])
 
   @@index([ecoId])
   @@index([assignedToId])
   @@index([status])
   @@index([dueDate])
+  @@index([assignedToDeptId])
   @@map("eco_tasks")
 }
 
@@ -4838,6 +5722,9 @@ model Role {
   // Saviynt Identity Governance relationships
   saviyntRoleMappings  SaviyntRoleMapping[]
 
+  // Temporal permissions audit trail
+  temporalAccessLogs   TemporalAccessLog[]
+
   @@index([roleCode])
   @@index([isActive])
   @@index([isGlobal])
@@ -4888,42 +5775,84 @@ model RolePermission {
 /// Junction table: User ↔ Role (many-to-many, global)
 /// Assigns global roles to users that apply across all sites
 model UserRole {
-  id         String    @id @default(cuid())
-  userId     String
-  roleId     String
-  assignedAt DateTime  @default(now())
-  assignedBy String?
-  expiresAt  DateTime?
-  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  userId      String
+  roleId      String
+  assignedAt  DateTime  @default(now())
+  assignedBy  String?
+  validFrom   DateTime? // When the role becomes active (temporal permissions)
+  expiresAt   DateTime? // When the role expires (temporal permissions)
+  isTemporary Boolean   @default(false) // Flag for temporary vs permanent assignment
+  grantReason String?   // Reason for temporal assignment (e.g., "contractor", "emergency")
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
   @@index([expiresAt])
+  @@index([validFrom])
+  @@index([isTemporary])
   @@map("user_roles")
 }
 
 /// Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
 /// Assigns site-specific roles to users for enhanced granular control
 model UserSiteRole {
-  id         String    @id @default(cuid())
-  userId     String
-  roleId     String
-  siteId     String
-  assignedAt DateTime  @default(now())
-  assignedBy String?
-  expiresAt  DateTime?
-  role       Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  userId      String
+  roleId      String
+  siteId      String
+  assignedAt  DateTime  @default(now())
+  assignedBy  String?
+  validFrom   DateTime? // When the role becomes active (temporal permissions)
+  expiresAt   DateTime? // When the role expires (temporal permissions)
+  isTemporary Boolean   @default(false) // Flag for temporary vs permanent assignment
+  grantReason String?   // Reason for temporal assignment (e.g., "contractor", "emergency")
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, siteId])
   @@index([userId])
   @@index([roleId])
   @@index([siteId])
   @@index([expiresAt])
+  @@index([validFrom])
+  @@index([isTemporary])
   @@map("user_site_roles")
+}
+
+/// Temporal Access Log for auditing temporal permission activities
+/// Tracks all temporal permission grants, revocations, expirations, and emergency access
+model TemporalAccessLog {
+  id          String   @id @default(cuid())
+  userId      String   // User whose permissions were affected
+  roleId      String   // Role that was granted/revoked
+  siteId      String?  // Site ID (null for global roles)
+  accessType  String   // 'granted', 'revoked', 'expired', 'emergency', 'extended', 'cleanup'
+  reason      String?  // Reason for the temporal access change
+  grantedBy   String   // User ID who performed the action (system for automatic actions)
+  timestamp   DateTime @default(now()) // When the action occurred
+
+  // Additional context fields
+  validFrom   DateTime? // When the permission was/will be active
+  expiresAt   DateTime? // When the permission expires/expired
+  isEmergency Boolean   @default(false) // Was this emergency access?
+  metadata    Json?     // Additional metadata about the action
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  site        Site?     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([siteId])
+  @@index([accessType])
+  @@index([timestamp])
+  @@index([isEmergency])
+  @@map("temporal_access_logs")
 }
 
 /// Time tracking configuration (site level)
@@ -4946,6 +5875,19 @@ model TimeTrackingConfiguration {
   autoStopFromMachine    Boolean                 @default(false)
   requireTimeApproval    Boolean                 @default(true)
   approvalFrequency      ApprovalFrequency       @default(DAILY)
+
+  // Time Entry Management Configuration (Issue #51)
+  operatorEditWindowHours Int                    @default(24)
+  supervisorEditWindowHours Int                  @default(168)
+  editReasonRequired     Boolean                 @default(true)
+  autoApproveEnabled     Boolean                 @default(true)
+  autoApproveDurationThreshold Int               @default(5)
+  autoApproveWithinShift Boolean                 @default(true)
+  autoApproveCostCodeOnly Boolean                @default(true)
+  approvalNotificationsEnabled Boolean           @default(true)
+  notificationEmail      Boolean                 @default(true)
+  notificationInApp      Boolean                 @default(true)
+
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   createdBy              String
@@ -4992,12 +5934,19 @@ model LaborTimeEntry {
   user                 User                @relation(fields: [userId], references: [id])
   workOrder            WorkOrder?          @relation(fields: [workOrderId], references: [id])
 
+  // Time Entry Management Relations (Issue #51)
+  edits                TimeEntryEdit[]
+  locks                TimeEntryLock[]
+  batch                TimeEntryBatch?     @relation(fields: [batchId], references: [id])
+  batchId              String?
+
   @@index([userId])
   @@index([workOrderId])
   @@index([operationId])
   @@index([status])
   @@index([clockInTime])
   @@index([timeType])
+  @@index([batchId])
   @@map("labor_time_entries")
 }
 
@@ -5026,6 +5975,10 @@ model MachineTimeEntry {
   equipment          Equipment           @relation(fields: [equipmentId], references: [id])
   operation          WorkOrderOperation? @relation(fields: [operationId], references: [id])
   workOrder          WorkOrder?          @relation(fields: [workOrderId], references: [id])
+
+  // Time Entry Management Relations (Issue #51)
+  edits              TimeEntryEdit[]
+  locks              TimeEntryLock[]
 
   @@index([equipmentId])
   @@index([workOrderId])
@@ -5077,6 +6030,153 @@ model TimeEntryValidationRule {
   @@index([ruleType])
   @@index([siteId])
   @@map("time_entry_validation_rules")
+}
+
+// ============================================================================
+// TIME ENTRY MANAGEMENT & APPROVALS (Issue #51)
+// ============================================================================
+
+/// Time Entry Edit History
+/// Tracks all modifications to time entries for audit and approval purposes
+model TimeEntryEdit {
+  id                String            @id @default(cuid())
+  timeEntryId       String
+  timeEntryType     TimeEntryType
+  editType          EditType
+  originalValues    Json
+  newValues         Json
+  changedFields     String[]
+  reason            String
+  reasonCategory    EditReasonCategory
+  editedBy          String
+  editedAt          DateTime          @default(now())
+  approvalRequired  Boolean           @default(false)
+  approvalStatus    ApprovalStatus?
+  approvedBy        String?
+  approvedAt        DateTime?
+  rejectionReason   String?
+  autoApproved      Boolean           @default(false)
+
+  // Relations
+  laborTimeEntry    LaborTimeEntry?   @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_edits_labor_fkey")
+  machineTimeEntry  MachineTimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_edits_machine_fkey")
+  editor            User              @relation("TimeEntryEditEditor", fields: [editedBy], references: [id])
+  approver          User?             @relation("TimeEntryEditApprover", fields: [approvedBy], references: [id])
+  approvals         TimeEntryApproval[]
+
+  @@index([timeEntryId])
+  @@index([timeEntryType])
+  @@index([editType])
+  @@index([editedBy])
+  @@index([editedAt])
+  @@index([approvalStatus])
+  @@index([approvalRequired])
+  @@map("time_entry_edits")
+}
+
+/// Time Entry Approval Workflow
+/// Manages the approval process for time entry modifications
+model TimeEntryApproval {
+  id                String           @id @default(cuid())
+  timeEntryEditId   String
+  approverUserId    String
+  status            ApprovalStatus
+  approvalNotes     String?
+  requestedChanges  String?
+  approvedAt        DateTime         @default(now())
+  notificationSent  Boolean          @default(false)
+  escalationLevel   Int              @default(0)
+  dueDate           DateTime?
+
+  // Relations
+  timeEntryEdit     TimeEntryEdit    @relation(fields: [timeEntryEditId], references: [id], onDelete: Cascade)
+  approver          User             @relation(fields: [approverUserId], references: [id])
+
+  @@index([timeEntryEditId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([approvedAt])
+  @@index([dueDate])
+  @@index([escalationLevel])
+  @@map("time_entry_approvals")
+}
+
+/// Time Entry Batch Management
+/// Groups time entries for batch approval (weekly/daily timesheets)
+model TimeEntryBatch {
+  id              String               @id @default(cuid())
+  batchNumber     String               @unique
+  employeeId      String
+  batchType       TimeEntryBatchType
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          TimeEntryBatchStatus @default(PENDING_APPROVAL)
+  submittedAt     DateTime?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  totalHours      Float                @default(0)
+  totalCost       Float                @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  // Relations
+  employee        User                 @relation("TimeEntryBatchEmployee", fields: [employeeId], references: [id])
+  approver        User?                @relation("TimeEntryBatchApprover", fields: [approvedBy], references: [id])
+  timeEntries     LaborTimeEntry[]
+
+  @@index([employeeId])
+  @@index([batchType])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@index([submittedAt])
+  @@map("time_entry_batches")
+}
+
+/// Auto-Stop Configuration
+/// Configures when and how to automatically stop time entries
+model AutoStopConfiguration {
+  id                    String           @id @default(cuid())
+  siteId                String           @unique
+  autoStopOnClockOut    Boolean          @default(true)
+  autoStopBehavior      AutoStopBehavior @default(STOP_ALL)
+  gracePeriodMinutes    Int              @default(5)
+  autoStopOnShiftEnd    Boolean          @default(true)
+  autoStopOnBreakStart  Boolean          @default(false)
+  warningMinutesBefore  Int              @default(5)
+  enableExternalSignals Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  // Relations
+  site                  Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@map("auto_stop_configurations")
+}
+
+/// Time Entry Lock Management
+/// Manages locked time entries that cannot be edited
+model TimeEntryLock {
+  id              String     @id @default(cuid())
+  timeEntryId     String     @unique
+  timeEntryType   TimeEntryType
+  lockedBy        String
+  lockedAt        DateTime   @default(now())
+  lockReason      String
+  lockType        LockType
+  unlockRequests  Json[]     @default([])
+
+  // Relations
+  laborTimeEntry  LaborTimeEntry?   @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_locks_labor_fkey")
+  machineTimeEntry MachineTimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: Cascade, map: "time_entry_locks_machine_fkey")
+  locker          User              @relation(fields: [lockedBy], references: [id])
+
+  @@index([timeEntryId])
+  @@index([timeEntryType])
+  @@index([lockedBy])
+  @@index([lockType])
+  @@map("time_entry_locks")
 }
 
 /// SSO Provider Registry
@@ -6051,10 +7151,66 @@ enum NCRSeverity {
 }
 
 enum NCRStatus {
+  // Basic states
+  DRAFT
+  SUBMITTED
+
+  // Investigation states
+  UNDER_INVESTIGATION
+  CONTAINMENT
+
+  // Disposition states
+  PENDING_DISPOSITION
+
+  // Advanced dispositions
+  CTP // Continue to Process
+  DDR // Delayed Disposition Required
+  MRB // Material Review Board
+
+  // Final states
+  CORRECTIVE_ACTION
+  VERIFICATION
+  CLOSED
+  CANCELLED
+
+  // Legacy support (deprecated)
   OPEN
   IN_REVIEW
-  CORRECTIVE_ACTION
-  CLOSED
+  DISPOSITION_SET
+}
+
+enum NCRDisposition {
+  REWORK
+  REPAIR
+  SCRAP
+  USE_AS_IS
+  RETURN_TO_SUPPLIER
+  SORT_AND_SEGREGATE
+  RETURN_TO_STOCK
+  ENGINEER_USE_ONLY
+}
+
+enum NCRApprovalRequestType {
+  STATE_TRANSITION
+  DISPOSITION
+  CTP_AUTHORIZATION
+  MRB_DECISION
+  CLOSURE
+}
+
+enum NCRApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DELEGATED
+  EXPIRED
+}
+
+enum NCRMRBVotingMethod {
+  UNANIMOUS
+  MAJORITY
+  CHAIR_DECIDES
+  NO_VOTE
 }
 
 enum EquipmentClass {
@@ -6799,6 +7955,16 @@ enum NotificationType {
   COMMENT_RESOLVED
   DEADLINE_APPROACHING
   REVIEW_COMPLETED
+  // Kit shortage and expedite notifications
+  MATERIAL_SHORTAGE_DETECTED
+  EXPEDITE_REQUEST_CREATED
+  EXPEDITE_REQUEST_APPROVED
+  EXPEDITE_REQUEST_REJECTED
+  SUPPLIER_RESPONSE_RECEIVED
+  MATERIAL_ARRIVAL_EXPECTED
+  CRITICAL_SHORTAGE_ALERT
+  SHORTAGE_RESOLVED
+  PARTIAL_KIT_RELEASED
 }
 
 /// Conflict resolution type options
@@ -6979,6 +8145,79 @@ enum TimeValidationRuleType {
   CONCURRENT_ENTRIES
   OVERTIME_THRESHOLD
   INVALID_TIME_RANGE
+}
+
+enum TimeEntryType {
+  LABOR
+  MACHINE
+}
+
+// ============================================================================
+// TIME ENTRY MANAGEMENT ENUMS (Issue #51)
+// ============================================================================
+
+enum EditType {
+  CREATED
+  MODIFIED
+  DELETED
+  SPLIT
+  MERGED
+  TRANSFERRED
+  LOCKED
+  UNLOCKED
+}
+
+enum EditReasonCategory {
+  CLOCK_FORGOT
+  WRONG_WORK_ORDER
+  WRONG_OPERATION
+  SYSTEM_ERROR
+  SUPERVISOR_DIRECTED
+  BREAK_ADJUSTMENT
+  OVERTIME_CORRECTION
+  PAYROLL_CORRECTION
+  OTHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFO_NEEDED
+  ESCALATED
+  AUTO_APPROVED
+}
+
+enum TimeEntryBatchType {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum TimeEntryBatchStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  LOCKED
+  EXPORTED
+}
+
+enum AutoStopBehavior {
+  STOP_ALL
+  STOP_DIRECT_ONLY
+  PROMPT_OPERATOR
+  DO_NOTHING
+}
+
+enum LockType {
+  MANUAL
+  PAYROLL_EXPORT
+  AUDIT_REVIEW
+  COMPLIANCE_HOLD
+  SYSTEM_MAINTENANCE
 }
 
 /// Types of security events that can be monitored
@@ -7788,6 +9027,10 @@ model KitShortageAlert {
   assignedTo      User?            @relation("ShortageAssigned", fields: [assignedToId], references: [id])
   resolvedBy      User?            @relation("ShortageResolved", fields: [resolvedById], references: [id])
 
+  // New expedite workflow relationships
+  expeditRequests ExpeditRequest[]
+  resolutionRecord ShortageResolution?
+
   @@index([kitId])
   @@index([status])
   @@index([priority])
@@ -7888,6 +9131,12 @@ model Vendor {
   vendorKits            VendorKit[]
   performanceMetrics    VendorPerformanceMetric[]
 
+  // Expedite workflow relationships
+  expeditRequests       ExpeditRequest[]
+  supplierCommunications SupplierCommunication[]
+  preferredSupplierAnalytics PartShortageAnalytics[] @relation("PreferredSupplier")
+  bestPerformingAnalytics PartShortageAnalytics[]    @relation("BestPerformingSupplier")
+
   @@index([code])
   @@index([isActive])
   @@index([preferredVendor])
@@ -7905,7 +9154,8 @@ model VendorKit {
   quantityReceived      Int                        @default(0)
   unitCost              Float?
   totalCost             Float?
-  currency              String                     @default("USD")
+  currency              String                     @default("USD")    // Legacy field (to be deprecated)
+  currencyId            String?                                       // FK to Currency
   status                VendorKitStatus            @default(REQUESTED)
   priority              VendorKitPriority          @default(NORMAL)
   requiredDate          DateTime
@@ -7925,6 +9175,7 @@ model VendorKit {
   items                 VendorKitItem[]
   inspections           VendorKitInspection[]
   history               VendorKitHistory[]
+  currencyRef           Currency?                  @relation("VendorKitCurrency", fields: [currencyId], references: [id])
 
   @@index([vendorId])
   @@index([kitId])
@@ -8122,6 +9373,340 @@ enum VendorMetricPeriod {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+// ====================================================================
+// KIT SHORTAGE & EXPEDITE WORKFLOW MODELS
+// Supporting automatic shortage detection, notification, and expedite workflow
+// ====================================================================
+
+model ExpeditRequest {
+  id                    String               @id @default(cuid())
+  shortageAlertId       String?              // Link to original shortage alert
+  partId                String
+  requiredQuantity      Float
+  urgencyLevel          ExpeditUrgency       @default(NORMAL)
+  requestedByDate       DateTime
+
+  // Request details
+  justification         String
+  impactAssessment      String?              // Business impact description
+  costImpact            Float?               // Estimated cost of delay
+  alternativesSuggested String[]             // List of alternative parts considered
+
+  // Request lifecycle
+  status                ExpeditStatus        @default(REQUESTED)
+  requestedById         String
+  approvedById          String?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  rejectionReason       String?
+
+  // Supplier coordination
+  vendorId              String?
+  vendorResponse        String?
+  vendorCommitmentDate  DateTime?
+  estimatedDeliveryDate DateTime?
+  actualDeliveryDate    DateTime?
+
+  // Cost tracking
+  expediteFee           Float?
+  totalCost             Float?
+  approvedCost          Float?
+
+  // Resolution
+  resolvedAt            DateTime?
+  resolution            ExpeditResolution?
+  resolutionNotes       String?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  shortageAlert         KitShortageAlert?    @relation(fields: [shortageAlertId], references: [id])
+  part                  Part                 @relation(fields: [partId], references: [id])
+  requestedBy           User                 @relation("ExpeditRequestedBy", fields: [requestedById], references: [id])
+  approvedBy            User?                @relation("ExpeditApprovedBy", fields: [approvedById], references: [id])
+  vendor                Vendor?              @relation(fields: [vendorId], references: [id])
+
+  // Child relationships
+  communications        SupplierCommunication[]
+  statusHistory         ExpeditStatusHistory[]
+  resolutions           ShortageResolution[]
+
+  @@index([shortageAlertId])
+  @@index([partId])
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([requestedByDate])
+  @@index([vendorId])
+  @@map("expedite_requests")
+}
+
+model SupplierCommunication {
+  id                    String               @id @default(cuid())
+  expeditRequestId      String?              // Optional: for expedite-related communication
+  vendorId              String
+  partId                String?              // Part this communication relates to
+
+  // Communication details
+  communicationType     CommunicationType
+  direction             CommunicationDirection
+  subject               String
+  message               String
+  priority              CommunicationPriority @default(NORMAL)
+
+  // Contact information
+  contactName           String?
+  contactEmail          String?
+  contactPhone          String?
+
+  // Response tracking
+  responseRequired      Boolean              @default(false)
+  responseDeadline      DateTime?
+  responseReceived      Boolean              @default(false)
+  responseDate          DateTime?
+  responseMessage       String?
+
+  // Delivery tracking
+  deliveryCommitment    DateTime?            // Supplier's delivery commitment
+  confirmationReceived  Boolean              @default(false)
+
+  // Status
+  status                CommunicationStatus  @default(SENT)
+
+  // Audit
+  sentById              String?
+  sentAt                DateTime?
+  readAt                DateTime?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  expeditRequest        ExpeditRequest?      @relation(fields: [expeditRequestId], references: [id])
+  vendor                Vendor               @relation(fields: [vendorId], references: [id])
+  part                  Part?                @relation(fields: [partId], references: [id])
+  sentBy                User?                @relation(fields: [sentById], references: [id])
+
+  @@index([expeditRequestId])
+  @@index([vendorId])
+  @@index([partId])
+  @@index([status])
+  @@index([sentAt])
+  @@index([responseDeadline])
+  @@map("supplier_communications")
+}
+
+model ShortageResolution {
+  id                    String               @id @default(cuid())
+  shortageAlertId       String               @unique // Each shortage can only have one resolution
+  expeditRequestId      String?              // If resolved via expedite
+
+  // Resolution details
+  resolutionType        ResolutionType_      // How the shortage was resolved
+  resolutionDate        DateTime             @default(now())
+  resolvedById          String
+
+  // Alternative part usage
+  alternativePartId     String?              // If resolved using alternative part
+  substitutionApproved  Boolean              @default(false)
+  substitutionReason    SubstitutionReason?
+  engineeringApproval   String?              // Engineering approval reference
+
+  // Partial kit handling
+  partialKitReleased    Boolean              @default(false)
+  partialQuantity       Float?               // Quantity released in partial kit
+  blockedOperations     String[]             // Operations blocked by shortage
+
+  // Supply resolution
+  supplierUsed          String?              // Supplier that resolved shortage
+  actualDeliveryDate    DateTime?
+  quantityReceived      Float?
+  receivedCondition     String?              // GOOD, DAMAGED, PARTIAL, etc.
+
+  // Cost impact
+  expediteCost          Float?
+  totalAdditionalCost   Float?
+  laborImpactHours      Float?               // Labor hours lost due to shortage
+
+  // Quality tracking
+  qualityImpact         Boolean              @default(false)
+  qualityNotes          String?
+
+  // Lessons learned
+  rootCause             String?
+  preventiveActions     String?
+  supplierFeedback      String?
+
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  shortageAlert         KitShortageAlert     @relation(fields: [shortageAlertId], references: [id])
+  expeditRequest        ExpeditRequest?      @relation(fields: [expeditRequestId], references: [id])
+  alternativePart       Part?                @relation("AlternativePartUsed", fields: [alternativePartId], references: [id])
+  resolvedBy            User                 @relation(fields: [resolvedById], references: [id])
+
+  @@index([shortageAlertId])
+  @@index([expeditRequestId])
+  @@index([resolutionType])
+  @@index([resolutionDate])
+  @@index([alternativePartId])
+  @@map("shortage_resolutions")
+}
+
+model ExpeditStatusHistory {
+  id                    String               @id @default(cuid())
+  expeditRequestId      String
+  fromStatus            ExpeditStatus?
+  toStatus              ExpeditStatus
+  changedById           String?
+  reason                String?
+  notes                 String?
+  metadata              Json?                // Additional context data
+  changedAt             DateTime             @default(now())
+
+  // Relationships
+  expeditRequest        ExpeditRequest       @relation(fields: [expeditRequestId], references: [id])
+  changedBy             User?                @relation(fields: [changedById], references: [id])
+
+  @@index([expeditRequestId])
+  @@index([changedAt])
+  @@map("expedite_status_history")
+}
+
+model PartShortageAnalytics {
+  id                    String               @id @default(cuid())
+  partId                String
+  analysisDate          DateTime             @default(now())
+
+  // Shortage frequency
+  totalShortages        Int                  @default(0)
+  shortagesLast30Days   Int                  @default(0)
+  shortagesLast90Days   Int                  @default(0)
+  averageShortageQuantity Float?
+
+  // Lead time analysis
+  averageLeadTimeDays   Float?
+  supplierCount         Int                  @default(0)
+  preferredSupplierId   String?
+
+  // Cost impact
+  totalExpediteCosts    Float?
+  averageExpediteCost   Float?
+  totalLaborImpactHours Float?
+
+  // Resolution patterns
+  mostCommonResolution  ResolutionType_?
+  averageResolutionDays Float?
+  alternativePartsUsed  String[]             // List of alternative part IDs used
+
+  // Supplier performance
+  bestPerformingSupplierId String?
+  supplierOnTimeRate    Float?               // Best supplier's on-time delivery %
+
+  // Recommendations
+  recommendedAction     String?              // AUTO_REORDER, INCREASE_SAFETY_STOCK, etc.
+  recommendedSafetyStock Float?
+  recommendedLeadTime   Int?                 // Days
+
+  // Next analysis
+  nextAnalysisDate      DateTime?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relationships
+  part                  Part                 @relation(fields: [partId], references: [id])
+  preferredSupplier     Vendor?              @relation("PreferredSupplier", fields: [preferredSupplierId], references: [id])
+  bestPerformingSupplier Vendor?             @relation("BestPerformingSupplier", fields: [bestPerformingSupplierId], references: [id])
+
+  @@index([partId])
+  @@index([analysisDate])
+  @@index([totalShortages])
+  @@index([shortagesLast30Days])
+  @@map("part_shortage_analytics")
+}
+
+// ====================================================================
+// KIT SHORTAGE & EXPEDITE WORKFLOW ENUMS
+// ====================================================================
+
+enum ExpeditUrgency {
+  LOW               // Standard expedite request
+  NORMAL            // Normal urgency
+  HIGH              // High priority
+  CRITICAL          // Critical path impact
+  EMERGENCY         // Emergency/safety impact
+}
+
+enum ExpeditStatus {
+  REQUESTED         // Initial request created
+  PENDING_APPROVAL  // Awaiting management approval
+  APPROVED          // Approved for expedite
+  REJECTED          // Request rejected
+  VENDOR_CONTACTED  // Supplier has been contacted
+  VENDOR_RESPONDED  // Supplier responded with commitment
+  IN_TRANSIT        // Material in transit
+  DELIVERED         // Material delivered
+  RESOLVED          // Shortage resolved
+  CANCELLED         // Request cancelled
+}
+
+enum ExpeditResolution {
+  DELIVERED_ON_TIME     // Expedite successful, delivered on time
+  DELIVERED_LATE        // Delivered but late
+  ALTERNATIVE_USED      // Resolved using alternative part
+  PARTIAL_DELIVERY      // Partial delivery resolved shortage
+  CANCELLED_NOT_NEEDED  // Cancelled as no longer needed
+  CANCELLED_TOO_LATE    // Cancelled as delivery too late
+  VENDOR_UNABLE        // Vendor unable to expedite
+}
+
+enum CommunicationType {
+  EMAIL
+  PHONE_CALL
+  SMS
+  PORTAL_MESSAGE
+  FAX
+  LETTER
+  VIDEO_CALL
+  IN_PERSON
+}
+
+enum CommunicationDirection {
+  OUTBOUND    // We sent to supplier
+  INBOUND     // Supplier sent to us
+}
+
+enum CommunicationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum CommunicationStatus {
+  DRAFT       // Being composed
+  SENT        // Sent to supplier
+  DELIVERED   // Confirmed delivered
+  READ        // Confirmed read by supplier
+  RESPONDED   // Supplier responded
+  FAILED      // Failed to deliver
+  EXPIRED     // Response deadline expired
+}
+
+enum ResolutionType_ {
+  EXPEDITE_DELIVERED    // Resolved via expedited delivery
+  ALTERNATIVE_PART      // Resolved using alternative part
+  PARTIAL_KIT_RELEASE   // Resolved via partial kit release
+  RESCHEDULED           // Work order rescheduled
+  CANCELLED             // Work order cancelled
+  SUPPLIER_CHANGED      // Different supplier used
+  INVENTORY_FOUND       // Material found in other location
+  ENGINEERING_WAIVER    // Engineering waiver granted
 }
 
 // BUILD RECORD & ELECTRONIC BUILD BOOK ENUMS
@@ -8694,7 +10279,7 @@ model InterchangeabilityApproval {
   groupId               String
   partId                String?                       // Specific part if approval is part-specific
   approvalType          InterchangeabilityApprovalType @default(GROUP_APPROVAL)
-  status                ApprovalStatus                @default(PENDING)
+  status                InterchangeabilityApprovalStatus @default(PENDING)
   requestedBy           String
   approvedBy            String?
   approvalDate          DateTime?
@@ -8821,7 +10406,7 @@ enum InterchangeabilityApprovalType {
   SUBSTITUTION_RULE // Approval for specific substitution rule
 }
 
-enum ApprovalStatus {
+enum InterchangeabilityApprovalStatus {
   PENDING
   IN_REVIEW
   APPROVED
@@ -9361,6 +10946,7 @@ model ICDChangeRequest {
   requestorId           String?                     // Who requested
   requestorName         String                      // Requestor name
   requestorDept         String?                     // Department
+  requestorDeptId       String?                     // Department ID
   requestorEmail        String?                     // Contact email
   requestDate           DateTime                    @default(now())
 
@@ -9387,6 +10973,7 @@ model ICDChangeRequest {
   // Relationships
   icd                   InterfaceControlDocument    @relation(fields: [icdId], references: [id], onDelete: Cascade)
   relatedEco            EngineeringChangeOrder?     @relation("ICDChangeRequestECO", fields: [relatedEcoId], references: [id])
+  requestorDepartment   Department?                 @relation("ICDChangeRequestDept", fields: [requestorDeptId], references: [id])
 
   @@index([icdId])
   @@index([requestNumber])
@@ -9394,5 +10981,2357 @@ model ICDChangeRequest {
   @@index([priority])
   @@index([requestDate])
   @@index([relatedEcoId])
+  @@index([requestorDeptId])
   @@map("icd_change_requests")
+}
+
+// ============================================================================
+// LOCATION MANAGEMENT SYSTEM
+// ============================================================================
+
+/// Location hierarchy types for warehouse and manufacturing environments
+enum LocationType {
+  WAREHOUSE       // Top-level warehouse building
+  BUILDING        // Manufacturing/office building
+  FLOOR           // Floor within a building
+  ZONE            // Zone within a floor (e.g., Zone A, Zone B)
+  AISLE           // Aisle within a zone
+  ROW             // Row within an aisle
+  BIN             // Storage bin/slot
+  SHELF           // Shelf within a bin
+  WORKSTATION     // Manufacturing workstation
+  STORAGE_AREA    // General storage area
+  STAGING_AREA    // Material staging area
+  QUARANTINE_AREA // Quality quarantine area
+  SHIPPING_DOCK   // Shipping/outbound dock
+  RECEIVING_DOCK  // Receiving/inbound dock
+  INSPECTION_AREA // Quality inspection area
+  REWORK_AREA     // Rework/repair area
+  SCRAP_AREA      // Scrap holding area
+  TOOL_CRIB       // Tool storage area
+  OFFICE          // Office space
+  OTHER           // Other location types
+}
+
+/// Hierarchical location model for warehouse management and material tracking
+model Location {
+  id                    String       @id @default(cuid())
+  locationCode          String       @unique          // e.g., "WH-A-01-B-05"
+  locationName          String                        // e.g., "Warehouse A, Floor 1, Zone B, Bin 5"
+  description           String?                       // Additional description
+  locationType          LocationType                  // Type of location (warehouse, zone, bin, etc.)
+
+  // Hierarchical relationships
+  parentLocationId      String?
+  parentLocation        Location?    @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  childLocations        Location[]   @relation("LocationHierarchy")
+
+  // Site/Area integration
+  siteId                String?
+  site                  Site?        @relation(fields: [siteId], references: [id])
+  areaId                String?
+  area                  Area?        @relation(fields: [areaId], references: [id])
+
+  // Capacity management
+  capacityValue         Decimal?                      // Storage capacity value
+  capacityUnitOfMeasureId String?                     // Capacity unit (e.g., cubic feet, pallets)
+  capacityUnitOfMeasure UnitOfMeasure? @relation("LocationCapacityUOM", fields: [capacityUnitOfMeasureId], references: [id])
+  currentUtilization    Decimal?     @default(0)     // Current utilization percentage
+
+  // Physical dimensions
+  length                Decimal?                      // Length dimension
+  width                 Decimal?                      // Width dimension
+  height                Decimal?                      // Height dimension
+  dimensionUnitOfMeasureId String?                    // Dimension unit (e.g., feet, meters)
+  dimensionUnitOfMeasure UnitOfMeasure? @relation("LocationDimensionUOM", fields: [dimensionUnitOfMeasureId], references: [id])
+
+  // Operational attributes
+  isActive              Boolean      @default(true)   // Location is active/available
+  allowMixedParts       Boolean      @default(true)   // Allow different parts in same location
+  requiresEnvironmentalControl Boolean @default(false) // Special environmental requirements
+  temperature           Decimal?                      // Temperature requirement
+  humidity              Decimal?                      // Humidity requirement
+
+  // Contact and responsibility
+  contactPhone          String?                       // Contact phone for location
+  contactEmail          String?                       // Contact email for location
+
+  // Audit fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relations to entities using this location
+  materialLots          MaterialLot[]                 // Materials stored at this location
+  inventoryRecords      Inventory[]                   // Inventory records for this location
+  serializedParts       SerializedPart[]              // Serialized parts at this location
+
+  // Location change history (from/to relationships)
+  materialStateHistoryFrom MaterialStateHistory[] @relation("FromLocation")
+  materialStateHistoryTo   MaterialStateHistory[] @relation("ToLocation")
+
+  @@index([locationCode])
+  @@index([locationType])
+  @@index([parentLocationId])
+  @@index([siteId])
+  @@index([areaId])
+  @@index([isActive])
+  @@index([capacityUnitOfMeasureId])
+  @@index([dimensionUnitOfMeasureId])
+  @@map("locations")
+}
+
+// ============================================================================
+// CURRENCY MANAGEMENT SYSTEM - ISO 4217 COMPLIANT
+// ============================================================================
+
+/// Source of exchange rate data for tracking and audit purposes
+enum ExchangeRateSource {
+  MANUAL_ENTRY        // Manually entered by user
+  BANK_FEED          // From bank API feed
+  FINANCIAL_SERVICE  // From financial service (e.g., XE, OANDA)
+  ERP_SYSTEM         // From integrated ERP system
+  CENTRAL_BANK       // From central bank feeds
+  MARKETPLACE        // From marketplace/trading platform
+}
+
+// ============================================================================
+// ANDON SYSTEM ENUMS (GitHub Issue #171)
+// ============================================================================
+
+/// Severity levels for Andon alerts
+enum AndonSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+/// Priority levels for Andon alerts
+enum AndonPriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+}
+
+/// Status of Andon alerts through their lifecycle
+enum AndonAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  ESCALATED
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+/// ISO 4217 compliant currency lookup table for standardizing multi-currency operations
+model Currency {
+  id                    String       @id @default(cuid())
+
+  // ISO 4217 Standard Fields
+  currencyCode          String       @unique          // e.g., "USD", "EUR", "GBP"
+  currencyName          String                        // e.g., "US Dollar", "Euro", "British Pound"
+  currencySymbol        String?                       // e.g., "$", "€", "£"
+  numericCode           String?      @unique          // ISO 4217 numeric code e.g., "840"
+  minorUnit             Int          @default(2)      // Decimal places e.g., 2 for USD, 0 for JPY
+
+  // Regional and Display Information
+  region                String?                       // e.g., "North America", "Europe"
+  country               String?                       // Primary country e.g., "United States"
+  displayFormat         String?                       // e.g., "$1,234.56", "€1.234,56"
+
+  // Operational Attributes
+  isActive              Boolean      @default(true)   // Currency is actively used
+  isBaseCurrency        Boolean      @default(false)  // System base currency (typically USD)
+  allowFractional       Boolean      @default(true)   // Allow fractional amounts
+
+  // Audit Fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Reverse Relations - Models using this currency
+  materialDefinitions   MaterialDefinition[]          @relation("MaterialDefinitionCurrency")
+  materialLots          MaterialLot[]                 @relation("MaterialLotCurrency")
+  parts                 Part[]                        @relation("PartCurrency")
+  erpTransactions       ERPMaterialTransaction[]      @relation("ERPTransactionCurrency")
+  toolDrawings          ToolDrawing[]                 @relation("ToolDrawingCostCurrency")
+  changeOrders          EngineeringChangeOrder[]      @relation("ECOCostCurrency")
+  vendorKits            VendorKit[]                   @relation("VendorKitCurrency")
+
+  // Exchange Rate Relations
+  exchangeRatesFrom     ExchangeRate[]                @relation("FromCurrency")
+  exchangeRatesTo       ExchangeRate[]                @relation("ToCurrency")
+
+  @@index([currencyCode])
+  @@index([isActive])
+  @@index([isBaseCurrency])
+  @@map("currencies")
+}
+
+/// Exchange rates for currency conversion with historical tracking and multiple sources
+model ExchangeRate {
+  id                    String       @id @default(cuid())
+
+  // Currency Pair
+  fromCurrencyId        String
+  toCurrencyId          String
+  fromCurrency          Currency     @relation("FromCurrency", fields: [fromCurrencyId], references: [id])
+  toCurrency            Currency     @relation("ToCurrency", fields: [toCurrencyId], references: [id])
+
+  // Rate Information
+  exchangeRate          Decimal      @db.Decimal(18, 8)    // High precision for accurate conversion
+  effectiveDate         DateTime                           // When this rate becomes effective
+  expirationDate        DateTime?                          // When this rate expires (null = current)
+
+  // Source and Metadata
+  rateSource            ExchangeRateSource               // Where rate comes from
+  sourceReference       String?                          // External reference/transaction ID
+  isManualOverride      Boolean      @default(false)     // Manually set vs. automatic
+
+  // Operational
+  isActive              Boolean      @default(true)
+  priority              Int          @default(0)         // Higher priority rates take precedence
+
+  // Audit Fields
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  createdBy             String?      // User who created this rate
+
+  @@unique([fromCurrencyId, toCurrencyId, effectiveDate])
+  @@index([fromCurrencyId, toCurrencyId])
+  @@index([effectiveDate, isActive])
+  @@index([expirationDate])
+  @@index([rateSource])
+  @@map("exchange_rates")
+}
+
+// ============================================================================
+// EQUIPMENT REGISTRY & MAINTENANCE MANAGEMENT SYSTEM (ISSUE #94)
+// ============================================================================
+
+/// Equipment criticality classification for maintenance prioritization
+enum CriticalityLevel {
+  HIGH      // Production-critical, immediate attention required
+  MEDIUM    // Important but workarounds available
+  LOW       // Nice to have, minimal production impact
+}
+
+/// Enhanced maintenance status tracking
+enum MaintenanceStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+/// Downtime classification for tracking planned vs unplanned events
+enum DowntimeType {
+  PLANNED           // Scheduled maintenance
+  UNPLANNED         // Unexpected breakdown
+}
+
+/// Equipment types for better categorization and maintenance planning
+model EquipmentType {
+  id                          String        @id @default(cuid())
+  code                        String        @unique
+  name                        String
+  description                 String?
+  category                    String?       // Machine, Tool, Fixture, Gauge, etc.
+
+  // Default maintenance settings
+  defaultMaintenanceInterval  Int?          // Days
+  defaultMaintenanceProcedure String?
+
+  // Relations
+  equipment                   Equipment[]   @relation("EquipmentToEquipmentType")
+
+  // Audit fields
+  createdAt                   DateTime      @default(now())
+  updatedAt                   DateTime      @updatedAt
+
+  @@map("equipment_types")
+}
+
+/// Enhanced downtime tracking for maintenance analysis
+model DowntimeEvent {
+  id                    String                @id @default(cuid())
+  equipmentId           String
+  equipment             Equipment             @relation("EquipmentDowntimeEvents", fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  // Timing
+  startTime             DateTime
+  endTime               DateTime?
+  durationMinutes       Int?
+
+  // Classification
+  downtimeType          DowntimeType
+  downtimeReasonId      String
+  downtimeReason        DowntimeReason        @relation(fields: [downtimeReasonId], references: [id])
+
+  // Impact
+  affectedWorkOrderIds  String[]              // Work orders affected by this downtime
+  productionLoss        Decimal?              // Units not produced
+
+  // Resolution
+  description           String
+  rootCause             String?
+  correctiveAction      String?
+
+  // Related maintenance
+  maintenanceWorkOrderId String?
+  maintenanceWorkOrder  MaintenanceWorkOrder? @relation("DowntimeToMaintenanceWorkOrder", fields: [maintenanceWorkOrderId], references: [id])
+
+  // Documentation
+  reportedById          String
+  reportedBy            User                  @relation("DowntimeEventReportedBy", fields: [reportedById], references: [id])
+  notes                 String?
+
+  // Audit fields
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([equipmentId])
+  @@index([startTime])
+  @@index([downtimeType])
+  @@index([downtimeReasonId])
+  @@map("downtime_events")
+}
+
+/// Standardized downtime reasons for better analysis and reporting
+model DowntimeReason {
+  id                    String          @id @default(cuid())
+  code                  String          @unique
+  name                  String
+  description           String?
+  category              String?         // Mechanical, Electrical, Operator Error, Material, etc.
+  isActive              Boolean         @default(true)
+
+  // Relations
+  downtimeEvents        DowntimeEvent[]
+
+  // Audit fields
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([code])
+  @@index([category])
+  @@index([isActive])
+  @@map("downtime_reasons")
+}
+
+/// Parts used in maintenance work orders for cost tracking
+model MaintenancePart {
+  id                    String               @id @default(cuid())
+  workOrderId           String
+  workOrder             MaintenanceWorkOrder @relation("MaintenanceWorkOrderParts", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  // Part information
+  partNumber            String
+  partDescription       String?
+  quantity              Decimal
+  unitCost              Decimal?
+  totalCost             Decimal?
+
+  // Inventory tracking
+  lotNumber             String?
+  serialNumber          String?
+  issuedFrom            String?             // Inventory location
+
+  // Audit fields
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([workOrderId])
+  @@index([partNumber])
+  @@map("maintenance_parts")
+}
+
+/// Labor entries for maintenance work order time and cost tracking
+model LaborEntry {
+  id                    String               @id @default(cuid())
+  workOrderId           String
+  workOrder             MaintenanceWorkOrder @relation("MaintenanceWorkOrderLabor", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  // Technician information
+  technicianId          String
+  technician            User                 @relation("LaborEntryTechnician", fields: [technicianId], references: [id])
+
+  // Time tracking
+  startTime             DateTime
+  endTime               DateTime?
+  laborHours            Decimal?
+  laborRate             Decimal?
+  laborCost             Decimal?
+
+  notes                 String?
+
+  // Audit fields
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([workOrderId])
+  @@index([technicianId])
+  @@index([startTime])
+  @@map("labor_entries")
+}
+
+/// Serial Number Format Configuration (Issue #149)
+/// Configurable serial number format engine supporting diverse manufacturing standards
+model SerialNumberFormatConfig {
+  id                           String                           @id @default(cuid())
+  name                         String                           // e.g., "Aerospace Standard", "Medical Device"
+  description                  String?
+  patternTemplate              String                           // e.g., "PRE-{YYYY}{MM}{DD}-{SEQ:6}-{CHECK:luhn}"
+  siteId                       String
+  site                         Site                             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Configuration
+  isActive                     Boolean                          @default(true)
+  version                      Int                              @default(1)
+  validationRules              String?                          // JSON: character sets, length constraints, etc.
+  sequentialCounterStart       Int                              @default(1)
+  sequentialCounterIncrement   Int                              @default(1)
+  counterResetRule             String?                          // "daily", "monthly", "yearly", null for no reset
+
+  // Assignment relationships
+  partAssignments              SerialFormatPartAssignment[]
+  partFamilyAssignments        SerialFormatPartFamilyAssignment[]
+
+  // Usage tracking
+  usageTracking                SerialNumberUsageTracking?
+
+  // Audit fields
+  createdBy                    String?
+  createdAt                    DateTime                         @default(now())
+  updatedAt                    DateTime                         @updatedAt
+
+  @@unique([siteId, name])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("serial_number_format_configs")
+}
+
+/// Serial Format Part Assignment (Issue #149)
+/// Links serial number formats to specific parts with priority-based assignment
+model SerialFormatPartAssignment {
+  id                   String                      @id @default(cuid())
+  partId               String
+  part                 Part                        @relation(fields: [partId], references: [id], onDelete: Cascade)
+  formatConfigId       String
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Assignment level control
+  isDefault            Boolean                     @default(false)
+  priority             Int                         @default(0)  // Higher value = higher priority override
+  effectiveFrom        DateTime                    @default(now())
+  effectiveUntil       DateTime?
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@unique([partId, formatConfigId])
+  @@index([partId])
+  @@index([formatConfigId])
+  @@index([priority])
+  @@map("serial_format_part_assignments")
+}
+
+/// Serial Format Part Family Assignment (Issue #149)
+/// Links serial number formats to part families for hierarchical assignment
+/// Note: PartFamily model will be created in future phases for hierarchical part organization
+model SerialFormatPartFamilyAssignment {
+  id                   String                      @id @default(cuid())
+  partFamilyId         String                      // Will reference PartFamily when model is created
+  formatConfigId       String
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Assignment level control
+  isDefault            Boolean                     @default(false)
+  priority             Int                         @default(0)  // Higher value = higher priority override
+  effectiveFrom        DateTime                    @default(now())
+  effectiveUntil       DateTime?
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@unique([partFamilyId, formatConfigId])
+  @@index([partFamilyId])
+  @@index([formatConfigId])
+  @@index([priority])
+  @@map("serial_format_part_family_assignments")
+}
+
+/// Serial Number Usage Tracking (Issue #149)
+/// Manages sequential counter state and usage statistics for serial formats
+model SerialNumberUsageTracking {
+  id                   String                      @id @default(cuid())
+  formatConfigId       String                      @unique
+  formatConfig         SerialNumberFormatConfig    @relation(fields: [formatConfigId], references: [id], onDelete: Cascade)
+
+  // Counter management
+  currentSequenceValue Int                         @default(1)
+  lastGeneratedDate    DateTime?
+  counterResetDate     DateTime?
+
+  // Statistics
+  totalGenerated       Int                         @default(0)
+  totalUsed            Int                         @default(0)
+  duplicateAttempts    Int                         @default(0)
+
+  // Concurrency control
+  lastUpdateTimestamp  DateTime                    @updatedAt
+  version              Int                         @default(1)  // Optimistic locking version
+
+  // Audit fields
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@index([formatConfigId])
+  @@map("serial_number_usage_tracking")
+}
+
+// ============================================
+// Issue #74: API Access Control & Security Model
+// ============================================
+
+enum ApiTier {
+  PUBLIC
+  SDK
+  PRIVATE
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+  PENDING_APPROVAL
+}
+
+enum TokenType {
+  ACCESS_TOKEN
+  REFRESH_TOKEN
+}
+
+model ApiKey {
+  id              String         @id @default(cuid())
+  keyPrefix       String         @unique
+  keyHash         String
+  name            String
+  description     String?
+  tier            ApiTier        @default(PUBLIC)
+  status          ApiKeyStatus   @default(ACTIVE)
+  siteId          String?
+  companyId       String?
+  pluginId        String?
+  scopes          String[]       @default([])
+  rateLimit       Int            @default(100)
+  dailyQuota      Int?
+  monthlyQuota    Int?
+  expiresAt       DateTime?
+  lastUsedAt      DateTime?
+  lastUsedEndpoint String?
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+  developerName   String?
+  developerEmail  String?
+  developerCompany String?
+  developerPhone  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  usageLogs       ApiUsageLog[]
+  versionUsage    ApiUsageByVersion[]
+  capturedCalls   CapturedApiCall[]
+  plugins         Plugin[] // Plugin SDK API keys
+
+  @@index([keyPrefix])
+  @@index([siteId])
+  @@index([pluginId])
+  @@index([status])
+  @@index([tier])
+  @@index([createdAt])
+  @@map("api_keys")
+}
+
+model ApiUsageLog {
+  id                  String         @id @default(cuid())
+  apiKeyId            String
+  endpoint            String
+  httpMethod          String
+  apiVersion          String?
+  statusCode          Int
+  responseTime        Int
+  requestId           String         @unique
+  ipAddress           String?
+  userAgent           String?
+  rateLimitRemaining  Int?
+  rateLimitReset      DateTime?
+  errorCode           String?
+  errorMessage        String?
+  requestBytes        Int?
+  responseBytes       Int?
+  createdAt           DateTime       @default(now())
+  apiKey              ApiKey         @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([endpoint])
+  @@index([statusCode])
+  @@index([createdAt])
+  @@index([requestId])
+  @@map("api_usage_logs")
+}
+
+model RateLimitConfig {
+  id              String         @id @default(cuid())
+  tier            ApiTier
+  resource        String?
+  requestsPerMinute Int          @default(100)
+  requestsPerHour Int?
+  requestsPerDay  Int?
+  burstMultiplier Decimal        @default(2.0)
+  burstDuration   Int            @default(10)
+  isActive        Boolean        @default(true)
+  siteId          String?
+  description     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([tier])
+  @@index([resource])
+  @@index([siteId])
+  @@map("rate_limit_configs")
+}
+
+model OAuthClient {
+  id              String         @id @default(cuid())
+  clientId        String         @unique
+  clientSecret    String
+  name            String
+  description     String?
+  grantTypes      String[]       @default(["authorization_code"])
+  redirectUris    String[]       @default([])
+  allowedScopes   String[]       @default([])
+  tier            ApiTier        @default(PUBLIC)
+  isActive        Boolean        @default(true)
+  companyId       String?
+  createdBy       String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  authorizations  OAuthAuthorization[]
+  tokens          OAuthToken[]
+
+  @@index([clientId])
+  @@index([companyId])
+  @@map("oauth_clients")
+}
+
+model OAuthAuthorization {
+  id            String         @id @default(cuid())
+  clientId      String
+  userId        String
+  scopes        String[]       @default([])
+  isRevoked     Boolean        @default(false)
+  revokedAt     DateTime?
+  authorizedAt  DateTime       @default(now())
+  expiresAt     DateTime?
+  client        OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([userId])
+  @@map("oauth_authorizations")
+}
+
+model OAuthToken {
+  id              String         @id @default(cuid())
+  clientId        String
+  userId          String?
+  tokenType       TokenType
+  tokenHash       String         @unique
+  scopes          String[]       @default([])
+  expiresAt       DateTime
+  isRevoked       Boolean        @default(false)
+  revokedAt       DateTime?
+  refreshTokenId  String?
+  createdAt       DateTime       @default(now())
+  lastUsedAt      DateTime?
+  client          OAuthClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("oauth_tokens")
+}
+
+model ApiEndpointTier {
+  id                String         @id @default(cuid())
+  endpoint          String         @unique
+  httpMethod        String
+  tier              ApiTier
+  description       String?
+  isDeprecated      Boolean        @default(false)
+  deprecationDate   DateTime?
+  replacementEndpoint String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([endpoint])
+  @@index([tier])
+  @@map("api_endpoint_tiers")
+}
+
+/// Site-Level Workflow Configuration (Issue #40)
+/// Defines enforcement level per site for flexible workflow execution
+/// Supports three modes: STRICT (full ISA-95), FLEXIBLE (relaxed prerequisites), HYBRID (external vouching)
+model SiteWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  siteId                    String   @unique
+
+  // Enforcement mode
+  mode                      WorkflowMode @default(STRICT)
+
+  // Detailed enforcement toggles
+  enforceOperationSequence  Boolean  @default(true)   // Require prerequisites met?
+  enforceStatusGating       Boolean  @default(true)   // Require WO status for data collection?
+  allowExternalVouching     Boolean  @default(false)  // Accept external completion vouching?
+  enforceQualityChecks      Boolean  @default(true)   // Require quality inspections?
+  requireStartTransition    Boolean  @default(true)   // Require explicit "start" before data collection?
+
+  // Audit and justification
+  requireJustification      Boolean  @default(false)  // Require reason for flexible usage?
+  requireApproval           Boolean  @default(false)  // Require supervisor approval for flexible?
+
+  // Metadata
+  effectiveDate             DateTime @default(now())
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+  updatedBy                 String?
+
+  // Relations
+  site                      Site     @relation("SiteWorkflowConfig", fields: [siteId], references: [id], onDelete: Cascade)
+  routingOverrides          RoutingWorkflowConfiguration[]
+  configurationHistory      WorkflowConfigurationHistory[]
+
+  @@index([siteId])
+  @@index([mode])
+  @@map("site_workflow_configurations")
+}
+
+/// Workflow Modes
+/// STRICT: Full ISA-95 enforcement (current behavior)
+/// FLEXIBLE: Allow data collection without status prerequisites
+/// HYBRID: Accept external vouching + flexible data collection
+enum WorkflowMode {
+  STRICT
+  FLEXIBLE
+  HYBRID
+}
+
+/// Routing-Level Workflow Configuration Overrides (Issue #40)
+/// Allows routing-specific configuration overrides from site defaults
+model RoutingWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  routingId                 String   @unique
+  siteConfigId              String?  // Null = site defaults
+
+  // Override flags (null = inherit from site)
+  mode                      WorkflowMode?
+  enforceOperationSequence  Boolean?
+  enforceStatusGating       Boolean?
+  allowExternalVouching     Boolean?
+  enforceQualityChecks      Boolean?
+  requireStartTransition    Boolean?
+
+  // Justification for override
+  overrideReason            String?
+  approvedBy                String?
+  approvedAt                DateTime?
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+
+  // Relations
+  routing                   Routing  @relation("RoutingWorkflowConfig", fields: [routingId], references: [id], onDelete: Cascade)
+  siteConfig                SiteWorkflowConfiguration? @relation(fields: [siteConfigId], references: [id], onDelete: SetNull)
+  workOrderOverrides        WorkOrderWorkflowConfiguration[]
+
+  @@index([routingId])
+  @@index([siteConfigId])
+  @@map("routing_workflow_configurations")
+}
+
+/// Work Order-Level Workflow Configuration Overrides (Issue #40)
+/// Exceptional work order-specific overrides (requires approval)
+model WorkOrderWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  workOrderId               String   @unique
+  routingConfigId           String?
+
+  // Override flags (null = inherit from routing/site)
+  mode                      WorkflowMode?
+  enforceOperationSequence  Boolean?
+  enforceStatusGating       Boolean?
+  allowExternalVouching     Boolean?
+  enforceQualityChecks      Boolean?
+  requireStartTransition    Boolean?
+
+  // Justification (REQUIRED for work order overrides)
+  overrideReason            String
+  approvedBy                String
+  approvedAt                DateTime
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  createdBy                 String
+
+  // Relations
+  workOrder                 WorkOrder @relation("WorkOrderWorkflowConfig", fields: [workOrderId], references: [id], onDelete: Cascade)
+  routingConfig             RoutingWorkflowConfiguration? @relation(fields: [routingConfigId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@map("work_order_workflow_configurations")
+}
+
+/// Workflow Configuration Change History (Issue #40)
+/// Audit trail for configuration changes
+model WorkflowConfigurationHistory {
+  id                String   @id @default(cuid())
+  configType        String   // 'SITE', 'ROUTING', 'WORK_ORDER'
+  configId          String   // ID of configuration record
+
+  // What changed
+  field             String   // Which field changed
+  oldValue          String?  // Previous value (JSON)
+  newValue          String   // New value (JSON)
+
+  // Why and who
+  changeReason      String?
+  changedBy         String
+  changedAt         DateTime @default(now())
+
+  // Relations (polymorphic)
+  siteConfigId      String?
+  siteConfig        SiteWorkflowConfiguration? @relation(fields: [siteConfigId], references: [id], onDelete: Cascade)
+
+  @@index([configType, configId])
+  @@index([changedAt])
+  @@map("workflow_configuration_history")
+}
+
+/// Operation-Level Workflow Configuration (Issue #40)
+/// Granular configuration control per operation type
+model OperationWorkflowConfiguration {
+  id                        String   @id @default(cuid())
+  operationId               String   @unique
+
+  // Granular overrides
+  requireQualityInspection  Boolean? // Override quality requirement for this operation
+  allowExternalVouching     Boolean? // Allow external vouching for this operation type
+  bypassPrerequisites       Boolean? // Bypass dependency checks for this operation
+
+  // Metadata
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  createdBy                 String
+
+  // Relations
+  operation                 Operation @relation("OperationWorkflowConfig", fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@map("operation_workflow_configurations")
+}
+
+// ============================================================================
+// QUALITY MANAGEMENT SYSTEM COMPLIANCE FRAMEWORK (Issue #102)
+// Phase 1: Document Control & Training & Competency
+// ============================================================================
+
+/// QMS Document Type enumeration for classification
+enum QMSDocumentType {
+  QUALITY_MANUAL      // QMS top-level manual
+  PROCEDURE           // Process procedures
+  QMS_WORK_INSTRUCTION // Detailed work instructions
+  FORM                // Blank forms
+  SPECIFICATION       // Product/process specifications
+  PLAN                // Quality plans, inspection plans
+  RECORD              // Filled-out forms/records
+  EXTERNAL            // Customer specs, standards
+}
+
+/// Document Status enumeration for lifecycle management
+enum QMSDocumentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ACTIVE
+  OBSOLETE
+  ARCHIVED
+}
+
+/// Course Type enumeration for training delivery method
+enum CourseType {
+  CLASSROOM           // In-person classroom
+  ONLINE              // E-learning
+  ON_THE_JOB          // OJT/shadowing
+  EXTERNAL            // External training provider
+  CERTIFICATION       // Certification program
+}
+
+/// Question Type enumeration for competency test questions
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+}
+
+/// Controlled Document - Core document management model (ISO 9001 Clause 7.5)
+model ControlledDocument {
+  id                  String   @id @default(cuid())
+  documentNumber      String   @unique      // Unique identifier
+  title               String                // Document title
+  description         String?               // Detailed description
+
+  // Document type and classification
+  documentType        QMSDocumentType
+  category            String?               // Procedure, Work Instruction, Form, etc.
+
+  // Revision control
+  revision            String   @default("A")
+  revisionDate        DateTime @default(now())
+  effectiveDate       DateTime?
+
+  // Status lifecycle
+  status              QMSDocumentStatus @default(DRAFT)
+
+  // File management
+  fileUrl             String                // URL to document file
+  fileName            String                // Original filename
+
+  // Approval workflow
+  approvals           DocumentApproval[]
+  approvedBy          User?     @relation("DocumentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedById        String?
+  approvedAt          DateTime?
+
+  // Review schedule (ISO 9001 requirement)
+  reviewFrequency     Int?                  // Months between reviews
+  nextReviewDate      DateTime?
+  lastReviewDate      DateTime?
+
+  // Distribution control
+  distributionList    User[]    @relation("DocumentDistribution")
+  isControlled        Boolean   @default(true)
+
+  // Parent/child relationships for revision tracking
+  parentDocument      ControlledDocument? @relation("DocumentRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  parentDocumentId    String?
+  childRevisions      ControlledDocument[] @relation("DocumentRevisions")
+
+  // Training linkage (docs can be associated with training courses)
+  trainingCourses     TrainingCourse[] @relation("DocumentTrainingCourses")
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([documentNumber])
+  @@index([documentType])
+  @@index([status])
+  @@index([approvedById])
+  @@index([reviewFrequency])
+  @@index([nextReviewDate])
+  @@map("controlled_documents")
+}
+
+/// Document Approval - Approval workflow step
+model DocumentApproval {
+  id                  String   @id @default(cuid())
+  document            ControlledDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId          String
+
+  // Approver role and user
+  approverRole        String                // e.g., "Quality Manager", "Technical Authority"
+  approver            User     @relation(fields: [approverId], references: [id])
+  approverId          String
+
+  // Workflow sequencing
+  sequence            Int                   // Order in approval chain
+  status              ApprovalStatus @default(PENDING)
+
+  // Timeline
+  requestedAt         DateTime @default(now())
+  reviewedAt          DateTime?
+  comments            String?               // Optional approval comments
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([approverId])
+  @@index([status])
+  @@map("document_approvals")
+}
+
+/// Training Course - Course definition and management
+model TrainingCourse {
+  id                  String   @id @default(cuid())
+  courseNumber        String   @unique     // Course identifier
+  courseName          String                // Course title
+  description         String?               // Course description
+
+  // Course content
+  objectives          String?               // Learning objectives
+  duration            Int?                  // Duration in minutes
+  courseType          CourseType
+
+  // Course materials
+  documents           ControlledDocument[] @relation("DocumentTrainingCourses")
+  materials           String?               // Links to videos, presentations, etc.
+
+  // Competency requirements
+  requiredForRoles    String[]              // JSON array of required job roles
+  competencyTest      CompetencyTest?
+
+  // Status
+  isActive            Boolean   @default(true)
+
+  // Training records
+  trainingRecords     TrainingRecord[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("CourseCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([courseNumber])
+  @@index([courseType])
+  @@index([isActive])
+  @@map("training_courses")
+}
+
+/// Competency Test - Test/assessment associated with training
+model CompetencyTest {
+  id                  String   @id @default(cuid())
+  trainingCourse      TrainingCourse @relation(fields: [trainingCourseId], references: [id], onDelete: Cascade)
+  trainingCourseId    String   @unique
+
+  testName            String                // Test name
+  passingScore        Int                   // Passing percentage (0-100)
+  questions           TestQuestion[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([trainingCourseId])
+  @@map("competency_tests")
+}
+
+/// Test Question - Individual question in competency test
+model TestQuestion {
+  id                  String   @id @default(cuid())
+  test                CompetencyTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId              String
+
+  questionText        String                // Question content
+  questionType        QuestionType
+  correctAnswer       String                // Correct answer
+  possibleAnswers     String[]              // Array of possible answers for multiple choice
+  points              Int      @default(1)  // Points for this question
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([testId])
+  @@map("test_questions")
+}
+
+/// Training Record - Record of training completion for individual
+model TrainingRecord {
+  id                  String   @id @default(cuid())
+  trainingCourse      TrainingCourse @relation(fields: [trainingCourseId], references: [id])
+  trainingCourseId    String
+
+  // Trainee and instructor
+  trainee             User     @relation("TrainingRecordTrainee", fields: [traineeId], references: [id])
+  traineeId           String
+  instructor          User?    @relation("TrainingRecordInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  instructorId        String?
+
+  // Training details
+  trainingDate        DateTime
+  completionDate      DateTime?
+
+  // Competency assessment
+  testScore           Int?                  // Test percentage score
+  passed              Boolean?              // Pass/fail status
+  certificationDate   DateTime?             // Date certification was awarded
+  expirationDate      DateTime?             // Date certification expires
+
+  // Effectiveness evaluation
+  effectivenessScore  Int?                  // 1-5 rating
+  effectivenessNotes  String?
+
+  // Documentation
+  certificateUrl      String?               // URL to certificate
+  notes               String?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([trainingCourseId])
+  @@index([traineeId])
+  @@index([trainingDate])
+  @@index([expirationDate])
+  @@index([passed])
+  @@map("training_records")
+}
+
+// ============================================================================
+// QMS COMPLIANCE FRAMEWORK PHASE 2: AUDIT, CAPA, MANAGEMENT REVIEW, CHANGE
+// ============================================================================
+
+/// Audit Type enumeration
+enum QMSAuditType {
+  PROCESS_AUDIT       // Audit of manufacturing process
+  PRODUCT_AUDIT       // Audit of product conformance
+  SYSTEM_AUDIT        // Audit of QMS system
+  EXTERNAL_AUDIT      // Customer or registrar audit
+  SUPPLIER_AUDIT      // Audit of supplier
+}
+
+/// Audit Status enumeration
+enum QMSAuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  REPORT_ISSUED
+  CLOSED
+  CANCELLED
+}
+
+/// Finding Type enumeration
+enum QMSFindingType {
+  NONCONFORMANCE      // NC - violation of requirement
+  OBSERVATION         // OBS - potential issue
+  OPPORTUNITY         // OFI - opportunity for improvement
+  POSITIVE            // Good practice observed
+}
+
+/// Finding Severity enumeration
+enum QMSFindingSeverity {
+  CRITICAL            // Major nonconformance (cert at risk)
+  MAJOR               // Significant issue
+  MINOR               // Minor nonconformance
+  OBSERVATION         // No NC, just observation
+}
+
+/// Finding Status enumeration
+enum QMSFindingStatus {
+  OPEN
+  CORRECTIVE_ACTION_ASSIGNED
+  CORRECTIVE_ACTION_IMPLEMENTED
+  VERIFIED
+  CLOSED
+}
+
+/// CAPA Source enumeration
+enum QMSCASource {
+  INTERNAL_AUDIT
+  EXTERNAL_AUDIT
+  NCR
+  CUSTOMER_COMPLAINT
+  SUPPLIER_ISSUE
+  MANAGEMENT_REVIEW
+  PROCESS_MONITORING
+  IMPROVEMENT_OPPORTUNITY
+}
+
+/// RCA Method enumeration
+enum QMSRCAMethod {
+  FIVE_WHY
+  FISHBONE
+  FAULT_TREE
+  PARETO
+  EIGHT_D
+}
+
+/// CAPA Status enumeration
+enum QMSCAStatus {
+  OPEN
+  IN_PROGRESS
+  IMPLEMENTED
+  VERIFIED_EFFECTIVE
+  VERIFIED_INEFFECTIVE
+  CLOSED
+  CANCELLED
+}
+
+/// Change Type enumeration
+enum QMSChangeType {
+  DOCUMENT_CHANGE
+  PROCESS_CHANGE
+  PRODUCT_CHANGE
+  SYSTEM_CHANGE
+}
+
+/// Change Status enumeration
+enum QMSChangeStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+  CLOSED
+}
+
+/// Internal Audit - Audit planning and execution (ISO 9001 Clause 9.2)
+model InternalAudit {
+  id                  String   @id @default(cuid())
+  auditNumber         String   @unique
+  auditTitle          String
+  auditType           QMSAuditType
+  auditScope          String
+  plannedDate         DateTime
+  actualDate          DateTime?
+  duration            Int?                  // Minutes
+
+  // Team
+  leadAuditor         User     @relation("AuditLeadAuditor", fields: [leadAuditorId], references: [id])
+  leadAuditorId       String
+  auditeeId           String?
+  auditee             User?    @relation("Auditee", fields: [auditeeId], references: [id], onDelete: SetNull)
+  auditeeDepartment   String?
+
+  // Findings
+  findings            AuditFinding[]
+  status              QMSAuditStatus @default(PLANNED)
+
+  // Report
+  reportUrl           String?
+  summary             String?
+  closedBy            User?    @relation("AuditClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  closedById          String?
+  closedAt            DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("AuditCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([auditNumber])
+  @@index([auditType])
+  @@index([plannedDate])
+  @@index([status])
+  @@map("internal_audits")
+}
+
+/// Audit Finding - Findings from audit (ISO 9001 Clause 9.2)
+model AuditFinding {
+  id                  String   @id @default(cuid())
+  audit               InternalAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId             String
+
+  findingNumber       String
+  findingType         QMSFindingType
+  clause              String?                // ISO clause reference (e.g., "8.5.1")
+  description         String
+  objectiveEvidence   String?
+  severity            QMSFindingSeverity
+
+  // Corrective action linkage
+  correctiveAction    CorrectiveAction? @relation(fields: [correctiveActionId], references: [id], onDelete: SetNull)
+  correctiveActionId  String?
+
+  // Verification
+  status              QMSFindingStatus @default(OPEN)
+  verifiedBy          User?    @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedById        String?
+  verifiedAt          DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([auditId])
+  @@index([findingType])
+  @@index([severity])
+  @@index([status])
+  @@map("audit_findings")
+}
+
+/// Corrective Action - CAPA management (ISO 9001 Clause 10)
+model CorrectiveAction {
+  id                  String   @id @default(cuid())
+  caNumber            String   @unique
+  title               String
+  description         String
+
+  // Source
+  source              QMSCASource
+  sourceReference     String?                // NCR #, Audit #, etc.
+
+  // Root cause analysis
+  rootCauseMethod     QMSRCAMethod?
+  rootCause           String?
+
+  // Actions
+  correctiveAction    String
+  preventiveAction    String?
+
+  // Assignment
+  assignedTo          User     @relation("CAAssignedTo", fields: [assignedToId], references: [id])
+  assignedToId        String
+
+  // Timeline
+  targetDate          DateTime
+  implementedDate     DateTime?
+
+  // Verification
+  verificationMethod  String?
+  verifiedBy          User?    @relation("CAVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedById        String?
+  verifiedAt          DateTime?
+  isEffective         Boolean?
+
+  // Status
+  status              QMSCAStatus @default(OPEN)
+
+  // Linkages
+  auditFindings       AuditFinding[]
+  auditTrail          CorrectiveActionAudit[]
+  approvalRequests    CAApprovalRequest[]
+  spcViolations       SPCRuleViolation[]
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("CACreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([caNumber])
+  @@index([source])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("corrective_actions")
+}
+
+/// CorrectiveAction Audit Trail - Tracks all changes to corrective actions for compliance
+model CorrectiveActionAudit {
+  id                String   @id @default(cuid())
+
+  // Reference to CA
+  correctiveAction  CorrectiveAction @relation(fields: [caId], references: [id], onDelete: Cascade)
+  caId              String
+
+  // User and action
+  user              User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId            String
+  action            String   // STATUS_CHANGED, FIELD_MODIFIED, APPROVED, VERIFIED, CREATED, UPDATED
+
+  // Change details
+  fieldName         String?  // For FIELD_MODIFIED actions
+  previousValue     String?  // JSON string of previous value
+  newValue          String?  // JSON string of new value
+  notes             String?  // Additional context or comments
+
+  // Metadata
+  timestamp         DateTime @default(now())
+
+  @@index([caId])
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("corrective_action_audits")
+}
+
+/// CorrectiveAction Approval Request - Tracks RCA and effectiveness verification approvals
+model CAApprovalRequest {
+  id              String   @id @default(cuid())
+  caId            String
+  approvalType    String   // RCA_APPROVAL, EFFECTIVENESS_APPROVAL
+  requestedBy     String
+  requestedAt     DateTime @default(now())
+  approverUserId  String
+  status          String   // PENDING, APPROVED, REJECTED
+  approvalNotes   String?
+  approvedAt      DateTime?
+  dueDate         DateTime?
+  escalated       Boolean  @default(false)
+  escalatedAt     DateTime?
+
+  // Relations
+  correctiveAction CorrectiveAction @relation(fields: [caId], references: [id], onDelete: Cascade)
+  approver        User             @relation(fields: [approverUserId], references: [id], onDelete: Restrict)
+  requester       User             @relation("CAApprovalRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+
+  @@index([caId])
+  @@index([approverUserId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("ca_approval_requests")
+}
+
+/// Management Review - Management review sessions (ISO 9001 Clause 9.3)
+model ManagementReview {
+  id                  String   @id @default(cuid())
+  reviewNumber        String   @unique
+  reviewDate          DateTime
+
+  // Chairperson
+  chairperson         User     @relation("ReviewChairperson", fields: [chairpersonId], references: [id])
+  chairpersonId       String
+
+  // Details
+  inputsDiscussed     String?                // Structured inputs (JSON)
+  decisions           String?
+  resourceNeeds       String?
+  minutes             String?
+  minutesUrl          String?
+
+  // Actions
+  actionItems         ManagementReviewAction[]
+
+  // Status
+  status              String   @default("SCHEDULED")  // SCHEDULED, IN_PROGRESS, COMPLETED, CLOSED
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("ReviewCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([reviewNumber])
+  @@index([reviewDate])
+  @@map("management_reviews")
+}
+
+/// Management Review Action - Action items from management review
+model ManagementReviewAction {
+  id                  String   @id @default(cuid())
+  review              ManagementReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId            String
+
+  actionDescription   String
+  assignedTo          User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedToId        String?
+
+  dueDate             DateTime?
+  completedDate       DateTime?
+  status              String   @default("OPEN")  // OPEN, IN_PROGRESS, COMPLETED
+
+  notes               String?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([reviewId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("management_review_actions")
+}
+
+/// Change Request - Change management (AS9100D Clause 8.5.6)
+model ChangeRequest {
+  id                  String   @id @default(cuid())
+  changeNumber        String   @unique
+  title               String
+  description         String
+
+  // Change type
+  changeType          QMSChangeType
+
+  // Details
+  affectedParts       String[]
+  reason              String
+  benefits            String?
+  risks               String?
+  impactAssessment    String?
+  customerNotificationRequired Boolean @default(false)
+
+  // Implementation
+  implementationPlan  String?
+  implementationDate  DateTime?
+
+  // Status
+  status              QMSChangeStatus @default(DRAFT)
+
+  // Approval
+  approvedBy          User?    @relation("ChangeApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedById        String?
+  approvedAt          DateTime?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  createdBy           User     @relation("ChangeCreatedBy", fields: [createdById], references: [id])
+  createdById         String
+
+  @@index([changeNumber])
+  @@index([changeType])
+  @@index([status])
+  @@map("change_requests")
+}
+
+/// API Version - Manages API versioning and backward compatibility
+model ApiVersion {
+  id                  String   @id @default(cuid())
+  version             String   @unique // e.g., v1, v2
+  semver              String   // e.g., 1.0.0, 2.1.5
+  releaseDate         DateTime
+  status              String   @default("BETA") // BETA, CURRENT, MAINTENANCE, DEPRECATED, SUNSET
+
+  // Support timeline
+  maintenanceUntil    DateTime?
+  deprecatedAt        DateTime?
+  sunsetDate          DateTime?
+
+  // Metadata & Links
+  changelogUrl        String?
+  migrationGuideUrl   String?
+  documentationUrl    String?
+
+  // Relationships
+  breakingChanges     ApiBreakingChange[]
+  deprecations        ApiDeprecation[]
+  usageStats          ApiUsageByVersion[]
+
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status])
+  @@index([releaseDate])
+  @@index([sunsetDate])
+  @@map("api_versions")
+}
+
+/// API Breaking Change - Tracks breaking changes between versions
+model ApiBreakingChange {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  fromVersion         String // e.g., v1
+  toVersion           String // e.g., v2
+  changeType          String // ENDPOINT_REMOVED, FIELD_REMOVED, FIELD_TYPE_CHANGED, etc.
+
+  // What changed
+  endpoint            String?
+  field               String?
+  description         String
+
+  // Migration help
+  before              Json? // Example before
+  after               Json? // Example after
+  migrationSteps      Json? // Array of migration steps
+  migrationGuideUrl   String?
+
+  // Timeline
+  announcedAt         DateTime
+  effectiveDate       DateTime
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([fromVersion])
+  @@index([toVersion])
+  @@index([changeType])
+  @@map("api_breaking_changes")
+}
+
+/// API Deprecation - Tracks deprecated features
+model ApiDeprecation {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  feature             String // endpoint or field being deprecated
+  deprecatedAt        DateTime
+  sunsetDate          DateTime
+
+  // Replacement
+  replacement         String? // new endpoint/field
+  migrationGuideUrl   String?
+
+  // Communication
+  affectedAccounts    Int @default(0)
+  notificationsSent   Int @default(0)
+
+  // Impact
+  severity            String @default("medium") // low, medium, high
+  description         String
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([feature])
+  @@index([sunsetDate])
+  @@map("api_deprecations")
+}
+
+/// API Usage by Version - Analytics for API version adoption
+model ApiUsageByVersion {
+  id                  String   @id @default(cuid())
+  version             ApiVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId           String
+
+  apiKey              ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  apiKeyId            String?
+
+  // Usage stats
+  requestCount        Int @default(0)
+  lastRequestAt       DateTime?
+  failureCount        Int @default(0)
+  lastFailureAt       DateTime?
+
+  // Tracking
+  date                DateTime // Date these stats are for
+
+  // Metadata
+  clientName          String?
+  integrationName     String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([versionId])
+  @@index([apiKeyId])
+  @@index([date])
+  @@unique([versionId, apiKeyId, date])
+  @@map("api_usage_by_version")
+}
+
+/// API Changelog - Published changelog entries
+model ApiChangelog {
+  id                  String   @id @default(cuid())
+  version             String   // e.g., 2.0.0
+  releaseDate         DateTime
+  category            String   // breaking, feature, deprecation, fix, security
+
+  // Content
+  title               String
+  description         String
+  endpoint            String?
+  field               String?
+
+  // Migration info
+  migrationGuide      String?
+  alternativeFeature  String?
+
+  // Impact
+  severity            String? // low, medium, high
+  affectedApiKeys     Int?
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([version])
+  @@index([category])
+  @@index([releaseDate])
+  @@map("api_changelog")
+}
+
+/// Captured API Call - For compatibility testing
+model CapturedApiCall {
+  id                  String   @id @default(cuid())
+  apiKey              ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId            String
+
+  apiVersion          String
+
+  // Request
+  method              String
+  endpoint            String
+  requestPath         String
+  requestHeaders      Json // Record of headers
+  requestBody         Json?
+  requestQuery        Json?
+
+  // Response
+  statusCode          Int
+  responseHeaders     Json
+  responseBody        Json?
+
+  // Metadata
+  timestamp           DateTime @default(now())
+  duration            Int // milliseconds
+  success             Boolean
+  errorMessage        String?
+
+  @@index([apiKeyId])
+  @@index([apiVersion])
+  @@index([timestamp])
+  @@index([method, endpoint])
+  @@map("captured_api_calls")
+}
+
+/// API Compatibility Test - Test results for version compatibility
+model ApiCompatibilityTest {
+  id                  String   @id @default(cuid())
+  sourceVersion       String // e.g., v1
+  targetVersion       String // e.g., v2
+
+  compatible          Boolean
+
+  // Issues
+  breakingChanges     Json? // Array of breaking changes found
+  deprecatedFeatures  Json? // Array of deprecated features
+  unsupportedEndpoints Json? // Array of endpoints
+  unsupportedFields   Json? // Array of fields
+
+  // Recommendations
+  recommendations     Json? // Array of strings
+  estimatedMigrationEffort String? // low, medium, high
+  migrationGuideUrl   String?
+
+  // Test details
+  testedEndpoints     Int
+  compatibleEndpoints Int
+  failingEndpoints    Int
+
+  // Metadata
+  createdAt           DateTime @default(now())
+  expiresAt           DateTime // When test results expire
+
+  @@index([sourceVersion])
+  @@index([targetVersion])
+  @@index([compatible])
+  @@unique([sourceVersion, targetVersion])
+  @@map("api_compatibility_tests")
+}
+
+// ============================================================================
+// PLUGIN & HOOK SYSTEM (Issue #75)
+// ============================================================================
+
+// Hook Type Enums
+enum HookType {
+  WORKFLOW
+  UI
+  DATA
+  INTEGRATION
+  NOTIFICATION
+}
+
+enum PluginStatus {
+  PENDING_APPROVAL
+  INSTALLED
+  ACTIVE
+  DISABLED
+  FAILED
+  UNINSTALLED
+}
+
+enum ExecutionStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  TIMEOUT
+  REJECTED
+}
+
+// Core Plugin Model
+model Plugin {
+  id                  String          @id @default(cuid())
+  pluginId            String          @unique // identifier from manifest
+  name                String
+  version             String
+  description         String?
+  author              String?
+
+  // Manifest
+  manifest            Json // full manifest.json content
+
+  // Status
+  status              PluginStatus    @default(PENDING_APPROVAL)
+  isActive            Boolean         @default(false)
+
+  // Installation metadata
+  installedAt         DateTime        @default(now())
+  installedBy         String
+
+  // Version tracking
+  latestVersion       String?
+  updateAvailable     Boolean         @default(false)
+
+  // Configuration
+  configuration       Json? // plugin-specific settings
+
+  // File storage
+  packageUrl          String // path to plugin package
+
+  // API key for plugin SDK calls
+  apiKeyId            String?
+
+  // Dependencies and permissions
+  dependencies        Json? // {pluginId: version}
+  permissions         String[] @default([])
+
+  // Scoping
+  siteId              String?
+  site                Site? @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  hooks               PluginHook[]
+  executions          PluginExecution[]
+  configurations      PluginConfiguration[]
+  apiKey              ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([pluginId])
+  @@index([status])
+  @@index([isActive])
+  @@index([siteId])
+  @@map("plugins")
+}
+
+// Plugin Hook Registration
+model PluginHook {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Hook metadata
+  hookType            HookType
+  hookPoint           String // e.g., workOrder.beforeCreate
+
+  // Execution config
+  priority            Int             @default(50) // 0-100
+  isAsync             Boolean         @default(false)
+  timeout             Int             @default(5000) // milliseconds
+
+  // Handler reference
+  handlerFunction     String // function name in plugin code
+
+  // Status
+  isActive            Boolean         @default(true)
+  lastExecutedAt      DateTime?
+  executionCount      Int             @default(0)
+  errorCount          Int             @default(0)
+  lastError           String?
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, hookPoint])
+  @@index([hookType])
+  @@index([hookPoint])
+  @@index([priority])
+  @@map("plugin_hooks")
+}
+
+// Plugin Execution Tracking
+model PluginExecution {
+  id                  String          @id @default(cuid())
+  pluginId            String
+  hookPoint           String
+
+  // Execution timeline
+  startedAt           DateTime        @default(now())
+  completedAt         DateTime?
+  duration            Int? // milliseconds
+
+  // Execution result
+  status              ExecutionStatus
+  errorMessage        String?
+  errorStack          String?
+
+  // Context data
+  inputData           Json?
+  outputData          Json?
+
+  // Request context
+  userId              String?
+  requestId           String?
+  ipAddress           String?
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@index([pluginId])
+  @@index([hookPoint])
+  @@index([status])
+  @@index([startedAt])
+  @@map("plugin_executions")
+}
+
+// Plugin Configuration
+model PluginConfiguration {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Configuration data
+  key                 String
+  value               Json
+
+  // Versioning
+  version             Int             @default(1)
+  changedBy           String
+  changedAt           DateTime        @default(now())
+
+  // Scoping
+  siteId              String?
+  companyId           String?
+
+  // Relations
+  plugin              Plugin          @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, key, siteId])
+  @@index([pluginId])
+  @@index([siteId])
+  @@map("plugin_configurations")
+}
+
+// Plugin Events (for pub/sub)
+model PluginEvent {
+  id                  String          @id @default(cuid())
+
+  // Event metadata
+  eventType           String // workOrder.created, operation.completed, etc
+  eventData           Json // full event payload
+  timestamp           DateTime        @default(now())
+
+  // Source context
+  sourceUserId        String?
+  sourceRequestId     String?
+
+  // Delivery tracking
+  subscribers         Json? // [{pluginId, status, deliveredAt}]
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("plugin_events")
+}
+
+// Plugin Webhooks
+model PluginWebhook {
+  id                  String          @id @default(cuid())
+  pluginId            String
+
+  // Webhook metadata
+  eventType           String // which event types this webhook handles
+  webhookUrl          String
+
+  // Security
+  secret              String // HMAC secret for signature verification
+
+  // Retry configuration
+  maxRetries          Int             @default(3)
+  retryBackoff        Int             @default(1000) // milliseconds
+
+  // Status
+  isActive            Boolean         @default(true)
+  lastTriggeredAt     DateTime?
+  successCount        Int             @default(0)
+  failureCount        Int             @default(0)
+
+  // Dead letter queue
+  failedDeliveries    Json? // array of failed delivery attempts
+
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([pluginId])
+  @@index([eventType])
+  @@index([isActive])
+  @@map("plugin_webhooks")
+}
+
+// ============================================================================
+// PLUGIN REGISTRY SYSTEM (Issue #79)
+// ============================================================================
+
+// Plugin Registry Types
+enum PluginRegistryType {
+  ENTERPRISE   // Centralized enterprise registry
+  SITE         // Local site-specific registry
+  DEVELOPER    // For plugin development
+}
+
+// Plugin Package Status
+enum PluginPackageStatus {
+  PENDING_REVIEW   // Submitted, awaiting review
+  IN_REVIEW        // Actively being reviewed
+  APPROVED         // Available for installation
+  REJECTED         // Not approved
+  DEPRECATED       // Older version, newer available
+  REVOKED          // Security issue, must uninstall
+}
+
+// Plugin Installation Status
+enum PluginInstallationStatus {
+  INSTALLING      // Installation in progress
+  INSTALLED       // Ready to activate
+  ACTIVE          // Running
+  INACTIVE        // Temporarily inactive
+  FAILED          // Installation failed
+  UNINSTALLING    // Uninstall in progress
+  UNINSTALLED     // Removed
+}
+
+// License Type
+enum PluginLicenseType {
+  FREE        // No license required
+  TRIAL       // Temporary trial license
+  SITE        // Per-site license
+  ENTERPRISE  // All sites license
+  DEVELOPER   // Development only
+}
+
+// Deployment Type
+enum PluginDeploymentType {
+  INSTALL      // New installation
+  UPGRADE      // Version upgrade
+  ROLLBACK     // Rollback to previous
+  UNINSTALL    // Removal
+}
+
+// Deployment Status
+enum PluginDeploymentStatus {
+  SCHEDULED        // Waiting to execute
+  IN_PROGRESS      // Currently deploying
+  COMPLETED        // Successful
+  PARTIALLY_FAILED // Some sites failed
+  FAILED           // All failed
+  ROLLED_BACK      // Rolled back
+}
+
+// Plugin Registry (Central or Site-level)
+model PluginRegistry {
+  id                String                @id @default(cuid())
+  type              PluginRegistryType
+  name              String
+
+  // Registry details
+  storageUrl        String                // S3 bucket, Azure blob, MinIO endpoint
+  storageBucket     String?               // Bucket/container name
+  isDefault         Boolean               @default(false)
+
+  // Access control
+  isPublic          Boolean               @default(false)
+  organizationId    String?               // For enterprise registries
+  enterpriseId      String?
+  siteId            String?               // For site registries
+
+  // Status
+  isActive          Boolean               @default(true)
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  packages          PluginPackage[]
+
+  @@index([type])
+  @@index([organizationId])
+  @@index([enterpriseId])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("plugin_registries")
+}
+
+// Plugin Package (specific version in registry)
+model PluginPackage {
+  id                String                @id @default(cuid())
+  registryId        String
+
+  // Package metadata
+  pluginId          String                // Unique plugin identifier (e.g., "supplier-risk-analyzer")
+  name              String
+  version           String                // Semantic version (1.2.3)
+  description       String?
+  author            String
+  license           String
+
+  // Manifest (stored as JSON)
+  manifest          Json                  // Full plugin manifest.json
+
+  // Storage
+  packageUrl        String                // URL to .mpk file
+  packageSize       Int                   // bytes
+  checksum          String                // SHA-256 hash
+
+  // Compatibility
+  apiVersion        String                // Plugin API version
+  mesVersion        String                // MES version range (e.g., ">=1.5.0")
+
+  // Permissions
+  permissions       String[]              // Array of required permissions
+
+  // Dependencies
+  dependencies      Json?                 // {"pluginId": "version", ...}
+
+  // Status
+  status            PluginPackageStatus   @default(PENDING_REVIEW)
+  approvedBy        String?               // User who approved
+  approvedAt        DateTime?
+  rejectionReason   String?               // Why rejected/revoked
+  revokedAt         DateTime?
+
+  // Statistics
+  downloadCount     Int                   @default(0)
+  installCount      Int                   @default(0)
+
+  // Metadata
+  uploadedBy        String                // User who uploaded
+  uploadedAt        DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  registry          PluginRegistry        @relation(fields: [registryId], references: [id], onDelete: Cascade)
+  installations     PluginInstallation[]
+  reviews           PluginReview[]
+  licenses          PluginLicense[]
+  deployments       PluginDeployment[]
+
+  @@unique([registryId, pluginId, version])
+  @@index([pluginId])
+  @@index([status])
+  @@index([uploadedAt])
+  @@index([installCount])
+  @@map("plugin_packages")
+}
+
+// Plugin Installation (per site)
+model PluginInstallation {
+  id                String                @id @default(cuid())
+  packageId         String
+  siteId            String
+
+  // Installation details
+  installedVersion  String                // Version installed
+  installedAt       DateTime              @default(now())
+  installedBy       String                // User who installed
+
+  // Status
+  status            PluginInstallationStatus @default(INSTALLED)
+  activatedAt       DateTime?
+  deactivatedAt     DateTime?
+
+  // Configuration (stored as JSON)
+  configuration     Json?                 // Plugin configuration for this installation
+
+  // Health
+  errorCount        Int                   @default(0)
+  lastErrorAt       DateTime?
+  lastHealthCheck   DateTime?
+  lastErrorMessage  String?
+
+  // License
+  licenseKey        String?
+  licenseExpires    DateTime?
+
+  // Metadata
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  site              Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  healthLogs        PluginHealthLog[]
+
+  @@unique([packageId, siteId])
+  @@index([siteId])
+  @@index([status])
+  @@index([licenseExpires])
+  @@map("plugin_installations")
+}
+
+// Plugin Health Logs (for monitoring)
+model PluginHealthLog {
+  id                String                @id @default(cuid())
+  installationId    String
+
+  // Health metrics
+  errorCount        Int                   @default(0)
+  warningCount      Int                   @default(0)
+  avgExecutionTime  Int?                  // milliseconds (average)
+  memoryUsage       Int?                  // MB
+  cpuUsage          Decimal?              // percentage (0-100)
+
+  // Timestamp
+  recordedAt        DateTime              @default(now())
+
+  // Relations
+  installation      PluginInstallation    @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([recordedAt])
+  @@map("plugin_health_logs")
+}
+
+// Plugin License
+model PluginLicense {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // License details
+  licenseKey        String                @unique
+  licenseType       PluginLicenseType
+
+  // Scope
+  organizationId    String?
+  enterpriseId      String?
+  siteId            String?
+
+  // Validity
+  issuedAt          DateTime              @default(now())
+  expiresAt         DateTime?
+  isActive          Boolean               @default(true)
+
+  // Limits
+  maxInstallations  Int?                  // Null = unlimited
+  currentInstallations Int @default(0)
+
+  // Metadata
+  issuedBy          String
+  notes             String?
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([licenseKey])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("plugin_licenses")
+}
+
+// Plugin Review (internal usage ratings and comments)
+model PluginReview {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // Review details
+  rating            Int                   // 1-5 stars
+  comment           String?
+
+  // Reviewer
+  reviewerId        String
+  reviewerName      String
+  siteId            String
+
+  // Approval (for internal vetting)
+  isApproved        Boolean               @default(false)
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([siteId])
+  @@index([rating])
+  @@map("plugin_reviews")
+}
+
+// Plugin Deployment (multi-site deployment tracking)
+model PluginDeployment {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // Deployment details
+  deploymentType    PluginDeploymentType
+  targetSites       String[]              // array of site IDs
+
+  // Schedule
+  scheduledFor      DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  // Status
+  status            PluginDeploymentStatus @default(SCHEDULED)
+  successCount      Int                   @default(0)
+  failureCount      Int                   @default(0)
+
+  // Rollback
+  canRollback       Boolean               @default(true)
+  rolledBackAt      DateTime?
+  rollbackReason    String?
+
+  // Metadata
+  initiatedBy       String
+  notes             String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@map("plugin_deployments")
+}
+
+// Plugin Submission (for plugin developers to submit)
+model PluginSubmission {
+  id                String                @id @default(cuid())
+
+  // Plugin info
+  pluginId          String
+  name              String
+  version           String
+  author            String
+
+  // Submission details
+  manifest          Json                  // Plugin manifest
+  packageUrl        String
+  checksum          String
+
+  // Submission state
+  submittedBy       String
+  submittedAt       DateTime              @default(now())
+  reviewNotes       String?
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@index([pluginId])
+  @@index([submittedAt])
+  @@map("plugin_submissions")
 }

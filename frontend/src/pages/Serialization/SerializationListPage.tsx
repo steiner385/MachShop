@@ -389,7 +389,7 @@ const SerializationListPage: React.FC = () => {
           <div>
             <Space align="center" style={{ marginBottom: '12px' }}>
               <BarcodeOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
-              <Title level={2} style={{ margin: 0 }}>
+              <Title level={1} style={{ margin: 0 }}>
                 Serial Number Management
               </Title>
             </Space>
@@ -524,7 +524,7 @@ const SerializationListPage: React.FC = () => {
         ) : (
           <div style={{ textAlign: 'center', padding: '24px' }}>
             <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a', marginBottom: 16 }} />
-            <Title level={4}>Serial Number Generated</Title>
+            <Title level={2}>Serial Number Generated</Title>
             <Card style={{ marginTop: 16, background: '#f0f2f5' }}>
               <Space>
                 <Text code style={{ fontSize: 18 }}>

@@ -1,7 +1,6 @@
-import { PrismaClient, Equipment, EquipmentClass, EquipmentState, EquipmentStatus, Area, Prisma } from '@prisma/client';
+import { PrismaClient, Equipment, EquipmentClass, EquipmentState, EquipmentStatus, Area, CriticalityLevel, EquipmentType, Prisma } from '@prisma/client';
 import { ValidationError, NotFoundError, ConflictError } from '../middleware/errorHandler';
-
-const prisma = new PrismaClient();
+import { BaseService } from './BaseService';
 
 // Equipment with related data
 export interface EquipmentWithRelations extends Equipment {
@@ -12,6 +11,9 @@ export interface EquipmentWithRelations extends Equipment {
   workCenter?: any;
   stateHistory?: any[];
   performanceData?: any[];
+  equipmentTypeRef?: EquipmentType | null;
+  downtimeEvents?: any[];
+  maintenanceWorkOrders?: any[];
 }
 
 // Create equipment data type
@@ -35,6 +37,21 @@ export interface CreateEquipmentData {
   currentState?: EquipmentState;
   ratedCapacity?: number;
   currentCapacity?: number;
+
+  // Enhanced maintenance fields for Issue #94
+  equipmentTypeId?: string;
+  assetTag?: string;
+  purchaseDate?: Date;
+  warrantyExpiration?: Date;
+  criticality?: CriticalityLevel;
+  capacityUnit?: string;
+  acquisitionCost?: number;
+  currentValue?: number;
+  depreciationMethod?: string;
+  maintenanceInterval?: number; // Days
+  lastMaintenanceDate?: Date;
+  nextMaintenanceDate?: Date;
+  requiresCalibration?: boolean;
 }
 
 // Update equipment data type
@@ -61,6 +78,25 @@ export interface UpdateEquipmentData {
   performance?: number;
   quality?: number;
   oee?: number;
+
+  // Enhanced maintenance fields for Issue #94
+  equipmentTypeId?: string;
+  assetTag?: string;
+  purchaseDate?: Date;
+  warrantyExpiration?: Date;
+  criticality?: CriticalityLevel;
+  capacityUnit?: string;
+  acquisitionCost?: number;
+  currentValue?: number;
+  depreciationMethod?: string;
+  maintenanceInterval?: number; // Days
+  lastMaintenanceDate?: Date;
+  nextMaintenanceDate?: Date;
+  totalRunTime?: number;
+  totalDownTime?: number;
+  mtbf?: number;
+  mttr?: number;
+  requiresCalibration?: boolean;
 }
 
 // Equipment state change data
@@ -84,9 +120,52 @@ export interface EquipmentFilters {
   workCenterId?: string;
   parentEquipmentId?: string;
   search?: string; // Search by name or equipment number
+
+  // Enhanced maintenance filters for Issue #94
+  equipmentTypeId?: string;
+  criticality?: CriticalityLevel;
+  maintenanceDue?: boolean;
+  requiresCalibration?: boolean;
+  assetTag?: string;
 }
 
-class EquipmentService {
+// Equipment type interfaces for Issue #94
+export interface CreateEquipmentTypeData {
+  code: string;
+  name: string;
+  description?: string;
+  category?: string;
+  defaultMaintenanceInterval?: number;
+  defaultMaintenanceProcedure?: string;
+}
+
+export interface UpdateEquipmentTypeData {
+  code?: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  defaultMaintenanceInterval?: number;
+  defaultMaintenanceProcedure?: string;
+}
+
+// Equipment maintenance metrics for Issue #94
+export interface EquipmentMetrics {
+  equipmentId: string;
+  totalRunTime: number;
+  totalDownTime: number;
+  mtbf?: number; // Mean Time Between Failures (hours)
+  mttr?: number; // Mean Time To Repair (hours)
+  availability: number;
+  reliability: number;
+  maintainability: number;
+  lastCalculated: Date;
+}
+
+class EquipmentService extends BaseService {
+  constructor(prisma?: PrismaClient) {
+    super(prisma, 'EquipmentService');
+  }
+
   /**
    * Get all equipment with optional filtering and pagination
    */
@@ -107,10 +186,24 @@ class EquipmentService {
       if (filters.parentEquipmentId !== undefined) {
         where.parentEquipmentId = filters.parentEquipmentId || null;
       }
+
+      // Enhanced maintenance filters for Issue #94
+      if (filters.equipmentTypeId) where.equipmentTypeId = filters.equipmentTypeId;
+      if (filters.criticality) where.criticality = filters.criticality;
+      if (filters.requiresCalibration !== undefined) where.requiresCalibration = filters.requiresCalibration;
+      if (filters.assetTag) where.assetTag = { contains: filters.assetTag, mode: 'insensitive' };
+
+      if (filters.maintenanceDue) {
+        where.nextMaintenanceDate = {
+          lte: new Date(), // Maintenance is due if next maintenance date is today or in the past
+        };
+      }
+
       if (filters.search) {
         where.OR = [
           { name: { contains: filters.search, mode: 'insensitive' } },
           { equipmentNumber: { contains: filters.search, mode: 'insensitive' } },
+          { assetTag: { contains: filters.search, mode: 'insensitive' } },
         ];
       }
     }
@@ -122,18 +215,27 @@ class EquipmentService {
           site: true,
           area: true,
           workCenter: true,
+          equipmentTypeRef: true,
+          downtimeEvents: {
+            take: 10,
+            orderBy: { startTime: 'desc' },
+          },
+          maintenanceWorkOrders: {
+            take: 10,
+            orderBy: { createdAt: 'desc' },
+          },
         }
       : undefined;
 
     const [equipment, total] = await Promise.all([
-      prisma.equipment.findMany({
+      this.prisma.equipment.findMany({
         where,
         include,
         skip: options?.skip,
         take: options?.take,
         orderBy: { equipmentNumber: 'asc' },
       }),
-      prisma.equipment.count({ where }),
+      this.prisma.equipment.count({ where }),
     ]);
 
     return { equipment, total };
@@ -158,6 +260,7 @@ class EquipmentService {
         site: true,
         area: true,
         workCenter: true,
+        equipmentTypeRef: true,
         stateHistory: {
           orderBy: { stateStartTime: 'desc' },
           take: 10, // Last 10 state changes
@@ -165,6 +268,22 @@ class EquipmentService {
         performanceData: {
           orderBy: { periodStart: 'desc' },
           take: 30, // Last 30 periods
+        },
+        downtimeEvents: {
+          orderBy: { startTime: 'desc' },
+          take: 20, // Last 20 downtime events
+          include: {
+            downtimeReason: true,
+          },
+        },
+        maintenanceWorkOrders: {
+          orderBy: { createdAt: 'desc' },
+          take: 20, // Last 20 maintenance work orders
+          include: {
+            assignedTo: {
+              select: { id: true, firstName: true, lastName: true, username: true },
+            },
+          },
         },
       },
     });
@@ -199,21 +318,21 @@ class EquipmentService {
 
     // Validate references exist
     if (data.siteId) {
-      const site = await prisma.site.findUnique({ where: { id: data.siteId } });
+      const site = await this.prisma.site.findUnique({ where: { id: data.siteId } });
       if (!site) {
         throw new NotFoundError(`Site with ID ${data.siteId} not found`);
       }
     }
 
     if (data.areaId) {
-      const area = await prisma.area.findUnique({ where: { id: data.areaId } });
+      const area = await this.prisma.area.findUnique({ where: { id: data.areaId } });
       if (!area) {
         throw new NotFoundError(`Area with ID ${data.areaId} not found`);
       }
     }
 
     if (data.workCenterId) {
-      const workCenter = await prisma.workCenter.findUnique({ where: { id: data.workCenterId } });
+      const workCenter = await this.prisma.workCenter.findUnique({ where: { id: data.workCenterId } });
       if (!workCenter) {
         throw new NotFoundError(`Work center with ID ${data.workCenterId} not found`);
       }
@@ -311,7 +430,7 @@ class EquipmentService {
    * Get all descendants recursively
    */
   private async getDescendants(equipmentId: string): Promise<EquipmentWithRelations[]> {
-    const children = await prisma.equipment.findMany({
+    const children = await this.prisma.equipment.findMany({
       where: { parentEquipmentId: equipmentId },
       include: {
         childEquipment: true,
@@ -342,7 +461,7 @@ class EquipmentService {
     let current = equipment;
 
     while (current.parentEquipmentId) {
-      const parent = await prisma.equipment.findUnique({
+      const parent = await this.prisma.equipment.findUnique({
         where: { id: current.parentEquipmentId },
       });
       if (!parent) break;
@@ -374,7 +493,7 @@ class EquipmentService {
     const previousState = equipment.currentState;
 
     // Use transaction to ensure atomicity
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Close previous state history entry
       await tx.equipmentStateHistory.updateMany({
         where: {
@@ -523,7 +642,7 @@ class EquipmentService {
    * Remove capability from equipment
    */
   async removeCapability(capabilityId: string) {
-    const capability = await prisma.equipmentCapability.findUnique({
+    const capability = await this.prisma.equipmentCapability.findUnique({
       where: { id: capabilityId },
     });
 
@@ -565,7 +684,7 @@ class EquipmentService {
       where.capabilityType = options.capabilityType;
     }
 
-    const capabilities = await prisma.equipmentCapability.findMany({
+    const capabilities = await this.prisma.equipmentCapability.findMany({
       where,
       include: {
         equipment: {
@@ -605,7 +724,7 @@ class EquipmentService {
       isActive?: boolean;
     }
   ) {
-    const capability = await prisma.equipmentCapability.findUnique({
+    const capability = await this.prisma.equipmentCapability.findUnique({
       where: { id: capabilityId },
     });
 
@@ -624,7 +743,7 @@ class EquipmentService {
    * Returns: Enterprise → Site → Area → WorkCenter → WorkUnit → Equipment
    */
   async getFullHierarchyPath(equipmentId: string) {
-    const equipment = await prisma.equipment.findUnique({
+    const equipment = await this.prisma.equipment.findUnique({
       where: { id: equipmentId },
       include: {
         workUnit: {
@@ -676,6 +795,394 @@ class EquipmentService {
       orderBy: { equipmentNumber: 'asc' },
     });
   }
+
+  // ============================================================================
+  // ENHANCED MAINTENANCE METHODS FOR ISSUE #94
+  // ============================================================================
+
+  /**
+   * Get equipment by asset tag
+   */
+  async getEquipmentByAssetTag(assetTag: string): Promise<Equipment | null> {
+    return prisma.equipment.findUnique({
+      where: { assetTag },
+    });
+  }
+
+  /**
+   * Get equipment that require maintenance (due or overdue)
+   */
+  async getEquipmentRequiringMaintenance(options?: { overdue?: boolean; siteId?: string }) {
+    const where: Prisma.EquipmentWhereInput = {
+      nextMaintenanceDate: {
+        lte: options?.overdue ? new Date(Date.now() - 24 * 60 * 60 * 1000) : new Date(), // Overdue = past due date
+      },
+      isActive: true,
+    };
+
+    if (options?.siteId) {
+      where.siteId = options.siteId;
+    }
+
+    return prisma.equipment.findMany({
+      where,
+      include: {
+        equipmentTypeRef: true,
+        site: true,
+        area: true,
+        workCenter: true,
+        maintenanceWorkOrders: {
+          where: {
+            status: { not: 'COMPLETED' },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+      orderBy: [
+        { criticality: 'desc' },
+        { nextMaintenanceDate: 'asc' },
+      ],
+    });
+  }
+
+  /**
+   * Update equipment maintenance schedule
+   */
+  async updateMaintenanceSchedule(
+    equipmentId: string,
+    data: {
+      maintenanceInterval?: number;
+      lastMaintenanceDate?: Date;
+      nextMaintenanceDate?: Date;
+    }
+  ): Promise<Equipment> {
+    const equipment = await this.getEquipmentById(equipmentId);
+    if (!equipment) {
+      throw new NotFoundError(`Equipment with ID ${equipmentId} not found`);
+    }
+
+    // Auto-calculate next maintenance date if not provided
+    if (data.lastMaintenanceDate && data.maintenanceInterval && !data.nextMaintenanceDate) {
+      const nextDate = new Date(data.lastMaintenanceDate);
+      nextDate.setDate(nextDate.getDate() + data.maintenanceInterval);
+      data.nextMaintenanceDate = nextDate;
+    }
+
+    return prisma.equipment.update({
+      where: { id: equipmentId },
+      data,
+    });
+  }
+
+  /**
+   * Calculate and update equipment metrics (MTBF, MTTR, availability)
+   */
+  async calculateEquipmentMetrics(equipmentId: string): Promise<EquipmentMetrics> {
+    const equipment = await this.prisma.equipment.findUnique({
+      where: { id: equipmentId },
+      include: {
+        downtimeEvents: {
+          where: {
+            endTime: { not: null },
+          },
+          orderBy: { startTime: 'desc' },
+        },
+        maintenanceWorkOrders: {
+          where: {
+            status: 'COMPLETED',
+            type: { in: ['CORRECTIVE', 'EMERGENCY'] },
+          },
+          orderBy: { completedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!equipment) {
+      throw new NotFoundError(`Equipment with ID ${equipmentId} not found`);
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Filter events from last 30 days
+    const recentDowntimeEvents = equipment.downtimeEvents.filter(
+      event => event.startTime >= thirtyDaysAgo
+    );
+
+    const recentMaintenanceOrders = equipment.maintenanceWorkOrders.filter(
+      order => order.completedAt && order.completedAt >= thirtyDaysAgo
+    );
+
+    // Calculate total downtime (minutes)
+    const totalDownTime = recentDowntimeEvents.reduce((sum, event) => {
+      return sum + (event.durationMinutes || 0);
+    }, 0);
+
+    // Calculate total runtime (assume 24/7 operation minus downtime)
+    const totalPossibleTime = 30 * 24 * 60; // 30 days in minutes
+    const totalRunTime = totalPossibleTime - totalDownTime;
+
+    // Calculate MTBF (Mean Time Between Failures)
+    let mtbf: number | undefined;
+    if (recentMaintenanceOrders.length > 1) {
+      const failures = recentMaintenanceOrders.length;
+      mtbf = totalRunTime / failures / 60; // Convert to hours
+    }
+
+    // Calculate MTTR (Mean Time To Repair)
+    let mttr: number | undefined;
+    if (recentMaintenanceOrders.length > 0) {
+      const totalRepairTime = recentMaintenanceOrders.reduce((sum, order) => {
+        if (order.startedAt && order.completedAt) {
+          return sum + (order.completedAt.getTime() - order.startedAt.getTime());
+        }
+        return sum;
+      }, 0);
+      mttr = totalRepairTime / recentMaintenanceOrders.length / (1000 * 60 * 60); // Convert to hours
+    }
+
+    // Calculate availability
+    const availability = totalRunTime / totalPossibleTime;
+
+    // Calculate reliability (based on MTBF)
+    const reliability = mtbf ? Math.exp(-24 / mtbf) : 0; // 24-hour reliability
+
+    // Calculate maintainability (based on MTTR)
+    const maintainability = mttr ? 1 - Math.exp(-4 / mttr) : 0; // 4-hour maintainability
+
+    // Update equipment with calculated metrics
+    await this.prisma.equipment.update({
+      where: { id: equipmentId },
+      data: {
+        totalRunTime: equipment.totalRunTime + totalRunTime,
+        totalDownTime: equipment.totalDownTime + totalDownTime,
+        mtbf,
+        mttr,
+      },
+    });
+
+    return {
+      equipmentId,
+      totalRunTime: equipment.totalRunTime + totalRunTime,
+      totalDownTime: equipment.totalDownTime + totalDownTime,
+      mtbf,
+      mttr,
+      availability,
+      reliability,
+      maintainability,
+      lastCalculated: now,
+    };
+  }
+
+  /**
+   * Get equipment maintenance history
+   */
+  async getMaintenanceHistory(equipmentId: string, options?: { limit?: number; from?: Date; to?: Date }) {
+    const where: Prisma.MaintenanceWorkOrderWhereInput = {
+      equipmentId,
+    };
+
+    if (options?.from || options?.to) {
+      where.createdAt = {};
+      if (options.from) where.createdAt.gte = options.from;
+      if (options.to) where.createdAt.lte = options.to;
+    }
+
+    return prisma.maintenanceWorkOrder.findMany({
+      where,
+      include: {
+        assignedTo: {
+          select: { id: true, firstName: true, lastName: true, username: true },
+        },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, username: true },
+        },
+        partsUsed: true,
+        laborEntries: {
+          include: {
+            technician: {
+              select: { id: true, firstName: true, lastName: true, username: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: options?.limit || 50,
+    });
+  }
+
+  /**
+   * Get equipment downtime analysis
+   */
+  async getDowntimeAnalysis(equipmentId: string, options?: { days?: number }) {
+    const days = options?.days || 30;
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const downtimeEvents = await this.prisma.downtimeEvent.findMany({
+      where: {
+        equipmentId,
+        startTime: { gte: startDate },
+      },
+      include: {
+        downtimeReason: true,
+      },
+      orderBy: { startTime: 'desc' },
+    });
+
+    // Group by reason category
+    const reasonAnalysis = downtimeEvents.reduce((acc: any, event) => {
+      const category = event.downtimeReason.category || 'Unknown';
+      if (!acc[category]) {
+        acc[category] = {
+          category,
+          count: 0,
+          totalMinutes: 0,
+          events: [],
+        };
+      }
+      acc[category].count++;
+      acc[category].totalMinutes += event.durationMinutes || 0;
+      acc[category].events.push(event);
+      return acc;
+    }, {});
+
+    return {
+      equipmentId,
+      analysisPeriod: `${days} days`,
+      totalEvents: downtimeEvents.length,
+      totalDowntimeMinutes: downtimeEvents.reduce((sum, event) => sum + (event.durationMinutes || 0), 0),
+      reasonAnalysis: Object.values(reasonAnalysis),
+    };
+  }
+
+  // ============================================================================
+  // EQUIPMENT TYPE MANAGEMENT METHODS FOR ISSUE #94
+  // ============================================================================
+
+  /**
+   * Create equipment type
+   */
+  async createEquipmentType(data: CreateEquipmentTypeData): Promise<EquipmentType> {
+    // Check if code already exists
+    const existing = await this.prisma.equipmentType.findUnique({
+      where: { code: data.code },
+    });
+
+    if (existing) {
+      throw new ConflictError(`Equipment type with code ${data.code} already exists`);
+    }
+
+    return prisma.equipmentType.create({
+      data,
+    });
+  }
+
+  /**
+   * Get all equipment types
+   */
+  async getAllEquipmentTypes(options?: { includeEquipmentCount?: boolean }): Promise<EquipmentType[]> {
+    const include = options?.includeEquipmentCount ? {
+      equipment: {
+        select: { id: true },
+      },
+    } : undefined;
+
+    return prisma.equipmentType.findMany({
+      include,
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Get equipment type by ID
+   */
+  async getEquipmentTypeById(id: string): Promise<EquipmentType | null> {
+    return prisma.equipmentType.findUnique({
+      where: { id },
+      include: {
+        equipment: {
+          select: { id: true, equipmentNumber: true, name: true, status: true },
+          take: 10,
+        },
+      },
+    });
+  }
+
+  /**
+   * Update equipment type
+   */
+  async updateEquipmentType(id: string, data: UpdateEquipmentTypeData): Promise<EquipmentType> {
+    const equipmentType = await this.prisma.equipmentType.findUnique({
+      where: { id },
+    });
+
+    if (!equipmentType) {
+      throw new NotFoundError(`Equipment type with ID ${id} not found`);
+    }
+
+    // Check code uniqueness if changing
+    if (data.code && data.code !== equipmentType.code) {
+      const existing = await this.prisma.equipmentType.findUnique({
+        where: { code: data.code },
+      });
+
+      if (existing) {
+        throw new ConflictError(`Equipment type with code ${data.code} already exists`);
+      }
+    }
+
+    return prisma.equipmentType.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /**
+   * Delete equipment type
+   */
+  async deleteEquipmentType(id: string): Promise<EquipmentType> {
+    const equipmentType = await this.getEquipmentTypeById(id);
+    if (!equipmentType) {
+      throw new NotFoundError(`Equipment type with ID ${id} not found`);
+    }
+
+    // Check if any equipment uses this type
+    const equipmentCount = await this.prisma.equipment.count({
+      where: { equipmentTypeId: id },
+    });
+
+    if (equipmentCount > 0) {
+      throw new ValidationError(
+        `Cannot delete equipment type: ${equipmentCount} equipment items are using this type`
+      );
+    }
+
+    return this.prisma.equipmentType.delete({
+      where: { id },
+    });
+  }
 }
 
-export default new EquipmentService();
+// Lazy-loaded singleton for backward compatibility
+let _equipmentServiceInstance: EquipmentService | null = null;
+
+export function getEquipmentService(): EquipmentService {
+  if (!_equipmentServiceInstance) {
+    _equipmentServiceInstance = new EquipmentService();
+  }
+  return _equipmentServiceInstance;
+}
+
+// For backward compatibility with existing code that imports equipmentService directly
+export const equipmentService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getEquipmentService() as any)[prop];
+    },
+  }
+) as any as EquipmentService;
+
+export { EquipmentService };
+export default equipmentService;

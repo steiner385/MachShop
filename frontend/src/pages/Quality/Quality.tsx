@@ -208,6 +208,12 @@ const Quality: React.FC = () => {
           <Button icon={<AlertOutlined />}>
             Create NCR
           </Button>
+          <Button
+            icon={<CheckCircleOutlined />}
+            onClick={() => navigate('/quality/approvals')}
+          >
+            View Approvals
+          </Button>
         </Space>
       </div>
 

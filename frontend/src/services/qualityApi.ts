@@ -111,11 +111,198 @@ export interface CreateNCRRequest {
   rootCause?: string;
 }
 
+// ===== CAPA (Corrective/Preventive Action) Types =====
+export type CAStatus =
+  | 'OPEN'
+  | 'IN_PROGRESS'
+  | 'IMPLEMENTED'
+  | 'VERIFICATION_IN_PROGRESS'
+  | 'VERIFIED_EFFECTIVE'
+  | 'VERIFIED_INEFFECTIVE'
+  | 'CLOSED';
+
+export type CAPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type RCAMethod = '5_WHY' | 'FISHBONE' | 'FAULT_TREE' | 'PARETO' | '8D' | 'OTHER';
+
+export interface CorrectiveAction {
+  id: string;
+  caNumber: string;
+  title: string;
+  description: string;
+  status: CAStatus;
+  priority: CAPriority;
+  source: string; // NCR, Customer Complaint, SPC Violation, etc.
+  sourceId?: string; // Link to NCR or other source
+  assignedTo: string;
+  targetDate: string;
+  completedDate?: string;
+  rootCauseMethod?: RCAMethod;
+  rootCause?: string;
+  correctiveAction: string;
+  preventiveAction?: string;
+  owner: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditTrailEntry {
+  id: string;
+  caId: string;
+  userId: string;
+  action: string;
+  previousValue?: Record<string, any>;
+  newValue?: Record<string, any>;
+  notes?: string;
+  timestamp: string;
+}
+
+export interface CADashboardMetrics {
+  total: number;
+  byStatus: Record<CAStatus, number>;
+  overdue: number;
+  approachingDeadline: number;
+  averageResolutionTime: number;
+  effectivenessRate: number;
+}
+
+export interface CorrectiveActionListResponse {
+  correctiveActions: CorrectiveAction[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CAFilters {
+  status?: CAStatus;
+  priority?: CAPriority;
+  assignedTo?: string;
+  source?: string;
+  startDate?: string;
+  endDate?: string;
+  overdue?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateCARequest {
+  title: string;
+  description: string;
+  priority: CAPriority;
+  source: string;
+  sourceId?: string;
+  assignedTo: string;
+  targetDate: string;
+  correctiveAction: string;
+  preventiveAction?: string;
+}
+
+export interface UpdateCARequest {
+  title?: string;
+  description?: string;
+  priority?: CAPriority;
+  assignedTo?: string;
+  targetDate?: string;
+  correctiveAction?: string;
+  preventiveAction?: string;
+}
+
+export interface VerifyEffectivenessRequest {
+  effective: boolean;
+  verificationDate: string;
+  verificationNotes: string;
+  evidence?: string[];
+}
+
+export interface ApproveRCARequest {
+  approved: boolean;
+  approverNotes?: string;
+}
+
 /**
  * Quality API Service
- * Provides access to quality management endpoints (inspections, NCRs)
+ * Provides access to quality management endpoints (inspections, NCRs, CAPAs)
  */
 export const qualityApi = {
+  // ===== Corrective/Preventive Action (CAPA) Endpoints =====
+
+  /**
+   * Get list of corrective actions with optional filters
+   */
+  async getCorrectiveActions(filters?: CAFilters): Promise<CorrectiveActionListResponse> {
+    return await apiClient.get<CorrectiveActionListResponse>('/corrective-actions', {
+      params: filters,
+    });
+  },
+
+  /**
+   * Get corrective action by ID
+   */
+  async getCorrectiveActionById(id: string): Promise<CorrectiveAction> {
+    return await apiClient.get<CorrectiveAction>(`/corrective-actions/${id}`);
+  },
+
+  /**
+   * Create a new corrective action
+   */
+  async createCorrectiveAction(data: CreateCARequest): Promise<CorrectiveAction> {
+    return await apiClient.post<CorrectiveAction>('/corrective-actions', data);
+  },
+
+  /**
+   * Update corrective action
+   */
+  async updateCorrectiveAction(
+    id: string,
+    data: UpdateCARequest
+  ): Promise<CorrectiveAction> {
+    return await apiClient.patch<CorrectiveAction>(`/corrective-actions/${id}`, data);
+  },
+
+  /**
+   * Mark corrective action as implemented
+   */
+  async markImplemented(id: string, notes?: string): Promise<CorrectiveAction> {
+    return await apiClient.post<CorrectiveAction>(`/corrective-actions/${id}/mark-implemented`, {
+      implementedDate: new Date().toISOString(),
+      notes,
+    });
+  },
+
+  /**
+   * Verify effectiveness of corrective action
+   */
+  async verifyEffectiveness(
+    id: string,
+    data: VerifyEffectivenessRequest
+  ): Promise<CorrectiveAction> {
+    return await apiClient.post<CorrectiveAction>(
+      `/corrective-actions/${id}/verify-effectiveness`,
+      data
+    );
+  },
+
+  /**
+   * Get audit trail for a corrective action
+   */
+  async getAuditTrail(id: string): Promise<AuditTrailEntry[]> {
+    return await apiClient.get<AuditTrailEntry[]>(`/corrective-actions/${id}/audit-trail`);
+  },
+
+  /**
+   * Get CAPA dashboard metrics
+   */
+  async getDashboardMetrics(): Promise<CADashboardMetrics> {
+    return await apiClient.get<CADashboardMetrics>('/corrective-actions/dashboard/metrics');
+  },
+
+  /**
+   * Approve root cause analysis
+   */
+  async approveRCA(id: string, data: ApproveRCARequest): Promise<CorrectiveAction> {
+    return await apiClient.post<CorrectiveAction>(`/corrective-actions/${id}/approve-rca`, data);
+  },
+
   // ===== Inspection Endpoints =====
 
   /**

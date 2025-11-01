@@ -6,7 +6,7 @@
  * based on step type (Process, Inspection, Decision, Parallel, OSP, etc.)
  */
 
-import React, { memo } from 'react';
+import React, { memo, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Badge, Tag } from 'antd';
 import {
@@ -23,6 +23,8 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import { RoutingStepNodeData, StepType } from './VisualRoutingEditor';
+import { useKeyboardHandler, KEYBOARD_KEYS } from '@/hooks/useKeyboardHandler';
+import { ARIA_ROLES, generateAriaLabel, announceToScreenReader } from '@/utils/ariaUtils';
 
 /**
  * Get icon for step type
@@ -127,11 +129,79 @@ const getStepColors = (stepType: StepType) => {
 };
 
 /**
- * Routing Step Node Component
+ * Routing Step Node Component with Keyboard Navigation
  */
-export const RoutingStepNode = memo(({ data, selected }: NodeProps<RoutingStepNodeData>) => {
+export const RoutingStepNode = memo(({ data, selected, id }: NodeProps<RoutingStepNodeData>) => {
   const colors = getStepColors(data.stepType);
   const icon = getStepIcon(data.stepType);
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Handle keyboard interactions specific to this node
+  const handleNodeActivation = useCallback(() => {
+    announceToScreenReader(`Activated ${data.stepType} step: ${data.label}`);
+    // Node-specific activation logic can be added here
+  }, [data.stepType, data.label]);
+
+  const handleNodeEdit = useCallback(() => {
+    announceToScreenReader(`Editing ${data.stepType} step: ${data.label}`);
+    // Node editing logic can be added here
+  }, [data.stepType, data.label]);
+
+  // Keyboard handlers for node-specific interactions
+  const keyboardHandlers = {
+    [KEYBOARD_KEYS.ENTER]: (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleNodeActivation();
+    },
+
+    [KEYBOARD_KEYS.SPACE]: (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleNodeActivation();
+    },
+
+    'F2': (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleNodeEdit();
+    },
+
+    [KEYBOARD_KEYS.ESCAPE]: (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      // Blur the node to exit edit mode
+      nodeRef.current?.blur();
+    },
+  };
+
+  // Apply keyboard handlers to this node
+  useKeyboardHandler({
+    elementRef: nodeRef,
+    keyHandlers: keyboardHandlers,
+    enableGlobalCapture: false,
+  });
+
+  // Generate accessibility attributes
+  const ariaLabel = generateAriaLabel(
+    `${data.stepType} step: ${data.label}`,
+    {
+      stepNumber: data.stepNumber,
+      type: data.stepType,
+      selected: selected ? 'selected' : 'unselected',
+    }
+  );
+
+  const accessibilityProps = {
+    role: ARIA_ROLES.BUTTON,
+    'aria-label': ariaLabel,
+    'aria-describedby': `node-${id}-description`,
+    'aria-selected': selected,
+    'tabindex': selected ? 0 : -1,
+    'data-keyboard-focusable': 'true',
+    'data-node-type': data.stepType,
+    'data-node-id': id,
+  };
 
   const nodeStyle: React.CSSProperties = {
     background: colors.background,
@@ -163,7 +233,27 @@ export const RoutingStepNode = memo(({ data, selected }: NodeProps<RoutingStepNo
   };
 
   return (
-    <div style={nodeStyle}>
+    <>
+      {/* Hidden description for screen readers */}
+      <div id={`node-${id}-description`} className="sr-only">
+        Step {data.stepNumber}: {data.stepType} operation named {data.label}.
+        {data.duration && ` Duration: ${data.duration} minutes.`}
+        {data.description && ` Description: ${data.description}`}
+        {selected ? ' Currently selected.' : ' Press Enter or Space to select.'}
+      </div>
+
+      <div
+        ref={nodeRef}
+        style={{
+          ...nodeStyle,
+          // Enhanced focus indicators for keyboard navigation
+          outline: selected && nodeRef.current === document.activeElement
+            ? '3px solid #1890ff'
+            : 'none',
+          outlineOffset: '2px',
+        }}
+        {...accessibilityProps}
+      >
       {/* Input Handle */}
       {data.stepType !== 'START' && (
         <Handle
@@ -286,7 +376,8 @@ export const RoutingStepNode = memo(({ data, selected }: NodeProps<RoutingStepNo
           />
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 });
 

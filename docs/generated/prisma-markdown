@@ -36,6 +36,20 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"departments" {
+  String id PK
+  String departmentCode UK
+  String departmentName
+  String description "nullable"
+  String parentDepartmentId FK "nullable"
+  String siteId FK "nullable"
+  String costCenter "nullable"
+  String budgetCode "nullable"
+  String managerId FK "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
 "users" {
   String id PK
   String username UK
@@ -57,6 +71,7 @@ erDiagram
   String emergencyContact "nullable"
   String emergencyPhone "nullable"
   String department "nullable"
+  String departmentId FK "nullable"
   String supervisorId FK "nullable"
   String costCenter "nullable"
   Float laborRate "nullable"
@@ -208,6 +223,7 @@ erDiagram
   Int defaultShelfLifeDays "nullable"
   Float standardCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   Boolean requiresInspection
   String inspectionFrequency "nullable"
   String primarySupplierId "nullable"
@@ -256,6 +272,7 @@ erDiagram
   String unitOfMeasure
   String unitOfMeasureId FK "nullable"
   String location "nullable"
+  String locationId FK "nullable"
   String warehouseId "nullable"
   DateTime manufactureDate "nullable"
   DateTime receivedDate
@@ -279,6 +296,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   String parentLotId FK "nullable"
   Boolean isSplit
   Boolean isMerged
@@ -340,7 +358,9 @@ erDiagram
   String changedById "nullable"
   DateTime changedAt
   String fromLocation "nullable"
+  String fromLocationId FK "nullable"
   String toLocation "nullable"
+  String toLocationId FK "nullable"
   String qualityNotes "nullable"
   String notes "nullable"
   Json metadata "nullable"
@@ -547,6 +567,7 @@ erDiagram
   Float standardCost "nullable"
   Float targetCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   Boolean isActive
   Boolean isConfigurable
   Boolean requiresFAI
@@ -1081,6 +1102,44 @@ erDiagram
   String notes "nullable"
   DateTime createdAt
 }
+"cause_code_categories" {
+  String id PK
+  String code
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  Boolean enabled
+  Int sortOrder
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_codes" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  String categoryId FK
+  Boolean enabled
+  Int level
+  Int sortOrder
+  Int usageCount
+  DateTime lastUsedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_code_history" {
+  String id PK
+  String causeCodeId FK
+  String changeType
+  String oldValue "nullable"
+  String newValue "nullable"
+  String changeReason "nullable"
+  DateTime changedAt
+  String changedBy
+}
 "ncrs" {
   String id PK
   String ncrNumber UK
@@ -1097,12 +1156,88 @@ erDiagram
   String createdById FK
   String assignedToId FK "nullable"
   DateTime dueDate "nullable"
-  String rootCause "nullable"
+  String rootCauseId FK "nullable"
   String correctiveAction "nullable"
   String preventiveAction "nullable"
   DateTime closedAt "nullable"
+  NCRDisposition disposition "nullable"
+  String dispositionJustification "nullable"
+  String dispositionApprovedBy "nullable"
+  DateTime dispositionApprovedAt "nullable"
+  Boolean ctpAuthorized "nullable"
+  String ctpApprovedBy "nullable"
+  DateTime ctpApprovedAt "nullable"
+  String ctpJustification "nullable"
+  String ctpConditions "nullable"
+  String ctpOperations "nullable"
+  DateTime ddrExpectedDate "nullable"
+  String ddrPendingItems "nullable"
+  Boolean ddrEscalated "nullable"
+  DateTime ddrEscalatedAt "nullable"
+  Boolean mrbRequired "nullable"
+  DateTime mrbMeetingDate "nullable"
+  String mrbAttendees "nullable"
+  String mrbDecision "nullable"
+  String mrbVotes "nullable"
+  String mrbMinutes "nullable"
+  Decimal estimatedCost "nullable"
+  Decimal actualCost "nullable"
+  Decimal scrapCost "nullable"
+  Decimal reworkCost "nullable"
   DateTime createdAt
   DateTime updatedAt
+}
+"ncr_state_history" {
+  String id PK
+  String ncrId FK
+  NCRStatus fromState "nullable"
+  NCRStatus toState
+  String changedBy
+  String changeReason "nullable"
+  Boolean approvalRequired
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime timestamp
+}
+"ncr_approval_requests" {
+  String id PK
+  String ncrId FK
+  NCRApprovalRequestType requestType
+  String requestedBy
+  DateTime requestedAt
+  String approverUserId
+  NCRApprovalStatus status
+  String approvalNotes "nullable"
+  DateTime approvedAt "nullable"
+  DateTime dueDate "nullable"
+  Boolean escalated
+  DateTime escalatedAt "nullable"
+}
+"ncr_workflow_configs" {
+  String id PK
+  String siteId FK "nullable"
+  NCRSeverity severityLevel "nullable"
+  String enabledStates
+  NCRStatus initialState
+  String stateTransitions
+  String requiredFieldsByState "nullable"
+  Boolean ctpEnabled
+  String ctpApprovalRole "nullable"
+  Boolean ctpPreventFinalShip
+  Boolean ddrEnabled
+  Int ddrAutoTriggerHours "nullable"
+  Int ddrEscalationThreshold
+  Boolean mrbEnabled
+  Decimal mrbValueThreshold "nullable"
+  String mrbTriggerConditions "nullable"
+  String mrbRequiredAttendees "nullable"
+  NCRMRBVotingMethod mrbVotingMethod
+  String allowedDispositions
+  String dispositionApprovalRules "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
 }
 "equipment" {
   String id PK
@@ -1132,6 +1267,23 @@ erDiagram
   Float oee "nullable"
   Float ratedCapacity "nullable"
   Float currentCapacity "nullable"
+  String equipmentTypeId FK "nullable"
+  String assetTag UK "nullable"
+  DateTime purchaseDate "nullable"
+  DateTime warrantyExpiration "nullable"
+  CriticalityLevel criticality
+  String capacityUnit "nullable"
+  Decimal acquisitionCost "nullable"
+  Decimal currentValue "nullable"
+  String depreciationMethod "nullable"
+  Int maintenanceInterval "nullable"
+  DateTime lastMaintenanceDate "nullable"
+  DateTime nextMaintenanceDate "nullable"
+  Int totalRunTime
+  Int totalDownTime
+  Decimal mtbf "nullable"
+  Decimal mttr "nullable"
+  Boolean requiresCalibration
   Boolean isActive
   DateTime createdAt
   DateTime updatedAt
@@ -1207,6 +1359,7 @@ erDiagram
   String id PK
   String partId FK
   String location
+  String locationId FK "nullable"
   String lotNumber "nullable"
   Float quantity
   String unitOfMeasure
@@ -1239,6 +1392,7 @@ erDiagram
   String lotNumber "nullable"
   String status
   String currentLocation "nullable"
+  String currentLocationId FK "nullable"
   DateTime manufactureDate "nullable"
   DateTime shipDate "nullable"
   String customerInfo "nullable"
@@ -1407,16 +1561,38 @@ erDiagram
 }
 "maintenance_work_orders" {
   String id PK
-  String externalWorkOrderNumber UK
+  String workOrderNumber UK
+  String externalWorkOrderNumber UK "nullable"
+  String equipmentId FK
+  MaintenanceType type
+  Priority priority
+  MaintenanceStatus status
+  DateTime scheduledDate "nullable"
+  DateTime dueDate "nullable"
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
   String description
-  String workType
-  String status
-  String equipmentId FK "nullable"
+  String problemDescription "nullable"
+  String rootCause "nullable"
+  String correctiveAction "nullable"
+  String workPerformed "nullable"
+  String notes "nullable"
+  String assignedToId FK "nullable"
+  String assignedTeam "nullable"
+  Decimal estimatedLaborHours "nullable"
+  Decimal actualLaborHours "nullable"
+  Decimal estimatedPartsCost "nullable"
+  Decimal actualPartsCost "nullable"
+  Boolean causedDowntime
+  Int downtimeMinutes "nullable"
+  Boolean requiresFollowUp
+  DateTime followUpDate "nullable"
+  String followUpWorkOrderId FK "nullable"
+  String workType "nullable"
   DateTime scheduledStart "nullable"
   DateTime scheduledFinish "nullable"
   DateTime actualStart "nullable"
   DateTime actualFinish "nullable"
-  Int priority
   String failureCode "nullable"
   String problemCode "nullable"
   String causeCode "nullable"
@@ -1424,6 +1600,8 @@ erDiagram
   DateTime lastSyncedAt "nullable"
   DateTime createdAt
   DateTime updatedAt
+  String createdById FK
+  String updatedById FK
 }
 "measurement_equipment" {
   String id PK
@@ -1544,6 +1722,166 @@ erDiagram
   DateTime resolvedAt "nullable"
   DateTime createdAt
   DateTime updatedAt
+}
+"andon_alerts" {
+  String id PK
+  String alertNumber UK
+  String title
+  String description "nullable"
+  String issueTypeId FK
+  AndonSeverity severity
+  AndonPriority priority
+  String siteId FK "nullable"
+  String areaId FK "nullable"
+  String workCenterId FK "nullable"
+  String equipmentId FK "nullable"
+  String workOrderId FK "nullable"
+  String operationId FK "nullable"
+  String raisedById FK
+  String assignedToId FK "nullable"
+  AndonAlertStatus status
+  Json statusHistory
+  Int currentEscalationLevel
+  DateTime nextEscalationAt "nullable"
+  Json escalationHistory
+  DateTime resolvedAt "nullable"
+  String resolvedById FK "nullable"
+  String resolutionNotes "nullable"
+  String resolutionActionTaken "nullable"
+  Int responseTime "nullable"
+  Int resolutionTime "nullable"
+  Json metadata "nullable"
+  Json attachments
+  DateTime createdAt
+  DateTime updatedAt
+}
+"andon_issue_types" {
+  String id PK
+  String typeCode UK
+  String typeName
+  String description "nullable"
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean requiresAttachment
+  Boolean requiresWorkOrder
+  Boolean requiresEquipment
+  String autoAssignRole "nullable"
+  String autoAssignUserId FK "nullable"
+  Boolean enableEscalation
+  Int escalationTimeoutMins "nullable"
+  String siteId FK "nullable"
+  String iconName "nullable"
+  String colorCode "nullable"
+  Boolean isActive
+  Int displayOrder "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rules" {
+  String id PK
+  String ruleName
+  String description "nullable"
+  String siteId FK "nullable"
+  String issueTypeId FK "nullable"
+  AndonSeverity triggerSeverity
+  Int triggerAfterMinutes
+  Int escalationLevel
+  String notifyUserIds
+  String notifyRoles
+  String notifyChannels
+  String assignToUserId FK "nullable"
+  String assignToRole "nullable"
+  Json conditions "nullable"
+  Boolean isActive
+  Int executionCount
+  DateTime lastExecutedAt "nullable"
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_escalation_rule_results" {
+  String id PK
+  String alertId FK
+  String ruleId FK
+  DateTime executedAt
+  Int escalationLevel
+  Boolean success
+  String errorMessage "nullable"
+  Json actionsTaken
+  String notifiedUsers
+}
+"andon_configurations" {
+  String id PK
+  String configKey UK
+  Json configValue
+  String description "nullable"
+  String dataType
+  String category
+  Boolean isRequired
+  Json validationRules "nullable"
+  Json defaultValue "nullable"
+  Boolean isEncrypted
+  String accessLevel
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_site_configurations" {
+  String id PK
+  String siteId FK
+  String configKey
+  Json configValue
+  Boolean isOverride
+  Boolean inheritFromGlobal
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
+}
+"andon_notification_templates" {
+  String id PK
+  String templateKey UK
+  String templateName
+  String description "nullable"
+  String subject
+  String bodyTemplate
+  Json variables
+  String emailTemplate "nullable"
+  String smsTemplate "nullable"
+  String pushTemplate "nullable"
+  String siteId FK "nullable"
+  Boolean isActive
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"andon_system_settings" {
+  String id PK
+  String siteId FK "nullable"
+  Boolean andonEnabled
+  Boolean escalationEnabled
+  Boolean notificationsEnabled
+  AndonSeverity defaultSeverity
+  AndonPriority defaultPriority
+  Boolean autoAssignEnabled
+  Int defaultResponseTimeMin "nullable"
+  Int maxEscalationLevels
+  Int baseEscalationDelayMin
+  Boolean enableMobileAccess
+  Boolean enableKioskMode
+  Boolean requireComments
+  Boolean allowAnonymousReports
+  Json integrationSettings "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String lastModifiedBy FK
 }
 "integration_configs" {
   String id PK
@@ -1693,6 +2031,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency "nullable"
+  String currencyId FK "nullable"
   String movementType
   String reasonCode "nullable"
   B2MMessageStatus status
@@ -1717,6 +2056,7 @@ erDiagram
   String email "nullable"
   String employeeNumber "nullable"
   String department "nullable"
+  String departmentId FK "nullable"
   String jobTitle "nullable"
   Json skills "nullable"
   Json certifications "nullable"
@@ -2311,6 +2651,7 @@ erDiagram
   String catalogNumber "nullable"
   Float cost "nullable"
   String costCurrency "nullable"
+  String costCurrencyId FK "nullable"
   String applicablePartIds
   String applicableOperations
   String usageInstructions "nullable"
@@ -2635,6 +2976,7 @@ erDiagram
   String requestorId
   String requestorName
   String requestorDept "nullable"
+  String requestorDeptId FK "nullable"
   DateTime requestDate
   String sponsorId "nullable"
   String sponsorName "nullable"
@@ -2646,6 +2988,7 @@ erDiagram
   Float estimatedSavings "nullable"
   Float actualSavings "nullable"
   String costCurrency
+  String costCurrencyId FK "nullable"
   DateTime requestedEffectiveDate "nullable"
   DateTime plannedEffectiveDate "nullable"
   DateTime actualEffectiveDate "nullable"
@@ -2689,6 +3032,7 @@ erDiagram
   String assignedToId "nullable"
   String assignedToName "nullable"
   String assignedToDept "nullable"
+  String assignedToDeptId FK "nullable"
   ECOTaskStatus status
   DateTime dueDate "nullable"
   DateTime startedAt "nullable"
@@ -3140,7 +3484,10 @@ erDiagram
   String roleId FK
   DateTime assignedAt
   String assignedBy "nullable"
+  DateTime validFrom "nullable"
   DateTime expiresAt "nullable"
+  Boolean isTemporary
+  String grantReason "nullable"
 }
 "user_site_roles" {
   String id PK
@@ -3149,7 +3496,24 @@ erDiagram
   String siteId FK
   DateTime assignedAt
   String assignedBy "nullable"
+  DateTime validFrom "nullable"
   DateTime expiresAt "nullable"
+  Boolean isTemporary
+  String grantReason "nullable"
+}
+"temporal_access_logs" {
+  String id PK
+  String userId FK
+  String roleId FK
+  String siteId FK "nullable"
+  String accessType
+  String reason "nullable"
+  String grantedBy
+  DateTime timestamp
+  DateTime validFrom "nullable"
+  DateTime expiresAt "nullable"
+  Boolean isEmergency
+  Json metadata "nullable"
 }
 "time_tracking_configurations" {
   String id PK
@@ -3169,6 +3533,16 @@ erDiagram
   Boolean autoStopFromMachine
   Boolean requireTimeApproval
   ApprovalFrequency approvalFrequency
+  Int operatorEditWindowHours
+  Int supervisorEditWindowHours
+  Boolean editReasonRequired
+  Boolean autoApproveEnabled
+  Int autoApproveDurationThreshold
+  Boolean autoApproveWithinShift
+  Boolean autoApproveCostCodeOnly
+  Boolean approvalNotificationsEnabled
+  Boolean notificationEmail
+  Boolean notificationInApp
   DateTime createdAt
   DateTime updatedAt
   String createdBy
@@ -3203,6 +3577,7 @@ erDiagram
   String externalReferenceId "nullable"
   DateTime createdAt
   DateTime updatedAt
+  String batchId FK "nullable"
 }
 "machine_time_entries" {
   String id PK
@@ -3251,6 +3626,77 @@ erDiagram
   String siteId "nullable"
   DateTime createdAt
   DateTime updatedAt
+}
+"time_entry_edits" {
+  String id PK
+  String timeEntryId FK
+  TimeEntryType timeEntryType
+  EditType editType
+  Json originalValues
+  Json newValues
+  String changedFields
+  String reason
+  EditReasonCategory reasonCategory
+  String editedBy FK
+  DateTime editedAt
+  Boolean approvalRequired
+  ApprovalStatus approvalStatus "nullable"
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  String rejectionReason "nullable"
+  Boolean autoApproved
+}
+"time_entry_approvals" {
+  String id PK
+  String timeEntryEditId FK
+  String approverUserId FK
+  ApprovalStatus status
+  String approvalNotes "nullable"
+  String requestedChanges "nullable"
+  DateTime approvedAt
+  Boolean notificationSent
+  Int escalationLevel
+  DateTime dueDate "nullable"
+}
+"time_entry_batches" {
+  String id PK
+  String batchNumber UK
+  String employeeId FK
+  TimeEntryBatchType batchType
+  DateTime periodStart
+  DateTime periodEnd
+  TimeEntryBatchStatus status
+  DateTime submittedAt "nullable"
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  String rejectionReason "nullable"
+  Float totalHours
+  Float totalCost
+  DateTime createdAt
+  DateTime updatedAt
+}
+"auto_stop_configurations" {
+  String id PK
+  String siteId FK
+  Boolean autoStopOnClockOut
+  AutoStopBehavior autoStopBehavior
+  Int gracePeriodMinutes
+  Boolean autoStopOnShiftEnd
+  Boolean autoStopOnBreakStart
+  Int warningMinutesBefore
+  Boolean enableExternalSignals
+  DateTime createdAt
+  DateTime updatedAt
+}
+"time_entry_locks" {
+  String id PK
+  String timeEntryId FK
+  TimeEntryType timeEntryType
+  String lockedBy FK
+  DateTime lockedAt
+  String lockReason
+  LockType lockType
+  Json unlockRequests
 }
 "sso_providers" {
   String id PK
@@ -3366,6 +3812,250 @@ erDiagram
   String reason "nullable"
   DateTime timestamp
   String siteId FK "nullable"
+}
+"build_records" {
+  String id PK
+  String buildRecordNumber UK
+  String workOrderId FK
+  String serializedPartId FK "nullable"
+  String engineModel
+  String serialNumber
+  String customerName "nullable"
+  String contractNumber "nullable"
+  DateTime buildStartDate
+  DateTime buildEndDate "nullable"
+  DateTime targetCompletionDate "nullable"
+  DateTime actualCompletionDate "nullable"
+  BuildRecordStatus status
+  FinalDisposition finalDisposition "nullable"
+  Boolean isCompliant
+  Boolean hasDeviations
+  Boolean buildBookGenerated
+  DateTime buildBookGeneratedAt "nullable"
+  String buildBookPath "nullable"
+  Int buildBookVersion
+  Boolean qualityApprovalRequired
+  Boolean qualityApproved
+  DateTime qualityApprovedAt "nullable"
+  String qualityApprovedById FK "nullable"
+  Boolean engineeringApprovalRequired
+  Boolean engineeringApproved
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringApprovedById FK "nullable"
+  Boolean customerApprovalRequired
+  Boolean customerApproved
+  DateTime customerApprovedAt "nullable"
+  String customerApprovedBy "nullable"
+  String createdById FK
+  String assignedToId FK "nullable"
+  String notes "nullable"
+  String complianceNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_operations" {
+  String id PK
+  String buildRecordId FK
+  String workOrderOperationId FK "nullable"
+  String operationNumber
+  String operationName
+  String routingStepId "nullable"
+  DateTime plannedStartDate "nullable"
+  DateTime plannedEndDate "nullable"
+  DateTime actualStartDate "nullable"
+  DateTime actualEndDate "nullable"
+  Int plannedDuration "nullable"
+  Int actualDuration "nullable"
+  OperationStatus status
+  Int quantityPlanned
+  Int quantityCompleted
+  Int quantityScrap
+  String operatorId FK "nullable"
+  String inspectorId FK "nullable"
+  String workCenterId FK "nullable"
+  String equipmentUsed "nullable"
+  Json actualPartsUsed "nullable"
+  Json actualMaterials "nullable"
+  Boolean qualityCheckRequired
+  Boolean qualityCheckComplete
+  DateTime qualityCheckDate "nullable"
+  Boolean operatorSignedOff
+  DateTime operatorSignOffDate "nullable"
+  Boolean inspectorSignedOff
+  DateTime inspectorSignOffDate "nullable"
+  Boolean hasDeviations
+  Boolean requiresEngApproval
+  Boolean engineeringApproved
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringApprovedById FK "nullable"
+  Boolean torqueSpecsApplied
+  Json torqueValues "nullable"
+  Json toolsUsed "nullable"
+  Boolean calibrationVerified
+  String workInstructions "nullable"
+  String specialInstructions "nullable"
+  String operationNotes "nullable"
+  Boolean reworkRequired
+  String reworkReason "nullable"
+  Boolean reworkCompleted
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_deviations" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  String ncrId FK "nullable"
+  DeviationType deviationType
+  DeviationCategory deviationCategory
+  String title
+  String description
+  String detectedBy FK
+  DateTime detectedAt
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String operationNumber "nullable"
+  String asDesigned "nullable"
+  String asBuilt "nullable"
+  String variance "nullable"
+  DeviationSeverity severity
+  DeviationStatus status
+  DeviationDisposition disposition "nullable"
+  String dispositionReason "nullable"
+  Boolean engineeringReview
+  Boolean engineeringApproval
+  String engineeringApprovedBy FK "nullable"
+  DateTime engineeringApprovedAt "nullable"
+  String engineeringComments "nullable"
+  Boolean qualityReview
+  Boolean qualityApproval
+  String qualityApprovedBy FK "nullable"
+  DateTime qualityApprovedAt "nullable"
+  String qualityComments "nullable"
+  Boolean customerNotificationReq
+  Boolean customerNotified
+  Boolean customerApprovalReq
+  Boolean customerApproved
+  String customerApprovedBy "nullable"
+  DateTime customerApprovedAt "nullable"
+  String correctiveAction "nullable"
+  String preventiveAction "nullable"
+  String rootCause "nullable"
+  String impactAssessment "nullable"
+  Decimal costImpact "nullable"
+  Int scheduleImpact "nullable"
+  String closedBy FK "nullable"
+  DateTime closedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_photos" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  String deviationId FK "nullable"
+  PhotoType photoType
+  String title
+  String description "nullable"
+  String filePath
+  String fileName
+  Int fileSize
+  String mimeType
+  Int imageWidth "nullable"
+  Int imageHeight "nullable"
+  String capturedBy FK
+  DateTime capturedAt
+  String locationCaptured "nullable"
+  String operationNumber "nullable"
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String equipmentUsed "nullable"
+  Json annotations "nullable"
+  Json metadata "nullable"
+  Boolean qualityControlPhoto
+  Boolean mandatoryPhoto
+  Boolean approved
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  Boolean rejected
+  String rejectedBy FK "nullable"
+  DateTime rejectedAt "nullable"
+  String rejectionReason "nullable"
+  Boolean isArchived
+  String tags
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_documents" {
+  String id PK
+  String buildRecordId FK
+  String deviationId FK "nullable"
+  BuildRecordDocumentType documentType
+  String title
+  String description "nullable"
+  String filePath
+  String fileName
+  Int fileSize
+  String mimeType
+  String documentNumber "nullable"
+  String version "nullable"
+  DateTime issueDate "nullable"
+  DateTime expirationDate "nullable"
+  String supplier "nullable"
+  String partNumber "nullable"
+  String lotNumber "nullable"
+  String serialNumber "nullable"
+  String certificationNumber "nullable"
+  Boolean isOriginal
+  Boolean requiresApproval
+  Boolean approved
+  String approvedBy FK "nullable"
+  DateTime approvedAt "nullable"
+  Json compliance "nullable"
+  String uploadedBy FK
+  DateTime uploadedAt
+  String tags
+  Json metadata "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"build_record_status_history" {
+  String id PK
+  String buildRecordId FK
+  BuildRecordStatus previousStatus "nullable"
+  BuildRecordStatus newStatus
+  String changedBy FK
+  DateTime changedAt
+  String reason "nullable"
+  String notes "nullable"
+  Boolean automaticChange
+  String ipAddress "nullable"
+  String userAgent "nullable"
+}
+"build_record_signatures" {
+  String id PK
+  String buildRecordId FK
+  String operationId FK "nullable"
+  BuildSignatureType signatureType
+  SignatureLevel signatureLevel
+  String userId FK
+  String signatureRole
+  String signatureReason
+  Json signatureData
+  DateTime timestamp
+  String ipAddress
+  String userAgent
+  BiometricType biometricType "nullable"
+  Float biometricScore "nullable"
+  String signatureHash
+  Boolean isValid
+  DateTime invalidatedAt "nullable"
+  String invalidatedBy FK "nullable"
+  String invalidationReason "nullable"
+  String operationNumber "nullable"
+  String partNumber "nullable"
+  String serialNumber "nullable"
+  String complianceLevel "nullable"
 }
 "role_templates" {
   String id PK
@@ -3716,6 +4406,7 @@ erDiagram
   Float unitCost "nullable"
   Float totalCost "nullable"
   String currency
+  String currencyId FK "nullable"
   VendorKitStatus status
   VendorKitPriority priority
   DateTime requiredDate
@@ -3789,6 +4480,131 @@ erDiagram
   String unit "nullable"
   String notes "nullable"
   DateTime calculatedAt
+}
+"expedite_requests" {
+  String id PK
+  String shortageAlertId FK "nullable"
+  String partId FK
+  Float requiredQuantity
+  ExpeditUrgency urgencyLevel
+  DateTime requestedByDate
+  String justification
+  String impactAssessment "nullable"
+  Float costImpact "nullable"
+  String alternativesSuggested
+  ExpeditStatus status
+  String requestedById FK
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  DateTime rejectedAt "nullable"
+  String rejectionReason "nullable"
+  String vendorId FK "nullable"
+  String vendorResponse "nullable"
+  DateTime vendorCommitmentDate "nullable"
+  DateTime estimatedDeliveryDate "nullable"
+  DateTime actualDeliveryDate "nullable"
+  Float expediteFee "nullable"
+  Float totalCost "nullable"
+  Float approvedCost "nullable"
+  DateTime resolvedAt "nullable"
+  ExpeditResolution resolution "nullable"
+  String resolutionNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"supplier_communications" {
+  String id PK
+  String expeditRequestId FK "nullable"
+  String vendorId FK
+  String partId FK "nullable"
+  CommunicationType communicationType
+  CommunicationDirection direction
+  String subject
+  String message
+  CommunicationPriority priority
+  String contactName "nullable"
+  String contactEmail "nullable"
+  String contactPhone "nullable"
+  Boolean responseRequired
+  DateTime responseDeadline "nullable"
+  Boolean responseReceived
+  DateTime responseDate "nullable"
+  String responseMessage "nullable"
+  DateTime deliveryCommitment "nullable"
+  Boolean confirmationReceived
+  CommunicationStatus status
+  String sentById FK "nullable"
+  DateTime sentAt "nullable"
+  DateTime readAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"shortage_resolutions" {
+  String id PK
+  String shortageAlertId FK
+  String expeditRequestId FK "nullable"
+  ResolutionType_ resolutionType
+  DateTime resolutionDate
+  String resolvedById FK
+  String alternativePartId FK "nullable"
+  Boolean substitutionApproved
+  SubstitutionReason substitutionReason "nullable"
+  String engineeringApproval "nullable"
+  Boolean partialKitReleased
+  Float partialQuantity "nullable"
+  String blockedOperations
+  String supplierUsed "nullable"
+  DateTime actualDeliveryDate "nullable"
+  Float quantityReceived "nullable"
+  String receivedCondition "nullable"
+  Float expediteCost "nullable"
+  Float totalAdditionalCost "nullable"
+  Float laborImpactHours "nullable"
+  Boolean qualityImpact
+  String qualityNotes "nullable"
+  String rootCause "nullable"
+  String preventiveActions "nullable"
+  String supplierFeedback "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"expedite_status_history" {
+  String id PK
+  String expeditRequestId FK
+  ExpeditStatus fromStatus "nullable"
+  ExpeditStatus toStatus
+  String changedById FK "nullable"
+  String reason "nullable"
+  String notes "nullable"
+  Json metadata "nullable"
+  DateTime changedAt
+}
+"part_shortage_analytics" {
+  String id PK
+  String partId FK
+  DateTime analysisDate
+  Int totalShortages
+  Int shortagesLast30Days
+  Int shortagesLast90Days
+  Float averageShortageQuantity "nullable"
+  Float averageLeadTimeDays "nullable"
+  Int supplierCount
+  String preferredSupplierId FK "nullable"
+  Float totalExpediteCosts "nullable"
+  Float averageExpediteCost "nullable"
+  Float totalLaborImpactHours "nullable"
+  ResolutionType_ mostCommonResolution "nullable"
+  Float averageResolutionDays "nullable"
+  String alternativePartsUsed
+  String bestPerformingSupplierId FK "nullable"
+  Float supplierOnTimeRate "nullable"
+  String recommendedAction "nullable"
+  Float recommendedSafetyStock "nullable"
+  Int recommendedLeadTime "nullable"
+  DateTime nextAnalysisDate "nullable"
+  DateTime createdAt
+  DateTime updatedAt
 }
 "saviynt_user_mappings" {
   String id PK
@@ -3941,6 +4757,32 @@ erDiagram
   String nameIdFormat
   Json attributeMapping "nullable"
   Int clockTolerance
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"saml_sessions" {
+  String id PK
+  String userId FK
+  String sessionIndex "nullable"
+  String nameId
+  String nameIdFormat
+  String assertionId UK
+  String configId FK
+  Json attributes "nullable"
+  DateTime expiresAt "nullable"
+  DateTime createdAt
+}
+"saml_auth_requests" {
+  String id PK
+  String requestId UK
+  String relayState "nullable"
+  String destination
+  DateTime issueInstant
+  String configId FK
+  DateTime expiresAt
+  DateTime createdAt
+}
 "part_interchangeability_groups" {
   String id PK
   String name UK
@@ -3981,7 +4823,7 @@ erDiagram
   String groupId FK
   String partId FK "nullable"
   InterchangeabilityApprovalType approvalType
-  ApprovalStatus status
+  InterchangeabilityApprovalStatus status
   String requestedBy FK
   String approvedBy FK "nullable"
   DateTime approvalDate "nullable"
@@ -3997,27 +4839,6 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
-"saml_sessions" {
-  String id PK
-  String userId FK
-  String sessionIndex "nullable"
-  String nameId
-  String nameIdFormat
-  String assertionId UK
-  String configId FK
-  Json attributes "nullable"
-  DateTime expiresAt "nullable"
-  DateTime createdAt
-}
-"saml_auth_requests" {
-  String id PK
-  String requestId UK
-  String relayState "nullable"
-  String destination
-  DateTime issueInstant
-  String configId FK
-  DateTime expiresAt
-  DateTime createdAt
 "work_order_part_substitutions" {
   String id PK
   String workOrderId FK
@@ -4053,10 +4874,1159 @@ erDiagram
   String userAgent "nullable"
   String sessionId "nullable"
 }
+"interface_control_documents" {
+  String id PK
+  String persistentUuid
+  String icdNumber UK
+  String icdName
+  String title
+  String description "nullable"
+  String version
+  String revisionLevel "nullable"
+  ICDStatus status
+  InterfaceType interfaceType
+  InterfaceDirection interfaceDirection
+  InterfaceCriticality criticality
+  String applicableStandards
+  String complianceNotes "nullable"
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  InterfaceEffectivityType effectivityType "nullable"
+  String effectivityValue "nullable"
+  String ownerId "nullable"
+  String ownerName "nullable"
+  String ownerDepartment "nullable"
+  String approvedById "nullable"
+  DateTime approvedDate "nullable"
+  Int reviewCycle "nullable"
+  DateTime nextReviewDate "nullable"
+  String documentationUrl "nullable"
+  String drawingReferences
+  String specificationRefs
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById "nullable"
+  String lastModifiedById "nullable"
+}
+"interface_requirements" {
+  String id PK
+  String icdId FK
+  String requirementId
+  String category
+  String subcategory "nullable"
+  String title
+  String description
+  String specification "nullable"
+  String tolerance "nullable"
+  String units "nullable"
+  String nominalValue "nullable"
+  String minimumValue "nullable"
+  String maximumValue "nullable"
+  String testConditions "nullable"
+  VerificationMethod verificationMethod
+  String verificationProcedure "nullable"
+  String acceptanceCriteria "nullable"
+  String parentRequirementId FK "nullable"
+  String flowdownFrom
+  String rationale "nullable"
+  String priority
+  Boolean safetyRelated
+  Boolean missionCritical
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"icd_part_implementations" {
+  String id PK
+  String icdId FK
+  String partId FK
+  String implementationType
+  String implementationNotes "nullable"
+  Json configurationDetails "nullable"
+  ComplianceStatus complianceStatus
+  DateTime lastComplianceCheck "nullable"
+  String complianceNotes "nullable"
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  String effectivityCondition "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"icd_part_consumptions" {
+  String id PK
+  String icdId FK
+  String partId FK
+  String consumptionType
+  Int quantityRequired "nullable"
+  String consumptionNotes "nullable"
+  String alternativeOptions
+  Boolean isRequired
+  Boolean isCritical
+  String failureMode "nullable"
+  DateTime effectiveDate "nullable"
+  DateTime expirationDate "nullable"
+  String effectivityCondition "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"icd_relations" {
+  String id PK
+  String parentIcdId FK
+  String childIcdId FK
+  String relationType
+  String relationDescription "nullable"
+  String dependencyType "nullable"
+  String dataFlowDirection "nullable"
+  Int interfacePriority "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"icd_versions" {
+  String id PK
+  String icdId FK
+  String versionNumber
+  String versionType
+  String changeDescription
+  String changeReason "nullable"
+  String changeCategory
+  DateTime createdDate
+  DateTime approvedDate "nullable"
+  DateTime releasedDate "nullable"
+  DateTime supersededDate "nullable"
+  String createdById "nullable"
+  String approvedById "nullable"
+  Json versionData "nullable"
+  Boolean isActive
+}
+"icd_history" {
+  String id PK
+  String icdId FK
+  String actionType
+  String fieldChanged "nullable"
+  String oldValue "nullable"
+  String newValue "nullable"
+  String changeDescription "nullable"
+  String changeReason "nullable"
+  String impactAssessment "nullable"
+  String relatedEcoId FK "nullable"
+  DateTime changedAt
+  String changedById "nullable"
+  String changedByName "nullable"
+  String sessionId "nullable"
+  String ipAddress "nullable"
+  String userAgent "nullable"
+}
+"icd_attachments" {
+  String id PK
+  String icdId FK
+  String fileName
+  Int fileSize "nullable"
+  String fileType "nullable"
+  String fileExtension "nullable"
+  String storageUrl "nullable"
+  String storageKey "nullable"
+  String checksum "nullable"
+  String documentType
+  String category "nullable"
+  String securityLevel "nullable"
+  String description "nullable"
+  String version "nullable"
+  Boolean isActive
+  DateTime uploadedAt
+  String uploadedById "nullable"
+}
+"icd_compliance_checks" {
+  String id PK
+  String icdId FK
+  String requirementId FK "nullable"
+  String partId FK "nullable"
+  String checkType
+  VerificationMethod checkMethod
+  String checkProcedure "nullable"
+  ComplianceStatus complianceStatus
+  String checkResult
+  String actualValue "nullable"
+  String expectedValue "nullable"
+  String variance "nullable"
+  Json testResults "nullable"
+  String evidenceUrl "nullable"
+  String checkNotes "nullable"
+  String nonComplianceReason "nullable"
+  String correctiveAction "nullable"
+  DateTime checkDate
+  String checkedById "nullable"
+  String checkedByName "nullable"
+  String reviewedById "nullable"
+  DateTime reviewedDate "nullable"
+  DateTime nextCheckDate "nullable"
+  Boolean reCheckRequired
+  Boolean escalationRequired
+  Boolean isActive
+}
+"icd_change_requests" {
+  String id PK
+  String icdId FK
+  String requestNumber UK
+  String title
+  String description
+  String requestType
+  String priority
+  String proposedChange
+  String changeReason
+  String alternativesConsidered "nullable"
+  Json impactAnalysis "nullable"
+  String affectedParts
+  String affectedAssemblies
+  String estimatedEffort "nullable"
+  String riskAssessment "nullable"
+  String requestorId "nullable"
+  String requestorName
+  String requestorDept "nullable"
+  String requestorDeptId FK "nullable"
+  String requestorEmail "nullable"
+  DateTime requestDate
+  String status
+  String reviewerId "nullable"
+  String reviewerNotes "nullable"
+  DateTime reviewDate "nullable"
+  Boolean approvalRequired
+  String approvedById "nullable"
+  DateTime approvedDate "nullable"
+  String implementationPlan "nullable"
+  DateTime implementationDate "nullable"
+  String implementedById "nullable"
+  String relatedEcoId FK "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"locations" {
+  String id PK
+  String locationCode UK
+  String locationName
+  String description "nullable"
+  LocationType locationType
+  String parentLocationId FK "nullable"
+  String siteId FK "nullable"
+  String areaId FK "nullable"
+  Decimal capacityValue "nullable"
+  String capacityUnitOfMeasureId FK "nullable"
+  Decimal currentUtilization "nullable"
+  Decimal length "nullable"
+  Decimal width "nullable"
+  Decimal height "nullable"
+  String dimensionUnitOfMeasureId FK "nullable"
+  Boolean isActive
+  Boolean allowMixedParts
+  Boolean requiresEnvironmentalControl
+  Decimal temperature "nullable"
+  Decimal humidity "nullable"
+  String contactPhone "nullable"
+  String contactEmail "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"currencies" {
+  String id PK
+  String currencyCode UK
+  String currencyName
+  String currencySymbol "nullable"
+  String numericCode UK "nullable"
+  Int minorUnit
+  String region "nullable"
+  String country "nullable"
+  String displayFormat "nullable"
+  Boolean isActive
+  Boolean isBaseCurrency
+  Boolean allowFractional
+  DateTime createdAt
+  DateTime updatedAt
+}
+"exchange_rates" {
+  String id PK
+  String fromCurrencyId FK
+  String toCurrencyId FK
+  Decimal exchangeRate
+  DateTime effectiveDate
+  DateTime expirationDate "nullable"
+  ExchangeRateSource rateSource
+  String sourceReference "nullable"
+  Boolean isManualOverride
+  Boolean isActive
+  Int priority
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy "nullable"
+}
+"equipment_types" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String category "nullable"
+  Int defaultMaintenanceInterval "nullable"
+  String defaultMaintenanceProcedure "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"downtime_events" {
+  String id PK
+  String equipmentId FK
+  DateTime startTime
+  DateTime endTime "nullable"
+  Int durationMinutes "nullable"
+  DowntimeType downtimeType
+  String downtimeReasonId FK
+  String affectedWorkOrderIds
+  Decimal productionLoss "nullable"
+  String description
+  String rootCause "nullable"
+  String correctiveAction "nullable"
+  String maintenanceWorkOrderId FK "nullable"
+  String reportedById FK
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"downtime_reasons" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String category "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"maintenance_parts" {
+  String id PK
+  String workOrderId FK
+  String partNumber
+  String partDescription "nullable"
+  Decimal quantity
+  Decimal unitCost "nullable"
+  Decimal totalCost "nullable"
+  String lotNumber "nullable"
+  String serialNumber "nullable"
+  String issuedFrom "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"labor_entries" {
+  String id PK
+  String workOrderId FK
+  String technicianId FK
+  DateTime startTime
+  DateTime endTime "nullable"
+  Decimal laborHours "nullable"
+  Decimal laborRate "nullable"
+  Decimal laborCost "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_number_format_configs" {
+  String id PK
+  String name
+  String description "nullable"
+  String patternTemplate
+  String siteId FK
+  Boolean isActive
+  Int version
+  String validationRules "nullable"
+  Int sequentialCounterStart
+  Int sequentialCounterIncrement
+  String counterResetRule "nullable"
+  String createdBy "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_format_part_assignments" {
+  String id PK
+  String partId FK
+  String formatConfigId FK
+  Boolean isDefault
+  Int priority
+  DateTime effectiveFrom
+  DateTime effectiveUntil "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_format_part_family_assignments" {
+  String id PK
+  String partFamilyId
+  String formatConfigId FK
+  Boolean isDefault
+  Int priority
+  DateTime effectiveFrom
+  DateTime effectiveUntil "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"serial_number_usage_tracking" {
+  String id PK
+  String formatConfigId FK
+  Int currentSequenceValue
+  DateTime lastGeneratedDate "nullable"
+  DateTime counterResetDate "nullable"
+  Int totalGenerated
+  Int totalUsed
+  Int duplicateAttempts
+  DateTime lastUpdateTimestamp
+  Int version
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_keys" {
+  String id PK
+  String keyPrefix UK
+  String keyHash
+  String name
+  String description "nullable"
+  ApiTier tier
+  ApiKeyStatus status
+  String siteId "nullable"
+  String companyId "nullable"
+  String pluginId "nullable"
+  String scopes
+  Int rateLimit
+  Int dailyQuota "nullable"
+  Int monthlyQuota "nullable"
+  DateTime expiresAt "nullable"
+  DateTime lastUsedAt "nullable"
+  String lastUsedEndpoint "nullable"
+  String createdBy
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  String developerName "nullable"
+  String developerEmail "nullable"
+  String developerCompany "nullable"
+  String developerPhone "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_usage_logs" {
+  String id PK
+  String apiKeyId FK
+  String endpoint
+  String httpMethod
+  String apiVersion "nullable"
+  Int statusCode
+  Int responseTime
+  String requestId UK
+  String ipAddress "nullable"
+  String userAgent "nullable"
+  Int rateLimitRemaining "nullable"
+  DateTime rateLimitReset "nullable"
+  String errorCode "nullable"
+  String errorMessage "nullable"
+  Int requestBytes "nullable"
+  Int responseBytes "nullable"
+  DateTime createdAt
+}
+"rate_limit_configs" {
+  String id PK
+  ApiTier tier
+  String resource "nullable"
+  Int requestsPerMinute
+  Int requestsPerHour "nullable"
+  Int requestsPerDay "nullable"
+  Decimal burstMultiplier
+  Int burstDuration
+  Boolean isActive
+  String siteId "nullable"
+  String description "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oauth_clients" {
+  String id PK
+  String clientId UK
+  String clientSecret
+  String name
+  String description "nullable"
+  String grantTypes
+  String redirectUris
+  String allowedScopes
+  ApiTier tier
+  Boolean isActive
+  String companyId "nullable"
+  String createdBy
+  DateTime createdAt
+  DateTime updatedAt
+}
+"oauth_authorizations" {
+  String id PK
+  String clientId FK
+  String userId
+  String scopes
+  Boolean isRevoked
+  DateTime revokedAt "nullable"
+  DateTime authorizedAt
+  DateTime expiresAt "nullable"
+}
+"oauth_tokens" {
+  String id PK
+  String clientId FK
+  String userId "nullable"
+  TokenType tokenType
+  String tokenHash UK
+  String scopes
+  DateTime expiresAt
+  Boolean isRevoked
+  DateTime revokedAt "nullable"
+  String refreshTokenId "nullable"
+  DateTime createdAt
+  DateTime lastUsedAt "nullable"
+}
+"api_endpoint_tiers" {
+  String id PK
+  String endpoint UK
+  String httpMethod
+  ApiTier tier
+  String description "nullable"
+  Boolean isDeprecated
+  DateTime deprecationDate "nullable"
+  String replacementEndpoint "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"site_workflow_configurations" {
+  String id PK
+  String siteId FK
+  WorkflowMode mode
+  Boolean enforceOperationSequence
+  Boolean enforceStatusGating
+  Boolean allowExternalVouching
+  Boolean enforceQualityChecks
+  Boolean requireStartTransition
+  Boolean requireJustification
+  Boolean requireApproval
+  DateTime effectiveDate
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+  String updatedBy "nullable"
+}
+"routing_workflow_configurations" {
+  String id PK
+  String routingId FK
+  String siteConfigId FK "nullable"
+  WorkflowMode mode "nullable"
+  Boolean enforceOperationSequence "nullable"
+  Boolean enforceStatusGating "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean enforceQualityChecks "nullable"
+  Boolean requireStartTransition "nullable"
+  String overrideReason "nullable"
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"work_order_workflow_configurations" {
+  String id PK
+  String workOrderId FK
+  String routingConfigId FK "nullable"
+  WorkflowMode mode "nullable"
+  Boolean enforceOperationSequence "nullable"
+  Boolean enforceStatusGating "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean enforceQualityChecks "nullable"
+  Boolean requireStartTransition "nullable"
+  String overrideReason
+  String approvedBy
+  DateTime approvedAt
+  DateTime createdAt
+  String createdBy
+}
+"workflow_configuration_history" {
+  String id PK
+  String configType
+  String configId
+  String field
+  String oldValue "nullable"
+  String newValue
+  String changeReason "nullable"
+  String changedBy
+  DateTime changedAt
+  String siteConfigId FK "nullable"
+}
+"operation_workflow_configurations" {
+  String id PK
+  String operationId FK
+  Boolean requireQualityInspection "nullable"
+  Boolean allowExternalVouching "nullable"
+  Boolean bypassPrerequisites "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"controlled_documents" {
+  String id PK
+  String documentNumber UK
+  String title
+  String description "nullable"
+  QMSDocumentType documentType
+  String category "nullable"
+  String revision
+  DateTime revisionDate
+  DateTime effectiveDate "nullable"
+  QMSDocumentStatus status
+  String fileUrl
+  String fileName
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  Int reviewFrequency "nullable"
+  DateTime nextReviewDate "nullable"
+  DateTime lastReviewDate "nullable"
+  Boolean isControlled
+  String parentDocumentId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"document_approvals" {
+  String id PK
+  String documentId FK
+  String approverRole
+  String approverId FK
+  Int sequence
+  ApprovalStatus status
+  DateTime requestedAt
+  DateTime reviewedAt "nullable"
+  String comments "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"training_courses" {
+  String id PK
+  String courseNumber UK
+  String courseName
+  String description "nullable"
+  String objectives "nullable"
+  Int duration "nullable"
+  CourseType courseType
+  String materials "nullable"
+  String requiredForRoles
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"competency_tests" {
+  String id PK
+  String trainingCourseId FK
+  String testName
+  Int passingScore
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_questions" {
+  String id PK
+  String testId FK
+  String questionText
+  QuestionType questionType
+  String correctAnswer
+  String possibleAnswers
+  Int points
+  DateTime createdAt
+  DateTime updatedAt
+}
+"training_records" {
+  String id PK
+  String trainingCourseId FK
+  String traineeId FK
+  String instructorId FK "nullable"
+  DateTime trainingDate
+  DateTime completionDate "nullable"
+  Int testScore "nullable"
+  Boolean passed "nullable"
+  DateTime certificationDate "nullable"
+  DateTime expirationDate "nullable"
+  Int effectivenessScore "nullable"
+  String effectivenessNotes "nullable"
+  String certificateUrl "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"internal_audits" {
+  String id PK
+  String auditNumber UK
+  String auditTitle
+  QMSAuditType auditType
+  String auditScope
+  DateTime plannedDate
+  DateTime actualDate "nullable"
+  Int duration "nullable"
+  String leadAuditorId FK
+  String auditeeId FK "nullable"
+  String auditeeDepartment "nullable"
+  QMSAuditStatus status
+  String reportUrl "nullable"
+  String summary "nullable"
+  String closedById FK "nullable"
+  DateTime closedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"audit_findings" {
+  String id PK
+  String auditId FK
+  String findingNumber
+  QMSFindingType findingType
+  String clause "nullable"
+  String description
+  String objectiveEvidence "nullable"
+  QMSFindingSeverity severity
+  String correctiveActionId FK "nullable"
+  QMSFindingStatus status
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"corrective_actions" {
+  String id PK
+  String caNumber UK
+  String title
+  String description
+  QMSCASource source
+  String sourceReference "nullable"
+  QMSRCAMethod rootCauseMethod "nullable"
+  String rootCause "nullable"
+  String correctiveAction
+  String preventiveAction "nullable"
+  String assignedToId FK
+  DateTime targetDate
+  DateTime implementedDate "nullable"
+  String verificationMethod "nullable"
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  Boolean isEffective "nullable"
+  QMSCAStatus status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_reviews" {
+  String id PK
+  String reviewNumber UK
+  DateTime reviewDate
+  String chairpersonId FK
+  String inputsDiscussed "nullable"
+  String decisions "nullable"
+  String resourceNeeds "nullable"
+  String minutes "nullable"
+  String minutesUrl "nullable"
+  String status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_review_actions" {
+  String id PK
+  String reviewId FK
+  String actionDescription
+  String assignedToId FK "nullable"
+  DateTime dueDate "nullable"
+  DateTime completedDate "nullable"
+  String status
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"change_requests" {
+  String id PK
+  String changeNumber UK
+  String title
+  String description
+  QMSChangeType changeType
+  String affectedParts
+  String reason
+  String benefits "nullable"
+  String risks "nullable"
+  String impactAssessment "nullable"
+  Boolean customerNotificationRequired
+  String implementationPlan "nullable"
+  DateTime implementationDate "nullable"
+  QMSChangeStatus status
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"api_versions" {
+  String id PK
+  String version UK
+  String semver
+  DateTime releaseDate
+  String status
+  DateTime maintenanceUntil "nullable"
+  DateTime deprecatedAt "nullable"
+  DateTime sunsetDate "nullable"
+  String changelogUrl "nullable"
+  String migrationGuideUrl "nullable"
+  String documentationUrl "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_breaking_changes" {
+  String id PK
+  String versionId FK
+  String fromVersion
+  String toVersion
+  String changeType
+  String endpoint "nullable"
+  String field "nullable"
+  String description
+  Json before "nullable"
+  Json after "nullable"
+  Json migrationSteps "nullable"
+  String migrationGuideUrl "nullable"
+  DateTime announcedAt
+  DateTime effectiveDate
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_deprecations" {
+  String id PK
+  String versionId FK
+  String feature
+  DateTime deprecatedAt
+  DateTime sunsetDate
+  String replacement "nullable"
+  String migrationGuideUrl "nullable"
+  Int affectedAccounts
+  Int notificationsSent
+  String severity
+  String description
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_usage_by_version" {
+  String id PK
+  String versionId FK
+  String apiKeyId FK "nullable"
+  Int requestCount
+  DateTime lastRequestAt "nullable"
+  Int failureCount
+  DateTime lastFailureAt "nullable"
+  DateTime date
+  String clientName "nullable"
+  String integrationName "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_changelog" {
+  String id PK
+  String version
+  DateTime releaseDate
+  String category
+  String title
+  String description
+  String endpoint "nullable"
+  String field "nullable"
+  String migrationGuide "nullable"
+  String alternativeFeature "nullable"
+  String severity "nullable"
+  Int affectedApiKeys "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"captured_api_calls" {
+  String id PK
+  String apiKeyId FK
+  String apiVersion
+  String method
+  String endpoint
+  String requestPath
+  Json requestHeaders
+  Json requestBody "nullable"
+  Json requestQuery "nullable"
+  Int statusCode
+  Json responseHeaders
+  Json responseBody "nullable"
+  DateTime timestamp
+  Int duration
+  Boolean success
+  String errorMessage "nullable"
+}
+"api_compatibility_tests" {
+  String id PK
+  String sourceVersion
+  String targetVersion
+  Boolean compatible
+  Json breakingChanges "nullable"
+  Json deprecatedFeatures "nullable"
+  Json unsupportedEndpoints "nullable"
+  Json unsupportedFields "nullable"
+  Json recommendations "nullable"
+  String estimatedMigrationEffort "nullable"
+  String migrationGuideUrl "nullable"
+  Int testedEndpoints
+  Int compatibleEndpoints
+  Int failingEndpoints
+  DateTime createdAt
+  DateTime expiresAt
+}
+"plugins" {
+  String id PK
+  String pluginId UK
+  String name
+  String version
+  String description "nullable"
+  String author "nullable"
+  Json manifest
+  PluginStatus status
+  Boolean isActive
+  DateTime installedAt
+  String installedBy
+  String latestVersion "nullable"
+  Boolean updateAvailable
+  Json configuration "nullable"
+  String packageUrl
+  String apiKeyId FK "nullable"
+  Json dependencies "nullable"
+  String permissions
+  String siteId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_hooks" {
+  String id PK
+  String pluginId FK
+  HookType hookType
+  String hookPoint
+  Int priority
+  Boolean isAsync
+  Int timeout
+  String handlerFunction
+  Boolean isActive
+  DateTime lastExecutedAt "nullable"
+  Int executionCount
+  Int errorCount
+  String lastError "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_executions" {
+  String id PK
+  String pluginId FK
+  String hookPoint
+  DateTime startedAt
+  DateTime completedAt "nullable"
+  Int duration "nullable"
+  ExecutionStatus status
+  String errorMessage "nullable"
+  String errorStack "nullable"
+  Json inputData "nullable"
+  Json outputData "nullable"
+  String userId "nullable"
+  String requestId "nullable"
+  String ipAddress "nullable"
+  DateTime createdAt
+}
+"plugin_configurations" {
+  String id PK
+  String pluginId FK
+  String key
+  Json value
+  Int version
+  String changedBy
+  DateTime changedAt
+  String siteId "nullable"
+  String companyId "nullable"
+}
+"plugin_events" {
+  String id PK
+  String eventType
+  Json eventData
+  DateTime timestamp
+  String sourceUserId "nullable"
+  String sourceRequestId "nullable"
+  Json subscribers "nullable"
+  DateTime createdAt
+}
+"plugin_webhooks" {
+  String id PK
+  String pluginId
+  String eventType
+  String webhookUrl
+  String secret
+  Int maxRetries
+  Int retryBackoff
+  Boolean isActive
+  DateTime lastTriggeredAt "nullable"
+  Int successCount
+  Int failureCount
+  Json failedDeliveries "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_registries" {
+  String id PK
+  PluginRegistryType type
+  String name
+  String storageUrl
+  String storageBucket "nullable"
+  Boolean isDefault
+  Boolean isPublic
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_packages" {
+  String id PK
+  String registryId FK
+  String pluginId
+  String name
+  String version
+  String description "nullable"
+  String author
+  String license
+  Json manifest
+  String packageUrl
+  Int packageSize
+  String checksum
+  String apiVersion
+  String mesVersion
+  String permissions
+  Json dependencies "nullable"
+  PluginPackageStatus status
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  String rejectionReason "nullable"
+  DateTime revokedAt "nullable"
+  Int downloadCount
+  Int installCount
+  String uploadedBy
+  DateTime uploadedAt
+  DateTime updatedAt
+}
+"plugin_installations" {
+  String id PK
+  String packageId FK
+  String siteId FK
+  String installedVersion
+  DateTime installedAt
+  String installedBy
+  PluginInstallationStatus status
+  DateTime activatedAt "nullable"
+  DateTime deactivatedAt "nullable"
+  Json configuration "nullable"
+  Int errorCount
+  DateTime lastErrorAt "nullable"
+  DateTime lastHealthCheck "nullable"
+  String lastErrorMessage "nullable"
+  String licenseKey "nullable"
+  DateTime licenseExpires "nullable"
+  DateTime updatedAt
+}
+"plugin_health_logs" {
+  String id PK
+  String installationId FK
+  Int errorCount
+  Int warningCount
+  Int avgExecutionTime "nullable"
+  Int memoryUsage "nullable"
+  Decimal cpuUsage "nullable"
+  DateTime recordedAt
+}
+"plugin_licenses" {
+  String id PK
+  String packageId FK
+  String licenseKey UK
+  PluginLicenseType licenseType
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  DateTime issuedAt
+  DateTime expiresAt "nullable"
+  Boolean isActive
+  Int maxInstallations "nullable"
+  Int currentInstallations
+  String issuedBy
+  String notes "nullable"
+  DateTime updatedAt
+}
+"plugin_reviews" {
+  String id PK
+  String packageId FK
+  Int rating
+  String comment "nullable"
+  String reviewerId
+  String reviewerName
+  String siteId
+  Boolean isApproved
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_deployments" {
+  String id PK
+  String packageId FK
+  PluginDeploymentType deploymentType
+  String targetSites
+  DateTime scheduledFor "nullable"
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
+  PluginDeploymentStatus status
+  Int successCount
+  Int failureCount
+  Boolean canRollback
+  DateTime rolledBackAt "nullable"
+  String rollbackReason "nullable"
+  String initiatedBy
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_submissions" {
+  String id PK
+  String pluginId
+  String name
+  String version
+  String author
+  Json manifest
+  String packageUrl
+  String checksum
+  String submittedBy
+  DateTime submittedAt
+  String reviewNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"_DepartmentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToTrainingCourse" {
+  String A FK
+  String B FK
+}
 "sites" }o--o| "enterprises" : enterprise
 "areas" }o--|| "sites" : site
+"departments" }o--o| "departments" : parentDepartment
+"departments" }o--o| "sites" : site
+"departments" |o--o| "users" : manager
 "users" }o--o| "personnel_classes" : personnelClass
 "users" }o--o| "users" : supervisor
+"users" }o--o| "departments" : departmentRelation
 "personnel_classes" }o--o| "personnel_classes" : parentClass
 "personnel_qualifications" }o--o| "personnel_classes" : personnelClass
 "personnel_certifications" }o--|| "users" : personnel
@@ -4072,11 +6042,14 @@ erDiagram
 "material_definitions" }o--o| "material_definitions" : replacementMaterial
 "material_definitions" }o--o| "units_of_measure" : baseUnitOfMeasureRef
 "material_definitions" }o--o| "units_of_measure" : alternateUnitOfMeasureRef
+"material_definitions" }o--o| "currencies" : currencyRef
 "material_properties" }o--|| "material_definitions" : material
 "material_properties" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lots" }o--|| "material_definitions" : material
 "material_lots" }o--o| "material_lots" : parentLot
 "material_lots" }o--o| "units_of_measure" : unitOfMeasureRef
+"material_lots" }o--o| "locations" : locationRef
+"material_lots" }o--o| "currencies" : currencyRef
 "material_sublots" }o--|| "material_lots" : parentLot
 "material_sublots" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_lot_genealogy" }o--|| "material_lots" : childLot
@@ -4084,6 +6057,8 @@ erDiagram
 "material_lot_genealogy" }o--o| "units_of_measure" : unitOfMeasureRef
 "material_state_history" }o--|| "material_lots" : lot
 "material_state_history" }o--o| "units_of_measure" : unitOfMeasureRef
+"material_state_history" }o--o| "locations" : fromLocationRef
+"material_state_history" }o--o| "locations" : toLocationRef
 "operations" }o--o| "operations" : parentOperation
 "operations" }o--o| "sites" : site
 "operations" }o--o| "work_instructions" : standardWorkInstruction
@@ -4102,6 +6077,7 @@ erDiagram
 "physical_asset_operation_specifications" }o--|| "operations" : operation
 "parts" }o--o| "parts" : replacementPart
 "parts" }o--o| "units_of_measure" : unitOfMeasureRef
+"parts" }o--o| "currencies" : currencyRef
 "part_site_availability" }o--|| "parts" : part
 "part_site_availability" }o--|| "sites" : site
 "bom_items" }o--|| "parts" : componentPart
@@ -4166,16 +6142,25 @@ erDiagram
 "quality_inspections" }o--|| "work_orders" : workOrder
 "quality_measurements" }o--|| "quality_characteristics" : characteristic
 "quality_measurements" }o--|| "quality_inspections" : inspection
+"cause_code_categories" }o--o| "cause_code_categories" : parent
+"cause_codes" }o--o| "cause_codes" : parent
+"cause_codes" }o--|| "cause_code_categories" : category
+"cause_code_history" }o--|| "cause_codes" : causeCode
 "ncrs" }o--o| "users" : assignedTo
 "ncrs" }o--|| "users" : createdBy
 "ncrs" }o--o| "quality_inspections" : inspection
 "ncrs" }o--o| "sites" : site
 "ncrs" }o--o| "work_orders" : workOrder
+"ncrs" }o--o| "cause_codes" : rootCause
+"ncr_state_history" }o--|| "ncrs" : ncr
+"ncr_approval_requests" }o--|| "ncrs" : ncr
+"ncr_workflow_configs" }o--o| "sites" : site
 "equipment" }o--o| "areas" : area
 "equipment" }o--o| "equipment" : parentEquipment
 "equipment" }o--o| "sites" : site
 "equipment" }o--o| "work_centers" : workCenter
 "equipment" }o--o| "work_units" : workUnit
+"equipment" }o--o| "equipment_types" : equipmentTypeRef
 "equipment_capabilities" }o--|| "equipment" : equipment
 "equipment_logs" }o--|| "equipment" : equipment
 "equipment_logs" }o--o| "users" : user
@@ -4183,10 +6168,12 @@ erDiagram
 "equipment_performance_logs" }o--|| "equipment" : equipment
 "inventory" }o--|| "parts" : part
 "inventory" }o--o| "units_of_measure" : unitOfMeasureRef
+"inventory" }o--o| "locations" : locationRef
 "material_transactions" }o--|| "inventory" : inventory
 "material_transactions" }o--o| "work_orders" : workOrder
 "material_transactions" }o--o| "units_of_measure" : unitOfMeasureRef
 "serialized_parts" }o--|| "parts" : part
+"serialized_parts" }o--o| "locations" : currentLocationRef
 "part_genealogy" }o--|| "serialized_parts" : componentPart
 "part_genealogy" }o--|| "serialized_parts" : parentPart
 "work_instructions" }o--o| "users" : approvedBy
@@ -4201,11 +6188,38 @@ erDiagram
 "electronic_signatures" }o--|| "users" : user
 "fai_characteristics" }o--|| "fai_reports" : faiReport
 "audit_logs" }o--o| "users" : user
-"maintenance_work_orders" }o--o| "equipment" : equipment
+"maintenance_work_orders" }o--|| "equipment" : equipment
+"maintenance_work_orders" }o--o| "users" : assignedTo
+"maintenance_work_orders" }o--o| "maintenance_work_orders" : followUpWorkOrder
+"maintenance_work_orders" }o--|| "users" : createdBy
+"maintenance_work_orders" }o--|| "users" : updatedBy
 "inspection_records" }o--o| "measurement_equipment" : measurementEquipment
 "inspection_records" }o--o| "serialized_parts" : serializedPart
 "program_download_logs" }o--o| "cnc_programs" : cncProgram
 "operation_gauge_requirements" }o--|| "measurement_equipment" : measurementEquipment
+"andon_alerts" }o--|| "andon_issue_types" : issueType
+"andon_alerts" }o--o| "sites" : site
+"andon_alerts" }o--o| "areas" : area
+"andon_alerts" }o--o| "work_centers" : workCenter
+"andon_alerts" }o--o| "equipment" : equipment
+"andon_alerts" }o--o| "work_orders" : workOrder
+"andon_alerts" }o--o| "operations" : operation
+"andon_alerts" }o--|| "users" : raisedBy
+"andon_alerts" }o--o| "users" : assignedTo
+"andon_alerts" }o--o| "users" : resolvedBy
+"andon_issue_types" }o--o| "users" : autoAssignUser
+"andon_issue_types" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "sites" : site
+"andon_escalation_rules" }o--o| "andon_issue_types" : issueType
+"andon_escalation_rules" }o--o| "users" : assignToUser
+"andon_escalation_rule_results" }o--|| "andon_alerts" : alert
+"andon_escalation_rule_results" }o--|| "andon_escalation_rules" : rule
+"andon_configurations" }o--|| "users" : lastModifiedByUser
+"andon_site_configurations" }o--|| "sites" : site
+"andon_site_configurations" }o--|| "users" : lastModifiedByUser
+"andon_notification_templates" }o--o| "sites" : site
+"andon_system_settings" |o--o| "sites" : site
+"andon_system_settings" }o--|| "users" : lastModifiedByUser
 "integration_logs" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--|| "integration_configs" : config
 "production_schedule_requests" }o--o| "parts" : part
@@ -4217,7 +6231,9 @@ erDiagram
 "erp_material_transactions" }o--|| "integration_configs" : config
 "erp_material_transactions" }o--o| "parts" : part
 "erp_material_transactions" }o--o| "work_orders" : workOrder
+"erp_material_transactions" }o--o| "currencies" : currencyRef
 "personnel_info_exchanges" }o--|| "integration_configs" : config
+"personnel_info_exchanges" }o--o| "departments" : departmentRelation
 "equipment_data_collections" }o--|| "equipment" : equipment
 "equipment_data_collections" }o--o| "work_orders" : workOrder
 "equipment_commands" }o--|| "equipment" : equipment
@@ -4275,6 +6291,7 @@ erDiagram
 "tool_drawings" }o--|| "users" : createdBy
 "tool_drawings" }o--o| "tool_drawings" : parentVersion
 "tool_drawings" }o--|| "users" : updatedBy
+"tool_drawings" }o--o| "currencies" : costCurrencyRef
 "tool_maintenance_records" }o--|| "users" : performedBy
 "tool_maintenance_records" }o--|| "tool_drawings" : toolDrawing
 "tool_calibration_records" }o--|| "users" : performedBy
@@ -4291,8 +6308,11 @@ erDiagram
 "workflow_assignments" }o--|| "workflow_stage_instances" : stageInstance
 "workflow_history" }o--|| "workflow_instances" : workflowInstance
 "workflow_parallel_coordination" }o--|| "workflow_stage_instances" : stageInstance
+"engineering_change_orders" }o--o| "currencies" : costCurrencyRef
+"engineering_change_orders" }o--o| "departments" : requestorDepartment
 "eco_affected_documents" }o--|| "engineering_change_orders" : eco
 "eco_tasks" }o--|| "engineering_change_orders" : eco
+"eco_tasks" }o--o| "departments" : assignedDepartment
 "eco_attachments" }o--|| "engineering_change_orders" : eco
 "eco_history" }o--|| "engineering_change_orders" : eco
 "eco_crb_reviews" }o--|| "engineering_change_orders" : eco
@@ -4313,15 +6333,31 @@ erDiagram
 "user_site_roles" }o--|| "roles" : role
 "user_site_roles" }o--|| "sites" : site
 "user_site_roles" }o--|| "users" : user
+"temporal_access_logs" }o--|| "users" : user
+"temporal_access_logs" }o--|| "roles" : role
+"temporal_access_logs" }o--o| "sites" : site
 "time_tracking_configurations" |o--|| "sites" : site
 "labor_time_entries" }o--o| "indirect_cost_codes" : indirectCode
 "labor_time_entries" }o--o| "work_order_operations" : operation
 "labor_time_entries" }o--|| "users" : user
 "labor_time_entries" }o--o| "work_orders" : workOrder
+"labor_time_entries" }o--o| "time_entry_batches" : batch
 "machine_time_entries" }o--|| "equipment" : equipment
 "machine_time_entries" }o--o| "work_order_operations" : operation
 "machine_time_entries" }o--o| "work_orders" : workOrder
 "indirect_cost_codes" }o--o| "sites" : site
+"time_entry_edits" }o--|| "labor_time_entries" : laborTimeEntry
+"time_entry_edits" }o--|| "machine_time_entries" : machineTimeEntry
+"time_entry_edits" }o--|| "users" : editor
+"time_entry_edits" }o--o| "users" : approver
+"time_entry_approvals" }o--|| "time_entry_edits" : timeEntryEdit
+"time_entry_approvals" }o--|| "users" : approver
+"time_entry_batches" }o--|| "users" : employee
+"time_entry_batches" }o--o| "users" : approver
+"auto_stop_configurations" |o--|| "sites" : site
+"time_entry_locks" |o--|| "labor_time_entries" : laborTimeEntry
+"time_entry_locks" |o--|| "machine_time_entries" : machineTimeEntry
+"time_entry_locks" }o--|| "users" : locker
 "sso_sessions" }o--|| "sso_providers" : primaryProvider
 "sso_sessions" }o--|| "users" : user
 "authentication_events" }o--|| "sso_providers" : provider
@@ -4338,6 +6374,41 @@ erDiagram
 "permission_change_logs" }o--|| "users" : changedByUser
 "permission_change_logs" }o--o| "sites" : site
 "permission_change_logs" }o--|| "users" : targetUser
+"build_records" |o--|| "work_orders" : workOrder
+"build_records" }o--o| "serialized_parts" : serializedPart
+"build_records" }o--|| "users" : createdBy
+"build_records" }o--o| "users" : assignedTo
+"build_records" }o--o| "users" : qualityApprovedBy
+"build_records" }o--o| "users" : engineeringApprovedBy
+"build_record_operations" }o--|| "build_records" : buildRecord
+"build_record_operations" }o--o| "work_order_operations" : workOrderOperation
+"build_record_operations" }o--o| "users" : operator
+"build_record_operations" }o--o| "users" : inspector
+"build_record_operations" }o--o| "users" : engineeringApprovedBy
+"build_record_operations" }o--o| "work_centers" : workCenter
+"build_deviations" }o--|| "build_records" : buildRecord
+"build_deviations" }o--o| "build_record_operations" : operation
+"build_deviations" }o--o| "ncrs" : ncr
+"build_deviations" }o--|| "users" : detectedByUser
+"build_deviations" }o--o| "users" : engineeringApprover
+"build_deviations" }o--o| "users" : qualityApprover
+"build_deviations" }o--o| "users" : closedByUser
+"build_record_photos" }o--|| "build_records" : buildRecord
+"build_record_photos" }o--o| "build_record_operations" : operation
+"build_record_photos" }o--o| "build_deviations" : deviation
+"build_record_photos" }o--|| "users" : capturedByUser
+"build_record_photos" }o--o| "users" : approvedByUser
+"build_record_photos" }o--o| "users" : rejectedByUser
+"build_record_documents" }o--|| "build_records" : buildRecord
+"build_record_documents" }o--o| "build_deviations" : deviation
+"build_record_documents" }o--|| "users" : uploadedByUser
+"build_record_documents" }o--o| "users" : approvedByUser
+"build_record_status_history" }o--|| "build_records" : buildRecord
+"build_record_status_history" }o--|| "users" : changedByUser
+"build_record_signatures" }o--|| "build_records" : buildRecord
+"build_record_signatures" }o--o| "build_record_operations" : operation
+"build_record_signatures" }o--|| "users" : user
+"build_record_signatures" }o--o| "users" : invalidatedByUser
 "role_templates" }o--|| "users" : creator
 "role_templates" }o--o| "users" : updater
 "role_template_permissions" }o--|| "role_templates" : template
@@ -4389,6 +6460,7 @@ erDiagram
 "kit_shortage_alerts" }o--o| "users" : resolvedBy
 "vendor_kits" }o--|| "vendors" : vendor
 "vendor_kits" }o--o| "kits" : kit
+"vendor_kits" }o--o| "currencies" : currencyRef
 "vendor_kit_items" }o--|| "vendor_kits" : vendorKit
 "vendor_kit_items" }o--|| "parts" : part
 "vendor_kit_items" }o--o| "units_of_measure" : unitOfMeasureRef
@@ -4397,6 +6469,24 @@ erDiagram
 "vendor_kit_history" }o--|| "vendor_kits" : vendorKit
 "vendor_kit_history" }o--o| "users" : user
 "vendor_performance_metrics" }o--|| "vendors" : vendor
+"expedite_requests" }o--o| "kit_shortage_alerts" : shortageAlert
+"expedite_requests" }o--|| "parts" : part
+"expedite_requests" }o--|| "users" : requestedBy
+"expedite_requests" }o--o| "users" : approvedBy
+"expedite_requests" }o--o| "vendors" : vendor
+"supplier_communications" }o--o| "expedite_requests" : expeditRequest
+"supplier_communications" }o--|| "vendors" : vendor
+"supplier_communications" }o--o| "parts" : part
+"supplier_communications" }o--o| "users" : sentBy
+"shortage_resolutions" |o--|| "kit_shortage_alerts" : shortageAlert
+"shortage_resolutions" }o--o| "expedite_requests" : expeditRequest
+"shortage_resolutions" }o--o| "parts" : alternativePart
+"shortage_resolutions" }o--|| "users" : resolvedBy
+"expedite_status_history" }o--|| "expedite_requests" : expeditRequest
+"expedite_status_history" }o--o| "users" : changedBy
+"part_shortage_analytics" }o--|| "parts" : part
+"part_shortage_analytics" }o--o| "vendors" : preferredSupplier
+"part_shortage_analytics" }o--o| "vendors" : bestPerformingSupplier
 "saviynt_user_mappings" |o--|| "users" : user
 "saviynt_role_mappings" }o--|| "roles" : role
 "oidc_sessions" }o--|| "users" : user
@@ -4423,6 +6513,103 @@ erDiagram
 "work_order_part_substitutions" }o--|| "users" : creator
 "interchangeability_audit_logs" }o--o| "part_interchangeability_groups" : group
 "interchangeability_audit_logs" }o--|| "users" : performer
+"interface_requirements" }o--|| "interface_control_documents" : icd
+"interface_requirements" }o--o| "interface_requirements" : parentRequirement
+"icd_part_implementations" }o--|| "interface_control_documents" : icd
+"icd_part_implementations" }o--|| "parts" : part
+"icd_part_consumptions" }o--|| "interface_control_documents" : icd
+"icd_part_consumptions" }o--|| "parts" : part
+"icd_relations" }o--|| "interface_control_documents" : parentIcd
+"icd_relations" }o--|| "interface_control_documents" : childIcd
+"icd_versions" }o--|| "interface_control_documents" : icd
+"icd_history" }o--|| "interface_control_documents" : icd
+"icd_history" }o--o| "engineering_change_orders" : relatedEco
+"icd_attachments" }o--|| "interface_control_documents" : icd
+"icd_compliance_checks" }o--|| "interface_control_documents" : icd
+"icd_compliance_checks" }o--o| "interface_requirements" : requirement
+"icd_compliance_checks" }o--o| "parts" : part
+"icd_change_requests" }o--|| "interface_control_documents" : icd
+"icd_change_requests" }o--o| "engineering_change_orders" : relatedEco
+"icd_change_requests" }o--o| "departments" : requestorDepartment
+"locations" }o--o| "locations" : parentLocation
+"locations" }o--o| "sites" : site
+"locations" }o--o| "areas" : area
+"locations" }o--o| "units_of_measure" : capacityUnitOfMeasure
+"locations" }o--o| "units_of_measure" : dimensionUnitOfMeasure
+"exchange_rates" }o--|| "currencies" : fromCurrency
+"exchange_rates" }o--|| "currencies" : toCurrency
+"downtime_events" }o--|| "equipment" : equipment
+"downtime_events" }o--|| "downtime_reasons" : downtimeReason
+"downtime_events" }o--o| "maintenance_work_orders" : maintenanceWorkOrder
+"downtime_events" }o--|| "users" : reportedBy
+"maintenance_parts" }o--|| "maintenance_work_orders" : workOrder
+"labor_entries" }o--|| "maintenance_work_orders" : workOrder
+"labor_entries" }o--|| "users" : technician
+"serial_number_format_configs" }o--|| "sites" : site
+"serial_format_part_assignments" }o--|| "parts" : part
+"serial_format_part_assignments" }o--|| "serial_number_format_configs" : formatConfig
+"serial_format_part_family_assignments" }o--|| "serial_number_format_configs" : formatConfig
+"serial_number_usage_tracking" |o--|| "serial_number_format_configs" : formatConfig
+"api_usage_logs" }o--|| "api_keys" : apiKey
+"oauth_authorizations" }o--|| "oauth_clients" : client
+"oauth_tokens" }o--|| "oauth_clients" : client
+"site_workflow_configurations" |o--|| "sites" : site
+"routing_workflow_configurations" |o--|| "routings" : routing
+"routing_workflow_configurations" }o--o| "site_workflow_configurations" : siteConfig
+"work_order_workflow_configurations" |o--|| "work_orders" : workOrder
+"work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
+"workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
+"operation_workflow_configurations" |o--|| "operations" : operation
+"controlled_documents" }o--o| "users" : approvedBy
+"controlled_documents" }o--o| "controlled_documents" : parentDocument
+"controlled_documents" }o--|| "users" : createdBy
+"document_approvals" }o--|| "controlled_documents" : document
+"document_approvals" }o--|| "users" : approver
+"training_courses" }o--|| "users" : createdBy
+"competency_tests" |o--|| "training_courses" : trainingCourse
+"test_questions" }o--|| "competency_tests" : test
+"training_records" }o--|| "training_courses" : trainingCourse
+"training_records" }o--|| "users" : trainee
+"training_records" }o--o| "users" : instructor
+"internal_audits" }o--|| "users" : leadAuditor
+"internal_audits" }o--o| "users" : auditee
+"internal_audits" }o--o| "users" : closedBy
+"internal_audits" }o--|| "users" : createdBy
+"audit_findings" }o--|| "internal_audits" : audit
+"audit_findings" }o--o| "corrective_actions" : correctiveAction
+"audit_findings" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : assignedTo
+"corrective_actions" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : createdBy
+"management_reviews" }o--|| "users" : chairperson
+"management_reviews" }o--|| "users" : createdBy
+"management_review_actions" }o--|| "management_reviews" : review
+"management_review_actions" }o--o| "users" : assignedTo
+"change_requests" }o--o| "users" : approvedBy
+"change_requests" }o--|| "users" : createdBy
+"api_breaking_changes" }o--|| "api_versions" : version
+"api_deprecations" }o--|| "api_versions" : version
+"api_usage_by_version" }o--|| "api_versions" : version
+"api_usage_by_version" }o--o| "api_keys" : apiKey
+"captured_api_calls" }o--|| "api_keys" : apiKey
+"plugins" }o--o| "sites" : site
+"plugins" }o--o| "api_keys" : apiKey
+"plugin_hooks" }o--|| "plugins" : plugin
+"plugin_executions" }o--|| "plugins" : plugin
+"plugin_configurations" }o--|| "plugins" : plugin
+"plugin_packages" }o--|| "plugin_registries" : registry
+"plugin_installations" }o--|| "plugin_packages" : package
+"plugin_installations" }o--|| "sites" : site
+"plugin_health_logs" }o--|| "plugin_installations" : installation
+"plugin_licenses" }o--|| "plugin_packages" : package
+"plugin_reviews" }o--|| "plugin_packages" : package
+"plugin_deployments" }o--|| "plugin_packages" : package
+"_DepartmentToUser" }o--|| "departments" : Department
+"_DepartmentToUser" }o--|| "users" : User
+"_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToUser" }o--|| "users" : User
+"_ControlledDocumentToTrainingCourse" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToTrainingCourse" }o--|| "training_courses" : TrainingCourse
 ```
 
 ### `enterprises`
@@ -4461,6 +6648,22 @@ erDiagram
   - `createdAt`: 
   - `updatedAt`: 
 
+### `departments`
+
+**Properties**
+  - `id`: 
+  - `departmentCode`: 
+  - `departmentName`: 
+  - `description`: 
+  - `parentDepartmentId`: 
+  - `siteId`: 
+  - `costCenter`: 
+  - `budgetCode`: 
+  - `managerId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
 ### `users`
 
 **Properties**
@@ -4484,6 +6687,7 @@ erDiagram
   - `emergencyContact`: 
   - `emergencyPhone`: 
   - `department`: 
+  - `departmentId`: 
   - `supervisorId`: 
   - `costCenter`: 
   - `laborRate`: 
@@ -4656,6 +6860,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `defaultShelfLifeDays`: 
   - `standardCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `requiresInspection`: 
   - `inspectionFrequency`: 
   - `primarySupplierId`: 
@@ -4708,6 +6913,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `unitOfMeasure`: 
   - `unitOfMeasureId`: 
   - `location`: 
+  - `locationId`: 
   - `warehouseId`: 
   - `manufactureDate`: 
   - `receivedDate`: 
@@ -4731,6 +6937,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `parentLotId`: 
   - `isSplit`: 
   - `isMerged`: 
@@ -4798,7 +7005,9 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `changedById`: 
   - `changedAt`: 
   - `fromLocation`: 
+  - `fromLocationId`: 
   - `toLocation`: 
+  - `toLocationId`: 
   - `qualityNotes`: 
   - `notes`: 
   - `metadata`: 
@@ -5027,6 +7236,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `standardCost`: 
   - `targetCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `isActive`: 
   - `isConfigurable`: 
   - `requiresFAI`: 
@@ -5617,6 +7827,53 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `notes`: 
   - `createdAt`: 
 
+### `cause_code_categories`
+Cause Code Category - Top-level grouping (e.g., Material, Equipment, Process)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `enabled`: 
+  - `sortOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_codes`
+Cause Code - Detailed root cause classification (hierarchical)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `categoryId`: 
+  - `enabled`: 
+  - `level`: 
+  - `sortOrder`: 
+  - `usageCount`: 
+  - `lastUsedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_code_history`
+Cause Code Change History - Audit trail for cause code modifications
+
+**Properties**
+  - `id`: 
+  - `causeCodeId`: 
+  - `changeType`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeReason`: 
+  - `changedAt`: 
+  - `changedBy`: 
+
 ### `ncrs`
 
 **Properties**
@@ -5635,12 +7892,97 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `createdById`: 
   - `assignedToId`: 
   - `dueDate`: 
-  - `rootCause`: 
+  - `rootCauseId`: 
   - `correctiveAction`: 
   - `preventiveAction`: 
   - `closedAt`: 
+  - `disposition`: 
+  - `dispositionJustification`: 
+  - `dispositionApprovedBy`: 
+  - `dispositionApprovedAt`: 
+  - `ctpAuthorized`: 
+  - `ctpApprovedBy`: 
+  - `ctpApprovedAt`: 
+  - `ctpJustification`: 
+  - `ctpConditions`: 
+  - `ctpOperations`: 
+  - `ddrExpectedDate`: 
+  - `ddrPendingItems`: 
+  - `ddrEscalated`: 
+  - `ddrEscalatedAt`: 
+  - `mrbRequired`: 
+  - `mrbMeetingDate`: 
+  - `mrbAttendees`: 
+  - `mrbDecision`: 
+  - `mrbVotes`: 
+  - `mrbMinutes`: 
+  - `estimatedCost`: 
+  - `actualCost`: 
+  - `scrapCost`: 
+  - `reworkCost`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `ncr_state_history`
+✅ ISSUE #55: NCR State History - Track all state transitions
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `fromState`: 
+  - `toState`: 
+  - `changedBy`: 
+  - `changeReason`: 
+  - `approvalRequired`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `timestamp`: 
+
+### `ncr_approval_requests`
+✅ ISSUE #55: NCR Approval Requests - Track pending approvals
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `requestType`: 
+  - `requestedBy`: 
+  - `requestedAt`: 
+  - `approverUserId`: 
+  - `status`: 
+  - `approvalNotes`: 
+  - `approvedAt`: 
+  - `dueDate`: 
+  - `escalated`: 
+  - `escalatedAt`: 
+
+### `ncr_workflow_configs`
+✅ ISSUE #55: NCR Workflow Configuration - Per-site and per-severity workflow rules
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `severityLevel`: 
+  - `enabledStates`: 
+  - `initialState`: 
+  - `stateTransitions`: 
+  - `requiredFieldsByState`: 
+  - `ctpEnabled`: 
+  - `ctpApprovalRole`: 
+  - `ctpPreventFinalShip`: 
+  - `ddrEnabled`: 
+  - `ddrAutoTriggerHours`: 
+  - `ddrEscalationThreshold`: 
+  - `mrbEnabled`: 
+  - `mrbValueThreshold`: 
+  - `mrbTriggerConditions`: 
+  - `mrbRequiredAttendees`: 
+  - `mrbVotingMethod`: 
+  - `allowedDispositions`: 
+  - `dispositionApprovalRules`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
 
 ### `equipment`
 
@@ -5672,6 +8014,23 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `oee`: 
   - `ratedCapacity`: 
   - `currentCapacity`: 
+  - `equipmentTypeId`: 
+  - `assetTag`: 
+  - `purchaseDate`: 
+  - `warrantyExpiration`: 
+  - `criticality`: 
+  - `capacityUnit`: 
+  - `acquisitionCost`: 
+  - `currentValue`: 
+  - `depreciationMethod`: 
+  - `maintenanceInterval`: 
+  - `lastMaintenanceDate`: 
+  - `nextMaintenanceDate`: 
+  - `totalRunTime`: 
+  - `totalDownTime`: 
+  - `mtbf`: 
+  - `mttr`: 
+  - `requiresCalibration`: 
   - `isActive`: 
   - `createdAt`: 
   - `updatedAt`: 
@@ -5757,6 +8116,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `id`: 
   - `partId`: 
   - `location`: 
+  - `locationId`: 
   - `lotNumber`: 
   - `quantity`: 
   - `unitOfMeasure`: 
@@ -5793,6 +8153,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `lotNumber`: 
   - `status`: 
   - `currentLocation`: 
+  - `currentLocationId`: 
   - `manufactureDate`: 
   - `shipDate`: 
   - `customerInfo`: 
@@ -5978,19 +8339,42 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `timestamp`: 
 
 ### `maintenance_work_orders`
+Enhanced maintenance work order model for comprehensive maintenance management (Issue #94)
 
 **Properties**
   - `id`: 
+  - `workOrderNumber`: 
   - `externalWorkOrderNumber`: 
-  - `description`: 
-  - `workType`: 
-  - `status`: 
   - `equipmentId`: 
+  - `type`: 
+  - `priority`: 
+  - `status`: 
+  - `scheduledDate`: 
+  - `dueDate`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `description`: 
+  - `problemDescription`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `workPerformed`: 
+  - `notes`: 
+  - `assignedToId`: 
+  - `assignedTeam`: 
+  - `estimatedLaborHours`: 
+  - `actualLaborHours`: 
+  - `estimatedPartsCost`: 
+  - `actualPartsCost`: 
+  - `causedDowntime`: 
+  - `downtimeMinutes`: 
+  - `requiresFollowUp`: 
+  - `followUpDate`: 
+  - `followUpWorkOrderId`: 
+  - `workType`: 
   - `scheduledStart`: 
   - `scheduledFinish`: 
   - `actualStart`: 
   - `actualFinish`: 
-  - `priority`: 
   - `failureCode`: 
   - `problemCode`: 
   - `causeCode`: 
@@ -5998,6 +8382,8 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `lastSyncedAt`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `createdById`: 
+  - `updatedById`: 
 
 ### `measurement_equipment`
 
@@ -6132,6 +8518,182 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `resolvedAt`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `andon_alerts`
+
+**Properties**
+  - `id`: 
+  - `alertNumber`: 
+  - `title`: 
+  - `description`: 
+  - `issueTypeId`: 
+  - `severity`: 
+  - `priority`: 
+  - `siteId`: 
+  - `areaId`: 
+  - `workCenterId`: 
+  - `equipmentId`: 
+  - `workOrderId`: 
+  - `operationId`: 
+  - `raisedById`: 
+  - `assignedToId`: 
+  - `status`: 
+  - `statusHistory`: 
+  - `currentEscalationLevel`: 
+  - `nextEscalationAt`: 
+  - `escalationHistory`: 
+  - `resolvedAt`: 
+  - `resolvedById`: 
+  - `resolutionNotes`: 
+  - `resolutionActionTaken`: 
+  - `responseTime`: 
+  - `resolutionTime`: 
+  - `metadata`: 
+  - `attachments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `andon_issue_types`
+
+**Properties**
+  - `id`: 
+  - `typeCode`: 
+  - `typeName`: 
+  - `description`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `requiresAttachment`: 
+  - `requiresWorkOrder`: 
+  - `requiresEquipment`: 
+  - `autoAssignRole`: 
+  - `autoAssignUserId`: 
+  - `enableEscalation`: 
+  - `escalationTimeoutMins`: 
+  - `siteId`: 
+  - `iconName`: 
+  - `colorCode`: 
+  - `isActive`: 
+  - `displayOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rules`
+
+**Properties**
+  - `id`: 
+  - `ruleName`: 
+  - `description`: 
+  - `siteId`: 
+  - `issueTypeId`: 
+  - `triggerSeverity`: 
+  - `triggerAfterMinutes`: 
+  - `escalationLevel`: 
+  - `notifyUserIds`: 
+  - `notifyRoles`: 
+  - `notifyChannels`: 
+  - `assignToUserId`: 
+  - `assignToRole`: 
+  - `conditions`: 
+  - `isActive`: 
+  - `executionCount`: 
+  - `lastExecutedAt`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_escalation_rule_results`
+
+**Properties**
+  - `id`: 
+  - `alertId`: 
+  - `ruleId`: 
+  - `executedAt`: 
+  - `escalationLevel`: 
+  - `success`: 
+  - `errorMessage`: 
+  - `actionsTaken`: 
+  - `notifiedUsers`: 
+
+### `andon_configurations`
+
+**Properties**
+  - `id`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `description`: 
+  - `dataType`: 
+  - `category`: 
+  - `isRequired`: 
+  - `validationRules`: 
+  - `defaultValue`: 
+  - `isEncrypted`: 
+  - `accessLevel`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_site_configurations`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `configKey`: 
+  - `configValue`: 
+  - `isOverride`: 
+  - `inheritFromGlobal`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
+
+### `andon_notification_templates`
+
+**Properties**
+  - `id`: 
+  - `templateKey`: 
+  - `templateName`: 
+  - `description`: 
+  - `subject`: 
+  - `bodyTemplate`: 
+  - `variables`: 
+  - `emailTemplate`: 
+  - `smsTemplate`: 
+  - `pushTemplate`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `andon_system_settings`
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `andonEnabled`: 
+  - `escalationEnabled`: 
+  - `notificationsEnabled`: 
+  - `defaultSeverity`: 
+  - `defaultPriority`: 
+  - `autoAssignEnabled`: 
+  - `defaultResponseTimeMin`: 
+  - `maxEscalationLevels`: 
+  - `baseEscalationDelayMin`: 
+  - `enableMobileAccess`: 
+  - `enableKioskMode`: 
+  - `requireComments`: 
+  - `allowAnonymousReports`: 
+  - `integrationSettings`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `lastModifiedBy`: 
 
 ### `integration_configs`
 
@@ -6293,6 +8855,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `movementType`: 
   - `reasonCode`: 
   - `status`: 
@@ -6319,6 +8882,7 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `email`: 
   - `employeeNumber`: 
   - `department`: 
+  - `departmentId`: 
   - `jobTitle`: 
   - `skills`: 
   - `certifications`: 
@@ -6977,6 +9541,7 @@ Data Collection Field Template - Reusable field templates
   - `catalogNumber`: 
   - `cost`: 
   - `costCurrency`: 
+  - `costCurrencyId`: 
   - `applicablePartIds`: 
   - `applicableOperations`: 
   - `usageInstructions`: 
@@ -7342,6 +9907,7 @@ Engineering Change Order - Core ECO entity for formal change management
   - `requestorId`: 
   - `requestorName`: 
   - `requestorDept`: 
+  - `requestorDeptId`: 
   - `requestDate`: 
   - `sponsorId`: 
   - `sponsorName`: 
@@ -7353,6 +9919,7 @@ Engineering Change Order - Core ECO entity for formal change management
   - `estimatedSavings`: 
   - `actualSavings`: 
   - `costCurrency`: 
+  - `costCurrencyId`: 
   - `requestedEffectiveDate`: 
   - `plannedEffectiveDate`: 
   - `actualEffectiveDate`: 
@@ -7402,6 +9969,7 @@ ECO Task - Implementation tasks for ECO completion
   - `assignedToId`: 
   - `assignedToName`: 
   - `assignedToDept`: 
+  - `assignedToDeptId`: 
   - `status`: 
   - `dueDate`: 
   - `startedAt`: 
@@ -7936,7 +10504,10 @@ Assigns global roles to users that apply across all sites
   - `roleId`: 
   - `assignedAt`: 
   - `assignedBy`: 
+  - `validFrom`: 
   - `expiresAt`: 
+  - `isTemporary`: 
+  - `grantReason`: 
 
 ### `user_site_roles`
 Junction table: User ↔ Role ↔ Site (many-to-many, site-specific)
@@ -7949,7 +10520,28 @@ Assigns site-specific roles to users for enhanced granular control
   - `siteId`: 
   - `assignedAt`: 
   - `assignedBy`: 
+  - `validFrom`: 
   - `expiresAt`: 
+  - `isTemporary`: 
+  - `grantReason`: 
+
+### `temporal_access_logs`
+Temporal Access Log for auditing temporal permission activities
+Tracks all temporal permission grants, revocations, expirations, and emergency access
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `roleId`: 
+  - `siteId`: 
+  - `accessType`: 
+  - `reason`: 
+  - `grantedBy`: 
+  - `timestamp`: 
+  - `validFrom`: 
+  - `expiresAt`: 
+  - `isEmergency`: 
+  - `metadata`: 
 
 ### `time_tracking_configurations`
 Time tracking configuration (site level)
@@ -7973,6 +10565,16 @@ Controls how time tracking behaves at each manufacturing site
   - `autoStopFromMachine`: 
   - `requireTimeApproval`: 
   - `approvalFrequency`: 
+  - `operatorEditWindowHours`: 
+  - `supervisorEditWindowHours`: 
+  - `editReasonRequired`: 
+  - `autoApproveEnabled`: 
+  - `autoApproveDurationThreshold`: 
+  - `autoApproveWithinShift`: 
+  - `autoApproveCostCodeOnly`: 
+  - `approvalNotificationsEnabled`: 
+  - `notificationEmail`: 
+  - `notificationInApp`: 
   - `createdAt`: 
   - `updatedAt`: 
   - `createdBy`: 
@@ -8011,6 +10613,7 @@ Records when operators clock in and out for work orders, operations, or indirect
   - `externalReferenceId`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `batchId`: 
 
 ### `machine_time_entries`
 Machine time entry (equipment run time)
@@ -8071,6 +10674,97 @@ Configurable rules for validating time entries and preventing common errors
   - `siteId`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `time_entry_edits`
+Time Entry Edit History
+Tracks all modifications to time entries for audit and approval purposes
+
+**Properties**
+  - `id`: 
+  - `timeEntryId`: 
+  - `timeEntryType`: 
+  - `editType`: 
+  - `originalValues`: 
+  - `newValues`: 
+  - `changedFields`: 
+  - `reason`: 
+  - `reasonCategory`: 
+  - `editedBy`: 
+  - `editedAt`: 
+  - `approvalRequired`: 
+  - `approvalStatus`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejectionReason`: 
+  - `autoApproved`: 
+
+### `time_entry_approvals`
+Time Entry Approval Workflow
+Manages the approval process for time entry modifications
+
+**Properties**
+  - `id`: 
+  - `timeEntryEditId`: 
+  - `approverUserId`: 
+  - `status`: 
+  - `approvalNotes`: 
+  - `requestedChanges`: 
+  - `approvedAt`: 
+  - `notificationSent`: 
+  - `escalationLevel`: 
+  - `dueDate`: 
+
+### `time_entry_batches`
+Time Entry Batch Management
+Groups time entries for batch approval (weekly/daily timesheets)
+
+**Properties**
+  - `id`: 
+  - `batchNumber`: 
+  - `employeeId`: 
+  - `batchType`: 
+  - `periodStart`: 
+  - `periodEnd`: 
+  - `status`: 
+  - `submittedAt`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejectionReason`: 
+  - `totalHours`: 
+  - `totalCost`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `auto_stop_configurations`
+Auto-Stop Configuration
+Configures when and how to automatically stop time entries
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `autoStopOnClockOut`: 
+  - `autoStopBehavior`: 
+  - `gracePeriodMinutes`: 
+  - `autoStopOnShiftEnd`: 
+  - `autoStopOnBreakStart`: 
+  - `warningMinutesBefore`: 
+  - `enableExternalSignals`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `time_entry_locks`
+Time Entry Lock Management
+Manages locked time entries that cannot be edited
+
+**Properties**
+  - `id`: 
+  - `timeEntryId`: 
+  - `timeEntryType`: 
+  - `lockedBy`: 
+  - `lockedAt`: 
+  - `lockReason`: 
+  - `lockType`: 
+  - `unlockRequests`: 
 
 ### `sso_providers`
 SSO Provider Registry
@@ -8222,6 +10916,264 @@ Tracks all changes to user permissions and roles for compliance
   - `reason`: 
   - `timestamp`: 
   - `siteId`: 
+
+### `build_records`
+
+**Properties**
+  - `id`: 
+  - `buildRecordNumber`: 
+  - `workOrderId`: 
+  - `serializedPartId`: 
+  - `engineModel`: 
+  - `serialNumber`: 
+  - `customerName`: 
+  - `contractNumber`: 
+  - `buildStartDate`: 
+  - `buildEndDate`: 
+  - `targetCompletionDate`: 
+  - `actualCompletionDate`: 
+  - `status`: 
+  - `finalDisposition`: 
+  - `isCompliant`: 
+  - `hasDeviations`: 
+  - `buildBookGenerated`: 
+  - `buildBookGeneratedAt`: 
+  - `buildBookPath`: 
+  - `buildBookVersion`: 
+  - `qualityApprovalRequired`: 
+  - `qualityApproved`: 
+  - `qualityApprovedAt`: 
+  - `qualityApprovedById`: 
+  - `engineeringApprovalRequired`: 
+  - `engineeringApproved`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringApprovedById`: 
+  - `customerApprovalRequired`: 
+  - `customerApproved`: 
+  - `customerApprovedAt`: 
+  - `customerApprovedBy`: 
+  - `createdById`: 
+  - `assignedToId`: 
+  - `notes`: 
+  - `complianceNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_operations`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `workOrderOperationId`: 
+  - `operationNumber`: 
+  - `operationName`: 
+  - `routingStepId`: 
+  - `plannedStartDate`: 
+  - `plannedEndDate`: 
+  - `actualStartDate`: 
+  - `actualEndDate`: 
+  - `plannedDuration`: 
+  - `actualDuration`: 
+  - `status`: 
+  - `quantityPlanned`: 
+  - `quantityCompleted`: 
+  - `quantityScrap`: 
+  - `operatorId`: 
+  - `inspectorId`: 
+  - `workCenterId`: 
+  - `equipmentUsed`: 
+  - `actualPartsUsed`: 
+  - `actualMaterials`: 
+  - `qualityCheckRequired`: 
+  - `qualityCheckComplete`: 
+  - `qualityCheckDate`: 
+  - `operatorSignedOff`: 
+  - `operatorSignOffDate`: 
+  - `inspectorSignedOff`: 
+  - `inspectorSignOffDate`: 
+  - `hasDeviations`: 
+  - `requiresEngApproval`: 
+  - `engineeringApproved`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringApprovedById`: 
+  - `torqueSpecsApplied`: 
+  - `torqueValues`: 
+  - `toolsUsed`: 
+  - `calibrationVerified`: 
+  - `workInstructions`: 
+  - `specialInstructions`: 
+  - `operationNotes`: 
+  - `reworkRequired`: 
+  - `reworkReason`: 
+  - `reworkCompleted`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_deviations`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `ncrId`: 
+  - `deviationType`: 
+  - `deviationCategory`: 
+  - `title`: 
+  - `description`: 
+  - `detectedBy`: 
+  - `detectedAt`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `operationNumber`: 
+  - `asDesigned`: 
+  - `asBuilt`: 
+  - `variance`: 
+  - `severity`: 
+  - `status`: 
+  - `disposition`: 
+  - `dispositionReason`: 
+  - `engineeringReview`: 
+  - `engineeringApproval`: 
+  - `engineeringApprovedBy`: 
+  - `engineeringApprovedAt`: 
+  - `engineeringComments`: 
+  - `qualityReview`: 
+  - `qualityApproval`: 
+  - `qualityApprovedBy`: 
+  - `qualityApprovedAt`: 
+  - `qualityComments`: 
+  - `customerNotificationReq`: 
+  - `customerNotified`: 
+  - `customerApprovalReq`: 
+  - `customerApproved`: 
+  - `customerApprovedBy`: 
+  - `customerApprovedAt`: 
+  - `correctiveAction`: 
+  - `preventiveAction`: 
+  - `rootCause`: 
+  - `impactAssessment`: 
+  - `costImpact`: 
+  - `scheduleImpact`: 
+  - `closedBy`: 
+  - `closedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_photos`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `deviationId`: 
+  - `photoType`: 
+  - `title`: 
+  - `description`: 
+  - `filePath`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `mimeType`: 
+  - `imageWidth`: 
+  - `imageHeight`: 
+  - `capturedBy`: 
+  - `capturedAt`: 
+  - `locationCaptured`: 
+  - `operationNumber`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `equipmentUsed`: 
+  - `annotations`: 
+  - `metadata`: 
+  - `qualityControlPhoto`: 
+  - `mandatoryPhoto`: 
+  - `approved`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejected`: 
+  - `rejectedBy`: 
+  - `rejectedAt`: 
+  - `rejectionReason`: 
+  - `isArchived`: 
+  - `tags`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_documents`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `deviationId`: 
+  - `documentType`: 
+  - `title`: 
+  - `description`: 
+  - `filePath`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `mimeType`: 
+  - `documentNumber`: 
+  - `version`: 
+  - `issueDate`: 
+  - `expirationDate`: 
+  - `supplier`: 
+  - `partNumber`: 
+  - `lotNumber`: 
+  - `serialNumber`: 
+  - `certificationNumber`: 
+  - `isOriginal`: 
+  - `requiresApproval`: 
+  - `approved`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `compliance`: 
+  - `uploadedBy`: 
+  - `uploadedAt`: 
+  - `tags`: 
+  - `metadata`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `build_record_status_history`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `previousStatus`: 
+  - `newStatus`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `reason`: 
+  - `notes`: 
+  - `automaticChange`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+
+### `build_record_signatures`
+
+**Properties**
+  - `id`: 
+  - `buildRecordId`: 
+  - `operationId`: 
+  - `signatureType`: 
+  - `signatureLevel`: 
+  - `userId`: 
+  - `signatureRole`: 
+  - `signatureReason`: 
+  - `signatureData`: 
+  - `timestamp`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `biometricType`: 
+  - `biometricScore`: 
+  - `signatureHash`: 
+  - `isValid`: 
+  - `invalidatedAt`: 
+  - `invalidatedBy`: 
+  - `invalidationReason`: 
+  - `operationNumber`: 
+  - `partNumber`: 
+  - `serialNumber`: 
+  - `complianceLevel`: 
 
 ### `role_templates`
 Role Template - Master template definition for role configurations
@@ -8616,6 +11568,7 @@ LLP certification document storage and management
   - `unitCost`: 
   - `totalCost`: 
   - `currency`: 
+  - `currencyId`: 
   - `status`: 
   - `priority`: 
   - `requiredDate`: 
@@ -8697,6 +11650,141 @@ LLP certification document storage and management
   - `unit`: 
   - `notes`: 
   - `calculatedAt`: 
+
+### `expedite_requests`
+
+**Properties**
+  - `id`: 
+  - `shortageAlertId`: 
+  - `partId`: 
+  - `requiredQuantity`: 
+  - `urgencyLevel`: 
+  - `requestedByDate`: 
+  - `justification`: 
+  - `impactAssessment`: 
+  - `costImpact`: 
+  - `alternativesSuggested`: 
+  - `status`: 
+  - `requestedById`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `rejectedAt`: 
+  - `rejectionReason`: 
+  - `vendorId`: 
+  - `vendorResponse`: 
+  - `vendorCommitmentDate`: 
+  - `estimatedDeliveryDate`: 
+  - `actualDeliveryDate`: 
+  - `expediteFee`: 
+  - `totalCost`: 
+  - `approvedCost`: 
+  - `resolvedAt`: 
+  - `resolution`: 
+  - `resolutionNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `supplier_communications`
+
+**Properties**
+  - `id`: 
+  - `expeditRequestId`: 
+  - `vendorId`: 
+  - `partId`: 
+  - `communicationType`: 
+  - `direction`: 
+  - `subject`: 
+  - `message`: 
+  - `priority`: 
+  - `contactName`: 
+  - `contactEmail`: 
+  - `contactPhone`: 
+  - `responseRequired`: 
+  - `responseDeadline`: 
+  - `responseReceived`: 
+  - `responseDate`: 
+  - `responseMessage`: 
+  - `deliveryCommitment`: 
+  - `confirmationReceived`: 
+  - `status`: 
+  - `sentById`: 
+  - `sentAt`: 
+  - `readAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `shortage_resolutions`
+
+**Properties**
+  - `id`: 
+  - `shortageAlertId`: 
+  - `expeditRequestId`: 
+  - `resolutionType`: 
+  - `resolutionDate`: 
+  - `resolvedById`: 
+  - `alternativePartId`: 
+  - `substitutionApproved`: 
+  - `substitutionReason`: 
+  - `engineeringApproval`: 
+  - `partialKitReleased`: 
+  - `partialQuantity`: 
+  - `blockedOperations`: 
+  - `supplierUsed`: 
+  - `actualDeliveryDate`: 
+  - `quantityReceived`: 
+  - `receivedCondition`: 
+  - `expediteCost`: 
+  - `totalAdditionalCost`: 
+  - `laborImpactHours`: 
+  - `qualityImpact`: 
+  - `qualityNotes`: 
+  - `rootCause`: 
+  - `preventiveActions`: 
+  - `supplierFeedback`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `expedite_status_history`
+
+**Properties**
+  - `id`: 
+  - `expeditRequestId`: 
+  - `fromStatus`: 
+  - `toStatus`: 
+  - `changedById`: 
+  - `reason`: 
+  - `notes`: 
+  - `metadata`: 
+  - `changedAt`: 
+
+### `part_shortage_analytics`
+
+**Properties**
+  - `id`: 
+  - `partId`: 
+  - `analysisDate`: 
+  - `totalShortages`: 
+  - `shortagesLast30Days`: 
+  - `shortagesLast90Days`: 
+  - `averageShortageQuantity`: 
+  - `averageLeadTimeDays`: 
+  - `supplierCount`: 
+  - `preferredSupplierId`: 
+  - `totalExpediteCosts`: 
+  - `averageExpediteCost`: 
+  - `totalLaborImpactHours`: 
+  - `mostCommonResolution`: 
+  - `averageResolutionDays`: 
+  - `alternativePartsUsed`: 
+  - `bestPerformingSupplierId`: 
+  - `supplierOnTimeRate`: 
+  - `recommendedAction`: 
+  - `recommendedSafetyStock`: 
+  - `recommendedLeadTime`: 
+  - `nextAnalysisDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
 
 ### `saviynt_user_mappings`
 
@@ -8860,9 +11948,6 @@ PKCE and CSRF protection for OAuth flows
 ### `saml_configs`
 SAML 2.0 Configuration
 Dedicated SAML provider configuration for enterprise SSO
-### `part_interchangeability_groups`
-Part Interchangeability Groups
-Groups of parts that can be substituted for each other under specific conditions
 
 **Properties**
   - `id`: 
@@ -8880,6 +11965,47 @@ Groups of parts that can be substituted for each other under specific conditions
   - `nameIdFormat`: 
   - `attributeMapping`: 
   - `clockTolerance`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `saml_sessions`
+SAML User Sessions
+Track SAML authentication sessions and assertions
+
+**Properties**
+  - `id`: 
+  - `userId`: 
+  - `sessionIndex`: 
+  - `nameId`: 
+  - `nameIdFormat`: 
+  - `assertionId`: 
+  - `configId`: 
+  - `attributes`: 
+  - `expiresAt`: 
+  - `createdAt`: 
+
+### `saml_auth_requests`
+SAML Authentication Request Tracking
+Track outgoing SAML AuthnRequests for security and correlation
+
+**Properties**
+  - `id`: 
+  - `requestId`: 
+  - `relayState`: 
+  - `destination`: 
+  - `issueInstant`: 
+  - `configId`: 
+  - `expiresAt`: 
+  - `createdAt`: 
+
+### `part_interchangeability_groups`
+Part Interchangeability Groups
+Groups of parts that can be substituted for each other under specific conditions
+
+**Properties**
+  - `id`: 
+  - `name`: 
   - `description`: 
   - `groupType`: 
   - `category`: 
@@ -8941,35 +12067,6 @@ Engineering approval process for declaring part interchangeability
   - `createdAt`: 
   - `updatedAt`: 
 
-### `saml_sessions`
-SAML User Sessions
-Track SAML authentication sessions and assertions
-
-**Properties**
-  - `id`: 
-  - `userId`: 
-  - `sessionIndex`: 
-  - `nameId`: 
-  - `nameIdFormat`: 
-  - `assertionId`: 
-  - `configId`: 
-  - `attributes`: 
-  - `expiresAt`: 
-  - `createdAt`: 
-
-### `saml_auth_requests`
-SAML Authentication Request Tracking
-Track outgoing SAML AuthnRequests for security and correlation
-
-**Properties**
-  - `id`: 
-  - `requestId`: 
-  - `relayState`: 
-  - `destination`: 
-  - `issueInstant`: 
-  - `configId`: 
-  - `expiresAt`: 
-  - `createdAt`: 
 ### `work_order_part_substitutions`
 Work Order Part Substitution Log
 Track actual substitutions made during production
@@ -9012,3 +12109,1348 @@ Comprehensive audit trail for all interchangeability-related changes
   - `ipAddress`: 
   - `userAgent`: 
   - `sessionId`: 
+
+### `interface_control_documents`
+Interface Control Document - Master record defining interface specifications
+
+**Properties**
+  - `id`: 
+  - `persistentUuid`: 
+  - `icdNumber`: 
+  - `icdName`: 
+  - `title`: 
+  - `description`: 
+  - `version`: 
+  - `revisionLevel`: 
+  - `status`: 
+  - `interfaceType`: 
+  - `interfaceDirection`: 
+  - `criticality`: 
+  - `applicableStandards`: 
+  - `complianceNotes`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `effectivityType`: 
+  - `effectivityValue`: 
+  - `ownerId`: 
+  - `ownerName`: 
+  - `ownerDepartment`: 
+  - `approvedById`: 
+  - `approvedDate`: 
+  - `reviewCycle`: 
+  - `nextReviewDate`: 
+  - `documentationUrl`: 
+  - `drawingReferences`: 
+  - `specificationRefs`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+  - `lastModifiedById`: 
+
+### `interface_requirements`
+Interface Requirements - Detailed technical requirements for interfaces
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `requirementId`: 
+  - `category`: 
+  - `subcategory`: 
+  - `title`: 
+  - `description`: 
+  - `specification`: 
+  - `tolerance`: 
+  - `units`: 
+  - `nominalValue`: 
+  - `minimumValue`: 
+  - `maximumValue`: 
+  - `testConditions`: 
+  - `verificationMethod`: 
+  - `verificationProcedure`: 
+  - `acceptanceCriteria`: 
+  - `parentRequirementId`: 
+  - `flowdownFrom`: 
+  - `rationale`: 
+  - `priority`: 
+  - `safetyRelated`: 
+  - `missionCritical`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `icd_part_implementations`
+ICD-Part Implementation - Links ICDs to parts that implement the interface
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `partId`: 
+  - `implementationType`: 
+  - `implementationNotes`: 
+  - `configurationDetails`: 
+  - `complianceStatus`: 
+  - `lastComplianceCheck`: 
+  - `complianceNotes`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `effectivityCondition`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `icd_part_consumptions`
+ICD-Part Consumption - Links ICDs to assemblies/parts that consume the interface
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `partId`: 
+  - `consumptionType`: 
+  - `quantityRequired`: 
+  - `consumptionNotes`: 
+  - `alternativeOptions`: 
+  - `isRequired`: 
+  - `isCritical`: 
+  - `failureMode`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `effectivityCondition`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `icd_relations`
+ICD Relations - Hierarchical and dependency relationships between ICDs
+
+**Properties**
+  - `id`: 
+  - `parentIcdId`: 
+  - `childIcdId`: 
+  - `relationType`: 
+  - `relationDescription`: 
+  - `dependencyType`: 
+  - `dataFlowDirection`: 
+  - `interfacePriority`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `icd_versions`
+ICD Version History - Tracks versions and changes to ICDs
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `versionNumber`: 
+  - `versionType`: 
+  - `changeDescription`: 
+  - `changeReason`: 
+  - `changeCategory`: 
+  - `createdDate`: 
+  - `approvedDate`: 
+  - `releasedDate`: 
+  - `supersededDate`: 
+  - `createdById`: 
+  - `approvedById`: 
+  - `versionData`: 
+  - `isActive`: 
+
+### `icd_history`
+ICD History - Audit trail of all changes to ICDs
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `actionType`: 
+  - `fieldChanged`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeDescription`: 
+  - `changeReason`: 
+  - `impactAssessment`: 
+  - `relatedEcoId`: 
+  - `changedAt`: 
+  - `changedById`: 
+  - `changedByName`: 
+  - `sessionId`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+
+### `icd_attachments`
+ICD Attachments - Supporting documents and files for ICDs
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `fileName`: 
+  - `fileSize`: 
+  - `fileType`: 
+  - `fileExtension`: 
+  - `storageUrl`: 
+  - `storageKey`: 
+  - `checksum`: 
+  - `documentType`: 
+  - `category`: 
+  - `securityLevel`: 
+  - `description`: 
+  - `version`: 
+  - `isActive`: 
+  - `uploadedAt`: 
+  - `uploadedById`: 
+
+### `icd_compliance_checks`
+ICD Compliance Checks - Records of interface compliance verification
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `requirementId`: 
+  - `partId`: 
+  - `checkType`: 
+  - `checkMethod`: 
+  - `checkProcedure`: 
+  - `complianceStatus`: 
+  - `checkResult`: 
+  - `actualValue`: 
+  - `expectedValue`: 
+  - `variance`: 
+  - `testResults`: 
+  - `evidenceUrl`: 
+  - `checkNotes`: 
+  - `nonComplianceReason`: 
+  - `correctiveAction`: 
+  - `checkDate`: 
+  - `checkedById`: 
+  - `checkedByName`: 
+  - `reviewedById`: 
+  - `reviewedDate`: 
+  - `nextCheckDate`: 
+  - `reCheckRequired`: 
+  - `escalationRequired`: 
+  - `isActive`: 
+
+### `icd_change_requests`
+ICD Change Requests - Requests for changes to existing ICDs
+
+**Properties**
+  - `id`: 
+  - `icdId`: 
+  - `requestNumber`: 
+  - `title`: 
+  - `description`: 
+  - `requestType`: 
+  - `priority`: 
+  - `proposedChange`: 
+  - `changeReason`: 
+  - `alternativesConsidered`: 
+  - `impactAnalysis`: 
+  - `affectedParts`: 
+  - `affectedAssemblies`: 
+  - `estimatedEffort`: 
+  - `riskAssessment`: 
+  - `requestorId`: 
+  - `requestorName`: 
+  - `requestorDept`: 
+  - `requestorDeptId`: 
+  - `requestorEmail`: 
+  - `requestDate`: 
+  - `status`: 
+  - `reviewerId`: 
+  - `reviewerNotes`: 
+  - `reviewDate`: 
+  - `approvalRequired`: 
+  - `approvedById`: 
+  - `approvedDate`: 
+  - `implementationPlan`: 
+  - `implementationDate`: 
+  - `implementedById`: 
+  - `relatedEcoId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `locations`
+Hierarchical location model for warehouse management and material tracking
+
+**Properties**
+  - `id`: 
+  - `locationCode`: 
+  - `locationName`: 
+  - `description`: 
+  - `locationType`: 
+  - `parentLocationId`: 
+  - `siteId`: 
+  - `areaId`: 
+  - `capacityValue`: 
+  - `capacityUnitOfMeasureId`: 
+  - `currentUtilization`: 
+  - `length`: 
+  - `width`: 
+  - `height`: 
+  - `dimensionUnitOfMeasureId`: 
+  - `isActive`: 
+  - `allowMixedParts`: 
+  - `requiresEnvironmentalControl`: 
+  - `temperature`: 
+  - `humidity`: 
+  - `contactPhone`: 
+  - `contactEmail`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `currencies`
+ISO 4217 compliant currency lookup table for standardizing multi-currency operations
+
+**Properties**
+  - `id`: 
+  - `currencyCode`: 
+  - `currencyName`: 
+  - `currencySymbol`: 
+  - `numericCode`: 
+  - `minorUnit`: 
+  - `region`: 
+  - `country`: 
+  - `displayFormat`: 
+  - `isActive`: 
+  - `isBaseCurrency`: 
+  - `allowFractional`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `exchange_rates`
+Exchange rates for currency conversion with historical tracking and multiple sources
+
+**Properties**
+  - `id`: 
+  - `fromCurrencyId`: 
+  - `toCurrencyId`: 
+  - `exchangeRate`: 
+  - `effectiveDate`: 
+  - `expirationDate`: 
+  - `rateSource`: 
+  - `sourceReference`: 
+  - `isManualOverride`: 
+  - `isActive`: 
+  - `priority`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `equipment_types`
+Equipment types for better categorization and maintenance planning
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `category`: 
+  - `defaultMaintenanceInterval`: 
+  - `defaultMaintenanceProcedure`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `downtime_events`
+Enhanced downtime tracking for maintenance analysis
+
+**Properties**
+  - `id`: 
+  - `equipmentId`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `durationMinutes`: 
+  - `downtimeType`: 
+  - `downtimeReasonId`: 
+  - `affectedWorkOrderIds`: 
+  - `productionLoss`: 
+  - `description`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `maintenanceWorkOrderId`: 
+  - `reportedById`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `downtime_reasons`
+Standardized downtime reasons for better analysis and reporting
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `category`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `maintenance_parts`
+Parts used in maintenance work orders for cost tracking
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `partNumber`: 
+  - `partDescription`: 
+  - `quantity`: 
+  - `unitCost`: 
+  - `totalCost`: 
+  - `lotNumber`: 
+  - `serialNumber`: 
+  - `issuedFrom`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `labor_entries`
+Labor entries for maintenance work order time and cost tracking
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `technicianId`: 
+  - `startTime`: 
+  - `endTime`: 
+  - `laborHours`: 
+  - `laborRate`: 
+  - `laborCost`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_number_format_configs`
+Serial Number Format Configuration (Issue #149)
+Configurable serial number format engine supporting diverse manufacturing standards
+
+**Properties**
+  - `id`: 
+  - `name`: 
+  - `description`: 
+  - `patternTemplate`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `version`: 
+  - `validationRules`: 
+  - `sequentialCounterStart`: 
+  - `sequentialCounterIncrement`: 
+  - `counterResetRule`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_format_part_assignments`
+Serial Format Part Assignment (Issue #149)
+Links serial number formats to specific parts with priority-based assignment
+
+**Properties**
+  - `id`: 
+  - `partId`: 
+  - `formatConfigId`: 
+  - `isDefault`: 
+  - `priority`: 
+  - `effectiveFrom`: 
+  - `effectiveUntil`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_format_part_family_assignments`
+Serial Format Part Family Assignment (Issue #149)
+Links serial number formats to part families for hierarchical assignment
+Note: PartFamily model will be created in future phases for hierarchical part organization
+
+**Properties**
+  - `id`: 
+  - `partFamilyId`: 
+  - `formatConfigId`: 
+  - `isDefault`: 
+  - `priority`: 
+  - `effectiveFrom`: 
+  - `effectiveUntil`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `serial_number_usage_tracking`
+Serial Number Usage Tracking (Issue #149)
+Manages sequential counter state and usage statistics for serial formats
+
+**Properties**
+  - `id`: 
+  - `formatConfigId`: 
+  - `currentSequenceValue`: 
+  - `lastGeneratedDate`: 
+  - `counterResetDate`: 
+  - `totalGenerated`: 
+  - `totalUsed`: 
+  - `duplicateAttempts`: 
+  - `lastUpdateTimestamp`: 
+  - `version`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_keys`
+
+**Properties**
+  - `id`: 
+  - `keyPrefix`: 
+  - `keyHash`: 
+  - `name`: 
+  - `description`: 
+  - `tier`: 
+  - `status`: 
+  - `siteId`: 
+  - `companyId`: 
+  - `pluginId`: 
+  - `scopes`: 
+  - `rateLimit`: 
+  - `dailyQuota`: 
+  - `monthlyQuota`: 
+  - `expiresAt`: 
+  - `lastUsedAt`: 
+  - `lastUsedEndpoint`: 
+  - `createdBy`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `developerName`: 
+  - `developerEmail`: 
+  - `developerCompany`: 
+  - `developerPhone`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_usage_logs`
+
+**Properties**
+  - `id`: 
+  - `apiKeyId`: 
+  - `endpoint`: 
+  - `httpMethod`: 
+  - `apiVersion`: 
+  - `statusCode`: 
+  - `responseTime`: 
+  - `requestId`: 
+  - `ipAddress`: 
+  - `userAgent`: 
+  - `rateLimitRemaining`: 
+  - `rateLimitReset`: 
+  - `errorCode`: 
+  - `errorMessage`: 
+  - `requestBytes`: 
+  - `responseBytes`: 
+  - `createdAt`: 
+
+### `rate_limit_configs`
+
+**Properties**
+  - `id`: 
+  - `tier`: 
+  - `resource`: 
+  - `requestsPerMinute`: 
+  - `requestsPerHour`: 
+  - `requestsPerDay`: 
+  - `burstMultiplier`: 
+  - `burstDuration`: 
+  - `isActive`: 
+  - `siteId`: 
+  - `description`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oauth_clients`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `clientSecret`: 
+  - `name`: 
+  - `description`: 
+  - `grantTypes`: 
+  - `redirectUris`: 
+  - `allowedScopes`: 
+  - `tier`: 
+  - `isActive`: 
+  - `companyId`: 
+  - `createdBy`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `oauth_authorizations`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `userId`: 
+  - `scopes`: 
+  - `isRevoked`: 
+  - `revokedAt`: 
+  - `authorizedAt`: 
+  - `expiresAt`: 
+
+### `oauth_tokens`
+
+**Properties**
+  - `id`: 
+  - `clientId`: 
+  - `userId`: 
+  - `tokenType`: 
+  - `tokenHash`: 
+  - `scopes`: 
+  - `expiresAt`: 
+  - `isRevoked`: 
+  - `revokedAt`: 
+  - `refreshTokenId`: 
+  - `createdAt`: 
+  - `lastUsedAt`: 
+
+### `api_endpoint_tiers`
+
+**Properties**
+  - `id`: 
+  - `endpoint`: 
+  - `httpMethod`: 
+  - `tier`: 
+  - `description`: 
+  - `isDeprecated`: 
+  - `deprecationDate`: 
+  - `replacementEndpoint`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `site_workflow_configurations`
+Site-Level Workflow Configuration (Issue #40)
+Defines enforcement level per site for flexible workflow execution
+Supports three modes: STRICT (full ISA-95), FLEXIBLE (relaxed prerequisites), HYBRID (external vouching)
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `requireJustification`: 
+  - `requireApproval`: 
+  - `effectiveDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `updatedBy`: 
+
+### `routing_workflow_configurations`
+Routing-Level Workflow Configuration Overrides (Issue #40)
+Allows routing-specific configuration overrides from site defaults
+
+**Properties**
+  - `id`: 
+  - `routingId`: 
+  - `siteConfigId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `overrideReason`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `work_order_workflow_configurations`
+Work Order-Level Workflow Configuration Overrides (Issue #40)
+Exceptional work order-specific overrides (requires approval)
+
+**Properties**
+  - `id`: 
+  - `workOrderId`: 
+  - `routingConfigId`: 
+  - `mode`: 
+  - `enforceOperationSequence`: 
+  - `enforceStatusGating`: 
+  - `allowExternalVouching`: 
+  - `enforceQualityChecks`: 
+  - `requireStartTransition`: 
+  - `overrideReason`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `createdBy`: 
+
+### `workflow_configuration_history`
+Workflow Configuration Change History (Issue #40)
+Audit trail for configuration changes
+
+**Properties**
+  - `id`: 
+  - `configType`: 
+  - `configId`: 
+  - `field`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeReason`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `siteConfigId`: 
+
+### `operation_workflow_configurations`
+Operation-Level Workflow Configuration (Issue #40)
+Granular configuration control per operation type
+
+**Properties**
+  - `id`: 
+  - `operationId`: 
+  - `requireQualityInspection`: 
+  - `allowExternalVouching`: 
+  - `bypassPrerequisites`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `controlled_documents`
+Controlled Document - Core document management model (ISO 9001 Clause 7.5)
+
+**Properties**
+  - `id`: 
+  - `documentNumber`: 
+  - `title`: 
+  - `description`: 
+  - `documentType`: 
+  - `category`: 
+  - `revision`: 
+  - `revisionDate`: 
+  - `effectiveDate`: 
+  - `status`: 
+  - `fileUrl`: 
+  - `fileName`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `reviewFrequency`: 
+  - `nextReviewDate`: 
+  - `lastReviewDate`: 
+  - `isControlled`: 
+  - `parentDocumentId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `document_approvals`
+Document Approval - Approval workflow step
+
+**Properties**
+  - `id`: 
+  - `documentId`: 
+  - `approverRole`: 
+  - `approverId`: 
+  - `sequence`: 
+  - `status`: 
+  - `requestedAt`: 
+  - `reviewedAt`: 
+  - `comments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_courses`
+Training Course - Course definition and management
+
+**Properties**
+  - `id`: 
+  - `courseNumber`: 
+  - `courseName`: 
+  - `description`: 
+  - `objectives`: 
+  - `duration`: 
+  - `courseType`: 
+  - `materials`: 
+  - `requiredForRoles`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `competency_tests`
+Competency Test - Test/assessment associated with training
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `testName`: 
+  - `passingScore`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_questions`
+Test Question - Individual question in competency test
+
+**Properties**
+  - `id`: 
+  - `testId`: 
+  - `questionText`: 
+  - `questionType`: 
+  - `correctAnswer`: 
+  - `possibleAnswers`: 
+  - `points`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_records`
+Training Record - Record of training completion for individual
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `traineeId`: 
+  - `instructorId`: 
+  - `trainingDate`: 
+  - `completionDate`: 
+  - `testScore`: 
+  - `passed`: 
+  - `certificationDate`: 
+  - `expirationDate`: 
+  - `effectivenessScore`: 
+  - `effectivenessNotes`: 
+  - `certificateUrl`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `internal_audits`
+Internal Audit - Audit planning and execution (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditNumber`: 
+  - `auditTitle`: 
+  - `auditType`: 
+  - `auditScope`: 
+  - `plannedDate`: 
+  - `actualDate`: 
+  - `duration`: 
+  - `leadAuditorId`: 
+  - `auditeeId`: 
+  - `auditeeDepartment`: 
+  - `status`: 
+  - `reportUrl`: 
+  - `summary`: 
+  - `closedById`: 
+  - `closedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `audit_findings`
+Audit Finding - Findings from audit (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditId`: 
+  - `findingNumber`: 
+  - `findingType`: 
+  - `clause`: 
+  - `description`: 
+  - `objectiveEvidence`: 
+  - `severity`: 
+  - `correctiveActionId`: 
+  - `status`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `corrective_actions`
+Corrective Action - CAPA management (ISO 9001 Clause 10)
+
+**Properties**
+  - `id`: 
+  - `caNumber`: 
+  - `title`: 
+  - `description`: 
+  - `source`: 
+  - `sourceReference`: 
+  - `rootCauseMethod`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `preventiveAction`: 
+  - `assignedToId`: 
+  - `targetDate`: 
+  - `implementedDate`: 
+  - `verificationMethod`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `isEffective`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_reviews`
+Management Review - Management review sessions (ISO 9001 Clause 9.3)
+
+**Properties**
+  - `id`: 
+  - `reviewNumber`: 
+  - `reviewDate`: 
+  - `chairpersonId`: 
+  - `inputsDiscussed`: 
+  - `decisions`: 
+  - `resourceNeeds`: 
+  - `minutes`: 
+  - `minutesUrl`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_review_actions`
+Management Review Action - Action items from management review
+
+**Properties**
+  - `id`: 
+  - `reviewId`: 
+  - `actionDescription`: 
+  - `assignedToId`: 
+  - `dueDate`: 
+  - `completedDate`: 
+  - `status`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `change_requests`
+Change Request - Change management (AS9100D Clause 8.5.6)
+
+**Properties**
+  - `id`: 
+  - `changeNumber`: 
+  - `title`: 
+  - `description`: 
+  - `changeType`: 
+  - `affectedParts`: 
+  - `reason`: 
+  - `benefits`: 
+  - `risks`: 
+  - `impactAssessment`: 
+  - `customerNotificationRequired`: 
+  - `implementationPlan`: 
+  - `implementationDate`: 
+  - `status`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `api_versions`
+API Version - Manages API versioning and backward compatibility
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `semver`: 
+  - `releaseDate`: 
+  - `status`: 
+  - `maintenanceUntil`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `changelogUrl`: 
+  - `migrationGuideUrl`: 
+  - `documentationUrl`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_breaking_changes`
+API Breaking Change - Tracks breaking changes between versions
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `fromVersion`: 
+  - `toVersion`: 
+  - `changeType`: 
+  - `endpoint`: 
+  - `field`: 
+  - `description`: 
+  - `before`: 
+  - `after`: 
+  - `migrationSteps`: 
+  - `migrationGuideUrl`: 
+  - `announcedAt`: 
+  - `effectiveDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_deprecations`
+API Deprecation - Tracks deprecated features
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `feature`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `replacement`: 
+  - `migrationGuideUrl`: 
+  - `affectedAccounts`: 
+  - `notificationsSent`: 
+  - `severity`: 
+  - `description`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_usage_by_version`
+API Usage by Version - Analytics for API version adoption
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `apiKeyId`: 
+  - `requestCount`: 
+  - `lastRequestAt`: 
+  - `failureCount`: 
+  - `lastFailureAt`: 
+  - `date`: 
+  - `clientName`: 
+  - `integrationName`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_changelog`
+API Changelog - Published changelog entries
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `releaseDate`: 
+  - `category`: 
+  - `title`: 
+  - `description`: 
+  - `endpoint`: 
+  - `field`: 
+  - `migrationGuide`: 
+  - `alternativeFeature`: 
+  - `severity`: 
+  - `affectedApiKeys`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `captured_api_calls`
+Captured API Call - For compatibility testing
+
+**Properties**
+  - `id`: 
+  - `apiKeyId`: 
+  - `apiVersion`: 
+  - `method`: 
+  - `endpoint`: 
+  - `requestPath`: 
+  - `requestHeaders`: 
+  - `requestBody`: 
+  - `requestQuery`: 
+  - `statusCode`: 
+  - `responseHeaders`: 
+  - `responseBody`: 
+  - `timestamp`: 
+  - `duration`: 
+  - `success`: 
+  - `errorMessage`: 
+
+### `api_compatibility_tests`
+API Compatibility Test - Test results for version compatibility
+
+**Properties**
+  - `id`: 
+  - `sourceVersion`: 
+  - `targetVersion`: 
+  - `compatible`: 
+  - `breakingChanges`: 
+  - `deprecatedFeatures`: 
+  - `unsupportedEndpoints`: 
+  - `unsupportedFields`: 
+  - `recommendations`: 
+  - `estimatedMigrationEffort`: 
+  - `migrationGuideUrl`: 
+  - `testedEndpoints`: 
+  - `compatibleEndpoints`: 
+  - `failingEndpoints`: 
+  - `createdAt`: 
+  - `expiresAt`: 
+
+### `plugins`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `manifest`: 
+  - `status`: 
+  - `isActive`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `latestVersion`: 
+  - `updateAvailable`: 
+  - `configuration`: 
+  - `packageUrl`: 
+  - `apiKeyId`: 
+  - `dependencies`: 
+  - `permissions`: 
+  - `siteId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_hooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookType`: 
+  - `hookPoint`: 
+  - `priority`: 
+  - `isAsync`: 
+  - `timeout`: 
+  - `handlerFunction`: 
+  - `isActive`: 
+  - `lastExecutedAt`: 
+  - `executionCount`: 
+  - `errorCount`: 
+  - `lastError`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_executions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookPoint`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `duration`: 
+  - `status`: 
+  - `errorMessage`: 
+  - `errorStack`: 
+  - `inputData`: 
+  - `outputData`: 
+  - `userId`: 
+  - `requestId`: 
+  - `ipAddress`: 
+  - `createdAt`: 
+
+### `plugin_configurations`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `key`: 
+  - `value`: 
+  - `version`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `siteId`: 
+  - `companyId`: 
+
+### `plugin_events`
+
+**Properties**
+  - `id`: 
+  - `eventType`: 
+  - `eventData`: 
+  - `timestamp`: 
+  - `sourceUserId`: 
+  - `sourceRequestId`: 
+  - `subscribers`: 
+  - `createdAt`: 
+
+### `plugin_webhooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `eventType`: 
+  - `webhookUrl`: 
+  - `secret`: 
+  - `maxRetries`: 
+  - `retryBackoff`: 
+  - `isActive`: 
+  - `lastTriggeredAt`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `failedDeliveries`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_registries`
+
+**Properties**
+  - `id`: 
+  - `type`: 
+  - `name`: 
+  - `storageUrl`: 
+  - `storageBucket`: 
+  - `isDefault`: 
+  - `isPublic`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_packages`
+
+**Properties**
+  - `id`: 
+  - `registryId`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `license`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `packageSize`: 
+  - `checksum`: 
+  - `apiVersion`: 
+  - `mesVersion`: 
+  - `permissions`: 
+  - `dependencies`: 
+  - `status`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejectionReason`: 
+  - `revokedAt`: 
+  - `downloadCount`: 
+  - `installCount`: 
+  - `uploadedBy`: 
+  - `uploadedAt`: 
+  - `updatedAt`: 
+
+### `plugin_installations`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `siteId`: 
+  - `installedVersion`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `status`: 
+  - `activatedAt`: 
+  - `deactivatedAt`: 
+  - `configuration`: 
+  - `errorCount`: 
+  - `lastErrorAt`: 
+  - `lastHealthCheck`: 
+  - `lastErrorMessage`: 
+  - `licenseKey`: 
+  - `licenseExpires`: 
+  - `updatedAt`: 
+
+### `plugin_health_logs`
+
+**Properties**
+  - `id`: 
+  - `installationId`: 
+  - `errorCount`: 
+  - `warningCount`: 
+  - `avgExecutionTime`: 
+  - `memoryUsage`: 
+  - `cpuUsage`: 
+  - `recordedAt`: 
+
+### `plugin_licenses`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `licenseKey`: 
+  - `licenseType`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `issuedAt`: 
+  - `expiresAt`: 
+  - `isActive`: 
+  - `maxInstallations`: 
+  - `currentInstallations`: 
+  - `issuedBy`: 
+  - `notes`: 
+  - `updatedAt`: 
+
+### `plugin_reviews`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `rating`: 
+  - `comment`: 
+  - `reviewerId`: 
+  - `reviewerName`: 
+  - `siteId`: 
+  - `isApproved`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_deployments`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `deploymentType`: 
+  - `targetSites`: 
+  - `scheduledFor`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `status`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `canRollback`: 
+  - `rolledBackAt`: 
+  - `rollbackReason`: 
+  - `initiatedBy`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_submissions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `author`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `checksum`: 
+  - `submittedBy`: 
+  - `submittedAt`: 
+  - `reviewNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `_DepartmentToUser`
+Pair relationship table between [departments](#departments) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToUser`
+Pair relationship table between [controlled_documents](#controlled_documents) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToTrainingCourse`
+Pair relationship table between [controlled_documents](#controlled_documents) and [training_courses](#training_courses)
+
+**Properties**
+  - `A`: 
+  - `B`: 

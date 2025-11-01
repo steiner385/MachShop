@@ -1,8 +1,6 @@
 import { PrismaClient, SerializedPart } from '@prisma/client';
 import * as crypto from 'crypto';
 
-const prisma = new PrismaClient();
-
 /**
  * Serial Number Format Configuration
  * Supports dynamic format patterns with placeholders:
@@ -47,6 +45,12 @@ export interface GeneratedSerialNumber {
  * - Collision-free using database sequences
  */
 export class SerializationService {
+  private prisma: PrismaClient;
+
+  constructor(prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
+  }
+
 
   /**
    * Generate a new serial number with specified format
@@ -150,7 +154,7 @@ export class SerializationService {
     while (attempt < MAX_RETRIES) {
       try {
         // Create serialized part
-        const serializedPart = await prisma.serializedPart.create({
+        const serializedPart = await this.prisma.serializedPart.create({
           data: {
             serialNumber: currentSerialNumber,
             partId: data.partId,
@@ -316,7 +320,7 @@ export class SerializationService {
   async initializeSequence(sequenceName: string, startValue: number = 1): Promise<void> {
     try {
       // Create sequence if it doesn't exist
-      await prisma.$executeRawUnsafe(`
+      await this.prisma.$executeRawUnsafe(`
         CREATE SEQUENCE IF NOT EXISTS ${sequenceName} START WITH ${startValue};
       `);
     } catch (error) {
@@ -336,7 +340,7 @@ export class SerializationService {
       await this.ensureSequenceExists(sequenceName);
 
       // Get next value atomically
-      const result = await prisma.$queryRawUnsafe<[{ nextval: bigint }]>(
+      const result = await this.prisma.$queryRawUnsafe<[{ nextval: bigint }]>(
         `SELECT nextval('${sequenceName}') as nextval;`
       );
 
@@ -352,7 +356,7 @@ export class SerializationService {
    */
   private async incrementSequence(sequenceName: string, count: number): Promise<void> {
     try {
-      await prisma.$executeRawUnsafe(`
+      await this.prisma.$executeRawUnsafe(`
         SELECT setval('${sequenceName}', nextval('${sequenceName}') + ${count});
       `);
     } catch (error) {
@@ -366,7 +370,7 @@ export class SerializationService {
    */
   private async ensureSequenceExists(sequenceName: string): Promise<void> {
     try {
-      const result = await prisma.$queryRawUnsafe<[{ exists: boolean }]>(
+      const result = await this.prisma.$queryRawUnsafe<[{ exists: boolean }]>(
         `SELECT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = '${sequenceName}') as exists;`
       );
 
@@ -470,5 +474,24 @@ export class SerializationService {
   }
 }
 
-export const serializationService = new SerializationService();
+// Lazy-loaded singleton for backward compatibility
+let _serializationServiceInstance: SerializationService | null = null;
+
+export function getSerializationService(): SerializationService {
+  if (!_serializationServiceInstance) {
+    _serializationServiceInstance = new SerializationService();
+  }
+  return _serializationServiceInstance;
+}
+
+// For backward compatibility with existing code that imports serializationService directly
+export const serializationService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getSerializationService() as any)[prop];
+    },
+  }
+) as any as SerializationService;
+
 export default serializationService;

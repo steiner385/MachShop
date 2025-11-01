@@ -1,0 +1,266 @@
+// ================================================================================
+// GITHUB ISSUE #74: API Access Control & Security Model
+// ================================================================================
+// This section implements a comprehensive three-tier API access control system
+// with rate limiting, OAuth 2.0 support, and audit logging capabilities.
+// ================================================================================
+
+// -------------------- ENUMS --------------------
+
+/// API Access Tiers for rate limiting and feature access
+enum ApiTier {
+  PUBLIC   // Limited rate, basic features, self-service registration
+  SDK      // Medium rate, advanced features, requires approval
+  PRIVATE  // Unlimited rate, full features, internal use only
+}
+
+/// API Key Status for lifecycle management
+enum ApiKeyStatus {
+  ACTIVE            // Key is active and can be used
+  SUSPENDED         // Temporarily disabled, can be reactivated
+  REVOKED           // Permanently disabled, cannot be reactivated
+  EXPIRED           // Key has passed its expiration date
+  PENDING_APPROVAL  // SDK tier key awaiting admin approval
+}
+
+/// OAuth Token Types
+enum TokenType {
+  ACCESS_TOKEN
+  REFRESH_TOKEN
+}
+
+// -------------------- MODELS --------------------
+
+/// API Key - Core authentication credential for API access
+/// Supports three-tier access control (PUBLIC, SDK, PRIVATE)
+model ApiKey {
+  id                String        @id @default(cuid())
+
+  // Key identification
+  keyPrefix         String        @unique // Searchable prefix (pk_live_, sdk_live_, pvt_live_)
+  keyHash           String        // Bcrypt hash of full key (never store plaintext)
+  name              String        // User-friendly name for the key
+
+  // Access control
+  tier              ApiTier       // PUBLIC, SDK, or PRIVATE
+  status            ApiKeyStatus  @default(ACTIVE)
+
+  // Scope and permissions
+  scopes            String[]      // Array of permission scopes (e.g., ["read:work_orders", "write:quality"])
+
+  // Rate limiting (per-key overrides)
+  rateLimit         Json?         // Optional custom rate limits { requestsPerMinute, requestsPerHour, requestsPerDay }
+  quotas            Json?         // Optional usage quotas { dailyLimit, monthlyLimit }
+
+  // Multi-tenancy support
+  companyId         String?       // Optional company association for B2B scenarios
+  siteId            String?       // Optional site-level access restriction
+  pluginId          String?       // For third-party plugin/integration keys
+
+  // Lifecycle management
+  expiresAt         DateTime?     // Optional expiration date
+  lastUsedAt        DateTime?     // Track last usage for cleanup
+
+  // Approval workflow (for SDK tier)
+  createdBy         String        // User ID of creator
+  approvedBy        String?       // User ID of approver (for SDK/PRIVATE tiers)
+  approvedAt        DateTime?     // Timestamp of approval
+
+  // Developer information
+  developerName     String?       // Developer/organization name
+  developerEmail    String?       // Contact email
+
+  // Audit fields
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  usageLogs         ApiUsageLog[] @relation("ApiKeyUsageLogs")
+  oauthTokens       OAuthToken[]  @relation("ApiKeyOAuthTokens")
+
+  @@index([keyPrefix])
+  @@index([tier])
+  @@index([status])
+  @@index([createdBy])
+  @@index([expiresAt])
+  @@index([lastUsedAt])
+  @@index([siteId])
+  @@map("api_keys")
+}
+
+/// API Usage Log - Comprehensive audit trail for all API requests
+/// Used for security monitoring, analytics, and rate limit tracking
+model ApiUsageLog {
+  id                    String    @id @default(cuid())
+
+  // API key reference
+  apiKeyId              String
+  apiKey                ApiKey    @relation("ApiKeyUsageLogs", fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  // Request details
+  endpoint              String    // API endpoint path (e.g., /api/work-orders)
+  httpMethod            String    // GET, POST, PUT, DELETE, PATCH
+  apiVersion            String?   // API version (e.g., v1, v2)
+
+  // Response details
+  statusCode            Int       // HTTP status code
+  responseTime          Int       // Response time in milliseconds
+  requestId             String?   // Unique request ID for tracing
+
+  // Client information
+  ipAddress             String?   // Client IP address
+  userAgent             String?   // Client user agent
+
+  // Rate limiting information
+  rateLimitRemaining    Int?      // Remaining requests in current window
+  rateLimitReset        DateTime? // When the rate limit window resets
+
+  // Request metadata
+  requestMetadata       Json?     // Optional additional metadata (query params, headers)
+  errorMessage          String?   // Error message if request failed
+
+  // Timestamp
+  timestamp             DateTime  @default(now())
+
+  @@index([apiKeyId, timestamp])
+  @@index([endpoint])
+  @@index([statusCode])
+  @@index([timestamp])
+  @@index([ipAddress])
+  @@map("api_usage_logs")
+}
+
+/// OAuth Client - Registered OAuth 2.0 clients for third-party integrations
+/// Supports both authorization code and client credentials flows
+model OAuthClient {
+  id                String                @id @default(cuid())
+
+  // Client credentials
+  clientId          String                @unique // Public client identifier
+  clientSecret      String                // Hashed client secret
+
+  // Client metadata
+  name              String                // Client application name
+  description       String?               // Client description
+  logoUri           String?               // Client logo URL
+
+  // OAuth configuration
+  grantTypes        String[]              // Allowed grant types (authorization_code, client_credentials, refresh_token)
+  redirectUris      String[]              // Allowed redirect URIs for authorization code flow
+  allowedScopes     String[]              // Scopes this client can request
+
+  // Access control
+  tier              ApiTier               @default(PUBLIC)
+  isActive          Boolean               @default(true)
+
+  // Multi-tenancy
+  companyId         String?               // Optional company association
+
+  // Audit fields
+  createdBy         String                // User ID of creator
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  authorizations    OAuthAuthorization[]  @relation("ClientAuthorizations")
+  tokens            OAuthToken[]          @relation("ClientTokens")
+
+  @@index([clientId])
+  @@index([isActive])
+  @@index([companyId])
+  @@map("oauth_clients")
+}
+
+/// OAuth Authorization - User authorization grants for OAuth clients
+/// Tracks which users have authorized which clients with which scopes
+model OAuthAuthorization {
+  id                String       @id @default(cuid())
+
+  // Client and user
+  clientId          String
+  client            OAuthClient  @relation("ClientAuthorizations", fields: [clientId], references: [id], onDelete: Cascade)
+  userId            String       // User who granted authorization
+
+  // Authorization details
+  scopes            String[]     // Granted scopes
+  code              String?      @unique // Authorization code (temporary, for auth code flow)
+  codeExpiresAt     DateTime?    // When the authorization code expires
+
+  // Lifecycle
+  isRevoked         Boolean      @default(false)
+  authorizedAt      DateTime     @default(now())
+  expiresAt         DateTime?    // Optional authorization expiration
+
+  @@index([clientId, userId])
+  @@index([code])
+  @@index([userId])
+  @@map("oauth_authorizations")
+}
+
+/// OAuth Token - Access and refresh tokens for OAuth flows
+/// Supports both authorization code and client credentials grant types
+model OAuthToken {
+  id                String       @id @default(cuid())
+
+  // Client reference
+  clientId          String
+  client            OAuthClient  @relation("ClientTokens", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // User reference (null for client credentials flow)
+  userId            String?
+
+  // API Key reference (for rate limiting and permissions)
+  apiKeyId          String?
+  apiKey            ApiKey?      @relation("ApiKeyOAuthTokens", fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  // Token details
+  tokenType         TokenType    // ACCESS_TOKEN or REFRESH_TOKEN
+  tokenHash         String       @unique // Hashed token value
+  scopes            String[]     // Granted scopes
+
+  // Lifecycle
+  expiresAt         DateTime     // Token expiration time
+  isRevoked         Boolean      @default(false)
+
+  // Refresh token relationship
+  refreshTokenId    String?      // Reference to refresh token (for access tokens)
+
+  // Audit fields
+  createdAt         DateTime     @default(now())
+
+  @@index([clientId, userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("oauth_tokens")
+}
+
+/// Rate Limit Configuration - Flexible rate limiting rules per tier and resource
+/// Supports site-level overrides for multi-tenant scenarios
+model RateLimitConfig {
+  id                    String    @id @default(cuid())
+
+  // Rate limit scope
+  tier                  ApiTier   // PUBLIC, SDK, or PRIVATE
+  resource              String?   // Optional specific resource (null = default for tier)
+
+  // Rate limits
+  requestsPerMinute     Int       // Requests allowed per minute
+  requestsPerHour       Int       // Requests allowed per hour
+  requestsPerDay        Int       // Requests allowed per day
+  burstMultiplier       Float     @default(1.5) // Allow burst traffic (e.g., 1.5x = 50% burst)
+
+  // Configuration
+  isActive              Boolean   @default(true)
+  siteId                String?   // Optional site-level override
+
+  // Audit fields
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([tier, resource, siteId])
+  @@index([tier])
+  @@index([isActive])
+  @@index([siteId])
+  @@map("rate_limit_configs")
+}

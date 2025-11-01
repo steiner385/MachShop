@@ -15,6 +15,8 @@ import Inspections from '@/pages/Quality/Inspections';
 import InspectionDetail from '@/pages/Quality/InspectionDetail';
 import NCRs from '@/pages/Quality/NCRs';
 import NCRDetail from '@/pages/Quality/NCRDetail';
+import Approvals from '@/pages/Quality/Approvals';
+import CorrectiveActions from '@/pages/Quality/CorrectiveActions';
 import Traceability from '@/pages/Traceability/Traceability';
 // Phase 3: Equipment Maintenance API Integration
 import { MaintenanceList } from '@/components/Equipment/MaintenanceList';
@@ -50,7 +52,7 @@ import IntegrationLogs from '@/pages/Integration/IntegrationLogs';
 // Sprint 3 Demo Page
 import Sprint3Demo from '@/pages/Sprint3Demo/Sprint3Demo';
 
-// Navigation UI Improvement - Sprint 1 Placeholder Pages
+// Navigation UI Improvement - Complete Page Implementations
 import SchedulingPage from '@/pages/Production/SchedulingPage';
 import ScheduleDetailPage from '@/pages/Production/ScheduleDetailPage';
 import TeamWorkQueue from '@/pages/Production/TeamWorkQueue';
@@ -210,6 +212,24 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute roles={['Quality Engineer']}>
               <NCRDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quality/approvals"
+          element={
+            <ProtectedRoute roles={['Quality Engineer']}>
+              <Approvals />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ ISSUE #56: CAPA (Corrective & Preventive Action) Tracking - Phase 1 */}
+        <Route
+          path="/quality/corrective-actions"
+          element={
+            <ProtectedRoute roles={['Quality Engineer']}>
+              <CorrectiveActions />
             </ProtectedRoute>
           }
         />
@@ -444,7 +464,7 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Materials Management (Navigation UI Sprint 1 - Placeholder) */}
+        {/* Materials Management - Complete inventory management interface */}
         <Route
           path="/materials"
           element={
@@ -482,7 +502,7 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Personnel Management (Navigation UI Sprint 1 - Placeholder) */}
+        {/* Personnel Management - Complete personnel management interface */}
         <Route
           path="/personnel"
           element={

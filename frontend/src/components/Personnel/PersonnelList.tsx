@@ -1,6 +1,6 @@
 /**
  * Personnel List Component
- * Phase 2: Personnel Management Enhancements
+ * Complete personnel inventory management with real-time tracking and RBAC integration
  */
 
 import React, { useEffect, useState } from 'react';
@@ -33,6 +33,7 @@ import {
   COMPETENCY_LEVEL_LABELS,
 } from '@/types/personnel';
 import { personnelAPI } from '@/api/personnel';
+import { useTheme } from '@/theme';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
@@ -40,6 +41,7 @@ const { Option } = Select;
 
 export const PersonnelList: React.FC = () => {
   const navigate = useNavigate();
+  const { colors } = useTheme();
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [filteredPersonnel, setFilteredPersonnel] = useState<Personnel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +49,7 @@ export const PersonnelList: React.FC = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string | undefined>();
   const [activeFilter, setActiveFilter] = useState<boolean | undefined>(true);
 
-  // Fetch personnel
+  // Set document title and fetch personnel
   const fetchPersonnel = async () => {
     setIsLoading(true);
     try {
@@ -67,6 +69,7 @@ export const PersonnelList: React.FC = () => {
   };
 
   useEffect(() => {
+    document.title = 'Personnel Management - MES';
     fetchPersonnel();
   }, [activeFilter]);
 
@@ -124,7 +127,7 @@ export const PersonnelList: React.FC = () => {
           <div style={{ fontWeight: 500 }}>
             {record.firstName} {record.lastName}
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.employeeNumber}</div>
+          <div style={{ fontSize: '12px', color: colors.text.secondary }}>{record.employeeNumber}</div>
         </div>
       ),
     },
@@ -236,120 +239,146 @@ export const PersonnelList: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <main style={{ padding: '24px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1>
+      <header style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: '600', marginBottom: '8px' }}>
           <TeamOutlined style={{ marginRight: 8 }} />
           Personnel Management
         </h1>
-        <p style={{ color: '#666', marginTop: '8px' }}>
-          Manage personnel skills, certifications, and work assignments
+        <p style={{ color: colors.text.secondary, marginTop: '8px', fontSize: '16px' }}>
+          Comprehensive personnel management with skills, certifications, and work assignments tracking
         </p>
-      </div>
+      </header>
 
-      {/* Statistics */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Active Personnel"
-              value={stats.active}
-              suffix={`/ ${stats.total}`}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Active Certifications"
-              value={stats.activeCertifications}
-              prefix={<SafetyCertificateOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Expiring in 30 Days"
-              value={stats.expiringSoon}
-              prefix={<TrophyOutlined />}
-              valueStyle={{ color: stats.expiringSoon > 0 ? '#faad14' : '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Total Competencies"
-              value={personnel.reduce((sum, p) => sum + (p.competencies?.length || 0), 0)}
-              prefix={<TrophyOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* Statistics Dashboard */}
+      <section aria-labelledby="statistics-heading" style={{ marginBottom: '24px' }}>
+        <h2 id="statistics-heading" className="sr-only">Personnel Statistics</h2>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="Active Personnel"
+                value={stats.active}
+                suffix={`/ ${stats.total}`}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: colors.interactive.primaryDefault }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="Active Certifications"
+                value={stats.activeCertifications}
+                prefix={<SafetyCertificateOutlined />}
+                valueStyle={{ color: colors.status.success }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="Expiring in 30 Days"
+                value={stats.expiringSoon}
+                prefix={<TrophyOutlined />}
+                valueStyle={{ color: stats.expiringSoon > 0 ? colors.status.warning : colors.status.success }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="Total Competencies"
+                value={personnel.reduce((sum, p) => sum + (p.competencies?.length || 0), 0)}
+                prefix={<TrophyOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </section>
 
-      {/* Filters */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-        <Space>
-          <Search
-            placeholder="Search by name or employee number"
-            allowClear
-            enterButton={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: '300px' }}
+      {/* Filters and Actions */}
+      <Card style={{ marginBottom: '16px' }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Search
+              placeholder="Search by name or employee number"
+              allowClear
+              enterButton={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              placeholder="Filter by department"
+              allowClear
+              value={departmentFilter}
+              onChange={setDepartmentFilter}
+              style={{ width: '100%' }}
+            >
+              {departments.map((dept) => (
+                <Option key={dept} value={dept}>
+                  {dept}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              placeholder="Filter by status"
+              value={activeFilter}
+              onChange={setActiveFilter}
+              style={{ width: '100%' }}
+            >
+              <Option value={undefined}>All</Option>
+              <Option value={true}>Active</Option>
+              <Option value={false}>Inactive</Option>
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={4}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={fetchPersonnel}
+              style={{ width: '100%' }}
+            >
+              Refresh
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Personnel Management Section */}
+      <section aria-labelledby="personnel-heading">
+        <Card title={
+          <h2 id="personnel-heading" style={{ margin: 0, fontSize: '18px' }}>
+            Personnel Directory
+          </h2>
+        }>
+          <Table
+            columns={columns}
+            dataSource={filteredPersonnel}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} personnel`,
+              pageSizeOptions: ['10', '20', '50', '100'],
+            }}
+            scroll={{ x: 1200 }}
+            bordered
+            locale={{
+              emptyText: isLoading ? 'Loading...' : 'No personnel found',
+            }}
           />
-
-          <Select
-            placeholder="Filter by department"
-            allowClear
-            value={departmentFilter}
-            onChange={setDepartmentFilter}
-            style={{ width: '180px' }}
-          >
-            {departments.map((dept) => (
-              <Option key={dept} value={dept}>
-                {dept}
-              </Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="Filter by status"
-            value={activeFilter}
-            onChange={setActiveFilter}
-            style={{ width: '150px' }}
-          >
-            <Option value={undefined}>All</Option>
-            <Option value={true}>Active</Option>
-            <Option value={false}>Inactive</Option>
-          </Select>
-        </Space>
-
-        <Button icon={<ReloadOutlined />} onClick={fetchPersonnel}>
-          Refresh
-        </Button>
-      </div>
-
-      {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={filteredPersonnel}
-        rowKey="id"
-        loading={isLoading}
-        pagination={{
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} personnel`,
-          pageSizeOptions: ['10', '20', '50', '100'],
-        }}
-        scroll={{ x: 1200 }}
-        bordered
-      />
-    </div>
+        </Card>
+      </section>
+    </main>
   );
 };
 

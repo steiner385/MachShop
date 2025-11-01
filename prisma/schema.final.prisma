@@ -2,10 +2,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator erd {
-  provider = "prisma-erd-generator"
-  output   = "../docs/erd.md"
-  theme    = "default"
+// Temporarily disabled due to JSON parsing issue in CI
+// TODO: Re-enable after ERD generator JSON parsing issue is resolved
+// generator erd {
+//   provider = "prisma-erd-generator"
+//   output   = "../docs/erd.md"
+//   theme    = "default"
+// }
+
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "../docs/generated/prisma-markdown"
+  title    = "MachShop MES Schema Documentation"
 }
 
 datasource db {

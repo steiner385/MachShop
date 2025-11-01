@@ -15,7 +15,7 @@
  * - Quick action buttons for common operations
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   Card,
@@ -38,6 +38,10 @@ import {
   Progress,
   MenuProps
 } from 'antd';
+import { useFocusManagement } from '../../hooks/useFocusManagement';
+import { useKeyboardHandler } from '../../hooks/useKeyboardHandler';
+import { useComponentShortcuts } from '../../contexts/KeyboardShortcutContext';
+import { announceToScreenReader } from '../../utils/ariaUtils';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -158,6 +162,161 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [currentTask, setCurrentTask] = useState<ApprovalTask | null>(null);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [focusedRowIndex, setFocusedRowIndex] = useState(-1);
+
+  // Refs for focus management
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Focus management for table navigation
+  const { focusElement } = useFocusManagement({
+    containerRef,
+    enableFocusTrap: false,
+    restoreFocus: false,
+  });
+
+  // Keyboard navigation functions
+  const navigateTable = useCallback((direction: 'up' | 'down') => {
+    if (tasks.length === 0) return;
+
+    let newIndex;
+    if (direction === 'down') {
+      newIndex = focusedRowIndex < tasks.length - 1 ? focusedRowIndex + 1 : 0;
+    } else {
+      newIndex = focusedRowIndex > 0 ? focusedRowIndex - 1 : tasks.length - 1;
+    }
+
+    setFocusedRowIndex(newIndex);
+
+    // Announce to screen readers
+    const task = tasks[newIndex];
+    if (task) {
+      announceToScreenReader(
+        `Row ${newIndex + 1} of ${tasks.length}: ${task.taskTitle}, Priority: ${task.priority}, Status: ${task.status}`,
+        'POLITE'
+      );
+    }
+
+    // Scroll row into view
+    setTimeout(() => {
+      const row = tableRef.current?.querySelector(`[data-row-key="${task?.id}"]`) as HTMLElement;
+      if (row) {
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 0);
+  }, [tasks, focusedRowIndex]);
+
+  const toggleRowSelection = useCallback(() => {
+    if (focusedRowIndex >= 0 && tasks[focusedRowIndex]) {
+      const task = tasks[focusedRowIndex];
+      const isSelected = selectedTasks.includes(task.id);
+
+      if (isSelected) {
+        setSelectedTasks(prev => prev.filter(id => id !== task.id));
+        announceToScreenReader(`${task.taskTitle} deselected`, 'POLITE');
+      } else {
+        setSelectedTasks(prev => [...prev, task.id]);
+        announceToScreenReader(`${task.taskTitle} selected`, 'POLITE');
+      }
+    }
+  }, [focusedRowIndex, tasks, selectedTasks]);
+
+  const activateCurrentRow = useCallback(() => {
+    if (focusedRowIndex >= 0 && tasks[focusedRowIndex]) {
+      const task = tasks[focusedRowIndex];
+      handleApprove(task);
+    }
+  }, [focusedRowIndex, tasks, handleApprove]);
+
+  // Keyboard handler for table navigation
+  const { keyboardProps } = useKeyboardHandler({
+    enableActivation: true,
+    enableArrowNavigation: true,
+    enableEscape: false,
+    onArrowNavigation: (direction, event) => {
+      if (direction === 'up' || direction === 'down') {
+        event.preventDefault();
+        navigateTable(direction);
+      }
+    },
+    onActivate: (event) => {
+      // Enter key to approve current task
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        activateCurrentRow();
+      }
+      // Space key to toggle selection
+      if (event.key === ' ') {
+        event.preventDefault();
+        toggleRowSelection();
+      }
+    },
+  });
+
+  // Register keyboard shortcuts
+  useComponentShortcuts('approval-task-queue', [
+    {
+      description: 'Bulk approve selected tasks',
+      keys: 'Ctrl+Enter',
+      handler: () => {
+        if (selectedTasks.length > 0) {
+          handleBulkAction('approve');
+        }
+      },
+      category: 'approval',
+      priority: 3,
+    },
+    {
+      description: 'Bulk reject selected tasks',
+      keys: 'Ctrl+Shift+Enter',
+      handler: () => {
+        if (selectedTasks.length > 0) {
+          handleBulkAction('reject');
+        }
+      },
+      category: 'approval',
+      priority: 3,
+    },
+    {
+      description: 'Select all tasks',
+      keys: 'Ctrl+A',
+      handler: (event) => {
+        event.preventDefault();
+        const pendingTasks = tasks.filter(task => task.status === 'PENDING').map(task => task.id);
+        setSelectedTasks(pendingTasks);
+        announceToScreenReader(`${pendingTasks.length} tasks selected`, 'POLITE');
+      },
+      category: 'approval',
+      priority: 2,
+    },
+    {
+      description: 'Clear selection',
+      keys: 'Escape',
+      handler: () => {
+        setSelectedTasks([]);
+        setFocusedRowIndex(-1);
+        announceToScreenReader('Selection cleared', 'POLITE');
+      },
+      category: 'approval',
+      priority: 2,
+    },
+    {
+      description: 'Refresh task list',
+      keys: 'F5',
+      handler: (event) => {
+        event.preventDefault();
+        loadTasks();
+        announceToScreenReader('Task list refreshed', 'POLITE');
+      },
+      category: 'approval',
+      priority: 2,
+    },
+  ]);
+
+  // Reset focused row when tasks change
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [tasks]);
 
   /**
    * Priority color mapping
@@ -242,7 +401,7 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
   /**
    * Handle single task approval
    */
-  const handleApprove = async (task: ApprovalTask) => {
+  const handleApprove = useCallback(async (task: ApprovalTask) => {
     try {
       const response = await fetch(`/api/v1/workflows/tasks/${task.assignmentId}/approve`, {
         method: 'POST',
@@ -260,11 +419,13 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
       }
 
       message.success(`Task "${task.taskTitle}" approved successfully`);
+      announceToScreenReader(`Task ${task.taskTitle} approved successfully`, 'POLITE');
       loadTasks();
     } catch (error: any) {
       message.error(error.message || 'Failed to approve task');
+      announceToScreenReader(`Failed to approve task: ${error.message}`, 'ASSERTIVE');
     }
-  };
+  }, [loadTasks]);
 
   /**
    * Handle single task rejection
@@ -526,6 +687,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
               size="small"
               icon={<CheckCircleOutlined />}
               onClick={() => handleApprove(task)}
+              aria-label={`Approve task: ${task.taskTitle}`}
+              aria-describedby={`task-${task.id}-description`}
             >
               Approve
             </Button>
@@ -537,11 +700,18 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
                 setCurrentTask(task);
                 setRejectModalVisible(true);
               }}
+              aria-label={`Reject task: ${task.taskTitle}`}
+              aria-describedby={`task-${task.id}-description`}
             >
               Reject
             </Button>
             <Dropdown menu={{ items: actionItems }} trigger={['click']}>
-              <Button size="small" icon={<MoreOutlined />} />
+              <Button
+                size="small"
+                icon={<MoreOutlined />}
+                aria-label={`More actions for task: ${task.taskTitle}`}
+                aria-describedby={`task-${task.id}-description`}
+              />
             </Dropdown>
           </Space>
         );
@@ -573,6 +743,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         value={filters.search}
         onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
         onSearch={loadTasks}
+        aria-label="Search approval tasks"
+        aria-describedby="search-hint"
       />
 
       <Select
@@ -581,6 +753,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         mode="multiple"
         value={filters.status}
         onChange={(status) => setFilters(prev => ({ ...prev, status }))}
+        aria-label="Filter by task status"
+        aria-describedby="status-filter-hint"
       >
         <Option value="PENDING">Pending</Option>
         <Option value="IN_PROGRESS">In Progress</Option>
@@ -593,6 +767,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         mode="multiple"
         value={filters.priority}
         onChange={(priority) => setFilters(prev => ({ ...prev, priority }))}
+        aria-label="Filter by task priority"
+        aria-describedby="priority-filter-hint"
       >
         <Option value="CRITICAL">Critical</Option>
         <Option value="HIGH">High</Option>
@@ -606,6 +782,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         mode="multiple"
         value={filters.entityType}
         onChange={(entityType) => setFilters(prev => ({ ...prev, entityType }))}
+        aria-label="Filter by entity type"
+        aria-describedby="entity-type-filter-hint"
       >
         <Option value="WORK_INSTRUCTION">Work Instruction</Option>
         <Option value="FAI_REPORT">FAI Report</Option>
@@ -621,12 +799,16 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
           dueDateRange: dates ? [dates[0]!, dates[1]!] : undefined
         }))}
         placeholder={['Due date from', 'Due date to']}
+        aria-label="Filter by due date range"
+        aria-describedby="date-range-filter-hint"
       />
 
       <Button
         icon={<ReloadOutlined />}
         onClick={loadTasks}
         loading={loading}
+        aria-label="Refresh approval task list"
+        aria-describedby="refresh-hint"
       >
         Refresh
       </Button>
@@ -642,7 +824,13 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
   ).length;
 
   return (
-    <div>
+    <div
+      ref={containerRef}
+      {...keyboardProps}
+      role="region"
+      aria-label="Approval task queue with keyboard navigation"
+      aria-describedby="approval-queue-instructions"
+    >
       {/* Summary Alert */}
       {(overdueCount > 0 || dueTodayCount > 0) && (
         <Alert
@@ -687,6 +875,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
                   icon={<CheckCircleOutlined />}
                   loading={bulkActionLoading}
                   onClick={() => handleBulkAction('approve')}
+                  aria-label={`Bulk approve ${selectedTasks.length} selected tasks`}
+                  aria-describedby="bulk-actions-hint"
                 >
                   Approve Selected ({selectedTasks.length})
                 </Button>
@@ -695,6 +885,8 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
                   icon={<CloseCircleOutlined />}
                   loading={bulkActionLoading}
                   onClick={() => handleBulkAction('reject')}
+                  aria-label={`Bulk reject ${selectedTasks.length} selected tasks`}
+                  aria-describedby="bulk-actions-hint"
                 >
                   Reject Selected
                 </Button>
@@ -706,6 +898,7 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         {!compact && filterPanel}
 
         <Table
+          ref={tableRef}
           columns={columns}
           dataSource={tasks}
           rowKey="id"
@@ -728,6 +921,22 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
           }}
           size={compact ? 'small' : 'default'}
           scroll={{ x: 'max-content' }}
+          rowClassName={(record, index) => {
+            const isSelected = selectedTasks.includes(record.id);
+            const isFocused = index === focusedRowIndex;
+            return `${isSelected ? 'ant-table-row-selected' : ''} ${isFocused ? 'ant-table-row-focused' : ''}`;
+          }}
+          onRow={(record, index) => ({
+            'data-task-id': record.id,
+            'aria-selected': selectedTasks.includes(record.id),
+            'aria-describedby': `task-${record.id}-description`,
+            tabIndex: index === focusedRowIndex ? 0 : -1,
+            onClick: () => {
+              setFocusedRowIndex(index || 0);
+            },
+          })}
+          aria-label={`Approval tasks table: ${tasks.length} tasks, ${selectedTasks.length} selected`}
+          aria-describedby="table-navigation-hint"
         />
       </Card>
 
@@ -742,6 +951,35 @@ export const ApprovalTaskQueue: React.FC<ApprovalTaskQueueProps> = ({
         title="Task"
         itemIdentifier={currentTask?.taskTitle}
       />
+
+      {/* Hidden ARIA hints for screen readers */}
+      <div id="approval-queue-instructions" style={{ display: 'none' }}>
+        Navigate tasks with arrow keys, select with Space, approve with Enter. Use Ctrl+Enter for bulk approve, Ctrl+Shift+Enter for bulk reject, Ctrl+A to select all, Escape to clear selection, F5 to refresh.
+      </div>
+      <div id="search-hint" style={{ display: 'none' }}>
+        Search approval tasks by title, stage name, or work instruction.
+      </div>
+      <div id="status-filter-hint" style={{ display: 'none' }}>
+        Filter tasks by their current status: Pending, In Progress, or Overdue.
+      </div>
+      <div id="priority-filter-hint" style={{ display: 'none' }}>
+        Filter tasks by priority level: Critical, High, Medium, or Low.
+      </div>
+      <div id="entity-type-filter-hint" style={{ display: 'none' }}>
+        Filter tasks by the type of entity requiring approval.
+      </div>
+      <div id="date-range-filter-hint" style={{ display: 'none' }}>
+        Filter tasks by their due date range.
+      </div>
+      <div id="refresh-hint" style={{ display: 'none' }}>
+        Refresh the approval task list to get the latest data. Use F5 as keyboard shortcut.
+      </div>
+      <div id="table-navigation-hint" style={{ display: 'none' }}>
+        Use arrow keys to navigate, Space to select, Enter to approve current task.
+      </div>
+      <div id="bulk-actions-hint" style={{ display: 'none' }}>
+        Perform actions on multiple selected tasks. Use Ctrl+Enter for bulk approve, Ctrl+Shift+Enter for bulk reject.
+      </div>
     </div>
   );
 };

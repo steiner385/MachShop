@@ -1,0 +1,55 @@
+{
+  "name": "mes-developer-portal",
+  "version": "1.0.0",
+  "description": "MES Developer Portal - Complete developer experience for API, webhooks, and plugins",
+  "private": true,
+  "scripts": {
+    "start": "docusaurus start",
+    "dev": "docusaurus start",
+    "build": "docusaurus build",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.1.0",
+    "@docusaurus/preset-classic": "^3.1.0",
+    "@docusaurus/types": "^3.1.0",
+    "@mdx-js/react": "^3.0.0",
+    "@swaggerapi/swagger-ui-react": "^5.15.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "swagger-ui-dist": "^5.15.0",
+    "swagger-client": "^3.21.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-unique-id": "^3.1.0",
+    "@docusaurus/plugin-ideal-image": "^3.1.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "last 4 versions",
+      "Firefox ESR",
+      "not dead"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}
