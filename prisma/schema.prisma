@@ -371,6 +371,7 @@ model User {
   capasAssigned             CorrectiveAction[]              @relation("CAAssignedTo")
   capasVerified             CorrectiveAction[]              @relation("CAVerifiedBy")
   capasCreated              CorrectiveAction[]              @relation("CACreatedBy")
+  caAuditTrail              CorrectiveActionAudit[]
   reviewsChaired            ManagementReview[]              @relation("ReviewChairperson")
   reviewActionsAssigned     ManagementReviewAction[]
   reviewsCreated            ManagementReview[]              @relation("ReviewCreatedBy")
@@ -12304,6 +12305,7 @@ model CorrectiveAction {
 
   // Linkages
   auditFindings       AuditFinding[]
+  auditTrail          CorrectiveActionAudit[]
 
   // Metadata
   createdAt           DateTime @default(now())
@@ -12317,6 +12319,35 @@ model CorrectiveAction {
   @@index([status])
   @@index([targetDate])
   @@map("corrective_actions")
+}
+
+/// CorrectiveAction Audit Trail - Tracks all changes to corrective actions for compliance
+model CorrectiveActionAudit {
+  id                String   @id @default(cuid())
+
+  // Reference to CA
+  correctiveAction  CorrectiveAction @relation(fields: [caId], references: [id], onDelete: Cascade)
+  caId              String
+
+  // User and action
+  user              User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId            String
+  action            String   // STATUS_CHANGED, FIELD_MODIFIED, APPROVED, VERIFIED, CREATED, UPDATED
+
+  // Change details
+  fieldName         String?  // For FIELD_MODIFIED actions
+  previousValue     String?  // JSON string of previous value
+  newValue          String?  // JSON string of new value
+  notes             String?  // Additional context or comments
+
+  // Metadata
+  timestamp         DateTime @default(now())
+
+  @@index([caId])
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("corrective_action_audits")
 }
 
 /// Management Review - Management review sessions (ISO 9001 Clause 9.3)
