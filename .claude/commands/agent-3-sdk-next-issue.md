@@ -1,111 +1,268 @@
-# Agent 3: SDK Database Documentation Completion
+# Agent 3: SDK Licensing & Documentation - License Management, Documentation, Optional Features
 
-You are Agent 3 of a three-agent team building the MachShop SDK/Extension platform. Your focus is completing the final and critical layer of database documentation: integration mappings that connect the MachShop system to external platforms and systems.
+You are Agent 3 of a three-agent team building the MachShop SDK/Extension platform. Your focus is on **license management system, comprehensive SDK documentation, and optional advanced features**.
 
 ## Your Task Queue (in priority order):
 
-1. **Issue #217** - Database Documentation: Integration Mapping for All Tables/Fields (6 pts)
-
-## Instructions
-
-### Step 1: Display Next Issue
-Extract the next issue from your queue above (in priority order). Display it in this format:
-
-```
-🚀 AGENT 3: Next SDK Issue
-
-**Issue #XXX**: [Title]
-
-**Category**: [category]
-**Foundation Level**: L[0-3]
-**Priority Score**: [score]/100
-**Business Value**: [value]/10
-**Effort**: [effort]/10 story points
-
-**Description**: [2-3 sentence description]
-
-**Why This Issue**:
-[1-2 sentences explaining strategic importance to SDK platform]
-
-**Dependencies**: All resolved ✓
-**Next Steps After**: [Which issues this unblocks]
-
----
-📋 **Your Queue Status**: [X of 1 task]
-
-**Proceed with implementation?**
-```
-
-### Step 2: Get Confirmation
-Wait for user approval. Only proceed if user confirms.
-
-### Step 3: Execute Implementation
-Once confirmed:
-
-1. **Prune from queue**: This is your only task on the initial list (don't maintain state - I'll handle that)
-
-2. **Call implementation command**:
-   ```
-   /implement-gh-issue <ISSUE_NUMBER>
-   ```
-
-3. **Monitor progress**: The implementation will follow the standard GitHub issue workflow:
-   - Create feature branch
-   - Analyze and plan
-   - Implement changes
-   - Run tests
-   - Create PR
-   - Merge to main
-   - Update prioritization framework
-
-4. **Report completion**: After the command completes, summarize:
-   ```
-   ✅ AGENT 3: Issue #XXX Completed
-
-   **What was delivered**: [1-2 sentence summary]
-
-   **Newly unlocked issues**: [List any issues that now have all dependencies resolved]
-
-   **Queue Status**: All initial tasks completed! 🎉
-
-   **Next Steps**: Check `.claude/AGENT_SDK_TODO_LISTS.md` for Phase 2 issues that are now eligible.
-
-   **Next action**: Run `/agent-3-sdk-next-issue` again for Phase 2 tasks
-   ```
-
-### Step 4: Next Iteration
-After completion of #217, this agent's Phase 1 queue is complete. Phase 2 tasks will be available in the prioritization framework (issues that depended on these Phase 1 completions).
+1. **Issue #413** - Extension License Management System (8 pts) - Requires #403 ✓
+2. **Issue #436** - Comprehensive SDK Documentation & Reference Examples (6 pts) - Shared with Agent 2
+3. **Optional Issues** (Advanced features, see below)
 
 ---
 
-## Important Notes
+## ⚠️ DEPENDENCIES
 
-- **Critical Integration Layer**: Issue #217 documents how every database field connects to external systems
-- **Completes Documentation Pyramid**: Agent 1 + Agent 2 + Agent 3 together create comprehensive documentation:
-  - Agent 1: Business Context + Technical Specs
-  - Agent 2: Examples & Valid Values + Compliance
-  - Agent 3: Integration Mapping (this agent)
-- **Single-Task Phase 1**: Your Phase 1 queue is smaller, so you'll complete faster and be available for Phase 2 dependency-unlocked issues
-- **No Conflicts**: Your work doesn't conflict with Agent 1 or Agent 2
+**Critical Dependency: Issue #403 (Extension Type Taxonomy)**
+- Agent 1 must complete #403 before you can efficiently start
+- Once #403 is published, you can begin work on #413 independently
+- **#436 Documentation**: Shared with Agent 2, can start once all other features are implemented
 
-## Documentation Layers (All 5 Completed After Phase 1):
+---
 
-| Layer | Agent | Issue | Attribute | Focus |
-|-------|-------|-------|-----------|-------|
-| 1 | Agent 1 | #213 | businessRule, businessPurpose, businessJustification, businessImpact | Why does this field exist? |
-| 2 | Agent 1 | #214 | dataSource, format, validation, calculations | How is this field structured? |
-| 3 | Agent 2 | #215 | examples, validValues | What are valid values? |
-| 4 | Agent 2 | #216 | privacy, retention, auditTrail, complianceNotes, consequences | What regulations apply? |
-| 5 | Agent 3 | #217 | integrationMapping | How does this connect externally? |
+## Issue #413: Extension License Management System
 
-Together: Complete "Rosetta Stone" for 3,536 fields across 186 database tables
+**Priority:** 🟠 HIGH
+**Value:** 8/10 | **Effort:** 8/10 | **Ratio:** 1.0 ⭐⭐
+**Dependencies:** #403 ✓
+**Blocks:** None (but critical for enterprise customers)
+**Timeline:** Week 2-5
 
-## Current Context
+### What This Issue Requires
 
-- **Agent Team**: 3 agents working in parallel on SDK/Extension platform
-- **Agent 1 Focus**: Database documentation (business context/technical specs) + Frontend SDK & lifecycle (4 issues, 30 pts)
-- **Agent 2 Focus**: Database documentation (examples/compliance) + Security (3 issues, 21 pts)
-- **Agent 3 Focus**: Complete documentation with integration mapping (1 issue, 6 pts)
-- **Total Phase 1 Queue Size**: 8 issues (57 story points)
+Create comprehensive license management system for controlling extension usage:
 
-Now display the next issue and wait for user confirmation to proceed.
+1. **License Types**
+   - Community (free, open source)
+   - Professional (paid, feature-limited)
+   - Enterprise (unlimited, support included)
+   - Trial (time-limited evaluation)
+   - Educational (free for education)
+   - Custom (negotiated terms)
+
+2. **License Validation Engine**
+   - License key verification (cryptographic)
+   - Expiration checking
+   - Feature entitlement checking
+   - Site limit validation (how many sites can use)
+   - User limit validation (how many concurrent users)
+   - Component licensing (per feature/module)
+
+3. **License Enforcement**
+   - Feature gating (disable features without license)
+   - Rate limiting per license tier
+   - Watermarking/branding per tier
+   - License violation reporting
+   - Graceful degradation when expired
+
+4. **License Management UI/Services**
+   - License registration
+   - License renewal workflow
+   - License transfer between sites
+   - License usage reporting
+   - License analytics and metrics
+
+5. **License Server Integration**
+   - License activation (online)
+   - Offline license validation (cached)
+   - License revocation
+   - License usage tracking
+   - Telemetry and analytics
+
+### Implementation Steps
+
+```
+Step 1: License Model & Validation (2 days)
+  ├─ Define license types and structures
+  ├─ Create license validator service
+  ├─ Implement cryptographic verification
+  ├─ Feature entitlement system
+  └─ Expiration and limit checking
+
+Step 2: Enforcement Engine (2 days)
+  ├─ Feature gating system
+  ├─ Rate limiting per tier
+  ├─ License violation detection
+  ├─ Graceful degradation
+  └─ Watermarking system
+
+Step 3: Management Services (1-2 days)
+  ├─ License registration service
+  ├─ Renewal workflow
+  ├─ Transfer mechanism
+  ├─ Usage reporting
+  └─ License history tracking
+
+Step 4: Server Integration (1 day)
+  ├─ License activation client
+  ├─ Offline cache management
+  ├─ Revocation handler
+  ├─ Telemetry collection
+  └─ Error handling and fallbacks
+
+Step 5: Testing & Documentation (1 day)
+  ├─ 50+ license validation test cases
+  ├─ Tier-specific feature tests
+  ├─ Offline mode tests
+  ├─ LICENSE_MANAGEMENT_GUIDE.md
+  └─ Integration examples
+```
+
+### Key Files to Create
+
+- `packages/extension-sdk/src/licensing/types.ts` - Type definitions
+- `packages/extension-sdk/src/licensing/validator.ts` - License validation
+- `packages/extension-sdk/src/licensing/enforcer.ts` - License enforcement
+- `packages/extension-sdk/src/licensing/manager.ts` - License management services
+- `packages/extension-sdk/src/licensing/server-client.ts` - Server integration
+- `packages/extension-sdk/src/licensing/LICENSE_MANAGEMENT_GUIDE.md` - Guide
+
+### Output Deliverables
+
+- License validation engine with cryptographic verification
+- Feature entitlement system supporting per-component licensing
+- License enforcement with rate limiting and feature gating
+- License management services (registration, renewal, transfer)
+- Server integration with offline support
+- 50+ test cases covering all license scenarios
+- Comprehensive guide with enterprise scenarios
+
+---
+
+## Issue #436: Comprehensive SDK Documentation & Reference Examples (Shared with Agent 2)
+
+**Priority:** 🟡 MEDIUM-HIGH
+**Value:** 9/10 | **Effort:** 6/10 | **Ratio:** 1.5 ⭐⭐⭐
+**Dependencies:** #403, #405, #407, #413, others
+**Timeline:** Week 4-6 (after other features implemented)
+
+### Division of Labor
+
+**Agent 2 Responsibilities:**
+- Extension development quickstart guide
+- Dependency management and resolution examples
+- Multi-site deployment walkthrough
+- Best practices for extension architecture
+- Common patterns and anti-patterns
+- Performance optimization guide
+- Troubleshooting guide
+
+**Agent 3 Responsibilities:**
+- License management patterns
+- Security best practices for licensing
+- Enterprise deployment scenarios
+- Advanced SDK scenarios
+- Migration guides
+- Integration patterns with core MachShop
+- API security and authentication
+
+### What This Issue Requires
+
+Create comprehensive SDK documentation with:
+
+1. **Developer Guides** (Agent 3 portion)
+   - Security best practices
+   - License integration patterns
+   - Advanced extension scenarios
+   - Enterprise deployment strategies
+   - Integration with core MachShop systems
+
+2. **Reference Documentation**
+   - Complete API reference for all SDK modules
+   - Type definitions with descriptions
+   - Code examples for every major feature
+   - Integration guides with MachShop core
+
+3. **Example Projects**
+   - Licensed extension example
+   - Enterprise multi-site extension
+   - Advanced security patterns
+   - Custom integration examples
+
+4. **Best Practices** (Agent 3 portion)
+   - Security considerations
+   - License implementation
+   - Enterprise architecture patterns
+   - Advanced integration patterns
+   - Compliance and audit considerations
+
+---
+
+## Optional/Future Issues (If Time Permits)
+
+Once #413 and #436 are complete, you may tackle these in order of strategic value:
+
+### #415: Extension Analytics & Monitoring System (L2)
+- Value: 7/10 | Effort: 6/10 | Dependencies: #405, #407
+
+Monitor extension usage, performance, and health:
+- Usage analytics (how often extensions are used)
+- Performance metrics (execution time, memory, CPU)
+- Error tracking and reporting
+- Health checks and alerting
+- Telemetry collection and reporting
+
+### #427: Navigation Extension Framework (L2)
+- Value: 8/10 | Effort: 8/10 | Dependencies: #434, #407
+
+Allow extensions to register navigation items:
+- Dynamic menu item registration
+- Route integration
+- Breadcrumb trails
+- Search integration
+- Navigation state management
+
+### #220: STEP AP242 Integration (L1)
+- Value: 8/10 | Effort: 9/10 | Dependencies: #165, #166
+
+Complex STEP format data integration:
+- STEP file parsing
+- AP242 schema mapping
+- Data validation and transformation
+- Database storage
+- Query and retrieval
+
+---
+
+## Integration Points
+
+Agent 3's work integrates with:
+
+- **Agent 1's #403**: Uses type system and manifest definitions
+- **Agent 2's #405**: Dependencies used in license enforcement
+- **Agent 2's #407**: Multi-site deployments must respect licenses
+- **Agent 2's #436**: Coordinates on documentation
+- **Core MachShop**: License server, telemetry, user management
+
+---
+
+## Success Criteria
+
+✅ Issue #413 implemented with comprehensive tests (>80% coverage)
+✅ Clear separation of concerns (validation, enforcement, management)
+✅ Type-safe APIs throughout
+✅ Cryptographic security for license keys
+✅ Offline support with graceful degradation
+✅ Comprehensive license guide with enterprise scenarios
+✅ Documentation integrated with Agent 2's work
+✅ All PRs merged and documented
+✅ Ready for future enterprise features
+
+---
+
+## Team Coordination Notes
+
+- **Wait for Agent 1's #403** to complete before starting #413 efficiently
+- **No dependencies on Agent 2's issues** - can work independently
+- **Coordinate with Agent 2 on #436** - split documentation responsibilities
+- **Optional issues** only if time permits after main queue complete
+- **Enterprise customers depend on this work** - high priority for adoption
+
+## Ready to Begin?
+
+Once Agent 1 completes Issue #403, you can start with:
+
+```bash
+/implement-next-gh-issue
+```
+
+This will step you through your queue starting with Issue #413.

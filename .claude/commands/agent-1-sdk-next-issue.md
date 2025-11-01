@@ -1,99 +1,137 @@
-# Agent 1: SDK Database Documentation + Frontend/Lifecycle Infrastructure
+# Agent 1: SDK Core Architecture - Extension Types, Compatibility, & Conflict Detection
 
-You are Agent 1 of a three-agent team building the MachShop SDK/Extension platform. Your focus is on comprehensive database documentation (business context and technical specifications) plus critical extension framework components (frontend SDK and lifecycle management).
+You are Agent 1 of a three-agent team building the MachShop SDK/Extension platform. Your focus is on the **foundational SDK architecture** that enables all other extension features: extension type taxonomy, compatibility checking, and conflict detection.
 
 ## Your Task Queue (in priority order):
 
-1. **Issue #213** - Database Documentation: Business Context & Rules for All Tables/Fields (8 pts)
-2. **Issue #214** - Database Documentation: Technical Specifications for All Tables/Fields (7 pts)
-3. **Issue #426** - Frontend Extension SDK with Ant Design Enforcement (8 pts)
-4. **Issue #434** - Extension Lifecycle Management & Versioning (7 pts)
+1. **Issue #403** - Extension Type Taxonomy & Manifest Schema (5 pts) ⭐ CRITICAL - START HERE
+2. **Issue #404** - Extension Compatibility Matrix Service (6 pts)
+3. **Issue #409** - Extension Conflict Detection Engine (5 pts)
 
-## Instructions
+## ⚠️ CRITICAL: Issue #403 Must Be Completed First
 
-### Step 1: Display Next Issue
-Extract the next issue from your queue above (in priority order). Display it in this format:
+**Issue #403** is the ROOT BLOCKER for the entire SDK platform. It defines the type system and manifest schema that ALL other SDK work depends on.
 
-```
-🚀 AGENT 1: Next SDK Issue
+- **Must start immediately**
+- **Blocks**: #404, #405, #407, #409, #413, #414, #436
+- **Duration**: 2-3 weeks
+- **Value/Effort Ratio**: 1.8 ⭐⭐⭐ Excellent
 
-**Issue #XXX**: [Title]
-
-**Category**: [category]
-**Foundation Level**: L[0-3]
-**Priority Score**: [score]/100
-**Business Value**: [value]/10
-**Effort**: [effort]/10 story points
-
-**Description**: [2-3 sentence description]
-
-**Why This Issue**:
-[1-2 sentences explaining strategic importance to SDK platform]
-
-**Dependencies**: All resolved ✓
-**Next Steps After**: [Which issues this unblocks]
-
----
-📋 **Your Queue Status**: [X of 4 tasks remaining]
-
-**Proceed with implementation?**
-```
-
-### Step 2: Get Confirmation
-Wait for user approval. Only proceed if user confirms.
-
-### Step 3: Execute Implementation
-Once confirmed:
-
-1. **Prune from queue**: Mentally remove this issue from your task list (don't maintain state - I'll handle that)
-
-2. **Call implementation command**:
-   ```
-   /implement-gh-issue <ISSUE_NUMBER>
-   ```
-
-3. **Monitor progress**: The implementation will follow the standard GitHub issue workflow:
-   - Create feature branch
-   - Analyze and plan
-   - Implement changes
-   - Run tests
-   - Create PR
-   - Merge to main
-   - Update prioritization framework
-
-4. **Report completion**: After the command completes, summarize:
-   ```
-   ✅ AGENT 1: Issue #XXX Completed
-
-   **What was delivered**: [1-2 sentence summary]
-
-   **Newly unlocked issues**: [List any issues that now have all dependencies resolved]
-
-   **Remaining queue**:
-   - Issue #XXX: [Title]
-   - Issue #XXX: [Title]
-   - ... (list all remaining)
-
-   **Next action**: Run `/agent-1-sdk-next-issue` again for the next task
-   ```
-
-### Step 4: Next Iteration
-After completion, user can run `/agent-1-sdk-next-issue` again to tackle the next issue in your queue.
+**Agent 1 should COMPLETE #403 before Agent 2 or Agent 3 can efficiently start their work.**
 
 ---
 
-## Important Notes
+## Why This Work is Critical
 
-- **No Conflicts**: Your tasks don't conflict with Agent 2 or Agent 3's work
-- **Documentation Tasks** (#213, #214): These operate on the same database but different attributes (business context vs technical specs), so they can be done independently
-- **Framework Tasks** (#426, #434): These are independent infrastructure components with no shared dependencies
-- **Unlocking Phase 2**: Your completion of #426 and #434 will unlock critical downstream issues (#439, #440, #444)
+The three issues in Agent 1's queue form the **foundational architecture layer**:
 
-## Current Context
+1. **#403 (Type Taxonomy)** - Defines what extensions ARE (types, capabilities, structure)
+   - Creates manifest schema v2
+   - Defines extension type taxonomy (UI, Service, Data Processor, etc.)
+   - Provides type system for all downstream issues
+   - **Enables**: Everyone else's work
 
-- **Agent Team**: 3 agents working in parallel on SDK/Extension platform
-- **Agent 2 Focus**: Database documentation (examples/compliance) + Security framework
-- **Agent 3 Focus**: Database documentation (integration mapping)
-- **Total Queue Size**: 4 issues (27 story points)
+2. **#404 (Compatibility Matrix)** - Determines what extensions can COEXIST
+   - Checks version compatibility (semver)
+   - Platform version requirements
+   - Extension compatibility with each other
+   - **Used by**: #407, #409, #414
 
-Now display the next issue and wait for user confirmation to proceed.
+3. **#409 (Conflict Detection)** - Detects what BREAKS with extensions
+   - Namespace conflicts
+   - Resource conflicts
+   - Permission conflicts
+   - Resolution strategies
+   - **Used by**: #407, #414, manual conflict resolution
+
+### Data Dependencies
+
+```
+Issue #403 (Type Taxonomy)
+    ↓
+    ├─→ Issue #404 (Compatibility)
+    │       ↓
+    │       └─→ Issue #409 (Conflict Detection)
+    │       └─→ Issue #407 (Multi-Site) [Agent 2]
+    │       └─→ Issue #414 (Migration Tool)
+    ├─→ Issue #405 (Dependency Resolution) [Agent 2]
+    ├─→ Issue #407 (Multi-Site) [Agent 2]
+    ├─→ Issue #413 (License Management) [Agent 3]
+    ├─→ Issue #414 (Migration Tool)
+    └─→ Issue #436 (SDK Documentation) [Agent 3]
+```
+
+**Once #403 is published, Agent 2 and Agent 3 can start work** (they don't depend on #404 or #409)
+
+---
+
+## Implementation Phases
+
+### Phase 1: Issue #403 (Week 1-2)
+- Extension type taxonomy
+- Manifest schema v2
+- Type validator
+- **Output**: Type definitions exported for other agents to use
+
+### Phase 2: Issue #404 (Week 2-3)
+- Version compatibility checker
+- Semver parser and version ranges
+- **Output**: Compatibility service for #407, #409, #414
+
+### Phase 3: Issue #409 (Week 3)
+- Conflict detector
+- Conflict resolution engine
+- **Output**: Conflict detection service for #407, #414
+
+---
+
+## Queue Management
+
+This command will step you through each issue:
+
+```bash
+/implement-next-gh-issue
+```
+
+This will:
+1. Display the next issue from your queue
+2. Wait for your confirmation
+3. Execute the implementation automatically
+4. Report completion
+5. Suggest the next issue to work on
+
+**DO NOT manually change the prioritization framework** - the implementation command handles that.
+
+---
+
+## Important Notes for Team Coordination
+
+### Agent 1 (You)
+- **Focus**: SDK core architecture (types, compatibility, conflicts)
+- **Start**: Issue #403 immediately
+- **Blockers**: None (can start right now!)
+- **Critical**: Publish #403 types ASAP for Agent 2 & 3 to depend on
+
+### Agent 2
+- **Focus**: Dependency resolution, multi-site deployment, documentation
+- **Starts after**: #403 complete (can use your type definitions)
+- **Queue**: #405, #407, #436 documentation
+- **Note**: Can work independently on any issue in their queue
+
+### Agent 3
+- **Focus**: License management, SDK documentation, optional features
+- **Starts after**: #403 complete (can use your type definitions)
+- **Queue**: #413, #436 documentation, optional features
+- **Note**: Can work independently on any issue in their queue
+
+---
+
+## Implementation Command
+
+When ready to start implementing:
+
+```bash
+/implement-next-gh-issue
+```
+
+This will automatically handle Issue #403, and guide you through the rest of your queue.
