@@ -1,11 +1,13 @@
 /**
  * OracleERPAdapter - Integration with Oracle E-Business Suite and Oracle Cloud ERP
- * Issue #60: Phase 6 - Oracle ERP Adapter
+ * Issue #60: Phase 6-8 - Oracle ERP Adapter with Real HTTP Integration
  *
  * Supports both Oracle EBS (legacy) and Oracle Cloud ERP (modern)
- * Uses REST APIs and interface tables
+ * Uses REST APIs and interface tables with real HTTP calls, authentication,
+ * retry logic, and exponential backoff.
  */
 
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { logger } from '../../../utils/logger';
 import {
   IERPAdapter,
@@ -33,11 +35,17 @@ export interface OracleConfig {
 }
 
 /**
- * Oracle ERP Adapter implementation
+ * Oracle ERP Adapter implementation with real HTTP integration
  */
 export class OracleERPAdapter implements IERPAdapter {
   private config: OracleConfig | null = null;
   private authToken: string | null = null;
+  private httpClient: AxiosInstance | null = null;
+  private retryConfig = {
+    maxRetries: 3,
+    baseDelay: 1000, // 1 second
+    maxDelay: 30000, // 30 seconds
+  };
 
   getAdapterName(): string {
     return 'Oracle';
@@ -571,42 +579,179 @@ export class OracleERPAdapter implements IERPAdapter {
   }
 
   /**
-   * Authenticate with Oracle
+   * Authenticate with Oracle using OAuth2 or basic auth
+   * Implements exponential backoff retry on failure
    */
   private async authenticate(): Promise<void> {
     try {
-      // TODO: Implement actual Oracle authentication in Phase 6+
-      // This would typically use OAuth2 or basic auth with REST API
-      this.authToken = `oracle_auth_${Date.now()}`;
+      if (!this.config) {
+        throw new Error('Oracle adapter not configured');
+      }
 
-      logger.debug('Authenticated with Oracle', {
-        version: this.config?.version,
+      // Initialize HTTP client if not already done
+      if (!this.httpClient) {
+        this.httpClient = axios.create({
+          baseURL: this.config.apiEndpoint,
+          timeout: this.config.timeout || 30000,
+          auth: {
+            username: this.config.username,
+            password: this.config.password,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'MachShop-ERPAdapter/1.0',
+          },
+        });
+      }
+
+      // Test authentication with a simple call
+      await this.retryWithBackoff(
+        async () =>
+          this.httpClient!.get('/fscmRestApi/resources/latest/purchaseOrders', {
+            params: { limit: 1 },
+          }),
+        'Oracle authentication'
+      );
+
+      this.authToken = `authenticated_${Date.now()}`;
+
+      logger.info('Successfully authenticated with Oracle ERP', {
+        version: this.config.version,
+        endpoint: this.config.apiEndpoint,
       });
     } catch (error) {
-      logger.error('Failed to authenticate with Oracle', {
+      logger.error('Failed to authenticate with Oracle ERP', {
         error: error instanceof Error ? error.message : String(error),
+        config: {
+          version: this.config?.version,
+          endpoint: this.config?.apiEndpoint,
+        },
       });
       throw error;
     }
   }
 
   /**
-   * Make REST call to Oracle
+   * Make REST call to Oracle with retry logic
    */
   private async restCall(method: string, path: string, data: any): Promise<any> {
-    logger.debug('Oracle REST call', {
-      method,
-      path,
-    });
+    try {
+      if (!this.httpClient) {
+        throw new Error('HTTP client not initialized');
+      }
 
-    // TODO: Implement actual HTTP requests to Oracle REST API
-    // For Phase 6, return mock responses
-    return {
-      items: [],
-      ...data,
-      po_header_id: `ORA-${Date.now()}`,
-      segment1: `PO${Date.now()}`,
-    };
+      if (!this.authToken) {
+        await this.authenticate();
+      }
+
+      logger.debug('Making Oracle REST call', {
+        method,
+        path,
+      });
+
+      const response = await this.retryWithBackoff(
+        async () => {
+          const config: any = {
+            method,
+            url: path,
+          };
+
+          if (method === 'GET') {
+            config.params = data.params || {};
+          } else {
+            config.data = data;
+          }
+
+          return this.httpClient!.request(config);
+        },
+        `Oracle REST ${method} ${path}`
+      );
+
+      logger.debug('Oracle REST call succeeded', {
+        method,
+        path,
+        status: response.status,
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error('Oracle REST call failed', {
+        method,
+        path,
+        error: error instanceof Error ? error.message : String(error),
+        details: error instanceof AxiosError ? {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+        } : undefined,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Retry with exponential backoff for transient failures
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        const isRetryable = this.isRetryableError(error);
+
+        if (attempt < this.retryConfig.maxRetries && isRetryable) {
+          const delay = this.calculateBackoffDelay(attempt);
+          logger.warn(`Retrying ${operationName} (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`, {
+            error: lastError.message,
+            delayMs: delay,
+          });
+
+          await this.sleep(delay);
+        } else {
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error(`${operationName} failed after ${this.retryConfig.maxRetries} retries`);
+  }
+
+  /**
+   * Check if error is retryable
+   */
+  private isRetryableError(error: any): boolean {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status;
+      return status === 408 || status === 429 || (status !== undefined && status >= 500);
+    }
+    return error instanceof Error && (
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND') ||
+      error.message.includes('ETIMEDOUT') ||
+      error.message.includes('timeout')
+    );
+  }
+
+  /**
+   * Calculate exponential backoff delay
+   */
+  private calculateBackoffDelay(attempt: number): number {
+    const exponentialDelay = this.retryConfig.baseDelay * Math.pow(2, attempt);
+    const jitterDelay = exponentialDelay + Math.random() * 1000;
+    return Math.min(jitterDelay, this.retryConfig.maxDelay);
+  }
+
+  /**
+   * Sleep utility
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

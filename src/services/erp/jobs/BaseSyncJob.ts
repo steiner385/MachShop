@@ -14,6 +14,7 @@ import { Job, Queue } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../../utils/logger';
 import ERPIntegrationService from '../ERPIntegrationService';
+import WebhookService, { WebhookEventType } from '../webhooks/WebhookService';
 
 export interface SyncJobData {
   integrationId: string;
@@ -41,11 +42,13 @@ export interface SyncJobResult {
 export abstract class BaseSyncJob {
   protected prisma: PrismaClient;
   protected erpService: ERPIntegrationService;
+  protected webhookService: WebhookService;
   protected logger = logger;
 
   constructor(prisma?: PrismaClient, erpService?: ERPIntegrationService) {
     this.prisma = prisma || new PrismaClient();
     this.erpService = erpService || new ERPIntegrationService(this.prisma);
+    this.webhookService = new WebhookService(this.prisma);
   }
 
   /**
@@ -81,6 +84,26 @@ export abstract class BaseSyncJob {
       jobId: job?.id,
       dryRun: data.dryRun,
     });
+
+    // Emit SYNC_STARTED webhook event
+    try {
+      await this.webhookService.emitEvent(
+        data.integrationId,
+        WebhookEventType.SYNC_STARTED,
+        {
+          jobName,
+          entityType: this.getEntityType(),
+          batchSize: data.batchSize,
+          dryRun: data.dryRun,
+        }
+      );
+    } catch (err) {
+      this.logger.warn('Failed to emit SYNC_STARTED webhook event', {
+        error: err instanceof Error ? err.message : String(err),
+        integrationId: data.integrationId,
+      });
+      // Don't throw - webhook emission should not block sync execution
+    }
 
     try {
       // Get integration configuration
@@ -118,6 +141,30 @@ export abstract class BaseSyncJob {
         duration,
       });
 
+      // Emit SYNC_COMPLETED webhook event
+      if (result.success) {
+        try {
+          await this.webhookService.emitEvent(
+            data.integrationId,
+            WebhookEventType.SYNC_COMPLETED,
+            {
+              jobName,
+              entityType: this.getEntityType(),
+              processedCount: result.processedCount,
+              failedCount: result.failedCount,
+              skippedCount: result.skippedCount,
+              duration,
+              message: result.message,
+            }
+          );
+        } catch (err) {
+          this.logger.warn('Failed to emit SYNC_COMPLETED webhook event', {
+            error: err instanceof Error ? err.message : String(err),
+            integrationId: data.integrationId,
+          });
+        }
+      }
+
       return {
         ...result,
         duration,
@@ -132,6 +179,25 @@ export abstract class BaseSyncJob {
         duration,
         stack: error instanceof Error ? error.stack : undefined,
       });
+
+      // Emit SYNC_FAILED webhook event
+      try {
+        await this.webhookService.emitEvent(
+          data.integrationId,
+          WebhookEventType.SYNC_FAILED,
+          {
+            jobName,
+            entityType: this.getEntityType(),
+            error: errorMessage,
+            duration,
+          }
+        );
+      } catch (err) {
+        this.logger.warn('Failed to emit SYNC_FAILED webhook event', {
+          error: err instanceof Error ? err.message : String(err),
+          integrationId: data.integrationId,
+        });
+      }
 
       return {
         success: false,

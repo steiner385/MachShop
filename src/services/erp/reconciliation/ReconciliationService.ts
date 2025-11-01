@@ -12,6 +12,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../../utils/logger';
 import ERPIntegrationService from '../ERPIntegrationService';
+import WebhookService, { WebhookEventType } from '../webhooks/WebhookService';
 
 /**
  * Discrepancy found between MES and ERP
@@ -210,11 +211,13 @@ export abstract class EntityReconciliation {
 export class ReconciliationService {
   private prisma: PrismaClient;
   private erpService: ERPIntegrationService;
+  private webhookService: WebhookService;
   private entityReconciliations: Map<string, EntityReconciliation> = new Map();
 
   constructor(prisma?: PrismaClient, erpService?: ERPIntegrationService) {
     this.prisma = prisma || new PrismaClient();
     this.erpService = erpService || new ERPIntegrationService(this.prisma);
+    this.webhookService = new WebhookService(this.prisma);
   }
 
   /**
@@ -243,6 +246,23 @@ export class ReconciliationService {
       return null;
     }
 
+    // Emit RECONCILIATION_STARTED webhook event
+    try {
+      await this.webhookService.emitEvent(
+        integrationId,
+        WebhookEventType.RECONCILIATION_STARTED,
+        {
+          entityType,
+          filters,
+        }
+      );
+    } catch (err) {
+      logger.warn('Failed to emit RECONCILIATION_STARTED webhook event', {
+        error: err instanceof Error ? err.message : String(err),
+        integrationId,
+      });
+    }
+
     const report = await reconciliation.reconcile(integrationId, filters);
 
     // Save report to database
@@ -251,6 +271,41 @@ export class ReconciliationService {
     } catch (error) {
       logger.warn('Failed to save reconciliation report', {
         error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Emit RECONCILIATION_COMPLETED or DISCREPANCY_FOUND webhook events
+    try {
+      if (report.status === 'COMPLETED') {
+        if (report.discrepancyCount > 0) {
+          await this.webhookService.emitEvent(
+            integrationId,
+            WebhookEventType.RECONCILIATION_DISCREPANCY_FOUND,
+            {
+              entityType: report.entityType,
+              discrepancyCount: report.discrepancyCount,
+              matchedRecords: report.matchedRecords,
+              totalRecords: report.totalRecords,
+              discrepancies: report.discrepancies.slice(0, 10), // First 10 for preview
+            }
+          );
+        } else {
+          await this.webhookService.emitEvent(
+            integrationId,
+            WebhookEventType.RECONCILIATION_COMPLETED,
+            {
+              entityType: report.entityType,
+              matchedRecords: report.matchedRecords,
+              totalRecords: report.totalRecords,
+              discrepancyCount: 0,
+            }
+          );
+        }
+      }
+    } catch (err) {
+      logger.warn('Failed to emit reconciliation completion webhook event', {
+        error: err instanceof Error ? err.message : String(err),
+        integrationId,
       });
     }
 

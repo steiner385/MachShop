@@ -153,6 +153,16 @@ import qualityAnalyticsRoutes from './routes/qualityAnalytics';
 // ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System Routes
 import ospRoutes from './routes/osp';
 
+// ✅ GITHUB ISSUE #60: ERP & External System Integration Routes
+import erpRoutes from './routes/erp';
+import webhookRoutes from './routes/webhooks';
+import monitoringRoutes from './routes/monitoring';
+import reconciliationRoutes from './routes/reconciliation';
+import reconciliationScheduleRoutes from './routes/reconciliation-schedules';
+import auditTrailRoutes from './routes/audit-trail';
+import syncRoutes from './routes/sync';
+import erpDashboardRoutes from './routes/erp-dashboard';
+
 // ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System Routes
 import movementRoutes from './routes/movements';
 import shipmentWebhookRoutes from './routes/shipment-webhooks';
@@ -407,6 +417,30 @@ apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
 
 // ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System API Routes
 apiRouter.use('/osp', authMiddleware, ospRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP & External System Integration API Routes
+apiRouter.use('/erp', authMiddleware, erpRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Webhook Management Routes (Phase 9 - Real-Time Sync Notifications)
+apiRouter.use('/erp/webhooks', authMiddleware, webhookRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Monitoring & Observability Routes (Phase 11 - Advanced Monitoring)
+apiRouter.use('/monitoring', authMiddleware, monitoringRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Data Reconciliation Routes (Phase 12 - Data Reconciliation System)
+apiRouter.use('/reconciliation', authMiddleware, reconciliationRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Scheduled Reconciliation Routes (Phase 13 - Scheduled Jobs)
+apiRouter.use('/reconciliation', authMiddleware, reconciliationScheduleRoutes);
+
+// ✅ GITHUB ISSUE #60: Audit Trail & Change History Routes (Phase 14 - Audit & Compliance)
+apiRouter.use('/audit', authMiddleware, auditTrailRoutes);
+
+// ✅ GITHUB ISSUE #60: Bi-directional Sync Routes (Phase 15 - Real-time Sync)
+apiRouter.use('/sync', authMiddleware, syncRoutes);
+
+// ✅ GITHUB ISSUE #60: Dashboard & Real-time Visualization Routes (Phase 16 - Dashboard)
+apiRouter.use('/erp/dashboard', authMiddleware, erpDashboardRoutes);
 
 // ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System API Routes (Phase 8-9)
 apiRouter.use('/movements', authMiddleware, movementRoutes);

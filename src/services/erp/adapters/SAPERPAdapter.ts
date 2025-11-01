@@ -1,11 +1,13 @@
 /**
  * SAPERPAdapter - Integration with SAP S/4HANA and ECC
- * Issue #60: Phase 5 - SAP ERP Adapter
+ * Issue #60: Phase 5-8 - SAP ERP Adapter with Real HTTP/BAPI Integration
  *
  * Supports both SAP S/4HANA (modern) and ECC (legacy) systems
- * Implements BAPIs (Business APIs) for core transactions
+ * Implements BAPIs (Business APIs) for core transactions via OData and REST APIs
+ * with real HTTP calls, authentication, retry logic, and exponential backoff
  */
 
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { logger } from '../../../utils/logger';
 import {
   IERPAdapter,
@@ -34,11 +36,17 @@ export interface SAPConfig {
 }
 
 /**
- * SAP ERP Adapter implementation
+ * SAP ERP Adapter implementation with real HTTP/BAPI integration
  */
 export class SAPERPAdapter implements IERPAdapter {
   private config: SAPConfig | null = null;
   private authToken: string | null = null;
+  private httpClient: AxiosInstance | null = null;
+  private retryConfig = {
+    maxRetries: 3,
+    baseDelay: 1000, // 1 second
+    maxDelay: 30000, // 30 seconds
+  };
 
   getAdapterName(): string {
     return 'SAP';
@@ -592,20 +600,111 @@ export class SAPERPAdapter implements IERPAdapter {
   }
 
   /**
-   * Authenticate with SAP
+   * Authenticate with SAP using OData or RFC credentials
+   * Implements exponential backoff retry on failure
    */
   private async authenticate(): Promise<void> {
     try {
-      // TODO: Implement actual SAP authentication in Phase 5+
-      // This would typically use SAP's OData authentication or BAPI calls
-      this.authToken = `sap_auth_${Date.now()}`;
+      if (!this.config) {
+        throw new Error('SAP adapter not configured');
+      }
 
-      logger.debug('Authenticated with SAP', {
-        system: this.config?.system,
-        client: this.config?.client,
+      // Initialize HTTP client if not already done
+      if (!this.httpClient) {
+        this.httpClient = axios.create({
+          baseURL: this.config.apiEndpoint,
+          timeout: this.config.timeout || 30000,
+          auth: {
+            username: this.config.username,
+            password: this.config.password,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'MachShop-ERPAdapter/1.0',
+            'X-CSRF-Token': 'Fetch', // SAP CSRF token fetch
+          },
+        });
+
+        // Add interceptor to fetch and include CSRF token
+        this.httpClient.interceptors.response.use(
+          response => {
+            const token = response.headers['x-csrf-token'];
+            if (token) {
+              this.httpClient!.defaults.headers.common['X-CSRF-Token'] = token;
+            }
+            return response;
+          },
+          error => Promise.reject(error)
+        );
+      }
+
+      // Test authentication with a simple call
+      await this.retryWithBackoff(
+        async () =>
+          this.httpClient!.get('/sap/opu/odata/sap/C_PURCHASEORDER_SRV/$metadata', {
+            headers: { 'X-CSRF-Token': 'Fetch' },
+          }),
+        'SAP authentication'
+      );
+
+      this.authToken = `authenticated_${Date.now()}`;
+
+      logger.info('Successfully authenticated with SAP', {
+        system: this.config.system,
+        client: this.config.client,
+        endpoint: this.config.apiEndpoint,
       });
     } catch (error) {
       logger.error('Failed to authenticate with SAP', {
+        error: error instanceof Error ? error.message : String(error),
+        config: {
+          system: this.config?.system,
+          client: this.config?.client,
+          endpoint: this.config?.apiEndpoint,
+        },
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Make OData call to SAP with retry logic
+   */
+  private async odataCall(method: string, path: string, data: any): Promise<any> {
+    try {
+      if (!this.httpClient) {
+        throw new Error('HTTP client not initialized');
+      }
+
+      if (!this.authToken) {
+        await this.authenticate();
+      }
+
+      logger.debug('Making SAP OData call', {
+        method,
+        path,
+      });
+
+      const response = await this.retryWithBackoff(
+        async () => {
+          const config: any = { method, url: path };
+
+          if (method === 'GET') {
+            config.params = data.params || {};
+          } else {
+            config.data = data;
+          }
+
+          return this.httpClient!.request(config);
+        },
+        `SAP OData ${method} ${path}`
+      );
+
+      return response.data;
+    } catch (error) {
+      logger.error('SAP OData call failed', {
+        method,
+        path,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -613,38 +712,122 @@ export class SAPERPAdapter implements IERPAdapter {
   }
 
   /**
-   * Make OData call to SAP
+   * Make BAPI call to SAP via OData or REST with retry logic
+   * Handles both synchronous and asynchronous BAPI execution
    */
-  private async odataCall(method: string, path: string, data: any): Promise<any> {
-    logger.debug('SAP OData call', {
-      method,
-      path,
-    });
+  private async bapiCall(bapiName: string, payload: any): Promise<any> {
+    try {
+      if (!this.httpClient) {
+        throw new Error('HTTP client not initialized');
+      }
 
-    // TODO: Implement actual HTTP requests to SAP OData service
-    // For Phase 4-5, return mock responses
-    return {
-      value: [],
-      ...data,
-    };
+      if (!this.authToken) {
+        await this.authenticate();
+      }
+
+      logger.debug('Making SAP BAPI call', {
+        bapiName,
+        payloadKeys: Object.keys(payload),
+      });
+
+      // Construct BAPI endpoint path
+      // Format: /sap/opu/odata/sap/C_PURCHASEORDER_SRV/C_PurchaseOrders
+      const bapiPath = `/sap/opu/odata/sap/${bapiName}`;
+
+      const response = await this.retryWithBackoff(
+        async () =>
+          this.httpClient!.post(bapiPath, payload, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          }),
+        `SAP BAPI ${bapiName}`
+      );
+
+      logger.debug('SAP BAPI call succeeded', {
+        bapiName,
+        status: response.status,
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error('SAP BAPI call failed', {
+        bapiName,
+        error: error instanceof Error ? error.message : String(error),
+        details: error instanceof AxiosError ? {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+        } : undefined,
+      });
+      throw error;
+    }
   }
 
   /**
-   * Make BAPI call to SAP
+   * Retry with exponential backoff for transient failures
    */
-  private async bapiCall(bapiName: string, payload: any): Promise<any> {
-    logger.debug('SAP BAPI call', {
-      bapiName,
-      payload: Object.keys(payload),
-    });
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error | undefined;
 
-    // TODO: Implement actual BAPI calls in Phase 5+
-    // For Phase 4-5, return mock success response
-    return {
-      Success: true,
-      PurchasingDocumentNumber: `4500${Date.now().toString().slice(-6)}`,
-      DocumentNumber: `SAP-${Date.now()}`,
-    };
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        const isRetryable = this.isRetryableError(error);
+
+        if (attempt < this.retryConfig.maxRetries && isRetryable) {
+          const delay = this.calculateBackoffDelay(attempt);
+          logger.warn(`Retrying ${operationName} (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`, {
+            error: lastError.message,
+            delayMs: delay,
+          });
+
+          await this.sleep(delay);
+        } else {
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error(`${operationName} failed after ${this.retryConfig.maxRetries} retries`);
+  }
+
+  /**
+   * Check if error is retryable
+   */
+  private isRetryableError(error: any): boolean {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status;
+      return status === 408 || status === 429 || (status !== undefined && status >= 500);
+    }
+    return error instanceof Error && (
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND') ||
+      error.message.includes('ETIMEDOUT') ||
+      error.message.includes('timeout')
+    );
+  }
+
+  /**
+   * Calculate exponential backoff delay
+   */
+  private calculateBackoffDelay(attempt: number): number {
+    const exponentialDelay = this.retryConfig.baseDelay * Math.pow(2, attempt);
+    const jitterDelay = exponentialDelay + Math.random() * 1000;
+    return Math.min(jitterDelay, this.retryConfig.maxDelay);
+  }
+
+  /**
+   * Sleep utility
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

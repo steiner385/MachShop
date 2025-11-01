@@ -1,11 +1,13 @@
 /**
  * ImpactERPAdapter - Integration with Impact ERP/MES system
- * Issue #60: Phase 4 - Impact ERP Adapter
+ * Issue #60: Phase 4-8 - Impact ERP Adapter with Real HTTP Integration
  *
  * Impact is a comprehensive MES/ERP solution common in aerospace/defense
- * manufacturing. This adapter handles API integration and transaction posting.
+ * manufacturing. This adapter handles API integration and transaction posting
+ * with real HTTP calls, authentication, retry logic, and exponential backoff.
  */
 
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { logger } from '../../../utils/logger';
 import {
   IERPAdapter,
@@ -34,12 +36,17 @@ export interface ImpactConfig {
 }
 
 /**
- * Impact ERP Adapter implementation
+ * Impact ERP Adapter implementation with real HTTP integration
  */
 export class ImpactERPAdapter implements IERPAdapter {
   private config: ImpactConfig | null = null;
   private authToken: string | null = null;
-  private apiClient: any = null;
+  private httpClient: AxiosInstance | null = null;
+  private retryConfig = {
+    maxRetries: 3,
+    baseDelay: 1000, // 1 second
+    maxDelay: 30000, // 30 seconds
+  };
 
   getAdapterName(): string {
     return 'Impact';
@@ -602,68 +609,194 @@ export class ImpactERPAdapter implements IERPAdapter {
   }
 
   /**
-   * Authenticate with Impact API
+   * Authenticate with Impact API using credentials
+   * Implements exponential backoff retry on failure
    */
   private async authenticate(): Promise<void> {
     try {
-      // In a real implementation, this would use actual Impact authentication
-      // For now, simulate successful authentication
+      if (!this.config) {
+        throw new Error('Impact adapter not configured');
+      }
+
+      // Initialize HTTP client if not already done
+      if (!this.httpClient) {
+        this.httpClient = axios.create({
+          baseURL: this.config.apiEndpoint,
+          timeout: this.config.timeout || 30000,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'MachShop-ERPAdapter/1.0',
+          },
+        });
+      }
+
       const payload = {
-        username: this.config?.apiUsername,
-        password: this.config?.apiPassword,
+        username: this.config.apiUsername,
+        password: this.config.apiPassword,
       };
 
-      // TODO: Implement actual Impact API authentication
-      // const response = await fetch(`${this.config?.apiEndpoint}/auth/login`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-      // const data = await response.json();
-      // this.authToken = data.token;
+      // Attempt authentication with retry logic
+      const response = await this.retryWithBackoff(
+        async () =>
+          this.httpClient!.post('/auth/login', payload, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
+        'Impact authentication'
+      );
 
-      // For Phase 4, use mock token
-      this.authToken = `bearer_token_${Date.now()}`;
+      this.authToken = response.data.token || response.data.access_token;
 
-      logger.debug('Authenticated with Impact ERP', {
-        company: this.config?.company,
+      // Update default headers with auth token
+      if (this.httpClient) {
+        this.httpClient.defaults.headers.common['Authorization'] = `Bearer ${this.authToken}`;
+      }
+
+      logger.info('Successfully authenticated with Impact ERP', {
+        company: this.config.company,
+        endpoint: this.config.apiEndpoint,
       });
     } catch (error) {
-      logger.error('Failed to authenticate with Impact', {
+      logger.error('Failed to authenticate with Impact ERP', {
         error: error instanceof Error ? error.message : String(error),
+        config: {
+          endpoint: this.config?.apiEndpoint,
+          company: this.config?.company,
+        },
       });
       throw error;
     }
   }
 
   /**
-   * Make API call to Impact
+   * Make HTTP API call to Impact with retry logic and exponential backoff
    */
   private async apiCall(method: string, path: string, data: any): Promise<any> {
     try {
-      // TODO: Implement actual HTTP requests in Phase 4+
-      // For Phase 4, return mock responses
+      if (!this.httpClient) {
+        throw new Error('HTTP client not initialized');
+      }
 
-      logger.debug('Impact API call', {
+      // Ensure authenticated before making requests
+      if (!this.authToken) {
+        await this.authenticate();
+      }
+
+      logger.debug('Making Impact API call', {
         method,
         path,
-        hasAuth: !!this.authToken,
+        hasData: !!data && Object.keys(data).length > 0,
       });
 
-      // Simulate successful API response
-      const mockData = data.params ? [] : { id: `impact-${Date.now()}`, po_number: `IMP-PO-${Date.now()}`, ...data };
-      return {
-        status: 200,
-        data: mockData,
-      };
+      // Execute API call with retry logic
+      const response = await this.retryWithBackoff(
+        async () => {
+          const config: any = {
+            method,
+            url: path,
+          };
+
+          // Handle different request types
+          if (method === 'GET') {
+            config.params = data.params || {};
+          } else {
+            config.data = data;
+          }
+
+          return this.httpClient!.request(config);
+        },
+        `Impact API ${method} ${path}`
+      );
+
+      logger.debug('Impact API call succeeded', {
+        method,
+        path,
+        status: response.status,
+      });
+
+      return response;
     } catch (error) {
       logger.error('Impact API call failed', {
         method,
         path,
         error: error instanceof Error ? error.message : String(error),
+        details: error instanceof AxiosError ? {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+        } : undefined,
       });
       throw error;
     }
+  }
+
+  /**
+   * Retry with exponential backoff for transient failures
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Check if error is retryable
+        const isRetryable = this.isRetryableError(error);
+
+        if (attempt < this.retryConfig.maxRetries && isRetryable) {
+          const delay = this.calculateBackoffDelay(attempt);
+          logger.warn(`Retrying ${operationName} (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`, {
+            error: lastError.message,
+            delayMs: delay,
+          });
+
+          await this.sleep(delay);
+        } else {
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error(`${operationName} failed after ${this.retryConfig.maxRetries} retries`);
+  }
+
+  /**
+   * Check if error is retryable (transient)
+   */
+  private isRetryableError(error: any): boolean {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status;
+      // Retry on 408 (timeout), 429 (rate limit), 5xx (server errors)
+      return status === 408 || status === 429 || (status !== undefined && status >= 500);
+    }
+    // Retry on network errors
+    return error instanceof Error && (
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND') ||
+      error.message.includes('ETIMEDOUT') ||
+      error.message.includes('timeout')
+    );
+  }
+
+  /**
+   * Calculate exponential backoff delay
+   */
+  private calculateBackoffDelay(attempt: number): number {
+    const exponentialDelay = this.retryConfig.baseDelay * Math.pow(2, attempt);
+    const jitterDelay = exponentialDelay + Math.random() * 1000; // Add jitter
+    return Math.min(jitterDelay, this.retryConfig.maxDelay);
+  }
+
+  /**
+   * Sleep utility for delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

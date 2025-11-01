@@ -3587,6 +3587,7 @@ model IntegrationConfig {
   updatedAt                    DateTime                      @updatedAt
   erpMaterialTransactions      ERPMaterialTransaction[]
   logs                         IntegrationLog[]
+  webhooks                     ERPWebhookEndpoint[]
   personnelInfoExchanges       PersonnelInfoExchange[]
   productionPerformanceActuals ProductionPerformanceActual[]
   productionScheduleRequests   ProductionScheduleRequest[]
@@ -3621,6 +3622,95 @@ model IntegrationLog {
   @@index([startedAt])
   @@index([operation])
   @@map("integration_logs")
+}
+
+/// Webhook Endpoints for ERP Integration Real-Time Notifications
+/// Manages webhook registration, delivery, and event subscriptions
+model ERPWebhookEndpoint {
+  id                String                  @id @default(cuid())
+  integrationId     String
+  integration       IntegrationConfig       @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  // Webhook configuration
+  url               String
+  eventTypes        String[]                // Array of subscribed event types
+  description       String?
+  secret            String                  // HMAC secret for signature verification
+
+  // Status and metrics
+  isActive          Boolean                 @default(true)
+  failureCount      Int                     @default(0)
+  lastDeliveryAt    DateTime?
+  lastErrorMessage  String?
+
+  // Relationships
+  deliveries        ERPWebhookDelivery[]
+
+  // Audit trail
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([integrationId])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("erp_webhook_endpoints")
+}
+
+/// Webhook Events - Records of events that were emitted
+model ERPWebhookEvent {
+  id                String                  @id @default(cuid())
+  eventId           String                  @unique
+  deliveries        ERPWebhookDelivery[]
+
+  // Event details
+  eventType         String
+  integrationId     String
+  payload           Json
+  metadata          Json?
+
+  // Audit trail
+  createdAt         DateTime                @default(now())
+
+  @@index([eventId])
+  @@index([eventType])
+  @@index([integrationId])
+  @@index([createdAt])
+  @@map("erp_webhook_events")
+}
+
+/// Webhook Deliveries - Records of delivery attempts with retry tracking
+model ERPWebhookDelivery {
+  id                String                  @id @default(cuid())
+  webhookId         String
+  webhook           ERPWebhookEndpoint      @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  eventId           String
+  event             ERPWebhookEvent         @relation(fields: [eventId], references: [eventId], onDelete: Cascade)
+
+  // Delivery tracking
+  status            String                  // PENDING, DELIVERED, FAILED, RETRYING
+  attempt           Int                     @default(0)
+  maxAttempts       Int                     @default(6)
+
+  // Response data
+  httpStatusCode    Int?
+  responseBody      String?
+  lastError         String?
+
+  // Timing
+  nextRetryAt       DateTime?
+  lastAttemptAt     DateTime?
+  deliveredAt       DateTime?
+
+  // Audit trail
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([webhookId])
+  @@index([eventId])
+  @@index([status])
+  @@index([nextRetryAt])
+  @@index([createdAt])
+  @@map("erp_webhook_deliveries")
 }
 
 model ProductionScheduleRequest {
