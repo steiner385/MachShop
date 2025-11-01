@@ -1,0 +1,30 @@
+{
+  "name": "@machshop/workflow-builder",
+  "version": "1.0.0",
+  "description": "Low-Code/No-Code Workflow Builder for MachShop - Issue #394",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zustand": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.2.0",
+    "vitest": "^0.34.0"
+  },
+  "keywords": [
+    "workflow",
+    "low-code",
+    "no-code",
+    "builder",
+    "automation"
+  ],
+  "author": "MachShop Team",
+  "license": "MIT"
+}

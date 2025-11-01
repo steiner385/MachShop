@@ -1,0 +1,227 @@
+// Workflow Builder Models
+// Issue #394: Low-Code/No-Code Workflow Builder - Visual Workflow Designer
+// Phase 1: Backend Infrastructure
+
+model Workflow {
+  id                String   @id @default(cuid())
+  name              String   @db.VarChar(255)
+  description       String?  @db.Text
+  status            String   @default("draft") // draft, active, archived, disabled
+  version           Int      @default(1)
+
+  // Workflow definition as JSON
+  definition        String   @db.LongText           // Stringified Workflow object
+  validationErrors  String?  @db.Text              // Stringified validation errors array
+
+  // Metadata
+  metadata          String?  @db.Text              // Stringified metadata object
+
+  // Audit
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
+  updatedBy         String
+
+  // Relations
+  executions        WorkflowExecution[]
+  versions          WorkflowVersion[]
+  siteConfigs       SiteWorkflowConfig[]
+  deployments       WorkflowDeployment[]
+  approvals         WorkflowApproval[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([updatedBy])
+}
+
+model WorkflowExecution {
+  id                String   @id @default(cuid())
+  workflowId        String
+  workflowVersion   Int      @default(1)
+  status            String   @default("pending") // pending, running, completed, failed, cancelled, paused
+
+  // Execution data as JSON
+  inputs            String   @db.LongText        // Stringified inputs object
+  outputs           String?  @db.LongText        // Stringified outputs object
+  variables         String   @db.LongText        // Stringified variables object
+  error             String?  @db.Text            // Stringified error object
+
+  // Node-level executions
+  nodeExecutions    String?  @db.LongText        // Stringified NodeExecution array
+
+  // Timing
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+  duration          Int?                         // Duration in milliseconds
+
+  // Context
+  context           String?  @db.Text            // Stringified context object
+
+  // Relations
+  workflow          Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([completedAt])
+}
+
+model WorkflowVersion {
+  id                String   @id @default(cuid())
+  workflowId        String
+  versionNumber     Int
+
+  // Versioned workflow definition
+  definition        String   @db.LongText        // Stringified Workflow object
+  changelog         String?  @db.Text
+  isActive          Boolean  @default(false)
+
+  // Audit
+  createdAt         DateTime @default(now())
+  createdBy         String
+
+  // Relations
+  workflow          Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, versionNumber])
+  @@index([workflowId])
+  @@index([isActive])
+}
+
+model SiteWorkflowConfig {
+  id                String   @id @default(cuid())
+  workflowId        String
+  siteId            String
+
+  // Configuration overrides as JSON
+  config            String?  @db.Text            // Stringified configuration object
+
+  // Override defaults
+  isEnabled         Boolean  @default(true)
+  isApproved        Boolean  @default(false)
+
+  // Audit
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  workflow          Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, siteId])
+  @@index([workflowId])
+  @@index([siteId])
+}
+
+model WorkflowDeployment {
+  id                String   @id @default(cuid())
+  workflowId        String
+  versionNumber     Int
+
+  // Deployment configuration
+  strategy          String   @default("immediate") // immediate, staged, canary, scheduled
+  status            String   @default("pending")   // pending, in_progress, completed, failed, rolled_back
+
+  // Deployment scope
+  targetSites       String   @db.LongText        // Stringified array of site IDs
+  deployedSites     String   @default("[]") @db.LongText  // Stringified array of deployed site IDs
+
+  // Timing
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  // Rollback info
+  rollbackReason    String?  @db.Text
+  rollbackedAt      DateTime?
+
+  // Audit
+  createdAt         DateTime @default(now())
+  createdBy         String
+
+  // Relations
+  workflow          Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([strategy])
+}
+
+model WorkflowApproval {
+  id                String   @id @default(cuid())
+  workflowId        String
+  versionNumber     Int
+
+  // Approval workflow
+  status            String   @default("pending")  // pending, approved, rejected
+  approverLevel     String                        // supervisor, manager, admin
+
+  // Justification
+  requestReason     String?  @db.Text
+  approverComment   String?  @db.Text
+
+  // Audit
+  requestedAt       DateTime @default(now())
+  requestedBy       String
+  respondedAt       DateTime?
+  respondedBy       String?
+
+  // Relations
+  workflow          Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([approverLevel])
+}
+
+model WorkflowValidationRule {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  description       String?  @db.Text
+
+  // Rule definition
+  ruleDefinition    String   @db.LongText        // Stringified validation rule logic
+  severity          String   @default("error")   // error, warning, info
+
+  // Applicability
+  nodeTypes         String?  @db.Text            // Stringified array of NodeType enums
+  workflows         String?  @db.Text            // Stringified array of workflow IDs for specific rules
+  isActive          Boolean  @default(true)
+
+  // Audit
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([severity])
+}
+
+model NodeTypeDefinition {
+  id                String   @id @default(cuid())
+  nodeType          String   @unique              // From NodeType enum
+  displayName       String
+  description       String?  @db.Text
+
+  // Node configuration schema
+  configSchema      String   @db.LongText        // JSON Schema for validation
+
+  // UI configuration
+  icon              String?
+  category          String                       // start_end, operations, decisions, integrations, error_handling
+
+  // Capabilities
+  inputPorts        String?  @db.Text            // Stringified array of input port definitions
+  outputPorts       String?  @db.Text            // Stringified array of output port definitions
+  supportsCondition Boolean  @default(false)
+  supportsRetry     Boolean  @default(false)
+  supportsTimeout   Boolean  @default(false)
+
+  // Metadata
+  metadata          String?  @db.Text            // Stringified metadata
+
+  // Audit
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([category])
+}

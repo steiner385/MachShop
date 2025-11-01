@@ -33,7 +33,9 @@
       "@/middleware/*": ["./src/middleware/*"],
       "@/utils/*": ["./src/utils/*"],
       "@/database/*": ["./src/database/*"],
-      "@/tests/*": ["./src/tests/*"]
+      "@/tests/*": ["./src/tests/*"],
+      "@machshop/workflow-builder": ["./packages/workflow-builder/src/index.ts"],
+      "@machshop/workflow-builder/*": ["./packages/workflow-builder/src/*"]
     }
   },
   "include": [
