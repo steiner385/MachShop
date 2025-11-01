@@ -14224,6 +14224,252 @@ enum DataCollectionValidationType {
 }
 
 // ============================================================================
+// Enums for OSP (Outside Processing/Farmout) Operations
+// ============================================================================
+
+enum OSPOperationStatus {
+  PENDING_SHIPMENT      // Waiting to be shipped to supplier
+  SHIPPED               // Shipped to supplier, in transit
+  AT_SUPPLIER           // Received by supplier, waiting to be processed
+  IN_PROGRESS           // Actively being processed by supplier
+  INSPECTION            // Supplier processing complete, awaiting inspection
+  RECEIVED              // Received back at our facility, in inspection queue
+  ACCEPTED              // Inspection passed, accepted into inventory
+  REJECTED              // Inspection failed, requires return/rework
+  CANCELLED             // OSP operation cancelled
+}
+
+enum OSPShipmentType {
+  TO_SUPPLIER           // Sending parts TO external supplier
+  FROM_SUPPLIER         // Receiving parts FROM external supplier
+  SUPPLIER_TO_SUPPLIER  // Parts moving between multiple suppliers
+}
+
+enum OSPShipmentStatus {
+  DRAFT                 // Shipment planned but not yet released
+  RELEASED              // Ready to ship
+  PICKED                // Items picked and staged for shipping
+  SHIPPED               // Items shipped, in transit
+  IN_TRANSIT            // Confirmed in transit
+  DELIVERED             // Delivered to recipient
+  RECEIVED              // Received and verified at destination
+  CANCELLED             // Shipment cancelled
+}
+
+enum SupplierMetricType {
+  MONTHLY               // Monthly performance summary
+  QUARTERLY             // Quarterly performance summary
+  ANNUAL                // Annual performance summary
+}
+
+// ============================================================================
+// OSP (Outside Processing/Farmout) Operations Models
+// ============================================================================
+
+// OSPCapability: Tracks supplier capabilities and qualifications for specific operations
+model OSPCapability {
+  id                    String                @id @default(cuid())
+  vendorId              String
+  operationId           String
+
+  capabilityType        String                // Type of capability (PROCESS, SERVICE, etc.)
+  certifications        String[]              // List of required certifications
+  minOrderQuantity      Int?
+  maxOrderQuantity      Int?
+  standardLeadDays      Int                   @default(7)
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  vendor                Vendor                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  operation             Operation             @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, operationId])
+  @@index([vendorId])
+  @@index([operationId])
+  @@map("osp_capabilities")
+}
+
+// OSPOperation: Core tracking entity for operations sent to suppliers
+// Links a manufacturing operation to a supplier with full lifecycle tracking
+model OSPOperation {
+  id                    String                @id @default(cuid())
+  ospNumber             String                @unique               // Auto-generated: OSP-YYYY-#####
+  operationId           String
+  vendorId              String
+  workOrderId           String?               // Optional: Can be linked to a work order
+
+  // Quantities
+  quantitySent          Int
+  quantityReceived      Int                   @default(0)
+  quantityAccepted      Int                   @default(0)
+  quantityRejected      Int                   @default(0)
+
+  // Status and dates
+  status                OSPOperationStatus    @default(PENDING_SHIPMENT)
+  requestedReturnDate   DateTime
+  expectedReturnDate    DateTime?
+  actualReturnDate      DateTime?
+
+  // Costs (from ERP system)
+  estimatedCost         Float?                // From ERP PO
+  actualCost            Float?                // From ERP Invoice
+  costVariance          Float?                // Calculated: estimatedCost - actualCost
+
+  // Quality requirements
+  inspectionRequired    Boolean               @default(false)
+  certificationRequired String[]              // Array of certifications required
+  notes                 String?               // Special instructions
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  operation             Operation             @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  vendor                Vendor                @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  workOrder             WorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  shipments             OSPShipment[]         @relation("OSPOperationShipments")
+  inspections           OSPInspection[]       @relation("InspectionRecords")
+  metrics               SupplierPerformanceMetric[] @relation("OperationMetrics")
+
+  @@index([operationId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([requestedReturnDate])
+  @@index([expectedReturnDate])
+  @@map("osp_operations")
+}
+
+// OSPShipment: Tracks shipments related to OSP operations
+// Can be outbound (to supplier) or inbound (from supplier) or supplier-to-supplier
+model OSPShipment {
+  id                    String                @id @default(cuid())
+  ospOperationId        String
+  shipmentType          OSPShipmentType       // TO_SUPPLIER, FROM_SUPPLIER, SUPPLIER_TO_SUPPLIER
+  shipmentNumber        String                @unique               // Unique shipment identifier
+
+  // Shipment parties
+  sendingVendorId       String                // Who's sending (internal company for TO_SUPPLIER, supplier for FROM_SUPPLIER)
+  receivingVendorId     String                // Who's receiving (supplier for TO_SUPPLIER, internal for FROM_SUPPLIER)
+
+  // Shipment details
+  quantity              Int
+  status                OSPShipmentStatus     @default(DRAFT)
+
+  // Carrier & Tracking
+  carrierName           String?
+  trackingNumber        String?
+  shippingMethod        String?               // Ground, Air, Ocean, etc.
+
+  // Dates
+  shipDate              DateTime?
+  expectedDeliveryDate  DateTime?
+  actualDeliveryDate    DateTime?
+
+  // Documentation
+  poNumber              String?               // ERP Purchase Order number (for supplier reference)
+  notes                 String?
+  attachmentUrls        String[]              // Shipment documents, packing slips, etc.
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  ospOperation          OSPOperation          @relation("OSPOperationShipments", fields: [ospOperationId], references: [id], onDelete: Cascade)
+  outboundSupplier      Vendor                @relation("OutboundSupplier", fields: [sendingVendorId], references: [id], onDelete: Restrict)
+  inboundSupplier       Vendor                @relation("InboundSupplier", fields: [receivingVendorId], references: [id], onDelete: Restrict)
+
+  @@index([ospOperationId])
+  @@index([shipmentType])
+  @@index([status])
+  @@index([trackingNumber])
+  @@map("osp_shipments")
+}
+
+// OSPInspection: Records inspection results for OSP operations when items are received
+// Tracks quality assurance data
+model OSPInspection {
+  id                    String                @id @default(cuid())
+  ospOperationId        String
+
+  inspectionNumber      String                @unique
+  inspectionDate        DateTime              @default(now())
+
+  // Quantity inspected
+  quantityInspected     Int
+  quantityAccepted      Int
+  quantityRejected      Int
+
+  // Results
+  status                String                @default("IN_PROGRESS") // IN_PROGRESS, PASSED, FAILED, CONDITIONAL
+  defectsFound          String?               // Description of defects
+  notes                 String?
+
+  // Approvals
+  inspectorId           String?
+  approvedBy            String?
+  approvedAt            DateTime?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relationships
+  ospOperation          OSPOperation          @relation("InspectionRecords", fields: [ospOperationId], references: [id], onDelete: Cascade)
+  inspector             User?                 @relation("OSPInspections", fields: [inspectorId], references: [id], onDelete: SetNull)
+  approver              User?                 @relation("OSPInspectionApprovals", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  @@index([ospOperationId])
+  @@index([inspectionDate])
+  @@map("osp_inspections")
+}
+
+// SupplierPerformanceMetric: Tracks supplier performance metrics for OSP operations
+// Used for supplier quality/delivery/cost tracking for ERP integration
+model SupplierPerformanceMetric {
+  id                    String                @id @default(cuid())
+  vendorId              String
+  ospOperationId        String?               // Can aggregate across operations or be specific
+
+  metricType            SupplierMetricType    @default(MONTHLY)
+  periodStart           DateTime
+  periodEnd             DateTime
+
+  // On-Time Delivery Metric
+  ordersOnTime          Int                   @default(0)
+  ordersLate            Int                   @default(0)
+  onTimeDeliveryPercent Float?
+  averageDeliveryDays   Int?
+
+  // Quality Metric
+  itemsShipped          Int                   @default(0)
+  itemsAccepted         Int                   @default(0)
+  itemsRejected         Int                   @default(0)
+  qualityPercent        Float?
+
+  // Cost Metric
+  estimatedTotalCost    Float?
+  actualTotalCost       Float?
+  costVariancePercent   Float?
+
+  // Score
+  overallScore          Float?                // 0-100 composite score for supplier ranking
+
+  notes                 String?
+  createdAt             DateTime              @default(now())
+
+  // Relationships
+  vendor                Vendor                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  ospOperation          OSPOperation?         @relation("OperationMetrics", fields: [ospOperationId], references: [id], onDelete: SetNull)
+
+  @@unique([vendorId, metricType, periodStart, periodEnd])
+  @@index([vendorId])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("supplier_performance_metrics")
+}
+
+// ============================================================================
 // Quality Analytics Models (Issue #58)
 // ============================================================================
 

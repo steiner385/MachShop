@@ -146,6 +146,9 @@ import workflowEnforcementRoutes from './routes/workflowEnforcement';
 import qualityEnforcementRoutes from './routes/qualityEnforcement';
 import qualityAnalyticsRoutes from './routes/qualityAnalytics';
 
+// ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System Routes
+import ospRoutes from './routes/osp';
+
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
 import redisClientService from './services/RedisClientService';
@@ -389,6 +392,9 @@ apiRouter.use('/workflow-enforcement', authMiddleware, workflowEnforcementRoutes
 
 // ✅ GITHUB ISSUE #44: Flexible Quality & Compliance Controls API Routes
 apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
+
+// ✅ GITHUB ISSUE #59: Core OSP/Farmout Operations Management System API Routes
+apiRouter.use('/osp', authMiddleware, ospRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
