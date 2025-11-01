@@ -1367,6 +1367,17 @@ issues:
   # ============================================================================
 
   # --- Extension Framework (Phase 1: Critical Extension Points) ---
+  - number: 437
+    title: "Extension Security Model & Sandboxing"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [215, 216]
+    strategic_focus: security
+    business_value: 9
+    effort_estimate: 8
+    blocks: [444, 445]
+    notes: "COMPLETED - Implemented comprehensive extension security framework with permission-based access control, sandbox enforcement, code signing/verification, and resource isolation. Three-tier system (Community/Professional/Enterprise) with 22 granular permissions. Resource monitoring for memory, CPU, disk, and network. Complete audit logging. Implemented in PR #454."
+
   - number: 438
     title: "Database Schema Extension Framework"
     category: sdk_extensibility
