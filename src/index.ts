@@ -125,6 +125,9 @@ import kitRoutes from './routes/api/kits';
 import stagingRoutes from './routes/api/staging';
 import vendorKitRoutes from './routes/vendorKits';
 
+// ✅ GITHUB ISSUE #57: 8D Problem Solving Framework Routes
+import eightDRoutes from './routes/eightD';
+
 // ✅ GITHUB ISSUE #223: Regulatory Compliance: Part Interchangeability & Substitution Group Framework
 import partInterchangeabilityRoutes from './routes/partInterchangeability';
 
@@ -291,6 +294,8 @@ apiRouter.use('/quality', authMiddleware, qualityRoutes);
 apiRouter.use('/ncr/approvals', authMiddleware, ncrApprovalsRoutes);
 // ✅ GITHUB ISSUE #56: CAPA Tracking System Routes (Phase 1)
 apiRouter.use('/corrective-actions', authMiddleware, correctiveActionsRoutes);
+// ✅ GITHUB ISSUE #57: 8D Problem Solving Framework Routes
+apiRouter.use('/8d', authMiddleware, eightDRoutes);
 // GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
 apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
 // GitHub Issue #102: QMS Compliance Framework - Document Control & Training
