@@ -1580,6 +1580,7 @@ model RoutingOperation {
   workCenter      WorkCenter?          @relation(fields: [workCenterId], references: [id])
   workOrderOps    WorkOrderOperation[]
   torqueSpecifications TorqueSpecification[]
+  dataCollectionForms DataCollectionForm[]  // Issue #45: Data collection forms for this operation
 
   @@map("routing_operations")
 }
@@ -1747,6 +1748,8 @@ model WorkOrderOperation {
   workOrder          WorkOrder                @relation(fields: [workOrderId], references: [id])
   workPerformance    WorkPerformance[]
   buildRecordOperations BuildRecordOperation[]
+  dataCollectionSubmissions DataCollectionSubmission[]  // Issue #45: Data collected for this operation
+  workInstructionViews WorkInstructionView[]  // Issue #45: Work instruction views for this operation
 
   @@map("work_order_operations")
 }
@@ -2724,6 +2727,9 @@ model WorkInstruction {
 
   // 3D Model View Reference
   modelViewStates       ModelViewState[]
+
+  // Issue #45: Work instruction view tracking
+  workInstructionViews  WorkInstructionView[]
 
   @@index([status])
   @@index([partId])
@@ -13991,4 +13997,147 @@ model BatchJobFile {
   @@index([status])
   @@index([fileName])
   @@map("batch_job_files")
+}
+
+// ============================================================================
+// Data Collection Forms (Issue #45 - Phase 2)
+// ============================================================================
+
+/// Data collection form definition for routing operations
+/// Forms are configured per routing operation and used to collect data
+/// during work instruction execution on the shop floor
+model DataCollectionForm {
+  id                    String   @id @default(cuid())
+  routingOperationId    String
+  formName              String
+  description           String?
+  version               String   @default("1.0.0")
+
+  // Field definitions stored as JSON array
+  fields                Json     // Array of DataCollectionField objects
+
+  // Configuration
+  requiredForCompletion Boolean  @default(false)
+  displayOrder          Int      @default(0)
+  isActive              Boolean  @default(true)
+
+  // Metadata
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdById           String
+
+  // Relations
+  routingOperation      RoutingOperation        @relation("DataCollectionForms", fields: [routingOperationId], references: [id], onDelete: Cascade)
+  createdBy             User                    @relation("DataCollectionFormCreated", fields: [createdById], references: [id])
+  submissions           DataCollectionSubmission[]
+
+  @@unique([routingOperationId, formName])
+  @@index([routingOperationId])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("data_collection_forms")
+}
+
+/// Data collection submission - actual data collected by operators
+model DataCollectionSubmission {
+  id                     String   @id @default(cuid())
+  workOrderOperationId   String
+  formId                 String
+
+  // Collected data stored as key-value pairs
+  // Keys are fieldId from form, values are collected data
+  data                   Json
+
+  // Validation status
+  validationStatus       String   @default("PENDING")  // PENDING, VALID, INVALID, WARNING
+  validationErrors       Json?    // Array of validation errors if INVALID
+
+  // Submission context
+  submittedBy            String
+  submittedAt            DateTime @default(now())
+
+  // Device and location tracking
+  deviceInfo             String?  // Device ID or user-agent for tablets
+  locationCode           String?  // Shop floor location/work station
+
+  // Offline sync tracking
+  offlineSubmitted       Boolean  @default(false)
+  syncedAt               DateTime?
+  syncStatus             String   @default("SYNCED")  // SYNCED, PENDING, FAILED
+
+  // Metadata
+  notes                  String?
+  ipAddress              String?
+  userAgent              String?
+
+  // Relations
+  workOrderOperation     WorkOrderOperation      @relation("DataCollectionSubmissions", fields: [workOrderOperationId], references: [id], onDelete: Cascade)
+  form                   DataCollectionForm      @relation(fields: [formId], references: [id], onDelete: Restrict)
+  submittedByUser        User                    @relation("DataCollectionSubmissionCreated", fields: [submittedBy], references: [id])
+
+  @@index([workOrderOperationId])
+  @@index([formId])
+  @@index([submittedAt])
+  @@index([submittedBy])
+  @@index([validationStatus])
+  @@index([syncStatus])
+  @@map("data_collection_submissions")
+}
+
+/// Work instruction view tracking
+/// Tracks when operators view work instructions for analytics
+model WorkInstructionView {
+  id                      String   @id @default(cuid())
+  workInstructionId       String
+  workOrderOperationId    String?
+
+  // Who viewed and when
+  viewedBy                String
+  viewedAt                DateTime @default(now())
+
+  // Viewing duration
+  viewDuration            Int?     // seconds
+
+  // Steps viewed (array of step IDs)
+  stepsViewed             Json?    // Array of step numbers viewed
+
+  // Device information
+  deviceType              String?  // TABLET, DESKTOP, MOBILE
+  deviceId                String?
+
+  // Relations
+  workInstruction         WorkInstruction         @relation("WorkInstructionViews", fields: [workInstructionId], references: [id], onDelete: Cascade)
+  workOrderOperation      WorkOrderOperation?     @relation("WorkInstructionViews", fields: [workOrderOperationId], references: [id], onDelete: SetNull)
+  viewer                  User                    @relation("WorkInstructionViews", fields: [viewedBy], references: [id])
+
+  @@index([workInstructionId])
+  @@index([viewedAt])
+  @@index([viewedBy])
+  @@map("work_instruction_views")
+}
+
+// ============================================================================
+// Enums for Data Collection
+// ============================================================================
+
+enum DataCollectionFieldType {
+  NUMBER
+  TEXT
+  BOOLEAN
+  SELECT
+  MULTISELECT
+  DATE
+  TIME
+  DATETIME
+  FILE
+  SIGNATURE
+  TEXTAREA
+}
+
+enum DataCollectionValidationType {
+  NONE
+  REQUIRED
+  MIN_MAX
+  PATTERN
+  CUSTOM
 }
