@@ -1728,7 +1728,7 @@ issues:
     business_value: 5
     effort_estimate: 6
     blocks: []
-    notes: "Enhanced material movement tracking"
+    notes: "COMPLETED - Material movement tracking with route management, handoff workflows, and logistics integration - Implemented in PR #392"
 
   - number: 65
     title: "Native WYSIWYG Editor Implementation"
@@ -1739,7 +1739,7 @@ issues:
     business_value: 5
     effort_estimate: 6
     blocks: []
-    notes: "Rich text editing for work instructions"
+    notes: "COMPLETED - Rich text editing for work instructions with formatting, media embedding, templates - Implemented in PR #384"
 
   - number: 66
     title: "Advanced Media Annotation Tools"
