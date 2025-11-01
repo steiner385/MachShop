@@ -87,6 +87,9 @@ import adminPermissionsRoutes from './routes/admin/permissions';
 import adminRolePermissionsRoutes from './routes/admin/role-permissions';
 import adminUserRolesRoutes from './routes/admin/user-roles';
 
+// GitHub Issue #79: Private Plugin Registry & Enterprise Distribution System Routes
+import pluginRegistryAdminRoutes from './routes/admin/pluginRegistryAdmin';
+
 // ✅ GITHUB ISSUE #126: Time-Based Permission Grants (Temporal Permissions) Routes
 import adminTemporalRolesRoutes from './routes/admin/temporal-roles';
 
@@ -336,6 +339,9 @@ apiRouter.use('/admin/oidc', authMiddleware, oidcRoutes);
 
 // GitHub Issue #133: Azure AD/Entra ID Native Integration Admin Routes
 apiRouter.use('/admin/azure-ad', authMiddleware, azureAdGraphRoutes);
+
+// GitHub Issue #79: Private Plugin Registry & Enterprise Distribution System Admin Routes
+apiRouter.use('/admin', authMiddleware, pluginRegistryAdminRoutes);
 
 // ✅ GITHUB ISSUE #147: Core Unified Workflow Engine - Unified Approval API Routes
 apiRouter.use('/approvals', authMiddleware, unifiedApprovalRoutes);
