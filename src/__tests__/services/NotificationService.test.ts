@@ -7,12 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import NotificationService, {
-  NotificationInput,
-  NotificationFilters,
-  NotificationPreferences,
-  NotificationStats
-} from '../../services/NotificationService';
+import { PrismaClient } from '@prisma/client';
+import { NotificationService, NotificationInput, NotificationFilters, NotificationPreferences, NotificationStats } from '../../services/NotificationService';
 import {
   UserNotification,
   NotificationType,
@@ -23,8 +19,8 @@ import prisma from '../../lib/database';
 import logger from '../../utils/logger';
 
 // Mock dependencies
-vi.mock('../../lib/database', () => ({
-  default: {
+vi.mock('../../lib/database', () => {
+  const mockPrismaClient = {
     userNotification: {
       create: vi.fn(),
       createMany: vi.fn(),
@@ -46,8 +42,12 @@ vi.mock('../../lib/database', () => ({
       findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
-  },
-}));
+  } as unknown as PrismaClient;
+
+  return {
+    default: mockPrismaClient,
+  };
+});
 
 vi.mock('../../utils/logger', () => ({
   default: {
@@ -56,7 +56,41 @@ vi.mock('../../utils/logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   },
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
 }));
+
+// Mock @prisma/client to include enums
+vi.mock('@prisma/client', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    NotificationChannel: {
+      IN_APP: 'IN_APP',
+      EMAIL: 'EMAIL',
+      SMS: 'SMS',
+      PUSH: 'PUSH',
+    },
+    NotificationStatus: {
+      UNREAD: 'UNREAD',
+      READ: 'READ',
+      ARCHIVED: 'ARCHIVED',
+    },
+    NotificationType: {
+      COMMENT_MENTION: 'COMMENT_MENTION',
+      COMMENT_REPLY: 'COMMENT_REPLY',
+      REVIEW_ASSIGNED: 'REVIEW_ASSIGNED',
+      REVIEW_DEADLINE: 'REVIEW_DEADLINE',
+      DOCUMENT_CHANGE: 'DOCUMENT_CHANGE',
+      SYSTEM_UPDATE: 'SYSTEM_UPDATE',
+    },
+    PrismaClient: actual.PrismaClient,
+  };
+});
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -108,9 +142,10 @@ describe('NotificationService', () => {
   };
 
   beforeEach(() => {
-    service = new NotificationService();
     mockPrisma = prisma as any;
     mockLogger = logger as any;
+    // Instantiate service with mock Prisma client for each test
+    service = new NotificationService(mockPrisma);
     vi.clearAllMocks();
   });
 
