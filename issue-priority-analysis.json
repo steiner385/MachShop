@@ -1,0 +1,1417 @@
+{
+  "eligible_issues": [
+    {
+      "number": 405,
+      "title": "Extension Dependency Resolution Engine",
+      "category": "sdk_extensibility",
+      "foundation_level": 0,
+      "priority_score": 89.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 90.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        438,
+        439
+      ]
+    },
+    {
+      "number": 407,
+      "title": "Multi-Site Extension Deployment Service",
+      "category": "sdk_extensibility",
+      "foundation_level": 0,
+      "priority_score": 89.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 90.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        149,
+        150,
+        104,
+        105,
+        414,
+        415,
+        94,
+        95,
+        96,
+        97,
+        59,
+        60,
+        61,
+        62,
+        40,
+        41,
+        89,
+        238,
+        106,
+        107,
+        108,
+        109,
+        64,
+        65,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73
+      ]
+    },
+    {
+      "number": 180,
+      "title": "Epic 6: Frontend Testing - Phase 3 (Stores & Utils)",
+      "category": "testing_infrastructure",
+      "foundation_level": 0,
+      "priority_score": 88.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 404,
+      "title": "Extension Compatibility Matrix Service",
+      "category": "sdk_extensibility",
+      "foundation_level": 0,
+      "priority_score": 88.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        409,
+        414
+      ]
+    },
+    {
+      "number": 413,
+      "title": "Extension License Management System",
+      "category": "sdk_extensibility",
+      "foundation_level": 0,
+      "priority_score": 88.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        150,
+        104
+      ]
+    },
+    {
+      "number": 226,
+      "title": "Quality Management: Engineering Change Order (ECO) Smart Workflow",
+      "category": "quality_management",
+      "foundation_level": 1,
+      "priority_score": 86.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        227
+      ]
+    },
+    {
+      "number": 266,
+      "title": "Quality Management: Core Teamcenter Quality MRB Integration Infrastructure",
+      "category": "quality_management",
+      "foundation_level": 1,
+      "priority_score": 86.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        267,
+        268,
+        269
+      ]
+    },
+    {
+      "number": 143,
+      "title": "AI/ML: Core AI Platform Infrastructure with MLOps",
+      "category": "ai_ml_capabilities",
+      "foundation_level": 0,
+      "priority_score": 82.0,
+      "score_breakdown": {
+        "foundation": 99.99,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 60.0,
+        "effort_value": 60.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        144,
+        145,
+        146
+      ]
+    },
+    {
+      "number": 148,
+      "title": "Workflow & Approvals: Migrate Existing Approvals to Unified System",
+      "category": "workflow_approvals",
+      "foundation_level": 1,
+      "priority_score": 78.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 100.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 235,
+      "title": "Inventory & Material Management: Serialized Sub-Assembly & Module Management",
+      "category": "inventory_material",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 91,
+      "title": "Inventory Transaction Engine & Cycle Counting",
+      "category": "inventory_material",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        89
+      ]
+    },
+    {
+      "number": 92,
+      "title": "Barcode & RFID Scanning Infrastructure",
+      "category": "inventory_material",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 82,
+      "title": "Advanced Production Scheduler (Finite Capacity)",
+      "category": "production_planning",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 90.0,
+        "effort_value": 90.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        83,
+        85,
+        87
+      ]
+    },
+    {
+      "number": 103,
+      "title": "FDA 21 CFR Part 11 Electronic Records & Signatures",
+      "category": "regulatory_compliance",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 139,
+      "title": "Help Documentation: Core Help Infrastructure with Context-Sensitive Guidance",
+      "category": "help_documentation",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        140,
+        141,
+        142
+      ]
+    },
+    {
+      "number": 159,
+      "title": "Testing Infrastructure: Automated Coverage Reporting & CI/CD Integration",
+      "category": "testing_infrastructure",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 213,
+      "title": "Database Documentation: Business Context & Rules for All Tables/Fields",
+      "category": "sdk_extensibility",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 214,
+      "title": "Database Documentation: Technical Specifications for All Tables/Fields",
+      "category": "sdk_extensibility",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 215,
+      "title": "Database Documentation: Examples & Valid Values for All Tables/Fields",
+      "category": "sdk_extensibility",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 216,
+      "title": "Database Documentation: Compliance & Governance for All Tables/Fields",
+      "category": "sdk_extensibility",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 217,
+      "title": "Database Documentation: Integration Mapping for All Tables/Fields",
+      "category": "sdk_extensibility",
+      "foundation_level": 1,
+      "priority_score": 76.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 234,
+      "title": "Equipment & Maintenance: Assembly Tooling & Fixture Management Enhancement",
+      "category": "equipment_maintenance",
+      "foundation_level": 1,
+      "priority_score": 75.33,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 70.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 99,
+      "title": "PPAP & APQP System",
+      "category": "quality_management",
+      "foundation_level": 2,
+      "priority_score": 74.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 100,
+      "title": "First Article Inspection (FAI) Management (AS9102)",
+      "category": "quality_management",
+      "foundation_level": 2,
+      "priority_score": 74.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 80.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 172,
+      "title": "Production Alerts & Andon: Multi-Channel Escalation Engine",
+      "category": "production_alerts",
+      "foundation_level": 1,
+      "priority_score": 74.08,
+      "score_breakdown": {
+        "foundation": 66.66,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 70.0,
+        "effort_value": 87.5
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 101,
+      "title": "Control Plans & Inspection Planning",
+      "category": "quality_management",
+      "foundation_level": 2,
+      "priority_score": 73.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 70.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 173,
+      "title": "Production Alerts & Andon: External eAndon System Integration",
+      "category": "production_alerts",
+      "foundation_level": 2,
+      "priority_score": 62.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 60.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 210,
+      "title": "Data Quality: Create Equipment/Material Type Lookup Tables",
+      "category": "data_quality",
+      "foundation_level": 2,
+      "priority_score": 62.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 60.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 43,
+      "title": "External System Vouching API",
+      "category": "flexible_workflow",
+      "foundation_level": 2,
+      "priority_score": 62.67,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 60.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 221,
+      "title": "Regulatory Compliance: LOTAR Long-Term Archival & Retrieval Support",
+      "category": "regulatory_compliance",
+      "foundation_level": 2,
+      "priority_score": 62.42,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 70.0,
+        "effort_value": 87.5
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": [
+        445
+      ]
+    },
+    {
+      "number": 53,
+      "title": "Performance Feedback & Time Reporting",
+      "category": "time_tracking",
+      "foundation_level": 3,
+      "priority_score": 61.0,
+      "score_breakdown": {
+        "foundation": 0.0,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 60.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 237,
+      "title": "Production Planning & Scheduling: Assembly Sequence Constraints & Validation",
+      "category": "production_planning",
+      "foundation_level": 2,
+      "priority_score": 60.17,
+      "score_breakdown": {
+        "foundation": 33.33,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 60.0,
+        "effort_value": 75.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 52,
+      "title": "External Time & Attendance Integration (Kronos, Workday)",
+      "category": "time_tracking",
+      "foundation_level": 3,
+      "priority_score": 59.57,
+      "score_breakdown": {
+        "foundation": 0.0,
+        "dependencies": 100.0,
+        "strategic": 100.0,
+        "business_value": 60.0,
+        "effort_value": 85.71
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    },
+    {
+      "number": 211,
+      "title": "Data Quality: Convert String Fields to Enums (color, makeOrBuy, periodType)",
+      "category": "data_quality",
+      "foundation_level": 3,
+      "priority_score": 50.0,
+      "score_breakdown": {
+        "foundation": 0.0,
+        "dependencies": 100.0,
+        "strategic": 50.0,
+        "business_value": 50.0,
+        "effort_value": 100.0
+      },
+      "blocked_by_issues": [],
+      "unlocks_issues": []
+    }
+  ],
+  "highest_priority_issue": {
+    "number": 405,
+    "title": "Extension Dependency Resolution Engine",
+    "category": "sdk_extensibility",
+    "foundation_level": 0,
+    "priority_score": 89.0,
+    "score_breakdown": {
+      "foundation": 99.99,
+      "dependencies": 100.0,
+      "strategic": 50.0,
+      "business_value": 90.0,
+      "effort_value": 100.0
+    },
+    "blocked_by_issues": [],
+    "unlocks_issues": [
+      438,
+      439
+    ]
+  },
+  "ineligible_issues": [
+    {
+      "number": 46,
+      "title": "Core Time Tracking Infrastructure & Configuration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 134,
+      "title": "Unified Multi-Provider SSO Management System",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 133,
+      "title": "Azure AD/Entra ID Native Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 132,
+      "title": "OAuth 2.0/OpenID Connect Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 131,
+      "title": "SAML 2.0 Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 203,
+      "title": "Enterprise SSO & Authentication: CyberArk Privileged Access Management Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 204,
+      "title": "Enterprise SSO & Authentication: Saviynt Identity Governance Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 127,
+      "title": "Comprehensive Permission Usage Tracking",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 126,
+      "title": "Time-Based Permission Grants (Temporal Permissions)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 125,
+      "title": "Role Templates for Predefined Configurations",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 136,
+      "title": "Testing Infrastructure: Achieve 50% Unit Test Coverage Across Application",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 175,
+      "title": "Epic 1: Backend Service Testing - Phase 1 (Simple Services)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 176,
+      "title": "Epic 2: Backend Service Testing - Phase 2 (Business Critical)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 177,
+      "title": "Epic 3: Backend Service Testing - Phase 3 (Infrastructure)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 178,
+      "title": "Epic 4: Frontend Component Testing - Phase 1 (Core)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 179,
+      "title": "Epic 5: Frontend Component Testing - Phase 2 (Features)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 152,
+      "title": "Testing Infrastructure: Frontend Component & Hook Testing Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 153,
+      "title": "Testing Infrastructure: Backend Service Layer Unit Tests",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 156,
+      "title": "Testing Infrastructure: Fix Authentication & Authorization Middleware Tests",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 157,
+      "title": "Testing Infrastructure: Database Layer & Repository Testing",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 158,
+      "title": "Testing Infrastructure: Error Handling & Middleware Testing",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 162,
+      "title": "Testing Infrastructure: Comprehensive Development Environment Seed Data Enhancement",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 137,
+      "title": "Testing Infrastructure: Fix All Failing Unit Tests",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 138,
+      "title": "Testing Infrastructure: Enforce Passing Unit Tests as PR Merge Requirement",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 147,
+      "title": "Workflow & Approvals: Core Unified Workflow Engine",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 149,
+      "title": "Serialization: Configurable Serial Number Format Engine",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 165,
+      "title": "SDK & Extensibility: Data Dictionary Infrastructure & Tooling",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 171,
+      "title": "Production Alerts & Andon: Core Andon Infrastructure & Configuration Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 206,
+      "title": "Data Quality: Create UnitOfMeasure Lookup Table & Migrate String Fields",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 207,
+      "title": "Data Quality: Create Location/Warehouse Lookup Table & Migrate String Fields",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 208,
+      "title": "Data Quality: Create Currency Lookup Table & Migrate String Fields",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 209,
+      "title": "Data Quality: Create Department Lookup Table for Organizational Structure",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 218,
+      "title": "Regulatory Compliance: Add Persistent UUIDs for MBE Traceability",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 219,
+      "title": "Quality Management: Migrate QIF Models to Use UUID per NIST Standards",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 274,
+      "title": "Implement Materials Management Page (/materials)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 275,
+      "title": "Implement Personnel Management Page (/personnel)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 276,
+      "title": "Implement Administration Dashboard (/admin)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 277,
+      "title": "Replace Hardcoded localhost URLs with Environment Variables",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 278,
+      "title": "Fix Typography Hierarchy Issues",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 279,
+      "title": "Implement Keyboard Navigation for ReactFlow Components",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 280,
+      "title": "Add Accessibility Support for D3 Data Visualizations",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 281,
+      "title": "Systematic Keyboard Navigation Enhancement - Interactive Elements",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 282,
+      "title": "Implement User Settings Page (/settings)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 283,
+      "title": "Standardize Color Usage - Replace Hardcoded Colors with Theme Colors",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 284,
+      "title": "Enhance Chart Component Accessibility",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 223,
+      "title": "Regulatory Compliance: Part Interchangeability & Substitution Group Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 224,
+      "title": "SDK & Extensibility: Interface Control Document (ICD) System",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 229,
+      "title": "Inventory & Material Management: Kitting & Material Staging System for Engine Assembly",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 230,
+      "title": "Quality Management: Digital Torque Management & Sequence Control for Engine Assembly",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 231,
+      "title": "Regulatory Compliance: Life-Limited Parts (LLP) Back-to-Birth Traceability",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 232,
+      "title": "Regulatory Compliance: Electronic Build Book & Assembly Build Record System",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 240,
+      "title": "Testing Infrastructure: ERP System Surrogates (Oracle EBS)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 296,
+      "title": "Phase 1: Core Oracle EBS API (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 297,
+      "title": "Phase 2: Workflows & Transaction Management (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 298,
+      "title": "Phase 3: Master Data & Asset Integration (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 299,
+      "title": "Phase 4: Test Data & Error Scenarios (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 300,
+      "title": "Phase 5: Advanced Features & Optimization (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 301,
+      "title": "Phase 6: Deployment & Documentation (Issue #240)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 241,
+      "title": "Testing Infrastructure: PLM System Surrogates (Teamcenter PLM)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 242,
+      "title": "Testing Infrastructure: Data Historian Surrogates (GE Proficy Historian)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 243,
+      "title": "Testing Infrastructure: Asset/Calibration Management Surrogates (Maximo, IndySoft)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 244,
+      "title": "Testing Infrastructure: Training & Certification Management Surrogates (Covalent)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 245,
+      "title": "Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 403,
+      "title": "Extension Type Taxonomy & Manifest Schema",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 409,
+      "title": "Extension Conflict Detection Engine",
+      "reason": "Blocked by open dependencies: [404]"
+    },
+    {
+      "number": 47,
+      "title": "Multi-Interface Time Clock System (Kiosk, Mobile, Embedded)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 49,
+      "title": "Machine-Based Time Tracking & Costing",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 51,
+      "title": "Time Entry Management & Approvals",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 225,
+      "title": "Quality Management: Change Impact Analysis & Where-Used Tool",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 233,
+      "title": "Quality Management: Test Cell Integration & Engine Acceptance Testing",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 236,
+      "title": "Inventory & Material Management: Kit Shortage Resolution & Expedite Workflow",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 54,
+      "title": "Hierarchical Cause Code System for NCR Root Cause Analysis",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 55,
+      "title": "Enhanced NCR Workflow States & Disposition (CTP, DDR, MRB)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 56,
+      "title": "CAPA (Corrective & Preventive Action) Tracking",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 57,
+      "title": "8D Problem Solving Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 88,
+      "title": "Comprehensive Inventory Management",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 90,
+      "title": "Lot Tracking & Serialization",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 150,
+      "title": "Serialization: Advanced Assignment Workflows (Vendor, Late, Propagation)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 83,
+      "title": "Capacity Planning & Resource Management",
+      "reason": "Blocked by open dependencies: [82]"
+    },
+    {
+      "number": 84,
+      "title": "Material Requirements Planning (MRP)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 85,
+      "title": "Master Production Schedule (MPS)",
+      "reason": "Blocked by open dependencies: [82]"
+    },
+    {
+      "number": 102,
+      "title": "AS9100/ISO 9001/ISO 13485 Compliance Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 104,
+      "title": "ITAR/Export Control Management",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 105,
+      "title": "Full Product Genealogy & Where-Used Traceability",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 140,
+      "title": "Help Documentation: Knowledge Base & Content Management System",
+      "reason": "Blocked by open dependencies: [139]"
+    },
+    {
+      "number": 141,
+      "title": "Help Documentation: CI/CD Auto-Documentation Integration",
+      "reason": "Blocked by open dependencies: [139]"
+    },
+    {
+      "number": 142,
+      "title": "Help Documentation: Advanced Interactive Help Features",
+      "reason": "Blocked by open dependencies: [139]"
+    },
+    {
+      "number": 154,
+      "title": "Testing Infrastructure: API Route Handler & Integration Tests",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 155,
+      "title": "Testing Infrastructure: End-to-End Integration Testing Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 144,
+      "title": "AI/ML: Predictive Analytics Foundation (Quality, Maintenance, Anomaly Detection)",
+      "reason": "Blocked by open dependencies: [143]"
+    },
+    {
+      "number": 145,
+      "title": "AI/ML: AI-Driven Process Optimization (Scheduling, Forecasting, Optimization)",
+      "reason": "Blocked by open dependencies: [143]"
+    },
+    {
+      "number": 166,
+      "title": "SDK & Extensibility: Initial Database Documentation",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 220,
+      "title": "SDK & Extensibility: Add STEP AP242 Integration Fields for MBE",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 414,
+      "title": "Core vs Extension Migration & Classification Tool",
+      "reason": "Blocked by open dependencies: [404, 407]"
+    },
+    {
+      "number": 438,
+      "title": "Database Schema Extension Framework",
+      "reason": "Blocked by open dependencies: [405, 409]"
+    },
+    {
+      "number": 439,
+      "title": "Dynamic Route Registration for Extensions",
+      "reason": "Blocked by open dependencies: [426, 405]"
+    },
+    {
+      "number": 440,
+      "title": "Service Locator & Dependency Injection Container",
+      "reason": "Blocked by open dependencies: [434]"
+    },
+    {
+      "number": 441,
+      "title": "Custom Entity & Enum Extension System",
+      "reason": "Blocked by open dependencies: [438, 439, 440]"
+    },
+    {
+      "number": 442,
+      "title": "Report Template Extension System",
+      "reason": "Blocked by open dependencies: [441]"
+    },
+    {
+      "number": 443,
+      "title": "Extension Event & Hook System Enhancements",
+      "reason": "Blocked by open dependencies: [426, 434]"
+    },
+    {
+      "number": 444,
+      "title": "Extension Security & Code Review Framework",
+      "reason": "Blocked by open dependencies: [437]"
+    },
+    {
+      "number": 415,
+      "title": "Extension Analytics & Monitoring Service",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 445,
+      "title": "Model-Based Enterprise (MBE) Integration & CAD Support",
+      "reason": "Blocked by open dependencies: [221]"
+    },
+    {
+      "number": 146,
+      "title": "AI/ML: AI User Interfaces (Computer Vision, NLU Chatbot, Voice, AI-RCA)",
+      "reason": "Blocked by open dependencies: [143]"
+    },
+    {
+      "number": 58,
+      "title": "Quality Analytics, Pareto Analysis & Cost of Quality",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 98,
+      "title": "Statistical Process Control (SPC) & Control Charts",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 267,
+      "title": "Quality Management: MRB Dashboard & Real-Time Visibility",
+      "reason": "Blocked by open dependencies: [266]"
+    },
+    {
+      "number": 268,
+      "title": "Quality Management: Teamcenter MRB Workflow Integration & Automation",
+      "reason": "Blocked by open dependencies: [266]"
+    },
+    {
+      "number": 269,
+      "title": "Quality Management: Cross-System MRB Traceability & Audit Trail",
+      "reason": "Blocked by open dependencies: [266]"
+    },
+    {
+      "number": 94,
+      "title": "Equipment Registry & Maintenance Management",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 95,
+      "title": "Tool Life Tracking & Management",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 96,
+      "title": "Calibration Management for Measurement Equipment",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 97,
+      "title": "Preventive & Predictive Maintenance",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 59,
+      "title": "Core OSP/Farmout Operations Management",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 60,
+      "title": "ERP Integration for OSP (Impact, SAP, Oracle)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 61,
+      "title": "Label Printing System Integration",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 62,
+      "title": "Supplier Portal & Collaboration Platform",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 40,
+      "title": "Site-Level Workflow Configuration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 41,
+      "title": "Flexible Workflow Enforcement Engine",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 44,
+      "title": "Flexible Quality & Compliance Controls",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 45,
+      "title": "Work Instruction Viewer with Data Collection",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 227,
+      "title": "Regulatory Compliance: Configuration Management Policy & Decision Matrix Documentation",
+      "reason": "Blocked by open dependencies: [226]"
+    },
+    {
+      "number": 86,
+      "title": "Demand Forecasting & Planning",
+      "reason": "Blocked by open dependencies: [85]"
+    },
+    {
+      "number": 87,
+      "title": "What-If Analysis & Production Simulation",
+      "reason": "Blocked by open dependencies: [82, 83]"
+    },
+    {
+      "number": 89,
+      "title": "Warehouse Management System (WMS)",
+      "reason": "Blocked by open dependencies: [91, 407]"
+    },
+    {
+      "number": 238,
+      "title": "Analytics & Reporting: Multi-Level BOM Visualization & Explosion Tools",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 106,
+      "title": "Executive Dashboards & KPI Framework",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 107,
+      "title": "Advanced OEE & Performance Analytics",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 108,
+      "title": "Custom Report Builder & Ad-Hoc Reporting",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 109,
+      "title": "BI Tool Integration (Power BI, Tableau, Looker)",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 64,
+      "title": "Material Movement & Logistics Management",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 65,
+      "title": "Native WYSIWYG Editor Implementation",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 66,
+      "title": "Advanced Media Annotation Tools",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 67,
+      "title": "Electronic Work Instructions for Suppliers",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 68,
+      "title": "PowerPoint Import/Export Support",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 69,
+      "title": "Document Template System",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 70,
+      "title": "Bulk Document Operations",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 71,
+      "title": "AI-Powered Content Discovery",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 72,
+      "title": "Document Version Control & History",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 73,
+      "title": "Collaboration & Approval Workflows",
+      "reason": "Blocked by open dependencies: [407]"
+    },
+    {
+      "number": 74,
+      "title": "API Access Control & Security Model",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 75,
+      "title": "Plugin & Hook System Architecture",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 76,
+      "title": "API Versioning & Backward Compatibility",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 77,
+      "title": "Documentation & Developer Portal",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 222,
+      "title": "SDK & Extensibility: Document UUID Strategy & Create Migration Plan",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 79,
+      "title": "Private Plugin Registry",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 80,
+      "title": "Developer Tooling & Testing Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 81,
+      "title": "Best Practices & Governance Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 167,
+      "title": "SDK & Extensibility: Automated Data Dictionary & CI/CD Integration",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 31,
+      "title": "Import Template System",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 32,
+      "title": "Bulk Import Engine (CSV/Excel/JSON)",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 33,
+      "title": "Data Validation Framework",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 34,
+      "title": "Database Direct Import/ETL Engine",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 36,
+      "title": "Paper-Based Traveler Digitization",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 37,
+      "title": "Guided Migration Wizard UI",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 38,
+      "title": "Data Mapping Assistant with AI",
+      "reason": "Issue is CLOSED"
+    },
+    {
+      "number": 39,
+      "title": "Progress Dashboard & Cutover Management",
+      "reason": "Issue is CLOSED"
+    }
+  ]
+}
