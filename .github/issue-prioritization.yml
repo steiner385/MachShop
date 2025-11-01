@@ -1481,8 +1481,7 @@ issues:
     effort_estimate: 18
     blocks: [398, 399, 445]
     implementation_status: pending
-    sub_issues: [469, 470, 471, 472, 473]
-    notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts) #469, (2) React canvas UI (5pts) #470, (3) Node types & execution (4pts) #471, (4) Multi-site deployment (3pts) #472, (5) Documentation & examples (2pts) #473. Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
+    notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts), (2) React canvas UI (5pts), (3) Node types & execution (4pts), (4) Multi-site deployment (3pts), (5) Documentation & examples (2pts). Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
 
   # --- Phase 2B: Governance & Deployment ---
   - number: 427
@@ -1542,7 +1541,7 @@ issues:
     business_value: 7
     effort_estimate: 6
     blocks: []
-    notes: "COMPLETED - ExtensionAnalyticsService and ExtensionHealthCheckService (1300+ lines), 29 comprehensive tests (100% passing), complete documentation. Includes usage metrics, performance monitoring (latency/throughput/errors/resources), health checks (7 types), anomaly detection, alert management. Implemented in PR #475"
+    notes: "PHASE 2C - Analytics and monitoring for extension ecosystem. Includes extension usage metrics, performance monitoring, health checks, dependency graph visualization, lifecycle analytics, and compliance reporting across sites. 3-4 week effort."
 
   # --- Phase 4: Next-Generation Capabilities (L2/L3) ---
   - number: 445
