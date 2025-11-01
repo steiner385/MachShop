@@ -800,7 +800,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: []
-    notes: "Automatic dependency installation with circular dependency detection, DAG validation, deterministic installation order, version constraint resolution"
+    notes: "COMPLETED - Implemented in PR #446. Automatic dependency installation with circular dependency detection, DAG validation, deterministic installation order, version constraint resolution"
 
   - number: 407
     title: "Multi-Site Extension Deployment Service"

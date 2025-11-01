@@ -173,7 +173,7 @@ Result: Complete "Rosetta Stone" for building extensions with full context
 
 ## Repository Location
 
-All agent commands are in: `/home/tony/GitHub/MachShop/.claude/commands/`
+All agent commands are in: `/home/tony/GitHub/MachShop3/.claude/commands/`
 - `agent-1-sdk-next-issue.md`
 - `agent-2-sdk-next-issue.md`
 - `agent-3-sdk-next-issue.md`
