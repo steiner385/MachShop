@@ -114,13 +114,13 @@ export const hardcodedSecrets = {
   apiKeys: [
     'test_api_key_1234567890abcdefghijklmnop',
     'example_google_key_1234567890abcdefghijklmnopqrstuv',
-    'test_test_github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    'test_test_test_github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ',
   ],
   passwords: [
-    'test_password_123',
-    'test_password_example',
+    'test_admin_pass_123',
+    'test_password_example_123',
     'test_root_password',
-    'test_db_password',
+    'test_db_password_example',
   ],
   tokens: [
     'test_token_1234567890abcdefghijklmnopqrstuvwxyz',
