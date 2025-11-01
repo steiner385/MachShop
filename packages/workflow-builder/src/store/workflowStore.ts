@@ -5,8 +5,11 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { devtools } from 'zustand/middleware/devtools';
+import { enableMapSet } from 'immer';
 import { NodeConfig, Connection, Workflow, WorkflowExecution, VariableValue } from '../types/workflow';
+
+// Enable MapSet support in Immer for Set data structures
+enableMapSet();
 
 /**
  * Editor state - UI-related state
@@ -191,8 +194,7 @@ const initialExecutionState: ExecutionState = {
  * Create the Zustand store with Immer and Devtools middleware
  */
 export const useWorkflowStore = create<WorkflowStore>()(
-  devtools(
-    immer((set, get) => ({
+  immer((set, get) => ({
       // Initial state
       ...initialEditorState,
       ...initialCanvasState,
@@ -540,9 +542,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
         const state = get();
         return state.connections.filter(c => c.source === nodeId);
       },
-    })),
-    { name: 'WorkflowStore' }
-  )
+    }))
 );
 
 /**
