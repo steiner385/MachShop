@@ -1750,7 +1750,7 @@ issues:
     business_value: 5
     effort_estimate: 5
     blocks: []
-    notes: "Image and video annotation capabilities"
+    notes: "COMPLETED - Complete annotation system with 8 phases: Core infrastructure, interactive drawing tools, text/callout annotations, layer management, undo/redo/zoom, frontend UI components, test suite, and documentation. 163 tests (100% pass rate), 20 files, 5000+ lines. Merged in PR #385"
 
   - number: 67
     title: "Electronic Work Instructions for Suppliers"
