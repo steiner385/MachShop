@@ -29,6 +29,7 @@ import WorkInstructionListPage from '@/pages/WorkInstructions/WorkInstructionLis
 import WorkInstructionDetailPage from '@/pages/WorkInstructions/WorkInstructionDetailPage';
 import WorkInstructionCreatePage from '@/pages/WorkInstructions/WorkInstructionCreatePage';
 import WorkInstructionExecutePage from '@/pages/WorkInstructions/WorkInstructionExecutePage';
+import { WorkInstructionViewerPage } from '@/pages/WorkInstructions/WorkInstructionViewerPage';
 
 // Electronic Signatures (Sprint 3)
 import SignatureAuditPage from '@/pages/Signatures/SignatureAuditPage';
@@ -566,6 +567,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute permissions={['workinstructions.execute']}>
               <WorkInstructionExecutePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/work-instructions/:id/view"
+          element={
+            <ProtectedRoute permissions={['workinstructions.read']}>
+              <WorkInstructionViewerPage />
             </ProtectedRoute>
           }
         />
