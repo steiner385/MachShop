@@ -2222,6 +2222,17 @@ issues:
     blocks: [439, 440, 444]
     notes: "COMPLETED - Built comprehensive Frontend Extension SDK with strict Ant Design enforcement. Implemented 6 core modules: ExtensionContext (context management), Theme (design tokens), Permissions (RBAC), Widgets (registry), Navigation (menu management), Compliance (accessibility/validation). Added Ant Design component re-exports with enforcement, validation framework (contracts, widgets, manifest), comprehensive documentation (USAGE_GUIDE.md with examples), and test suite. SDK v2.1.0 with type-safe API, permission-aware rendering, theme token enforcement, and accessibility utilities. Unblocks UI Component Library (#439), Configuration Management (#440), Advanced Widgets (#444). Implemented in PR #451"
 
+  - number: 434
+    title: "Extension Lifecycle Management & Versioning"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [213, 214, 426]
+    strategic_focus: null
+    business_value: 7
+    effort_estimate: 7
+    blocks: [445, 446]
+    notes: "COMPLETED - Implemented comprehensive extension lifecycle management with semantic versioning, state transitions, and dependency resolution. Built ExtensionLifecycleManager (install, update, disable, uninstall), VersionManager (semantic versioning with constraints), and DependencyResolver (conflict detection). Features: state machine, deprecation tracking, breaking change documentation, migration tooling, health monitoring, event system. Includes LIFECYCLE_GUIDE.md with 500+ lines of documentation and comprehensive test suite. Unblocks Extension Package Manager (#445) and Extension Monitoring (#446). Implemented in PR #453"
+
 # Category Definitions
 categories:
   time_tracking:
