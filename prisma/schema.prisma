@@ -16732,3 +16732,110 @@ model ExtensionSchemaVersion {
   @@index([createdAt])
   @@map("extension_schema_versions")
 }
+
+/// Extension Compatibility Matrix
+/// Tracks MES version and platform capability requirements for extensions
+model ExtensionCompatibilityMatrix {
+  id                    String   @id @default(cuid())
+  extensionId           String
+  extensionVersion      String
+  mesVersionMin         String
+  mesVersionMax         String?
+  platformCapabilities  Json?    // Required platform capabilities
+  tested                Boolean  @default(false)
+  testDate              DateTime?
+  testStatus            String?  // 'passed', 'failed', 'warning'
+  testResults           Json?    // Detailed test results
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  extensionDependencies ExtensionDependencyCompatibility[] @relation("sourceExtension")
+  targetDependencies    ExtensionDependencyCompatibility[] @relation("targetExtension")
+  capabilityMatches     CapabilityCompatibility[]
+
+  @@unique([extensionId, extensionVersion])
+  @@index([extensionId])
+  @@index([mesVersionMin])
+  @@index([tested])
+  @@index([testStatus])
+  @@map("extension_compatibility_matrix")
+}
+
+/// Extension-to-Extension Compatibility
+/// Tracks which extensions can coexist and their version constraints
+model ExtensionDependencyCompatibility {
+  id                    String   @id @default(cuid())
+  sourceExtensionId     String
+  sourceVersion         String
+  targetExtensionId     String
+  targetVersionMin      String
+  targetVersionMax      String?
+  compatibilityType     String   // 'requires', 'compatible', 'incompatible', 'optional'
+  conflictType          String?  // 'route', 'entity', 'capability', 'policy', 'hook'
+  tested                Boolean  @default(false)
+  testDate              DateTime?
+  testResults           Json?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  sourceCompatibility   ExtensionCompatibilityMatrix @relation("sourceExtension", fields: [sourceExtensionId], references: [extensionId], onDelete: Cascade)
+  targetCompatibility   ExtensionCompatibilityMatrix @relation("targetExtension", fields: [targetExtensionId], references: [extensionId], onDelete: Cascade)
+
+  @@unique([sourceExtensionId, sourceVersion, targetExtensionId])
+  @@index([sourceExtensionId, sourceVersion])
+  @@index([targetExtensionId])
+  @@index([compatibilityType])
+  @@map("extension_dependency_compatibility")
+}
+
+/// Capability Compatibility Records
+/// Tracks which capability versions work together and on which MES versions
+model CapabilityCompatibility {
+  id                    String   @id @default(cuid())
+  capabilityName        String
+  capabilityVersion     String
+  mesVersionMin         String
+  mesVersionMax         String?
+  providedByExtensions  Json?    // Array of {extensionId, versions}
+  tested                Boolean  @default(false)
+  testDate              DateTime?
+  testResults           Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  extensionMatrix       ExtensionCompatibilityMatrix[]
+
+  @@unique([capabilityName, capabilityVersion])
+  @@index([capabilityName])
+  @@index([mesVersionMin])
+  @@map("capability_compatibility")
+}
+
+/// Extension Installation Compatibility Results
+/// Stores results of pre-installation compatibility checks
+model ExtensionInstallationCompatibility {
+  id                      String   @id @default(cuid())
+  installationRequestId   String   @unique
+  extensionId             String
+  extensionVersion        String
+  mesVersion              String
+  compatible              Boolean
+  checkStatus             String   // 'pending', 'checking', 'completed', 'error'
+  conflictCount           Int      @default(0)
+  warningCount            Int      @default(0)
+  conflicts               Json?    // Array of conflict details
+  warnings                Json?    // Array of warning details
+  suggestions             Json?    // Array of resolution suggestions
+  checkedAt               DateTime @default(now())
+  expiresAt               DateTime // Cache expiration
+
+  @@index([extensionId, extensionVersion])
+  @@index([compatible])
+  @@index([expiresAt])
+  @@map("extension_installation_compatibility")
+}
