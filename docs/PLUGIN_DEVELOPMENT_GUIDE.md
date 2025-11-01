@@ -1,718 +1,383 @@
-# Plugin Development Guide
+# Plugin Development Best Practices Guide
 
 ## Overview
 
-The MachShop Plugin System enables developers to extend the Manufacturing Execution System (MES) with custom functionality without modifying core code. Plugins integrate seamlessly with the MES through a standardized hook system, event bus, and webhook delivery.
+This guide establishes standards and best practices for developing plugins for the MachShop platform. All plugins must adhere to these standards to ensure security, reliability, compatibility, and optimal performance within the MachShop ecosystem.
 
-**Table of Contents**
-- [Getting Started](#getting-started)
-- [Plugin Manifest](#plugin-manifest)
-- [Creating Your First Plugin](#creating-your-first-plugin)
-- [Hook System](#hook-system)
-- [Configuration Management](#configuration-management)
-- [Event Bus Integration](#event-bus-integration)
-- [Webhooks](#webhooks)
-- [Testing Plugins](#testing-plugins)
-- [Deployment](#deployment)
-- [Best Practices](#best-practices)
+## Table of Contents
 
-## Getting Started
+1. [Plugin System Architecture](#plugin-system-architecture)
+2. [Plugin Manifest Specification](#plugin-manifest-specification)
+3. [Plugin Package Format](#plugin-package-format)
+4. [Development Setup](#development-setup)
+5. [Plugin Entry Point](#plugin-entry-point)
+6. [Hook System](#hook-system)
+7. [Permissions System](#permissions-system)
+8. [Configuration Management](#configuration-management)
+9. [Dependency Management](#dependency-management)
+10. [API Access & Authentication](#api-access--authentication)
+11. [Data Storage](#data-storage)
+12. [Error Handling](#error-handling)
+13. [Logging](#logging)
+14. [Performance Optimization](#performance-optimization)
+15. [Testing](#testing)
+16. [Security Considerations](#security-considerations)
+17. [Deployment & Installation](#deployment--installation)
+18. [Plugin Versioning & Updates](#plugin-versioning--updates)
+19. [Troubleshooting](#troubleshooting)
 
-### Prerequisites
+---
 
-- Node.js 16+ and npm/yarn
-- TypeScript knowledge (recommended)
-- MachShop API access credentials
-- Plugin SDK installed
+## Plugin System Architecture
 
-### Installation
+### Plugin Lifecycle
 
-```bash
-npm install @machshop/plugin-sdk
-# or
-yarn add @machshop/plugin-sdk
+Plugins follow a well-defined lifecycle from submission to deployment:
+
+1. **SUBMITTED** - Developer submits plugin to registry
+2. **PENDING_REVIEW** - Automated security scan and manual review
+3. **APPROVED** or **REJECTED** - Review completion
+4. **INSTALLABLE** - Available in plugin catalog for installation
+5. **INSTALLED** - Installed at specific site
+6. **ACTIVATED** - Plugin is active and running
+7. **DEACTIVATED** - Plugin disabled but can be reactivated
+8. **UNINSTALLED** - Removed from site
+
+### Plugin Registries
+
+Three levels of plugin registries:
+
+1. **Enterprise Registry** (Central IT)
+   - Shared across entire organization
+   - Managed by IT admin team
+   - Pre-approved, vetted plugins
+
+2. **Site Registry** (Site Admin)
+   - Specific to individual manufacturing site
+   - Managed by site administrator
+   - Mix of approved and custom plugins
+
+3. **Developer Registry** (Development)
+   - For development and testing only
+   - No submission/approval required
+
+---
+
+## Plugin Manifest Specification
+
+### manifest.json
+
+Every plugin must include a manifest.json file at the root with required metadata.
+
+### Manifest Field Specifications
+
+- **id**: Unique identifier (lowercase, alphanumeric + hyphens)
+- **name**: Human-readable plugin name
+- **version**: Semantic version (MAJOR.MINOR.PATCH)
+- **author**: Plugin author name
+- **license**: License type (MIT, Apache-2.0, GPL-3.0, etc.)
+- **apiVersion**: Required MachShop API version
+- **mesVersion**: Required MES/platform version range
+- **permissions**: Required permissions (see Permission System)
+- **hooks**: Hook points this plugin implements
+- **configuration**: Configuration schema for plugin settings
+- **dependencies**: Dependent plugins
+
+---
+
+## Plugin Package Format
+
+### Package Structure
+
+```
+inventory-optimizer/
+├── manifest.json              # Plugin manifest (REQUIRED)
+├── README.md                  # Documentation (REQUIRED)
+├── LICENSE                    # License file
+├── package.json               # npm package definition
+├── src/
+│   ├── index.ts               # Entry point
+│   ├── hooks/
+│   ├── config/
+│   ├── services/
+│   └── utils/
+├── dist/                      # Compiled output
+├── tests/
+├── tsconfig.json
+└── jest.config.js
 ```
 
-### Quick Start
+---
 
-```typescript
-import PluginSDK, { HookContext } from '@machshop/plugin-sdk';
+## Plugin Entry Point
 
-// Initialize plugin
-const plugin = new PluginSDK('my-plugin', 'your-api-key');
+### index.ts Structure
 
-// Register a hook
-plugin.registerHook('workOrder.beforeCreate', async (context: HookContext) => {
-  console.log('Work order about to be created:', context.data);
-  // Add custom validation or logic
-});
+Every plugin must export a default class that implements the plugin lifecycle:
 
-// Start plugin
-await plugin.loadConfiguration();
-console.log('Plugin initialized');
-```
+- `onInstall()` - Initialize plugin
+- `onActivate()` - Start plugin operations
+- `onDeactivate()` - Stop plugin operations
+- `onUninstall()` - Clean up resources
 
-## Plugin Manifest
-
-Every plugin requires a manifest file (`manifest.json`) that describes the plugin's metadata and capabilities.
-
-### Manifest Schema
-
-```json
-{
-  "id": "my-plugin",
-  "name": "My Custom Plugin",
-  "version": "1.0.0",
-  "description": "A description of what the plugin does",
-  "author": "Your Name <email@example.com>",
-  "license": "MIT",
-  "apiVersion": "1.0.0",
-  "permissions": [
-    "workOrders:read",
-    "workOrders:write",
-    "quality:read"
-  ],
-  "hooks": {
-    "workflow": [
-      "workOrder.beforeCreate",
-      "workOrder.afterComplete"
-    ],
-    "data": [
-      "workOrder.validate",
-      "material.transform"
-    ],
-    "integration": [
-      "external.sync"
-    ],
-    "notification": [
-      "alert.send"
-    ]
-  },
-  "configuration": {
-    "apiEndpoint": {
-      "type": "string",
-      "required": true,
-      "description": "External API endpoint URL"
-    },
-    "apiKey": {
-      "type": "string",
-      "required": true,
-      "description": "API key for external service"
-    },
-    "retryAttempts": {
-      "type": "number",
-      "required": false,
-      "default": 3,
-      "description": "Number of retry attempts for API calls"
-    }
-  },
-  "dependencies": {
-    "axios": "^1.0.0",
-    "lodash": "^4.17.0"
-  },
-  "database": {
-    "migrationsDir": "./migrations",
-    "requiresMigrations": false
-  }
-}
-```
-
-### Manifest Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique plugin identifier (lowercase, hyphens allowed) |
-| `name` | string | Yes | Human-readable plugin name |
-| `version` | string | Yes | Semantic version (e.g., 1.0.0) |
-| `description` | string | No | What the plugin does |
-| `author` | string | No | Plugin author name and email |
-| `license` | string | No | License type (MIT, Apache-2.0, etc.) |
-| `apiVersion` | string | Yes | Plugin SDK API version compatibility |
-| `permissions` | array | No | Required system permissions |
-| `hooks` | object | No | Hook points this plugin registers |
-| `configuration` | object | No | Configuration schema for plugin settings |
-| `dependencies` | object | No | npm dependencies required |
-| `database` | object | No | Database migration settings |
-
-## Creating Your First Plugin
-
-### Step 1: Project Setup
-
-```bash
-mkdir my-plugin
-cd my-plugin
-npm init -y
-npm install typescript @types/node @machshop/plugin-sdk
-npx tsc --init
-```
-
-### Step 2: Create Manifest
-
-Create `manifest.json`:
-
-```json
-{
-  "id": "quality-validator",
-  "name": "Quality Validator Plugin",
-  "version": "1.0.0",
-  "description": "Validates work order quality metrics before creation",
-  "author": "Your Team",
-  "apiVersion": "1.0.0",
-  "hooks": {
-    "workflow": ["workOrder.beforeCreate"],
-    "data": ["workOrder.validate"]
-  }
-}
-```
-
-### Step 3: Create Plugin Code
-
-Create `src/index.ts`:
-
-```typescript
-import PluginSDK, { HookContext } from '@machshop/plugin-sdk';
-
-const plugin = new PluginSDK('quality-validator', process.env.PLUGIN_API_KEY || '');
-
-// Validate work order before creation
-plugin.registerHook('workOrder.beforeCreate', async (context: HookContext) => {
-  const { data } = context;
-
-  // Custom validation logic
-  if (data.qualityThreshold < 0 || data.qualityThreshold > 100) {
-    throw new Error('Quality threshold must be between 0 and 100');
-  }
-
-  // Log validation
-  plugin.log('info', 'Work order validated', {
-    workOrderId: data.id,
-    qualityThreshold: data.qualityThreshold,
-  });
-});
-
-// Validate data transformation
-plugin.registerHook('workOrder.validate', async (context: HookContext) => {
-  const { data } = context;
-
-  // Transform data if needed
-  context.data.validatedAt = new Date().toISOString();
-  context.data.validator = 'quality-validator-1.0.0';
-
-  return context;
-});
-
-export default plugin;
-```
-
-### Step 4: Build and Package
-
-```bash
-npm run build
-tar -czf quality-validator-1.0.0.tar.gz dist/ manifest.json package.json
-```
-
-### Step 5: Deploy
-
-Upload through admin dashboard:
-1. Go to Admin > Plugins
-2. Click "Install Plugin"
-3. Upload manifest and package URL
-4. Approve plugin
-5. Activate plugin
+---
 
 ## Hook System
 
-Hooks allow plugins to intercept and modify system operations at specific points.
+### Supported Hooks
 
-### Hook Types
+The plugin system supports the following hook points:
 
-#### Workflow Hooks
-Execute custom business logic during workflow processes.
+**Work Order Hooks**
+- workOrder.beforeCreate
+- workOrder.afterCreate
+- workOrder.beforeUpdate
+- workOrder.afterUpdate
+- workOrder.beforeComplete
+- workOrder.afterComplete
 
-```typescript
-// Before work order creation
-plugin.registerHook('workOrder.beforeCreate', async (context: HookContext) => {
-  // Validate, enrich, or reject the work order
-  if (!isValid(context.data)) {
-    throw new Error('Invalid work order');
-  }
-});
+**Material Hooks**
+- material.beforeCreate
+- material.afterCreate
+- material.beforeConsume
+- material.afterConsume
 
-// After work order completion
-plugin.registerHook('workOrder.afterComplete', async (context: HookContext) => {
-  // Trigger downstream processes
-  await context.api.post('/api/v1/reporting/events', {
-    type: 'workOrder.completed',
-    data: context.data,
-  });
-});
-```
+**System Hooks**
+- external.sync
+- notification.send
+- dashboard.render
+- report.generate
 
-#### Data Hooks
-Transform or validate data before storage.
+---
 
-```typescript
-// Validate work order data
-plugin.registerHook('workOrder.validate', async (context: HookContext) => {
-  // Validation logic
-  context.data.validated = true;
-  return context;
-});
+## Permissions System
 
-// Transform material data
-plugin.registerHook('material.transform', async (context: HookContext) => {
-  // Add computed fields
-  context.data.costPerUnit = context.data.totalCost / context.data.quantity;
-  return context;
-});
-```
+### Permission Levels
 
-#### Integration Hooks
-Synchronize with external systems.
+Plugins request permissions explicitly. Recommended levels:
+- 1-3 permissions: Very restricted, low risk
+- 4-6 permissions: Limited access, acceptable
+- 7-10 permissions: Significant access, requires review
+- 11+ permissions: High risk, extensive access
 
-```typescript
-// Sync with external ERP
-plugin.registerHook('external.sync', async (context: HookContext) => {
-  const result = await context.api.post('/api/v1/external/sync', {
-    entity: 'workOrder',
-    data: context.data,
-  });
+### Permission Format
 
-  context.data.externalId = result.externalId;
-});
-```
+Permissions follow: RESOURCE:ACTION format
+- work_orders:read, work_orders:write, work_orders:delete
+- materials:read, materials:write
+- users:read, users:write
+- admin:access, system:configure
 
-#### Notification Hooks
-Send alerts and notifications.
-
-```typescript
-// Send quality alert
-plugin.registerHook('alert.send', async (context: HookContext) => {
-  await context.api.post('/api/v1/notifications/send', {
-    type: 'quality_alert',
-    recipients: ['supervisor@company.com'],
-    message: `Quality check failed: ${context.data.reason}`,
-    severity: 'high',
-  });
-});
-```
-
-### Hook Context
-
-Each hook receives a `HookContext` object with the following properties:
-
-```typescript
-interface HookContext {
-  // Input data
-  data: any;
-  original?: any;
-
-  // Metadata
-  pluginId: string;
-  hookPoint: string;
-  timestamp: Date;
-  userId?: string;
-  requestId?: string;
-
-  // Utilities
-  api: APIClient;
-  config: Record<string, any>;
-  storage: StorageClient;
-
-  // Results
-  results?: any[];
-  errors?: Error[];
-}
-```
-
-### Hook Execution Order
-
-Hooks are executed in priority order (0-100, lower first):
-
-```typescript
-// Low priority (runs first)
-plugin.registerHook('workOrder.validate', handler1, { priority: 10 });
-
-// Medium priority
-plugin.registerHook('workOrder.validate', handler2, { priority: 50 });
-
-// High priority (runs last)
-plugin.registerHook('workOrder.validate', handler3, { priority: 90 });
-```
+---
 
 ## Configuration Management
 
-Plugins can store and access configuration settings.
+### Plugin Configuration
 
-### Defining Configuration
+Plugins define configuration schema in manifest.json with types:
+- string, number, boolean, array, object
 
-In manifest:
+### Runtime Configuration
 
-```json
-{
-  "configuration": {
-    "externalApiUrl": {
-      "type": "string",
-      "required": true,
-      "description": "External API endpoint"
-    },
-    "apiKey": {
-      "type": "string",
-      "required": true,
-      "description": "API authentication key"
-    },
-    "enableLogging": {
-      "type": "boolean",
-      "required": false,
-      "default": true,
-      "description": "Enable detailed logging"
-    },
-    "retryCount": {
-      "type": "number",
-      "required": false,
-      "default": 3,
-      "description": "Number of retry attempts"
-    }
-  }
-}
-```
+Access configuration via context.getConfig() and update via context.setConfig().
 
-### Accessing Configuration
+All configuration must have defaults and validation rules.
 
-```typescript
-plugin.registerHook('workOrder.beforeCreate', async (context: HookContext) => {
-  const config = context.config;
+---
 
-  const externalUrl = config.externalApiUrl;
-  const apiKey = config.apiKey;
-  const enableLogging = config.enableLogging;
+## Dependency Management
 
-  if (enableLogging) {
-    plugin.log('info', 'Using external API', { url: externalUrl });
-  }
-});
-```
+### Plugin Dependencies
 
-### Updating Configuration
+Plugins can depend on other plugins. Dependencies must be:
+- Explicitly declared in manifest.json
+- Verified at install time
+- Version compatible (SemVer ranges)
 
-Through admin dashboard or API:
+Check dependencies are resolved before using them.
 
-```bash
-curl -X PUT http://localhost:3000/api/v1/admin/plugins/{pluginId}/config \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "externalApiUrl": "https://api.example.com",
-    "apiKey": "secret-key",
-    "enableLogging": true,
-    "retryCount": 5
-  }'
-```
+---
 
-## Event Bus Integration
+## API Access & Authentication
 
-Plugins can publish and subscribe to events for inter-plugin communication.
+### Using MachShop APIs
 
-### Publishing Events
+Access MachShop APIs through context.api:
+- context.api.workOrders
+- context.api.materials
+- context.api.equipment
+- context.api.notifications
 
-```typescript
-plugin.registerHook('workOrder.afterComplete', async (context: HookContext) => {
-  // Publish event to event bus
-  await context.api.post('/api/v1/admin/plugins/events', {
-    eventType: 'workOrder.completed',
-    eventData: {
-      workOrderId: context.data.id,
-      completedAt: new Date().toISOString(),
-      status: context.data.status,
-    },
-  });
-});
-```
+All API calls are automatically authenticated with plugin's token.
 
-### Subscribing to Events
+### Error Handling for API Calls
 
-Via webhooks (see Webhooks section below).
+Handle different error types appropriately:
+- 401: Authentication failed
+- 403: Permission denied
+- 429: Rate limit exceeded
+- 500+: Server errors
 
-## Webhooks
+---
 
-Webhooks allow plugins to receive real-time event notifications.
+## Data Storage
 
-### Registering a Webhook
+### Plugin-Specific Storage
 
-```bash
-curl -X POST http://localhost:3000/api/v1/admin/plugins/{pluginId}/webhooks \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "eventType": "workOrder.completed",
-    "webhookUrl": "https://your-webhook-endpoint.com/hooks",
-    "secret": "webhook-signing-secret"
-  }'
-```
+Use context.storage for persistent plugin data:
+- context.storage.get(key)
+- context.storage.set(key, value)
+- context.storage.delete(key)
 
-### Webhook Request Format
+Do NOT use:
+- Global or external storage
+- File system access
+- Direct database connections
 
-```http
-POST /hooks HTTP/1.1
-Host: your-webhook-endpoint.com
-Content-Type: application/json
-X-Webhook-Signature: sha256=abcd1234...
-X-Webhook-ID: webhook-id
-X-Event-Type: workOrder.completed
-X-Timestamp: 2024-01-01T12:00:00Z
+---
 
-{
-  "id": "event-id",
-  "eventType": "workOrder.completed",
-  "eventData": {
-    "workOrderId": "WO-123",
-    "completedAt": "2024-01-01T12:00:00Z",
-    "status": "COMPLETED"
-  },
-  "timestamp": "2024-01-01T12:00:00Z",
-  "sourceUserId": "user-123",
-  "sourceRequestId": "request-123"
-}
-```
+## Error Handling
 
-### Webhook Signature Verification
+### Plugin-Specific Error Classes
 
-```typescript
-import crypto from 'crypto';
+Define custom error classes extending PluginError:
+- ConfigurationError
+- DependencyError
+- PermissionError
 
-app.post('/hooks', (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const payload = JSON.stringify(req.body);
+Handle errors appropriately in hooks and API calls.
 
-  const expectedSignature = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
+---
 
-  if (`sha256=${expectedSignature}` !== signature) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
+## Logging
 
-  // Process webhook
-  console.log('Event received:', req.body.eventType);
-  res.json({ success: true });
-});
-```
+### Structured Logging
 
-### Webhook Delivery Guarantees
+Use context.logger for all logging:
+- context.logger.info()
+- context.logger.warn()
+- context.logger.error()
 
-- **Reliability**: Delivered with exponential backoff retry (up to 3 attempts)
-- **Order**: Events delivered in order they were published
-- **At-least-once**: Each webhook may be delivered one or more times
-- **Timeout**: 30-second delivery timeout per webhook
+Never log sensitive data like passwords, tokens, or PII.
 
-## Testing Plugins
+---
+
+## Performance Optimization
+
+### Best Practices
+
+- Use batching for bulk operations
+- Implement caching with TTL
+- Paginate large result sets
+- Set appropriate timeouts
+- Profile long-running operations
+
+Avoid:
+- Fetching all records without pagination
+- Making individual API calls in loops
+- Long blocking operations
+- Memory leaks from unclosed connections
+
+---
+
+## Testing
 
 ### Unit Tests
 
-```typescript
-import { describe, it, expect } from '@jest/globals';
-import PluginSDK from '@machshop/plugin-sdk';
+Use Jest for unit testing plugin services and hooks.
 
-describe('Quality Validator Plugin', () => {
-  let plugin: PluginSDK;
-
-  beforeEach(() => {
-    plugin = new PluginSDK('quality-validator', 'test-key');
-  });
-
-  it('should reject work orders with invalid quality threshold', async () => {
-    const context = {
-      data: {
-        id: 'WO-123',
-        qualityThreshold: 150, // Invalid: > 100
-      },
-    };
-
-    const handler = plugin.getHookHandler('workOrder.beforeCreate');
-    expect(() => handler(context)).toThrow('Quality threshold must be between 0 and 100');
-  });
-});
-```
+Mock context.api and context.storage for isolation.
 
 ### Integration Tests
 
-```typescript
-describe('Integration Tests', () => {
-  it('should synchronize with external API', async () => {
-    const response = await plugin.api('POST', '/external/sync', {
-      entity: 'workOrder',
-      data: { id: 'WO-123' },
-    });
+Test plugin installation, activation, and hook execution.
 
-    expect(response.success).toBe(true);
-    expect(response.externalId).toBeDefined();
-  });
-});
-```
+Verify integration with MachShop platform APIs.
 
-### Manual Testing
+---
 
-1. **Install plugin** in admin dashboard
-2. **Enable logging** in configuration
-3. **Test webhooks** using test button
-4. **Monitor execution** in Event Bus dashboard
-5. **Check logs** in system logs
+## Security Considerations
 
-## Deployment
+### Code Security
 
-### Package Your Plugin
+- Validate all external input
+- Sanitize user input before processing
+- Never use eval() or dynamic code execution
+- Validate external API calls
 
-```bash
-# Create distribution
-npm run build
+### Permission Best Practices
 
-# Package plugin
-tar -czf my-plugin-1.0.0.tar.gz \
-  dist/ \
-  manifest.json \
-  package.json \
-  README.md
+- Request only necessary permissions
+- Check permissions in hooks before API calls
+- Document why each permission is needed
 
-# Upload to S3 or CDN
-aws s3 cp my-plugin-1.0.0.tar.gz s3://your-plugins-bucket/
-```
+### Dependency Validation
 
-### Install via Admin Dashboard
+- Verify dependencies before using
+- Check minimum version requirements
+- Update dependencies regularly
 
-1. Navigate to Admin > Plugin Management
-2. Click "Install Plugin"
-3. Enter manifest JSON
-4. Enter package URL (S3, GitHub releases, etc.)
-5. Click "Install"
+---
 
-### Install via API
+## Deployment & Installation
 
-```bash
-curl -X POST http://localhost:3000/api/v1/admin/plugins/install \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "manifest": { ... },
-    "packageUrl": "https://your-url/my-plugin-1.0.0.tar.gz"
-  }'
-```
+### Submitting to Registry
 
-### Lifecycle States
+1. Build and package plugin
+2. Calculate checksum
+3. Submit via API with manifest
+4. Monitor review status
+5. Publish when approved
 
-1. **PENDING_APPROVAL**: Installed, awaiting admin approval
-2. **INSTALLED**: Approved, ready to activate
-3. **ACTIVE**: Running and processing hooks
-4. **DISABLED**: Temporarily disabled without uninstalling
-5. **FAILED**: Encountered critical error
-6. **UNINSTALLED**: Completely removed
+### Installing at Site
 
-## Best Practices
+1. Get available plugins from registry
+2. Install with configuration
+3. Activate plugin
+4. Verify installation health
 
-### 1. Error Handling
+---
 
-```typescript
-plugin.registerHook('workOrder.beforeCreate', async (context: HookContext) => {
-  try {
-    // Perform operation
-    const result = await context.api.post('/api/v1/validate', context.data);
-    return result;
-  } catch (error) {
-    plugin.log('error', 'Validation failed', {
-      hookPoint: context.hookPoint,
-      error: error.message,
-      data: context.data,
-    });
-    // Rethrow or handle gracefully
-    throw error;
-  }
-});
-```
+## Plugin Versioning & Updates
 
-### 2. Logging Best Practices
+### Semantic Versioning
 
-```typescript
-// Use appropriate log levels
-plugin.log('info', 'Plugin started successfully');
-plugin.log('warn', 'Configuration is missing optional field');
-plugin.log('error', 'Critical failure occurred', { errorDetails: {...} });
+- MAJOR: Breaking changes
+- MINOR: New features, backward compatible
+- PATCH: Bug fixes
 
-// Include context in logs
-plugin.log('info', 'Processing work order', {
-  workOrderId: context.data.id,
-  userId: context.userId,
-  requestId: context.requestId,
-});
-```
+### Migration Guide
 
-### 3. Performance Considerations
+Document breaking changes and migration steps for major versions.
 
-```typescript
-// Cache configuration
-const config = context.config;
-const apiUrl = config.externalApiUrl; // Cache this
+---
 
-// Use batch operations when possible
-const results = await context.api.post('/api/v1/batch', {
-  operations: [...],
-});
+## Troubleshooting
 
-// Set appropriate hook priority
-// Lower priority hooks run first and faster
-plugin.registerHook('workOrder.validate', handler, { priority: 20 });
-```
+### Common Issues
 
-### 4. Security Best Practices
+**Plugin fails to install**
+- Check manifest.json syntax
+- Verify required fields
+- Check file permissions
 
-```typescript
-// Never log sensitive data
-plugin.log('error', 'Authentication failed'); // Good
-// plugin.log('error', 'Auth failed with key: ' + apiKey); // BAD
+**Plugin crashes on activation**
+- Check configuration validity
+- Verify dependencies
+- Review error logs
 
-// Validate and sanitize input
-if (!isValid(context.data)) {
-  throw new Error('Invalid input');
-}
+**High memory usage**
+- Check for memory leaks
+- Implement caching TTL
+- Use batch processing
 
-// Use HTTPS for webhook endpoints
-// Store secrets in plugin configuration
-const apiKey = context.config.apiKey; // From secure storage
+**Slow performance**
+- Implement pagination
+- Use caching
+- Batch API calls
+- Add database indexes
 
-// Verify webhook signatures
-// See Webhook Signature Verification section
-```
+### Debug Mode
 
-### 5. Monitoring and Observability
+Enable debug logging in manifest.json and use context.logger.profile() for profiling.
 
-```typescript
-// Monitor hook execution
-plugin.log('info', 'Hook execution started', {
-  hookPoint: context.hookPoint,
-  timestamp: new Date().toISOString(),
-});
-
-// Include request context for tracing
-plugin.log('info', 'External API call', {
-  requestId: context.requestId,
-  userId: context.userId,
-  endpoint: '/api/v1/external/sync',
-});
-
-// Check plugin health in admin dashboard
-// Monitor Event Bus metrics
-// Review execution history
-```
-
-## Next Steps
-
-- [API Reference](./PLUGIN_API_REFERENCE.md)
-- [Hook Point Reference](./HOOK_POINTS.md)
-- [Example Plugins](./examples/)
-- [Troubleshooting](./TROUBLESHOOTING.md)
-
-## Support
-
-For questions or issues:
-- GitHub Issues: https://github.com/steiner385/MachShop/issues
-- Documentation: https://docs.machshop.io/plugins
-- Community: Slack #plugin-developers
