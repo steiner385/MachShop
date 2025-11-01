@@ -48,10 +48,54 @@ export {
   type WidgetSlotInfo,
 } from './widgets/useWidgetSlot';
 
+// Export navigation utilities
+export {
+  useNavigation,
+  MenuItemRenderer,
+  getNavigationRegistry,
+  type MenuItem,
+  type NavigationRegistry,
+  type NavigationHookReturn,
+} from './navigation/useNavigation';
+
+// Export Ant Design components with enforcement
+export * from './antd';
+
+// Export compliance utilities
+export {
+  validateAccessibility,
+  validateThemeCompliance,
+  generateComplianceReport,
+  isCompliant,
+  getComplianceSummary,
+  type AccessibilityAuditResult,
+  type AccessibilityViolation,
+  type AccessibilityWarning,
+  type ThemeComplianceResult,
+  type ThemeViolation,
+  type ComplianceReport,
+} from './compliance';
+
+// Export validation utilities
+export {
+  validateComponentContract,
+  validateWidgetInSlot,
+  createComponentValidator,
+  createWidgetValidator,
+  validateManifestSchema,
+  validateAntDesignUsage,
+  validateComponent,
+  type ComponentContract,
+  type WidgetContract,
+  type ValidationResult,
+  type ValidationError,
+  type ValidationWarning,
+} from './validation';
+
 /**
  * SDK Version
  */
-export const SDK_VERSION = '2.0.0';
+export const SDK_VERSION = '2.1.0';
 
 /**
  * Initialization function for extensions
