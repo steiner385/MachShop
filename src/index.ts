@@ -135,6 +135,8 @@ import migrationTemplatesRoutes from './routes/migration/templates';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
+import redisClientService from './services/RedisClientService';
+import PluginSystemService from './services/PluginSystemService';
 
 // Import OpenAPI specification - commented out for now
 // import * as openApiSpec from '../openapi.yaml';
@@ -417,6 +419,24 @@ const server = app.listen(PORT, async () => {
     logger.error('Failed to initialize WebSocket service:', error);
   }
 
+  // Initialize Redis and Event Bus (Issue #75 Phase 4)
+  // Skip Redis in test environment to avoid connection issues in CI/CD
+  if (!isTest) {
+    try {
+      await redisClientService.connect();
+      logger.info('Redis client connected successfully');
+
+      // Initialize Event Bus and Webhook Queue
+      await PluginSystemService.initializeEventBusAndQueue();
+      logger.info('Plugin Event Bus and Webhook Queue initialized successfully');
+    } catch (error) {
+      logger.warn('Failed to initialize Redis/Event Bus (non-blocking):', error);
+      // Don't throw - allow app to continue without Redis for development
+    }
+  } else {
+    logger.info('Redis/Event Bus initialization skipped (test environment)');
+  }
+
   // Initialize Integration Manager (ERP/PLM integrations)
   // Skip integration manager in test environment to prevent segfault in E2E tests
   if (!isTest) {
@@ -432,18 +452,36 @@ const server = app.listen(PORT, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   webSocketService.shutdown();
+
+  // Shutdown Event Bus and Redis (Issue #75 Phase 4)
+  try {
+    await PluginSystemService.shutdownEventBusAndQueue();
+    await redisClientService.disconnect();
+  } catch (error) {
+    logger.warn('Error during event bus/Redis shutdown:', error);
+  }
+
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
   webSocketService.shutdown();
+
+  // Shutdown Event Bus and Redis (Issue #75 Phase 4)
+  try {
+    await PluginSystemService.shutdownEventBusAndQueue();
+    await redisClientService.disconnect();
+  } catch (error) {
+    logger.warn('Error during event bus/Redis shutdown:', error);
+  }
+
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
