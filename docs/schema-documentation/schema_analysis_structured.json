@@ -1,0 +1,433 @@
+{
+  "analysis_summary": {
+    "timestamp": "2025-11-01",
+    "analysis_type": "MachShop MES Database Schema Analysis"
+  },
+  "schema_metrics": {
+    "total_models": 398,
+    "total_fields": 7859,
+    "total_enums": 159,
+    "total_enum_values": 1300,
+    "prisma_schema_lines": 16734,
+    "documentation_coverage": {
+      "fields_with_examples": 17,
+      "fields_missing_examples": 7852,
+      "coverage_percentage": 0.22
+    }
+  },
+  "field_naming_patterns": {
+    "status_suffix_fields": {
+      "count": 100,
+      "percentage": 13,
+      "description": "State tracking across all business domains",
+      "examples": [
+        "workOrderStatus",
+        "materialLotStatus",
+        "qualityInspectionStatus",
+        "equipmentStatus"
+      ]
+    },
+    "number_suffix_fields": {
+      "count": 40,
+      "description": "Manufacturing-specific numbering patterns",
+      "examples": [
+        "workOrderNumber",
+        "batchNumber",
+        "documentNumber",
+        "equipmentNumber"
+      ]
+    },
+    "code_suffix_fields": {
+      "count": 30,
+      "description": "Business domain codes for categorization",
+      "examples": [
+        "departmentCode",
+        "operationCode",
+        "siteCode",
+        "reasonCode"
+      ]
+    },
+    "date_time_suffix_fields": {
+      "count": 100,
+      "description": "Temporal tracking for manufacturing processes",
+      "examples": [
+        "createdAt",
+        "actualStartDate",
+        "approvedDate",
+        "calibrationDueDate"
+      ]
+    }
+  },
+  "enum_summary": {
+    "total_enums": 159,
+    "total_values": 1300,
+    "categories": {
+      "personnel_qualifications": {
+        "count": 5,
+        "examples": [
+          "QualificationType",
+          "CertificationStatus",
+          "SkillCategory",
+          "CompetencyLevel"
+        ]
+      },
+      "material_inventory": {
+        "count": 6,
+        "examples": [
+          "MaterialType",
+          "MaterialLotStatus",
+          "MaterialPropertyType",
+          "MaterialLotState"
+        ]
+      },
+      "operations_routing": {
+        "count": 8,
+        "examples": [
+          "OperationType",
+          "ParameterType",
+          "DependencyType",
+          "DependencyTimingType"
+        ]
+      },
+      "production_scheduling": {
+        "count": 8,
+        "examples": [
+          "WorkOrderStatus",
+          "ScheduleState",
+          "RoutingType",
+          "StepType"
+        ]
+      },
+      "quality_compliance": {
+        "count": 11,
+        "examples": [
+          "QualityInspectionStatus",
+          "NCRStatus",
+          "InspectionType",
+          "InspectionResult"
+        ]
+      },
+      "equipment_assets": {
+        "count": 7,
+        "examples": [
+          "EquipmentStatus",
+          "EquipmentState",
+          "EquipmentCommandStatus",
+          "PhysicalAssetType"
+        ]
+      },
+      "product_configuration": {
+        "count": 5,
+        "examples": [
+          "ProductType",
+          "ProductLifecycleState",
+          "ConfigurationType",
+          "ConsumptionType"
+        ]
+      },
+      "workflow_approval": {
+        "count": 13,
+        "examples": [
+          "WorkflowStatus",
+          "ApprovalAction",
+          "StageStatus",
+          "WorkflowEventType"
+        ]
+      },
+      "engineering_change_orders": {
+        "count": 7,
+        "examples": [
+          "ECOStatus",
+          "ECOType",
+          "ECOPriority",
+          "CRBDecision"
+        ]
+      },
+      "integration": {
+        "count": 5,
+        "examples": [
+          "IntegrationType",
+          "IntegrationDirection",
+          "IntegrationLogStatus",
+          "ERPTransactionType"
+        ]
+      },
+      "time_tracking": {
+        "count": 9,
+        "examples": [
+          "TimeEntryStatus",
+          "TimeType",
+          "TimeEntrySource",
+          "TimeValidationRuleType"
+        ]
+      },
+      "security_compliance": {
+        "count": 8,
+        "examples": [
+          "SecurityEventType",
+          "PermissionChangeType",
+          "AuthenticationEventType",
+          "ReportType"
+        ]
+      },
+      "icd_system": {
+        "count": 7,
+        "examples": [
+          "ICDStatus",
+          "InterfaceType",
+          "InterfaceCriticality",
+          "VerificationMethod"
+        ]
+      },
+      "other": {
+        "count": 27
+      }
+    }
+  },
+  "top_tables_by_field_count": [
+    {
+      "rank": 1,
+      "name": "User",
+      "field_count": 201,
+      "missing_examples": 201,
+      "category": "Personnel"
+    },
+    {
+      "rank": 2,
+      "name": "Part",
+      "field_count": 101,
+      "missing_examples": 101,
+      "category": "Manufacturing"
+    },
+    {
+      "rank": 3,
+      "name": "Equipment",
+      "field_count": 67,
+      "missing_examples": 67,
+      "category": "Assets"
+    },
+    {
+      "rank": 4,
+      "name": "ToolDrawing",
+      "field_count": 60,
+      "missing_examples": 60,
+      "category": "Documentation"
+    },
+    {
+      "rank": 5,
+      "name": "Site",
+      "field_count": 57,
+      "missing_examples": 57,
+      "category": "Organization"
+    },
+    {
+      "rank": 6,
+      "name": "WorkOrder",
+      "field_count": 54,
+      "missing_examples": 54,
+      "category": "Production"
+    },
+    {
+      "rank": 7,
+      "name": "Operation",
+      "field_count": 55,
+      "missing_examples": 55,
+      "category": "Manufacturing"
+    },
+    {
+      "rank": 8,
+      "name": "BuildRecord",
+      "field_count": 51,
+      "missing_examples": 51,
+      "category": "Quality"
+    },
+    {
+      "rank": 9,
+      "name": "EngineeringChangeOrder",
+      "field_count": 55,
+      "missing_examples": 55,
+      "category": "Engineering"
+    },
+    {
+      "rank": 10,
+      "name": "StandardOperatingProcedure",
+      "field_count": 46,
+      "missing_examples": 46,
+      "category": "Documentation"
+    }
+  ],
+  "example_format_templates": {
+    "work_order_number": {
+      "format": "WO-YYYY-NNNNNN",
+      "description": "Sequential numbering with optional rework suffix",
+      "examples": [
+        "WO-2024-000123",
+        "WO-2024-R00456",
+        "WO-2025-000001"
+      ]
+    },
+    "material_lot_number": {
+      "format": "LOT + date + sequence",
+      "description": "Supplier-provided or internally generated",
+      "examples": [
+        "LOT240301001",
+        "SUP-ABC-2024-0123",
+        "STEEL-2024Q1-456"
+      ]
+    },
+    "iso_datetime": {
+      "format": "ISO 8601 with timezone",
+      "description": "Standard timestamp format",
+      "examples": [
+        "2024-10-30T08:15:30.000Z",
+        "2024-11-01T14:22:15.123Z"
+      ]
+    },
+    "quantity": {
+      "format": "Positive integer or decimal",
+      "description": "Manufacturing quantities",
+      "examples": [100, 500, 1000, 25.5, 150.0]
+    },
+    "percentage": {
+      "format": "Decimal 0-100",
+      "description": "Efficiency, yield, confidence",
+      "examples": [95.5, 99.9, 0.5, 50.0]
+    }
+  },
+  "documentation_structure": {
+    "file_location": "/home/tony/GitHub/MachShop2/docs/schema-documentation/field-descriptions.json",
+    "file_size_mb": 3.2,
+    "metadata_attributes": [
+      "description",
+      "businessRule",
+      "dataSource",
+      "format",
+      "examples",
+      "validation",
+      "calculations",
+      "privacy",
+      "retention",
+      "auditTrail",
+      "integrationMapping",
+      "businessImpact",
+      "validValues",
+      "complianceNotes",
+      "businessPurpose",
+      "businessJustification",
+      "consequences"
+    ],
+    "total_attributes": 17
+  },
+  "manufacturing_conventions": {
+    "domains": [
+      {
+        "name": "Work Order",
+        "format": "WO-YYYY-NNNNNN",
+        "key_fields": [
+          "workOrderNumber",
+          "workOrderStatus",
+          "workOrderPriority"
+        ],
+        "example": "WO-2024-000123"
+      },
+      {
+        "name": "Material",
+        "format": "LOT + date + sequence",
+        "key_fields": [
+          "lotNumber",
+          "materialLotStatus",
+          "materialLotState"
+        ],
+        "example": "LOT240301001"
+      },
+      {
+        "name": "Quality",
+        "format": "Domain-specific codes",
+        "key_fields": [
+          "qualityInspectionStatus",
+          "ncrStatus",
+          "dispositionType"
+        ]
+      },
+      {
+        "name": "Equipment",
+        "format": "Equipment + serial",
+        "key_fields": [
+          "equipmentNumber",
+          "equipmentStatus",
+          "equipmentState"
+        ]
+      }
+    ]
+  },
+  "field_categories": {
+    "identity_reference": {
+      "description": "ID and key fields",
+      "patterns": ["id", "uuid", "*Id", "*Code"]
+    },
+    "measurement": {
+      "description": "Quantities, times, numeric values",
+      "patterns": ["quantity*", "*Time", "*Duration", "*Number", "*Percent"]
+    },
+    "status_state": {
+      "description": "State tracking and workflow",
+      "patterns": ["*Status", "*State", "*Approval"]
+    },
+    "audit_compliance": {
+      "description": "Timestamps, user tracking, change logs",
+      "patterns": ["createdAt", "updatedAt", "*History", "*Log"]
+    },
+    "relationship": {
+      "description": "One-to-many, many-to-one, many-to-many",
+      "patterns": ["*Id", "relations"]
+    }
+  },
+  "recommendations": {
+    "priority_tier_1": {
+      "description": "Critical, high-impact fields",
+      "estimated_count": 200,
+      "includes": [
+        "All Status fields (100+)",
+        "Work Order fields",
+        "Material identification",
+        "Quality results",
+        "Equipment state",
+        "Financial fields"
+      ]
+    },
+    "priority_tier_2": {
+      "description": "Common, medium-impact fields",
+      "estimated_count": 500,
+      "includes": [
+        "Date/Time fields (100+)",
+        "Quantity fields",
+        "Code fields (30+)",
+        "Operation parameters",
+        "Personnel fields"
+      ]
+    },
+    "priority_tier_3": {
+      "description": "Remaining, lower-impact fields",
+      "estimated_count": 7152,
+      "includes": [
+        "Reference fields",
+        "System audit fields",
+        "Relationship fields"
+      ]
+    }
+  },
+  "programmatic_generation_readiness": {
+    "schema_completeness": "100%",
+    "enum_definitions": "100% (159 enums)",
+    "naming_patterns": "Identified and documented",
+    "existing_examples": "17 fields (0.22%)",
+    "ready_for_automation": true,
+    "automation_approach": [
+      "Field name pattern recognition",
+      "Type-based template generation",
+      "Manufacturing domain mapping",
+      "Enum value direct population",
+      "Batch JSON generation"
+    ]
+  }
+}
