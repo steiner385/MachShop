@@ -99,6 +99,10 @@ model Site {
   // Plugin Registry Relations (Issue #79)
   pluginInstallations   PluginInstallation[]
 
+  // Quality Configuration Relations (Issue #44)
+  ncrDispositionRules   NCRDispositionRule[]  @relation("NCRDispositionRules")
+  electronicSignatureRequirements ElectronicSignatureRequirement[] @relation("ElectronicSignatureRequirements")
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -927,6 +931,9 @@ model Operation {
   // Relationships
   digitalThreadTraces       DigitalThreadTrace[]     @relation("OperationDigitalThreads")
 
+  // Quality Configuration Relations (Issue #44)
+  qualityConfiguration     OperationQualityConfiguration? @relation("OperationQualityConfig")
+
   @@index([parentOperationId])
   @@index([persistentUuid])
   @@index([operationType])
@@ -1547,6 +1554,7 @@ model Routing {
   scheduleEntries ScheduleEntry[]
   workOrders      WorkOrder[]
   workflowConfiguration RoutingWorkflowConfiguration? @relation("RoutingWorkflowConfig")
+  qualityConfiguration RoutingQualityConfiguration? @relation("RoutingQualityConfig")
 
   @@unique([partId, siteId, version])
   @@index([siteId])
@@ -13810,4 +13818,129 @@ model DigitizedOperation {
   @@index([travelerId])
   @@index([operationNumber])
   @@map("digitized_operations")
+}
+
+// ============================================================================
+// QUALITY CONFIGURATION & ENFORCEMENT (Issue #44)
+// ============================================================================
+
+/// Quality Enforcement Modes
+enum QualityEnforcementMode {
+  STRICT        // Quality required, must pass
+  RECOMMENDED   // Quality recommended, warnings if fail
+  OPTIONAL      // No quality requirements
+  EXTERNAL      // Trust external quality systems
+}
+
+/// Routing-Level Quality Configuration (Issue #44)
+/// Allows quality requirement overrides from site defaults
+model RoutingQualityConfiguration {
+  id                      String   @id @default(cuid())
+  routingId               String   @unique
+
+  // Override flags (null = inherit from site)
+  qualityEnforcementMode  QualityEnforcementMode?
+  enforceInspectionPass   Boolean?
+  requireElectronicSig    Boolean?
+
+  // Critical operation flags
+  isCriticalProcess       Boolean  @default(false)  // Aerospace, medical, etc.
+  regulatoryRequirement   String?  // "FDA", "AS9100", "ISO13485"
+
+  // Justification
+  overrideReason          String?
+  approvedBy              String?
+  approvedAt              DateTime?
+
+  // Metadata
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String
+
+  // Relations
+  routing                 Routing  @relation("RoutingQualityConfig", fields: [routingId], references: [id], onDelete: Cascade)
+
+  @@index([routingId])
+  @@map("routing_quality_configurations")
+}
+
+/// Operation-Level Quality Configuration (Issue #44)
+/// Allows operation-specific quality requirement overrides
+model OperationQualityConfiguration {
+  id                      String   @id @default(cuid())
+  operationId             String   @unique
+
+  // Quality requirements
+  qualityRequired         Boolean  @default(true)
+  inspectionType          String?  // "RECEIVING", "IN_PROCESS", "FINAL", "FIRST_ARTICLE"
+  sampleSize              Int?     // Required sample size
+  autoFailOnDefect        Boolean  @default(false)  // Auto-fail if any defect found?
+
+  // Signature requirements
+  requireOperatorSig      Boolean  @default(false)
+  requireQualitySig       Boolean  @default(false)
+  requireEngineerSig      Boolean  @default(false)
+
+  // External quality
+  acceptExternalQuality   Boolean  @default(false)
+
+  // Metadata
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String
+
+  // Relations
+  operation               Operation @relation("OperationQualityConfig", fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([operationId])
+  @@map("operation_quality_configurations")
+}
+
+/// NCR Disposition Rules (Issue #44)
+/// Configurable rules for allowed NCR dispositions per severity level
+model NCRDispositionRule {
+  id                String   @id @default(cuid())
+  severity          NCRSeverity
+  allowedDisposition String[]  // Array of allowed disposition values
+  requiresApproval  Boolean  @default(true)
+  approvalLevel     String?  // "SUPERVISOR", "QUALITY_MANAGER", "ENGINEER"
+  isActive          Boolean  @default(true)
+
+  // Site-specific rules
+  siteId            String?
+  site              Site?    @relation("NCRDispositionRules", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
+
+  @@index([severity])
+  @@index([siteId])
+  @@map("ncr_disposition_rules")
+}
+
+/// Quality Inspection Enhancement Fields (Issue #44)
+/// NOTE: These fields are added to the existing QualityInspection model
+/// via Prisma migration. See schema modifications below.
+
+/// Electronic Signature Configuration (Issue #44)
+model ElectronicSignatureRequirement {
+  id                String   @id @default(cuid())
+  actionType        String   // "QUALITY_INSPECTION", "NCR_DISPOSITION", "OPERATION_COMPLETION"
+  requiresSignature Boolean  @default(false)
+  signatureLevel    String?  // "OPERATOR", "SUPERVISOR", "QUALITY_MANAGER"
+
+  // Site-specific configuration
+  siteId            String?
+  site              Site?    @relation("ElectronicSignatureRequirements", fields: [siteId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
+
+  @@unique([actionType, siteId])
+  @@index([siteId])
+  @@map("electronic_signature_requirements")
 }

@@ -142,6 +142,7 @@ import etlRoutes from './routes/migration/etl';
 
 // ✅ GITHUB ISSUE #41: Flexible Workflow Enforcement Engine Routes
 import workflowEnforcementRoutes from './routes/workflowEnforcement';
+import qualityEnforcementRoutes from './routes/qualityEnforcement';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -382,6 +383,9 @@ apiRouter.use('/migration/etl', authMiddleware, etlRoutes);
 
 // ✅ GITHUB ISSUE #41: Flexible Workflow Enforcement Engine API Routes
 apiRouter.use('/workflow-enforcement', authMiddleware, workflowEnforcementRoutes);
+
+// ✅ GITHUB ISSUE #44: Flexible Quality & Compliance Controls API Routes
+apiRouter.use('/quality-enforcement', authMiddleware, qualityEnforcementRoutes);
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing
