@@ -1,0 +1,75 @@
+{
+  "id": "aerospace-custom-fields",
+  "version": "1.5.0",
+  "name": "Aerospace Industry Custom Fields",
+  "type": "data-extension",
+  "category": "custom-field",
+  "description": "Extends work order and quality modules with aerospace-specific custom fields including certification tracking, compliance documentation, and supplier AS9100 status.",
+  "author": {
+    "name": "Aerospace Compliance Systems",
+    "email": "info@aerospace-compliance.io"
+  },
+  "license": "Proprietary",
+  "apiVersion": "v2.1",
+  "mesVersion": "3.2.0",
+  "extensionSchemaVersion": "1.0",
+  "keywords": ["aerospace", "custom-fields", "as9100", "compliance"],
+  "documentation": {
+    "guide": "https://docs.aerospace-compliance.io/machshop-extension"
+  },
+  "conflicts": [
+    {
+      "id": "aerospace-legacy-fields",
+      "reason": "Superseded by improved schema"
+    }
+  ],
+  "capabilities": {
+    "dataSchema": {
+      "fields": [
+        "work-order.certification-level",
+        "work-order.supplier-approval",
+        "quality.nadcap-status",
+        "quality.fracture-critical-tracking"
+      ]
+    }
+  },
+  "permissions": [
+    "read:work-orders",
+    "write:work-orders",
+    "read:quality",
+    "write:quality"
+  ],
+  "configuration": {
+    "properties": {
+      "enableCertificationTracking": {
+        "type": "boolean",
+        "description": "Enable aerospace certification tracking",
+        "default": true
+      },
+      "nadcapRequired": {
+        "type": "boolean",
+        "description": "Enforce NADCAP certification for specific operations",
+        "default": true
+      },
+      "complianceLevel": {
+        "type": "string",
+        "enum": ["basic", "standard", "strict"],
+        "default": "standard"
+      }
+    },
+    "required": ["complianceLevel"]
+  },
+  "requirements": {
+    "nodeVersion": ">=16.0.0",
+    "memory": "256MB"
+  },
+  "testing": {
+    "hasTests": true,
+    "coverage": 88
+  },
+  "security": {
+    "signatureRequired": true
+  },
+  "tags": ["aerospace", "as9100", "nadcap", "compliance", "custom-fields"],
+  "releaseDate": "2024-03-01T09:00:00Z"
+}
