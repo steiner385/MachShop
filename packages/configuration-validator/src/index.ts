@@ -33,3 +33,10 @@ export {
   ConfigurationStore,
   InMemoryConfigurationStore,
 } from './validator';
+
+export {
+  // API handlers
+  ExtensionApiHandlers,
+  createApiHandlers,
+  type ApiResponse,
+} from './api';
