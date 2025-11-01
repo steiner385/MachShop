@@ -1,0 +1,44 @@
+{
+  "name": "@mes/cli",
+  "version": "0.1.0",
+  "description": "MES SDK CLI tool for plugin development, testing, and deployment",
+  "main": "dist/index.js",
+  "bin": {
+    "mes": "dist/bin/cli.js"
+  },
+  "scripts": {
+    "build": "esbuild src/**/*.ts --outdir=dist --format=cjs --platform=node --target=node18",
+    "dev": "esbuild src/**/*.ts --outdir=dist --format=cjs --platform=node --target=node18 --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --fix",
+    "prepublish": "npm run build"
+  },
+  "keywords": [
+    "mes",
+    "plugin",
+    "cli",
+    "development",
+    "testing",
+    "sdk"
+  ],
+  "author": "MES Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "enquirer": "^2.4.1",
+    "fs-extra": "^11.2.0",
+    "oclif": "^4.1.2",
+    "ora": "^8.0.1",
+    "strip-ansi": "^7.1.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.6",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}
