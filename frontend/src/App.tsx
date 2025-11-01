@@ -24,6 +24,9 @@ import Profile from '@/pages/Profile/Profile';
 import NotFound from '@/pages/NotFound/NotFound';
 import { ProtectedRoute } from '@/components/Auth/ProtectedRoute';
 
+// Quality Analytics (Issue #58)
+import { QualityAnalyticsDashboard } from '@/components/QualityAnalytics';
+
 // Work Instructions (Sprint 2/3)
 import WorkInstructionListPage from '@/pages/WorkInstructions/WorkInstructionListPage';
 import WorkInstructionDetailPage from '@/pages/WorkInstructions/WorkInstructionDetailPage';
@@ -231,6 +234,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute roles={['Quality Engineer']}>
               <CorrectiveActions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quality/analytics"
+          element={
+            <ProtectedRoute roles={['Quality Engineer', 'Quality Manager', 'Plant Manager']}>
+              <QualityAnalyticsDashboard siteId="default" />
             </ProtectedRoute>
           }
         />
