@@ -1426,7 +1426,9 @@ issues:
     business_value: 10
     effort_estimate: 8
     blocks: [443, 444]
-    notes: "PHASE 2 - Enable extensions to define custom entities and enums. EntityRegistry, JSON Schema definitions, TypeScript generation, auto-generated CRUD endpoints, relationships, batch operations. 5-6 week effort. Unblocks #443, #444"
+    implementation_status: completed
+    completed_date: "2025-11-01"
+    notes: "COMPLETED - Enable extensions to define custom entities and enums with full CRUD. EntityRegistry (fields, validation, schema generation, TypeScript types), EnumRegistry (validation, code generation), EntityCRUDService (create/read/update/delete, batch operations, bulk actions), EntityRelationshipManager (one-to-one/many-to-many/one-to-many, circular detection), automatic JSON Schema and TypeScript generation. Implemented in PR #462. Unblocks #442."
 
   - number: 442
     title: "Report Template Extension System"
