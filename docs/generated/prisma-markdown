@@ -1160,8 +1160,84 @@ erDiagram
   String correctiveAction "nullable"
   String preventiveAction "nullable"
   DateTime closedAt "nullable"
+  NCRDisposition disposition "nullable"
+  String dispositionJustification "nullable"
+  String dispositionApprovedBy "nullable"
+  DateTime dispositionApprovedAt "nullable"
+  Boolean ctpAuthorized "nullable"
+  String ctpApprovedBy "nullable"
+  DateTime ctpApprovedAt "nullable"
+  String ctpJustification "nullable"
+  String ctpConditions "nullable"
+  String ctpOperations "nullable"
+  DateTime ddrExpectedDate "nullable"
+  String ddrPendingItems "nullable"
+  Boolean ddrEscalated "nullable"
+  DateTime ddrEscalatedAt "nullable"
+  Boolean mrbRequired "nullable"
+  DateTime mrbMeetingDate "nullable"
+  String mrbAttendees "nullable"
+  String mrbDecision "nullable"
+  String mrbVotes "nullable"
+  String mrbMinutes "nullable"
+  Decimal estimatedCost "nullable"
+  Decimal actualCost "nullable"
+  Decimal scrapCost "nullable"
+  Decimal reworkCost "nullable"
   DateTime createdAt
   DateTime updatedAt
+}
+"ncr_state_history" {
+  String id PK
+  String ncrId FK
+  NCRStatus fromState "nullable"
+  NCRStatus toState
+  String changedBy
+  String changeReason "nullable"
+  Boolean approvalRequired
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime timestamp
+}
+"ncr_approval_requests" {
+  String id PK
+  String ncrId FK
+  NCRApprovalRequestType requestType
+  String requestedBy
+  DateTime requestedAt
+  String approverUserId
+  NCRApprovalStatus status
+  String approvalNotes "nullable"
+  DateTime approvedAt "nullable"
+  DateTime dueDate "nullable"
+  Boolean escalated
+  DateTime escalatedAt "nullable"
+}
+"ncr_workflow_configs" {
+  String id PK
+  String siteId FK "nullable"
+  NCRSeverity severityLevel "nullable"
+  String enabledStates
+  NCRStatus initialState
+  String stateTransitions
+  String requiredFieldsByState "nullable"
+  Boolean ctpEnabled
+  String ctpApprovalRole "nullable"
+  Boolean ctpPreventFinalShip
+  Boolean ddrEnabled
+  Int ddrAutoTriggerHours "nullable"
+  Int ddrEscalationThreshold
+  Boolean mrbEnabled
+  Decimal mrbValueThreshold "nullable"
+  String mrbTriggerConditions "nullable"
+  String mrbRequiredAttendees "nullable"
+  NCRMRBVotingMethod mrbVotingMethod
+  String allowedDispositions
+  String dispositionApprovalRules "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
 }
 "equipment" {
   String id PK
@@ -5733,6 +5809,9 @@ erDiagram
 "ncrs" }o--o| "sites" : site
 "ncrs" }o--o| "work_orders" : workOrder
 "ncrs" }o--o| "cause_codes" : rootCause
+"ncr_state_history" }o--|| "ncrs" : ncr
+"ncr_approval_requests" }o--|| "ncrs" : ncr
+"ncr_workflow_configs" }o--o| "sites" : site
 "equipment" }o--o| "areas" : area
 "equipment" }o--o| "equipment" : parentEquipment
 "equipment" }o--o| "sites" : site
@@ -7457,8 +7536,93 @@ Cause Code Change History - Audit trail for cause code modifications
   - `correctiveAction`: 
   - `preventiveAction`: 
   - `closedAt`: 
+  - `disposition`: 
+  - `dispositionJustification`: 
+  - `dispositionApprovedBy`: 
+  - `dispositionApprovedAt`: 
+  - `ctpAuthorized`: 
+  - `ctpApprovedBy`: 
+  - `ctpApprovedAt`: 
+  - `ctpJustification`: 
+  - `ctpConditions`: 
+  - `ctpOperations`: 
+  - `ddrExpectedDate`: 
+  - `ddrPendingItems`: 
+  - `ddrEscalated`: 
+  - `ddrEscalatedAt`: 
+  - `mrbRequired`: 
+  - `mrbMeetingDate`: 
+  - `mrbAttendees`: 
+  - `mrbDecision`: 
+  - `mrbVotes`: 
+  - `mrbMinutes`: 
+  - `estimatedCost`: 
+  - `actualCost`: 
+  - `scrapCost`: 
+  - `reworkCost`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `ncr_state_history`
+✅ ISSUE #55: NCR State History - Track all state transitions
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `fromState`: 
+  - `toState`: 
+  - `changedBy`: 
+  - `changeReason`: 
+  - `approvalRequired`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `timestamp`: 
+
+### `ncr_approval_requests`
+✅ ISSUE #55: NCR Approval Requests - Track pending approvals
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `requestType`: 
+  - `requestedBy`: 
+  - `requestedAt`: 
+  - `approverUserId`: 
+  - `status`: 
+  - `approvalNotes`: 
+  - `approvedAt`: 
+  - `dueDate`: 
+  - `escalated`: 
+  - `escalatedAt`: 
+
+### `ncr_workflow_configs`
+✅ ISSUE #55: NCR Workflow Configuration - Per-site and per-severity workflow rules
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `severityLevel`: 
+  - `enabledStates`: 
+  - `initialState`: 
+  - `stateTransitions`: 
+  - `requiredFieldsByState`: 
+  - `ctpEnabled`: 
+  - `ctpApprovalRole`: 
+  - `ctpPreventFinalShip`: 
+  - `ddrEnabled`: 
+  - `ddrAutoTriggerHours`: 
+  - `ddrEscalationThreshold`: 
+  - `mrbEnabled`: 
+  - `mrbValueThreshold`: 
+  - `mrbTriggerConditions`: 
+  - `mrbRequiredAttendees`: 
+  - `mrbVotingMethod`: 
+  - `allowedDispositions`: 
+  - `dispositionApprovalRules`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
 
 ### `equipment`
 

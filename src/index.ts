@@ -22,6 +22,7 @@ import authRoutes from './routes/auth';
 import workOrderRoutes from './routes/workOrders';
 import qualityRoutes from './routes/quality';
 import ncrApprovalsRoutes from './routes/ncrApprovals';
+import correctiveActionsRoutes from './routes/correctiveActions';
 import causeCodeRoutes from './routes/causeCode';
 import complianceRoutes from './routes/compliance';
 import materialRoutes from './routes/materials';
@@ -252,6 +253,8 @@ apiRouter.use('/workorders', authMiddleware, workOrderRoutes);
 apiRouter.use('/quality', authMiddleware, qualityRoutes);
 // ✅ GITHUB ISSUE #55: NCR Workflow Approval Routes (Phase 3)
 apiRouter.use('/ncr/approvals', authMiddleware, ncrApprovalsRoutes);
+// ✅ GITHUB ISSUE #56: CAPA Tracking System Routes (Phase 1)
+apiRouter.use('/corrective-actions', authMiddleware, correctiveActionsRoutes);
 // GitHub Issue #54: Hierarchical Cause Code System (NCR Root Cause Analysis)
 apiRouter.use('/cause-codes', authMiddleware, causeCodeRoutes);
 // GitHub Issue #102: QMS Compliance Framework - Document Control & Training

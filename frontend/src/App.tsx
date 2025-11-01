@@ -16,6 +16,7 @@ import InspectionDetail from '@/pages/Quality/InspectionDetail';
 import NCRs from '@/pages/Quality/NCRs';
 import NCRDetail from '@/pages/Quality/NCRDetail';
 import Approvals from '@/pages/Quality/Approvals';
+import CorrectiveActions from '@/pages/Quality/CorrectiveActions';
 import Traceability from '@/pages/Traceability/Traceability';
 // Phase 3: Equipment Maintenance API Integration
 import { MaintenanceList } from '@/components/Equipment/MaintenanceList';
@@ -219,6 +220,16 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute roles={['Quality Engineer']}>
               <Approvals />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ ISSUE #56: CAPA (Corrective & Preventive Action) Tracking - Phase 1 */}
+        <Route
+          path="/quality/corrective-actions"
+          element={
+            <ProtectedRoute roles={['Quality Engineer']}>
+              <CorrectiveActions />
             </ProtectedRoute>
           }
         />
