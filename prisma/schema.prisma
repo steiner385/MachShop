@@ -912,6 +912,21 @@ model Operation {
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
 
+  // STEP AP242 Integration (Issue #220)
+  stepInstructionUuid       String?                                   // UUID of work instruction in CAD
+  pmiAnnotationIds          String[]                  @default([])    // Associated PMI annotation IDs
+  viewOrientationData       Json?                                     // 3D camera view data
+
+  // PMI-Based Specifications
+  pmiTolerances             Json?                                     // GD&T from CAD model
+  pmiDimensions             Json?                                     // Dimensions from PMI
+
+  // 3D Model View States (one operation can have multiple views)
+  modelViewStates           ModelViewState[]
+
+  // Relationships
+  digitalThreadTraces       DigitalThreadTrace[]     @relation("OperationDigitalThreads")
+
   @@index([parentOperationId])
   @@index([persistentUuid])
   @@index([operationType])
@@ -919,6 +934,7 @@ model Operation {
   @@index([isActive])
   @@index([siteId])
   @@index([isStandardOperation])
+  @@index([stepInstructionUuid])
   @@map("operations")
 }
 
@@ -1222,6 +1238,33 @@ model Part {
   // Serial Number Format Assignments (Issue #149)
   serialFormatAssignments    SerialFormatPartAssignment[]
 
+  // STEP AP242 Integration (Issue #220)
+  stepAp242Uuid             String?                     @unique                         // UUID from STEP file
+  stepAp242FileUrl          String?                                                     // URL to STEP file
+  stepAp242Version          String?                                                     // STEP file version
+  stepAp242Checksum         String?                                                     // SHA256 checksum
+  stepAp242LastSync         DateTime?                                                   // Last PLM sync
+
+  // CAD Model Metadata
+  cadModelUuid              String?                     @unique                         // CAD system UUID
+  cadModelRevision          String?                                                     // Revision (A, B, C, etc.)
+  cadModelFormat            String?                     // STEP, JT, 3DPDF, OTHER
+  cadSystemSource           String?                     // NX, CATIA, Creo, SolidWorks, etc.
+
+  // Product Manufacturing Information
+  hasPMI                    Boolean                     @default(false)                 // Has PMI data
+  pmiExtractionDate         DateTime?                                                   // When PMI was extracted
+  pmiCharacteristics        Json?                                                       // Extracted PMI data structure
+
+  // PLM System Integration
+  plmSystemName             String?                     // Teamcenter, Windchill, ENOVIA, Aras
+  plmItemId                 String?                                                     // PLM item ID
+  plmRevisionId             String?                                                     // PLM revision ID
+  plmLastModified           DateTime?                                                   // PLM modification date
+
+  // Relationships
+  digitalThreadTraces       DigitalThreadTrace[]
+
   @@index([productType])
   @@index([lifecycleState])
   @@index([isActive])
@@ -1457,6 +1500,9 @@ model WorkOrder {
 
   // Workflow Configuration Relations (Issue #40)
   workflowConfiguration        WorkOrderWorkflowConfiguration? @relation("WorkOrderWorkflowConfig")
+
+  // Workflow Enforcement Audit (Issue #41)
+  enforcementAudits            WorkflowEnforcementAudit[]      @relation("WorkflowEnforcementAudit")
 
   // Andon System Relations (Issue #171)
   andonAlerts AndonAlert[]
@@ -2017,8 +2063,31 @@ model QualityCharacteristic {
   measurements     QualityMeasurement[]
   unitOfMeasureRef UnitOfMeasure?       @relation("QualityCharacteristicUOM", fields: [unitOfMeasureId], references: [id])
 
+  // STEP AP242 Integration (Issue #220)
+  pmiFeatureUuid        String?                                       // UUID of PMI feature in CAD
+  pmiAnnotationId       String?                                       // PMI annotation ID
+  cadDatumReferences    String[]                  @default([])        // Datum references
+
+  // GD&T from STEP
+  gdtType               String?                   // FLATNESS, POSITION, PERPENDICULAR, etc.
+  gdtTolerance          Float?
+  gdtToleranceUnit      String?                   // mm, inch, etc.
+  gdtModifier           String?                   // MMC, LMC, RFS
+
+  // Feature Geometry
+  featureGeometry       Json?                                         // Geometric properties
+
+  // As-Built Comparison
+  actualValue           Float?                                        // As-manufactured
+  deviation             Float?                                        // nominalValue - actualValue
+
+  // Relationships
+  digitalThreadTraces   DigitalThreadTrace[]     @relation("CharacteristicDigitalThreads")
+
   @@index([planId])
   @@index([unitOfMeasureId])
+  @@index([pmiFeatureUuid])
+  @@index([gdtType])
   @@map("quality_characteristics")
 }
 
@@ -2643,11 +2712,20 @@ model WorkInstruction {
   exportTemplate       ExportTemplate?           @relation(fields: [exportTemplateId], references: [id])
   updatedBy            User                      @relation("WorkInstructionUpdatedBy", fields: [updatedById], references: [id])
 
+  // STEP AP242 Integration (Issue #220)
+  stepModelUuid         String?                                       // 3D model UUID
+  pmiViewStates         String[]                  @default([])        // Saved 3D view state IDs
+  annotatedModelUrl     String?                                       // URL to annotated 3D model
+
+  // 3D Model View Reference
+  modelViewStates       ModelViewState[]
+
   @@index([status])
   @@index([partId])
   @@index([contentFormat])
   @@index([tags])
   @@index([categories])
+  @@index([stepModelUuid])
   @@map("work_instructions")
 }
 
@@ -11849,6 +11927,35 @@ model OperationWorkflowConfiguration {
   @@map("operation_workflow_configurations")
 }
 
+/// Workflow Enforcement Audit Trail (Issue #41)
+/// Records when enforcement rules are checked, bypassed, or applied
+/// Provides compliance and debugging information
+model WorkflowEnforcementAudit {
+  id                  String   @id @default(cuid())
+
+  // What happened
+  workOrderId         String
+  operationId         String?
+  action              String   // 'RECORD_PERFORMANCE', 'START_OPERATION', 'COMPLETE_OPERATION'
+
+  // Enforcement details
+  enforcementMode     String   // 'STRICT', 'FLEXIBLE', 'HYBRID'
+  bypassesApplied     String[] // Which rules were bypassed
+  warnings            String[] // Warnings generated
+
+  // Context
+  userId              String?
+  timestamp           DateTime @default(now())
+
+  // Relations
+  workOrder           WorkOrder @relation("WorkflowEnforcementAudit", fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("workflow_enforcement_audits")
+}
+
 // ============================================================================
 // QUALITY MANAGEMENT SYSTEM COMPLIANCE FRAMEWORK (Issue #102)
 // Phase 1: Document Control & Training & Competency
@@ -13364,4 +13471,343 @@ model WorkflowEnforcementAudit {
   @@index([timestamp])
   @@index([enforcementMode])
   @@map("workflow_enforcement_audits")
+}
+
+// ============================================================================
+// STEP AP242 Integration Models (Issue #220)
+// ============================================================================
+
+/// Digital Thread Trace - Links CAD models to manufacturing data
+model DigitalThreadTrace {
+  id                            String    @id @default(cuid())
+
+  // CAD Model Reference
+  cadModelUuid                  String                                    // Source STEP/CAD model
+  pmiFeatureId                  String                                    // PMI feature in CAD
+
+  // Manufacturing Data
+  partId                        String
+  part                          Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  // Operation Relationship
+  operationId                   String?                                     // Associated operation if any
+  operation                     Operation? @relation("OperationDigitalThreads", fields: [operationId], references: [id], onDelete: SetNull)
+
+  // Quality Characteristic Relationship
+  qualityCharacteristicId       String?                                     // Associated quality check if any
+  qualityCharacteristic         QualityCharacteristic? @relation("CharacteristicDigitalThreads", fields: [qualityCharacteristicId], references: [id], onDelete: SetNull)
+
+  // Measurements and Comparison
+  measurementData               Json?                                     // {key: value} measurement results
+  asBuiltNominal                Float?                                    // Design value from CAD
+  asBuiltActual                 Float?                                    // Measured value
+  asBuiltDeviation              Float?                                    // Deviation from design
+  withinTolerance               Boolean?                                  // Pass/fail
+
+  // Traceability
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+  createdBy                     String?                                   // User who created trace
+  verifiedBy                    String?                                   // User who verified
+  verifiedAt                    DateTime?
+
+  // Indexes
+  @@index([cadModelUuid])
+  @@index([partId])
+  @@index([operationId])
+  @@index([qualityCharacteristicId])
+  @@index([pmiFeatureId])
+  @@map("digital_thread_traces")
+}
+
+/// Model View State - Store 3D model view states for operations
+model ModelViewState {
+  id                            String    @id @default(cuid())
+
+  // Model Reference
+  modelUuid                     String                                    // Associated STEP model
+  operationId                   String?                                   // Associated operation
+  operation                     Operation? @relation(fields: [operationId], references: [id])
+  workInstructionId             String?                                   // Associated work instruction
+  workInstruction               WorkInstruction? @relation(fields: [workInstructionId], references: [id])
+
+  // View Metadata
+  viewName                      String                                    // e.g., "Operation 10 Setup"
+  description                   String?
+
+  // Camera Properties
+  cameraPositionX               Float
+  cameraPositionY               Float
+  cameraPositionZ               Float
+  cameraTargetX                 Float
+  cameraTargetY                 Float
+  cameraTargetZ                 Float
+  cameraUpX                     Float
+  cameraUpY                     Float
+  cameraUpZ                     Float
+  fov                           Float?    @default(45)                   // Field of view in degrees
+
+  // Visibility and Highlighting
+  visibleFeaturesJson           Json?                                     // Array of visible feature IDs
+  hiddenFeaturesJson            Json?                                     // Array of hidden feature IDs
+  highlightedFeaturesJson       Json?                                     // Array of highlighted feature IDs
+  highlightColor                String?   @default("#FF0000")             // Highlight color (hex)
+
+  // Metadata
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+
+  // Indexes
+  @@index([modelUuid])
+  @@index([operationId])
+  @@index([workInstructionId])
+  @@map("model_view_states")
+}
+
+/// PLM Integration - Store PLM system connection configurations
+model PLMIntegration {
+  id                            String    @id @default(cuid())
+
+  // System Information
+  systemName                    String                                    // Teamcenter, Windchill, ENOVIA, Aras
+  systemVersion                 String?
+
+  // Connection Details
+  baseUrl                       String
+  apiVersion                    String
+  authMethod                    String                                    // oauth, basic, saml, api_key
+
+  // Credentials (encrypted)
+  credentialsEncrypted          String                                    // Encrypted credential JSON
+
+  // Configuration
+  autoSyncEnabled               Boolean   @default(true)
+  syncIntervalMinutes           Int       @default(60)
+  fileExportPath                String?
+
+  // Status
+  isActive                      Boolean   @default(true)
+  lastSyncAt                    DateTime?
+  lastError                     String?
+
+  // Metadata
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+
+  // Indexes
+  @@unique([systemName])
+  @@map("plm_integrations")
+}
+
+/// STEP File Import - Track STEP file imports and their status
+model STEPFileImport {
+  id                            String    @id @default(cuid())
+
+  // File Information
+  fileName                      String
+  fileUrl                       String
+  fileHash                      String    @unique
+  fileSize                      Int
+
+  // Import Details
+  stepUuid                      String    @unique                         // Extracted STEP UUID
+  cadSystemSource               String?
+  cadModelRevision              String?
+
+  // Related Data
+  partId                        String?                                   // Linked part if any
+
+  // Import Status
+  status                        String                                    // pending, processing, success, failed
+  pmiExtracted                  Boolean   @default(false)
+  pmiExtractionDate             DateTime?
+
+  // Results
+  extractedPMIJson              Json?                                     // Extracted PMI data
+  extractionErrors              String[]  @default([])
+  extractionWarnings            String[]  @default([])
+
+  // Metadata
+  importedAt                    DateTime  @default(now())
+  importedBy                    String?
+  completedAt                   DateTime?
+
+  // Indexes
+  @@index([stepUuid])
+  @@index([partId])
+  @@index([status])
+  @@map("step_file_imports")
+}
+
+// ============================================================================
+// ETL (Extract, Transform, Load) - Issue #34
+// ============================================================================
+
+model DatabaseConnection {
+  id                String   @id @default(cuid())
+  name              String
+  type              String   // 'sqlserver', 'oracle', 'mysql', 'postgresql', 'mariadb'
+  host              String
+  port              Int
+  database          String
+  username          String
+  encryptedPassword String   // Encrypted with application secret
+  ssl               Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  lastTestedAt      DateTime?
+  lastTestSuccess   Boolean?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+
+  etlJobs           ETLJob[]
+
+  @@index([isActive])
+  @@index([type])
+  @@map("database_connections")
+}
+
+model ETLJob {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  sourceConnectionId String
+  targetEntityType   String
+  extractionConfig   Json     // Extraction query, table, where, etc.
+  transformationConfig Json   // Field mappings and transformations
+  loadConfig         Json     // Load mode, batch size, error handling
+  scheduleConfig     Json?    // Cron schedule
+  isActive           Boolean  @default(true)
+  lastExecutedAt     DateTime?
+  lastWatermark      String?  // For incremental sync
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdBy          String?
+
+  sourceConnection   DatabaseConnection @relation(fields: [sourceConnectionId], references: [id])
+  executions         ETLJobExecution[]
+
+  @@index([sourceConnectionId])
+  @@index([isActive])
+  @@index([targetEntityType])
+  @@map("etl_jobs")
+}
+
+model ETLJobExecution {
+  id             String   @id @default(cuid())
+  jobId          String
+  status         String   // 'PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'PARTIAL'
+  startedAt      DateTime
+  completedAt    DateTime?
+  duration       Int?     // milliseconds
+  extractedRows  Int      @default(0)
+  transformedRows Int     @default(0)
+  loadedRows     Int      @default(0)
+  failedRows     Int      @default(0)
+  skippedRows    Int      @default(0)
+  lastWatermark  String?  // Watermark after this execution
+  errorLog       Json?    // Array of errors
+  warningLog     Json?    // Array of warnings
+
+  job            ETLJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("etl_job_executions")
+}
+
+// ============================================================================
+// Traveler Digitization Models (Issue #36)
+// ============================================================================
+
+model TravelerTemplate {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  version         Int      @default(1)
+  documentType    String   // 'traveler', 'router', 'work_order'
+  fields          Json     // Array of FieldDefinition
+  matchPatterns   String[] // Patterns to identify template
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  digitizedTravelers DigitizedTraveler[]
+
+  @@index([documentType])
+  @@map("traveler_templates")
+}
+
+model DigitizedTraveler {
+  id                    String   @id @default(cuid())
+
+  // Source document info
+  sourceFileName        String?
+  sourceUploadedAt      DateTime?
+  processingMethod      String   // 'ocr', 'manual', 'hybrid'
+
+  // Work order info
+  workOrderNumber       String   @unique
+  partNumber            String
+  partDescription       String?
+  quantity              Int
+  dueDate               DateTime?
+  priority              String?  // 'low', 'medium', 'high', 'urgent'
+
+  // Template matching
+  templateId            String?
+  matchConfidence       Float?   // 0-1 confidence score
+  template              TravelerTemplate? @relation(fields: [templateId], references: [id])
+
+  // Status and review
+  status                String   @default("draft") // 'draft', 'pending_review', 'approved', 'rejected', 'work_order_created'
+  reviewerNotes         String?
+  confidence            Float    @default(0)
+  warnings              String[]
+  errors                String[]
+
+  // Review tracking
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  createdBy             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Related data
+  operations            DigitizedOperation[]
+
+  @@index([workOrderNumber])
+  @@index([partNumber])
+  @@index([status])
+  @@index([templateId])
+  @@index([createdAt])
+  @@map("digitized_travelers")
+}
+
+model DigitizedOperation {
+  id                    String   @id @default(cuid())
+  travelerId            String
+
+  operationNumber       String
+  operationDescription  String?
+  workCenter            String?
+  quantity              Int?
+  startTime             DateTime?
+  endTime               DateTime?
+  status                String?  // 'pending', 'in_progress', 'completed'
+  notes                 String?
+  laborHours            Float?
+  materialUsed          Json?    // Record of material usage
+  tools                 String[]
+  qualityNotes          String?
+
+  traveler              DigitizedTraveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([travelerId])
+  @@index([operationNumber])
+  @@map("digitized_operations")
 }

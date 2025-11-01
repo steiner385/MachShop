@@ -1,93 +1,78 @@
 /**
- * WorkflowEnforcementService
- * Manages configuration-driven enforcement of workflow rules
+ * Workflow Enforcement Service (Issue #41)
+ * Enforces site-level workflow configuration rules for data collection and operation execution
  * Supports STRICT, FLEXIBLE, and HYBRID enforcement modes
  */
 
-import { PrismaClient } from '@prisma/client';
-import { WorkflowConfigurationService } from './WorkflowConfigurationService';
+import { prisma } from '../db/client';
+import { Logger } from '../utils/logger';
+import { WorkflowConfigurationService, EffectiveWorkflowConfiguration } from './WorkflowConfigurationService';
 
-/**
- * Types for enforcement decisions and validations
- */
-export type WorkflowMode = 'STRICT' | 'FLEXIBLE' | 'HYBRID';
-export type DependencyType = 'SEQUENTIAL' | 'PARALLEL' | 'CONDITIONAL';
-export type WorkOrderStatus = 'CREATED' | 'RELEASED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
+const logger = Logger.getInstance();
+
+// ============================================================================
+// Types & Interfaces
+// ============================================================================
 
 export interface EnforcementDecision {
   allowed: boolean;
   reason?: string;
   warnings: string[];
-  configMode: WorkflowMode;
+  configMode: string;
   bypassesApplied: string[];
-  appliedAt: Date;
+  enforcementChecks: EnforcementCheck[];
+}
+
+export interface EnforcementCheck {
+  name: string;
+  enforced: boolean;
+  passed: boolean;
+  reason?: string;
 }
 
 export interface PrerequisiteValidation {
   valid: boolean;
   unmetPrerequisites: UnmetPrerequisite[];
   warnings: string[];
+  enforcementMode: 'STRICT' | 'FLEXIBLE';
 }
 
 export interface UnmetPrerequisite {
   prerequisiteOperationId: string;
   prerequisiteOperationName: string;
-  dependencyType: DependencyType;
+  prerequisiteOperationSeq: number;
+  currentOperationSeq: number;
+  dependencyType: string;
   reason: string;
 }
 
 export interface StatusValidation {
   valid: boolean;
-  currentStatus: WorkOrderStatus;
-  requiredStatuses: WorkOrderStatus[];
+  currentStatus: string;
+  requiredStatuses: string[];
   reason?: string;
 }
 
-export interface OperationStartValidation {
-  canStart: boolean;
-  reason?: string;
-  warningsCount: number;
-  warnings: string[];
-}
+// ============================================================================
+// Workflow Enforcement Service
+// ============================================================================
 
-export interface OperationCompleteValidation {
-  canComplete: boolean;
-  reason?: string;
-  warningsCount: number;
-  warnings: string[];
-}
-
-/**
- * WorkflowEnforcementService
- * Centralized validation logic for workflow rules
- */
 export class WorkflowEnforcementService {
-  constructor(
-    private configService: WorkflowConfigurationService,
-    private prisma: PrismaClient
-  ) {}
+  private configService: WorkflowConfigurationService;
+
+  constructor(configService?: WorkflowConfigurationService) {
+    this.configService = configService || new WorkflowConfigurationService();
+  }
 
   /**
    * Check if work performance can be recorded for a work order
-   * Enforces status gating based on configuration
    */
   async canRecordPerformance(workOrderId: string): Promise<EnforcementDecision> {
     try {
-      // Validate work order ID
-      if (!workOrderId || workOrderId.trim() === '') {
-        return {
-          allowed: false,
-          reason: 'Work order ID is required',
-          warnings: [],
-          configMode: 'STRICT',
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
-      }
-
-      // Get work order
-      const workOrder = await this.prisma.workOrder.findUnique({
-        where: { id: workOrderId }
+      // Get configuration
+      const config = await this.configService.getEffectiveConfiguration(workOrderId);
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
       });
 
       if (!workOrder) {
@@ -95,80 +80,110 @@ export class WorkflowEnforcementService {
           allowed: false,
           reason: `Work order ${workOrderId} not found`,
           warnings: [],
-          configMode: 'STRICT',
+          configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: [],
         };
       }
 
-      // Get effective configuration
-      const config = await this.configService.getEffectiveConfiguration(workOrderId);
-
-      // Check status gating enforcement
+      const checks: EnforcementCheck[] = [];
       const bypassesApplied: string[] = [];
       const warnings: string[] = [];
 
-      if (config.enforceStatusGating) {
-        // STRICT mode: enforce status requirement
-        const allowedStatuses: WorkOrderStatus[] = ['IN_PROGRESS', 'COMPLETED'];
-        if (!allowedStatuses.includes(workOrder.status as WorkOrderStatus)) {
+      // ======================================================================
+      // Check 1: Status Gating (Required Status)
+      // ======================================================================
+      const statusCheck = this.validateWorkOrderStatus(
+        workOrder.status,
+        ['IN_PROGRESS', 'COMPLETED'],
+        !config.enforceStatusGating // bypass allowed if enforcement disabled
+      );
+
+      checks.push({
+        name: 'Status Gating',
+        enforced: config.enforceStatusGating,
+        passed: statusCheck.valid,
+        reason: statusCheck.reason,
+      });
+
+      if (!statusCheck.valid && config.enforceStatusGating) {
+        return {
+          allowed: false,
+          reason: statusCheck.reason,
+          warnings: [],
+          configMode: config.mode,
+          bypassesApplied: [],
+          enforcementChecks: checks,
+        };
+      }
+
+      if (!statusCheck.valid && !config.enforceStatusGating) {
+        bypassesApplied.push('status_gating');
+        warnings.push(
+          `Data collection allowed for ${workOrder.status} work order due to FLEXIBLE enforcement mode.`
+        );
+      }
+
+      // ======================================================================
+      // Check 2: Quality Check Requirements
+      // ======================================================================
+      if (config.enforceQualityChecks) {
+        const qualityCheckPassed = await this.validateQualityChecks(workOrderId);
+        checks.push({
+          name: 'Quality Checks',
+          enforced: true,
+          passed: qualityCheckPassed,
+          reason: qualityCheckPassed ? undefined : 'Quality checks incomplete',
+        });
+
+        if (!qualityCheckPassed) {
           return {
             allowed: false,
-            reason: `Work order status is ${workOrder.status}. Must be IN_PROGRESS or COMPLETED for data collection.`,
+            reason: 'Quality checks must be completed before data collection in STRICT mode',
             warnings: [],
             configMode: config.mode,
             bypassesApplied: [],
-            appliedAt: new Date()
+            enforcementChecks: checks,
           };
         }
       } else {
-        // FLEXIBLE/HYBRID mode: allow but warn
-        const allowedStatuses: WorkOrderStatus[] = ['IN_PROGRESS', 'COMPLETED'];
-        if (!allowedStatuses.includes(workOrder.status as WorkOrderStatus)) {
-          bypassesApplied.push('status_gating');
-          warnings.push(
-            `Data collection allowed for ${workOrder.status} work order due to ${config.mode} mode configuration.`
-          );
-        }
+        checks.push({
+          name: 'Quality Checks',
+          enforced: false,
+          passed: true,
+        });
       }
 
+      // ======================================================================
+      // All checks passed
+      // ======================================================================
       return {
         allowed: true,
         warnings,
         configMode: config.mode,
         bypassesApplied,
-        appliedAt: new Date()
+        enforcementChecks: checks,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to check if performance can be recorded: ${error instanceof Error ? error.message : String(error)}`
-      );
+      logger.error('Error checking performance recording permission', error);
+      throw error;
     }
   }
 
   /**
    * Check if an operation can be started
    */
-  async canStartOperation(workOrderId: string, operationId: string): Promise<EnforcementDecision> {
+  async canStartOperation(
+    workOrderId: string,
+    operationId: string
+  ): Promise<EnforcementDecision> {
     try {
-      // Validate inputs
-      if (!workOrderId || !operationId) {
-        return {
-          allowed: false,
-          reason: 'Work order ID and operation ID are required',
-          warnings: [],
-          configMode: 'STRICT',
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
-      }
-
-      // Get operation
-      const operation = await this.prisma.workOrderOperation.findUnique({
+      const config = await this.configService.getEffectiveConfiguration(workOrderId);
+      const operation = await prisma.workOrderOperation.findUnique({
         where: { id: operationId },
         include: {
-          workOrder: true
-        }
+          workOrder: true,
+        },
       });
 
       if (!operation) {
@@ -176,86 +191,105 @@ export class WorkflowEnforcementService {
           allowed: false,
           reason: `Operation ${operationId} not found`,
           warnings: [],
-          configMode: 'STRICT',
+          configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: [],
         };
       }
 
-      // Verify operation belongs to work order
-      if (operation.workOrderId !== workOrderId) {
+      const checks: EnforcementCheck[] = [];
+      const bypassesApplied: string[] = [];
+      const warnings: string[] = [];
+
+      // ======================================================================
+      // Check 1: Operation Status
+      // ======================================================================
+      const statusCheck = this.validateOperationStatus(operation.status, 'CREATED');
+      checks.push({
+        name: 'Operation Status',
+        enforced: true,
+        passed: statusCheck.valid,
+        reason: statusCheck.reason,
+      });
+
+      if (!statusCheck.valid) {
         return {
           allowed: false,
-          reason: `Operation ${operationId} does not belong to work order ${workOrderId}`,
-          warnings: [],
-          configMode: 'STRICT',
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
-      }
-
-      // Get configuration
-      const config = await this.configService.getEffectiveConfiguration(workOrderId);
-
-      // Check if operation is already started
-      if (operation.status === 'IN_PROGRESS') {
-        return {
-          allowed: false,
-          reason: `Operation ${operationId} is already in progress`,
+          reason: statusCheck.reason,
           warnings: [],
           configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: checks,
         };
       }
 
-      // Check if operation is completed
-      if (operation.status === 'COMPLETED') {
+      // ======================================================================
+      // Check 2: Prerequisites (if enforced)
+      // ======================================================================
+      const enforceSequence = config.enforceOperationSequence;
+      const prereqValidation = await this.validatePrerequisites(
+        workOrderId,
+        operationId,
+        enforceSequence ? 'STRICT' : 'FLEXIBLE'
+      );
+
+      checks.push({
+        name: 'Prerequisites',
+        enforced: enforceSequence,
+        passed: prereqValidation.valid,
+        reason: prereqValidation.unmetPrerequisites.length > 0
+          ? `${prereqValidation.unmetPrerequisites.length} unmet prerequisites`
+          : undefined,
+      });
+
+      if (!prereqValidation.valid && enforceSequence) {
         return {
           allowed: false,
-          reason: `Operation ${operationId} is already completed`,
+          reason: `Cannot start operation. Unmet prerequisites:\n${prereqValidation.unmetPrerequisites
+            .map((p) => `- ${p.prerequisiteOperationName} (seq ${p.prerequisiteOperationSeq}): ${p.reason}`)
+            .join('\n')}`,
           warnings: [],
           configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: checks,
         };
       }
 
+      if (!prereqValidation.valid && !enforceSequence) {
+        bypassesApplied.push('operation_sequence');
+        warnings.push(
+          `${prereqValidation.unmetPrerequisites.length} prerequisite(s) not met, but allowed in FLEXIBLE mode`
+        );
+        warnings.push(...prereqValidation.warnings);
+      }
+
+      // ======================================================================
+      // All checks passed
+      // ======================================================================
       return {
         allowed: true,
-        warnings: [],
+        warnings,
         configMode: config.mode,
-        bypassesApplied: [],
-        appliedAt: new Date()
+        bypassesApplied,
+        enforcementChecks: checks,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to check if operation can be started: ${error instanceof Error ? error.message : String(error)}`
-      );
+      logger.error('Error checking operation start permission', error);
+      throw error;
     }
   }
 
   /**
    * Check if an operation can be completed
    */
-  async canCompleteOperation(workOrderId: string, operationId: string): Promise<EnforcementDecision> {
+  async canCompleteOperation(
+    workOrderId: string,
+    operationId: string
+  ): Promise<EnforcementDecision> {
     try {
-      // Validate inputs
-      if (!workOrderId || !operationId) {
-        return {
-          allowed: false,
-          reason: 'Work order ID and operation ID are required',
-          warnings: [],
-          configMode: 'STRICT',
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
-      }
-
-      // Get operation
-      const operation = await this.prisma.workOrderOperation.findUnique({
+      const config = await this.configService.getEffectiveConfiguration(workOrderId);
+      const operation = await prisma.workOrderOperation.findUnique({
         where: { id: operationId },
-        include: { workOrder: true }
       });
 
       if (!operation) {
@@ -263,177 +297,316 @@ export class WorkflowEnforcementService {
           allowed: false,
           reason: `Operation ${operationId} not found`,
           warnings: [],
-          configMode: 'STRICT',
+          configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: [],
         };
       }
 
-      // Verify operation belongs to work order
-      if (operation.workOrderId !== workOrderId) {
+      const checks: EnforcementCheck[] = [];
+      const bypassesApplied: string[] = [];
+      const warnings: string[] = [];
+
+      // ======================================================================
+      // Check 1: Operation Status (must be IN_PROGRESS)
+      // ======================================================================
+      const statusCheck = this.validateOperationStatus(operation.status, 'IN_PROGRESS');
+      checks.push({
+        name: 'Operation Status',
+        enforced: true,
+        passed: statusCheck.valid,
+        reason: statusCheck.reason,
+      });
+
+      if (!statusCheck.valid) {
         return {
           allowed: false,
-          reason: `Operation ${operationId} does not belong to work order ${workOrderId}`,
-          warnings: [],
-          configMode: 'STRICT',
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
-      }
-
-      // Get configuration
-      const config = await this.configService.getEffectiveConfiguration(workOrderId);
-
-      // Check if operation is already completed
-      if (operation.status === 'COMPLETED') {
-        return {
-          allowed: false,
-          reason: `Operation ${operationId} is already completed`,
+          reason: statusCheck.reason,
           warnings: [],
           configMode: config.mode,
           bypassesApplied: [],
-          appliedAt: new Date()
+          enforcementChecks: checks,
         };
       }
 
-      // Must be in progress to complete
-      if (operation.status !== 'IN_PROGRESS') {
-        return {
-          allowed: false,
-          reason: `Operation must be IN_PROGRESS to be completed. Current status: ${operation.status}`,
-          warnings: [],
-          configMode: config.mode,
-          bypassesApplied: [],
-          appliedAt: new Date()
-        };
+      // ======================================================================
+      // Check 2: Required Data Collection (if quality checks enforced)
+      // ======================================================================
+      if (config.enforceQualityChecks) {
+        const hasPerformanceData = await this.hasPerformanceData(operationId);
+        checks.push({
+          name: 'Performance Data Collected',
+          enforced: true,
+          passed: hasPerformanceData,
+          reason: hasPerformanceData ? undefined : 'No performance data collected',
+        });
+
+        if (!hasPerformanceData) {
+          return {
+            allowed: false,
+            reason: 'Performance data must be collected before completing operation',
+            warnings: [],
+            configMode: config.mode,
+            bypassesApplied: [],
+            enforcementChecks: checks,
+          };
+        }
+      } else {
+        checks.push({
+          name: 'Performance Data Collected',
+          enforced: false,
+          passed: true,
+        });
       }
 
+      // ======================================================================
+      // All checks passed
+      // ======================================================================
       return {
         allowed: true,
-        warnings: [],
+        warnings,
         configMode: config.mode,
-        bypassesApplied: [],
-        appliedAt: new Date()
+        bypassesApplied,
+        enforcementChecks: checks,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to check if operation can be completed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      logger.error('Error checking operation completion permission', error);
+      throw error;
     }
   }
 
   /**
    * Validate operation prerequisites using RoutingStepDependency models
-   * Note: Simplified version - full prerequisite traversal implemented in Phase 5 testing
    */
   async validatePrerequisites(
     workOrderId: string,
     operationId: string,
-    enforceMode: 'STRICT' | 'FLEXIBLE' = 'STRICT'
+    enforceMode: 'STRICT' | 'FLEXIBLE'
   ): Promise<PrerequisiteValidation> {
     try {
-      // Get operation
-      const operation = await this.prisma.workOrderOperation.findUnique({
-        where: { id: operationId }
+      // Get the operation and its routing step
+      const operation = await prisma.workOrderOperation.findUnique({
+        where: { id: operationId },
+        include: {
+          routingOperation: {
+            include: {
+              routingStep: {
+                include: {
+                  dependencies: {
+                    include: {
+                      prerequisiteStep: {
+                        include: {
+                          operation: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!operation) {
         return {
           valid: false,
           unmetPrerequisites: [],
-          warnings: []
+          warnings: [],
+          enforcementMode: enforceMode,
         };
       }
 
-      // In FLEXIBLE mode, always allow (prerequisites are optional)
-      if (enforceMode === 'FLEXIBLE') {
-        return {
-          valid: true,
-          unmetPrerequisites: [],
-          warnings: []
-        };
-      }
-
-      // In STRICT mode, check if there are any operations in the work order that need to be completed first
-      // This is a simplified check - full dependency graph traversal would be implemented in Phase 5
-      const allOperations = await this.prisma.workOrderOperation.findMany({
-        where: { workOrderId }
-      });
-
-      // Get the index of current operation
-      const currentIndex = allOperations.findIndex(op => op.id === operationId);
-
-      // In STRICT mode, require all preceding operations to be COMPLETED
       const unmetPrerequisites: UnmetPrerequisite[] = [];
+      const warnings: string[] = [];
 
-      for (let i = 0; i < currentIndex; i++) {
-        const precedingOp = allOperations[i];
-        if (precedingOp.status !== 'COMPLETED') {
+      // Check each dependency
+      const dependencies = operation.routingOperation?.routingStep?.dependencies || [];
+
+      for (const dep of dependencies) {
+        // Find the prerequisite operation in this work order
+        const prereqOp = await prisma.workOrderOperation.findFirst({
+          where: {
+            workOrderId,
+            routingOperationId: dep.prerequisiteStep.operation.id,
+          },
+        });
+
+        // Check if prerequisite is met (completed)
+        if (!prereqOp || prereqOp.status !== 'COMPLETED') {
           unmetPrerequisites.push({
-            prerequisiteOperationId: precedingOp.id,
-            prerequisiteOperationName: `Operation ${i + 1}`,
-            dependencyType: 'SEQUENTIAL',
-            reason: `Status is ${precedingOp.status}, must be COMPLETED before this operation can start`
+            prerequisiteOperationId: prereqOp?.id || 'unknown',
+            prerequisiteOperationName: dep.prerequisiteStep.operation.operationName,
+            prerequisiteOperationSeq: dep.prerequisiteStep.operation.sequenceNumber,
+            currentOperationSeq: operation.routingOperation.routingStep.operation.sequenceNumber,
+            dependencyType: dep.dependencyType || 'SEQUENTIAL',
+            reason: prereqOp ? `Status is ${prereqOp.status}, must be COMPLETED` : 'Operation not found in work order',
           });
         }
       }
 
-      return {
-        valid: unmetPrerequisites.length === 0,
-        unmetPrerequisites,
-        warnings: unmetPrerequisites.length > 0 ? [] : []
-      };
-    } catch (error) {
-      throw new Error(
-        `Failed to validate prerequisites: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  /**
-   * Check work order status against required statuses
-   */
-  async validateWorkOrderStatus(
-    workOrderId: string,
-    requiredStatuses: WorkOrderStatus[]
-  ): Promise<StatusValidation> {
-    try {
-      const workOrder = await this.prisma.workOrder.findUnique({
-        where: { id: workOrderId }
-      });
-
-      if (!workOrder) {
+      // Determine validity
+      if (enforceMode === 'STRICT') {
         return {
-          valid: false,
-          currentStatus: 'CREATED',
-          requiredStatuses,
-          reason: `Work order ${workOrderId} not found`
+          valid: unmetPrerequisites.length === 0,
+          unmetPrerequisites,
+          warnings: [],
+          enforcementMode: enforceMode,
+        };
+      } else {
+        // FLEXIBLE mode: warn but allow
+        if (unmetPrerequisites.length > 0) {
+          warnings.push(
+            `${unmetPrerequisites.length} prerequisite(s) not met, but allowed in FLEXIBLE mode`
+          );
+        }
+        return {
+          valid: true,
+          unmetPrerequisites,
+          warnings,
+          enforcementMode: enforceMode,
         };
       }
-
-      const currentStatus = workOrder.status as WorkOrderStatus;
-      const valid = requiredStatuses.includes(currentStatus);
-
-      return {
-        valid,
-        currentStatus,
-        requiredStatuses,
-        reason: valid ? undefined : `Work order status is ${currentStatus}. Required: ${requiredStatuses.join(' or ')}`
-      };
     } catch (error) {
-      throw new Error(
-        `Failed to validate work order status: ${error instanceof Error ? error.message : String(error)}`
-      );
+      logger.error('Error validating prerequisites', error);
+      throw error;
     }
   }
 
   /**
-   * Get workflow configuration for enforcement decisions
-   * This is a passthrough to the configuration service
+   * Validate work order status
    */
-  async getEffectiveConfiguration(workOrderId: string) {
-    return this.configService.getEffectiveConfiguration(workOrderId);
+  private validateWorkOrderStatus(
+    currentStatus: string,
+    requiredStatuses: string[],
+    bypassAllowed: boolean
+  ): StatusValidation {
+    const valid = requiredStatuses.includes(currentStatus);
+
+    if (!valid && !bypassAllowed) {
+      return {
+        valid: false,
+        currentStatus,
+        requiredStatuses,
+        reason: `Work order status is ${currentStatus}. Required: ${requiredStatuses.join(' or ')}`,
+      };
+    }
+
+    return {
+      valid: true,
+      currentStatus,
+      requiredStatuses,
+    };
+  }
+
+  /**
+   * Validate operation status
+   */
+  private validateOperationStatus(currentStatus: string, requiredStatus: string): StatusValidation {
+    const valid = currentStatus === requiredStatus;
+
+    if (!valid) {
+      return {
+        valid: false,
+        currentStatus,
+        requiredStatuses: [requiredStatus],
+        reason: `Operation status is ${currentStatus}. Required: ${requiredStatus}`,
+      };
+    }
+
+    return {
+      valid: true,
+      currentStatus,
+      requiredStatuses: [requiredStatus],
+    };
+  }
+
+  /**
+   * Check if quality checks are complete for work order
+   */
+  private async validateQualityChecks(workOrderId: string): Promise<boolean> {
+    try {
+      // Check if all required quality checks have been completed
+      const workOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        include: {
+          qualityCheckResults: true,
+        },
+      });
+
+      if (!workOrder || !workOrder.qualityCheckResults || workOrder.qualityCheckResults.length === 0) {
+        return false;
+      }
+
+      // Check if any quality check results are FAILED
+      const hasFailed = workOrder.qualityCheckResults.some((r: any) => r.status === 'FAILED');
+      return !hasFailed;
+    } catch (error) {
+      logger.warn('Error validating quality checks', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if operation has performance data recorded
+   */
+  private async hasPerformanceData(operationId: string): Promise<boolean> {
+    try {
+      const performanceData = await prisma.workPerformance.findFirst({
+        where: {
+          workOrderOperationId: operationId,
+        },
+      });
+
+      return !!performanceData;
+    } catch (error) {
+      logger.warn('Error checking performance data', error);
+      return false;
+    }
+  }
+
+  /**
+   * Record enforcement bypass in audit log
+   */
+  async recordEnforcementBypass(
+    workOrderId: string,
+    operationId: string | undefined,
+    action: string,
+    enforcement: EnforcementDecision,
+    userId?: string
+  ): Promise<void> {
+    try {
+      await prisma.workflowEnforcementAudit.create({
+        data: {
+          workOrderId,
+          operationId,
+          action,
+          enforcementMode: enforcement.configMode,
+          bypassesApplied: enforcement.bypassesApplied,
+          warnings: enforcement.warnings,
+          userId,
+          timestamp: new Date(),
+        },
+      });
+    } catch (error) {
+      logger.error('Error recording enforcement bypass', error);
+      // Don't throw, just log the error
+    }
+  }
+
+  /**
+   * Get enforcement audit trail for work order
+   */
+  async getAuditTrail(workOrderId: string): Promise<any[]> {
+    try {
+      return await prisma.workflowEnforcementAudit.findMany({
+        where: { workOrderId },
+        orderBy: { timestamp: 'desc' },
+        take: 100,
+      });
+    } catch (error) {
+      logger.error('Error fetching audit trail', error);
+      return [];
+    }
   }
 }
-
-export default WorkflowEnforcementService;

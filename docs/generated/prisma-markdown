@@ -394,6 +394,11 @@ erDiagram
   DateTime approvedAt "nullable"
   DateTime createdAt
   DateTime updatedAt
+  String stepInstructionUuid "nullable"
+  String pmiAnnotationIds
+  Json viewOrientationData "nullable"
+  Json pmiTolerances "nullable"
+  Json pmiDimensions "nullable"
 }
 "operation_parameters" {
   String id PK
@@ -582,6 +587,22 @@ erDiagram
   String llpRegulatoryReference "nullable"
   Boolean llpCertificationRequired
   String llpNotes "nullable"
+  String stepAp242Uuid UK "nullable"
+  String stepAp242FileUrl "nullable"
+  String stepAp242Version "nullable"
+  String stepAp242Checksum "nullable"
+  DateTime stepAp242LastSync "nullable"
+  String cadModelUuid UK "nullable"
+  String cadModelRevision "nullable"
+  String cadModelFormat "nullable"
+  String cadSystemSource "nullable"
+  Boolean hasPMI
+  DateTime pmiExtractionDate "nullable"
+  Json pmiCharacteristics "nullable"
+  String plmSystemName "nullable"
+  String plmItemId "nullable"
+  String plmRevisionId "nullable"
+  DateTime plmLastModified "nullable"
 }
 "part_site_availability" {
   String id PK
@@ -1077,6 +1098,16 @@ erDiagram
   Boolean isActive
   DateTime createdAt
   DateTime updatedAt
+  String pmiFeatureUuid "nullable"
+  String pmiAnnotationId "nullable"
+  String cadDatumReferences
+  String gdtType "nullable"
+  Float gdtTolerance "nullable"
+  String gdtToleranceUnit "nullable"
+  String gdtModifier "nullable"
+  Json featureGeometry "nullable"
+  Float actualValue "nullable"
+  Float deviation "nullable"
 }
 "quality_inspections" {
   String id PK
@@ -1436,6 +1467,9 @@ erDiagram
   String categories
   String keywords
   String thumbnailUrl "nullable"
+  String stepModelUuid "nullable"
+  String pmiViewStates
+  String annotatedModelUrl "nullable"
 }
 "work_instruction_steps" {
   String id PK
@@ -2299,6 +2333,7 @@ erDiagram
   String acknowledgedBy "nullable"
   DateTime acknowledgedAt "nullable"
   String resolution "nullable"
+  String correctiveActionId FK "nullable"
   DateTime createdAt
 }
 "sampling_plans" {
@@ -5616,6 +5651,31 @@ erDiagram
   DateTime updatedAt
   String createdById FK
 }
+"corrective_action_audits" {
+  String id PK
+  String caId FK
+  String userId FK
+  String action
+  String fieldName "nullable"
+  String previousValue "nullable"
+  String newValue "nullable"
+  String notes "nullable"
+  DateTime timestamp
+}
+"ca_approval_requests" {
+  String id PK
+  String caId FK
+  String approvalType
+  String requestedBy FK
+  DateTime requestedAt
+  String approverUserId FK
+  String status
+  String approvalNotes "nullable"
+  DateTime approvedAt "nullable"
+  DateTime dueDate "nullable"
+  Boolean escalated
+  DateTime escalatedAt "nullable"
+}
 "management_reviews" {
   String id PK
   String reviewNumber UK
@@ -6007,6 +6067,85 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"digital_thread_traces" {
+  String id PK
+  String cadModelUuid
+  String pmiFeatureId
+  String partId FK
+  String operationId FK "nullable"
+  String qualityCharacteristicId FK "nullable"
+  Json measurementData "nullable"
+  Float asBuiltNominal "nullable"
+  Float asBuiltActual "nullable"
+  Float asBuiltDeviation "nullable"
+  Boolean withinTolerance "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy "nullable"
+  String verifiedBy "nullable"
+  DateTime verifiedAt "nullable"
+}
+"model_view_states" {
+  String id PK
+  String modelUuid
+  String operationId FK "nullable"
+  String workInstructionId FK "nullable"
+  String viewName
+  String description "nullable"
+  Float cameraPositionX
+  Float cameraPositionY
+  Float cameraPositionZ
+  Float cameraTargetX
+  Float cameraTargetY
+  Float cameraTargetZ
+  Float cameraUpX
+  Float cameraUpY
+  Float cameraUpZ
+  Float fov "nullable"
+  Json visibleFeaturesJson "nullable"
+  Json hiddenFeaturesJson "nullable"
+  Json highlightedFeaturesJson "nullable"
+  String highlightColor "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plm_integrations" {
+  String id PK
+  String systemName UK
+  String systemVersion "nullable"
+  String baseUrl
+  String apiVersion
+  String authMethod
+  String credentialsEncrypted
+  Boolean autoSyncEnabled
+  Int syncIntervalMinutes
+  String fileExportPath "nullable"
+  Boolean isActive
+  DateTime lastSyncAt "nullable"
+  String lastError "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"step_file_imports" {
+  String id PK
+  String fileName
+  String fileUrl
+  String fileHash UK
+  Int fileSize
+  String stepUuid UK
+  String cadSystemSource "nullable"
+  String cadModelRevision "nullable"
+  String partId "nullable"
+  String status
+  Boolean pmiExtracted
+  DateTime pmiExtractionDate "nullable"
+  Json extractedPMIJson "nullable"
+  String extractionErrors
+  String extractionWarnings
+  DateTime importedAt
+  String importedBy "nullable"
+  DateTime completedAt "nullable"
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -6254,6 +6393,7 @@ erDiagram
 "qif_measurements" }o--o| "qif_characteristics" : qifCharacteristic
 "qif_measurements" }o--|| "qif_measurement_results" : qifMeasurementResult
 "spc_configurations" |o--|| "operation_parameters" : parameter
+"spc_rule_violations" }o--o| "corrective_actions" : correctiveAction
 "spc_rule_violations" }o--|| "spc_configurations" : configuration
 "sampling_plans" }o--o| "operations" : operation
 "sampling_plans" }o--o| "operation_parameters" : parameter
@@ -6581,6 +6721,11 @@ erDiagram
 "corrective_actions" }o--|| "users" : assignedTo
 "corrective_actions" }o--o| "users" : verifiedBy
 "corrective_actions" }o--|| "users" : createdBy
+"corrective_action_audits" }o--|| "corrective_actions" : correctiveAction
+"corrective_action_audits" }o--|| "users" : user
+"ca_approval_requests" }o--|| "corrective_actions" : correctiveAction
+"ca_approval_requests" }o--|| "users" : approver
+"ca_approval_requests" }o--|| "users" : requester
 "management_reviews" }o--|| "users" : chairperson
 "management_reviews" }o--|| "users" : createdBy
 "management_review_actions" }o--|| "management_reviews" : review
@@ -6604,6 +6749,11 @@ erDiagram
 "plugin_licenses" }o--|| "plugin_packages" : package
 "plugin_reviews" }o--|| "plugin_packages" : package
 "plugin_deployments" }o--|| "plugin_packages" : package
+"digital_thread_traces" }o--|| "parts" : part
+"digital_thread_traces" }o--o| "operations" : operation
+"digital_thread_traces" }o--o| "quality_characteristics" : qualityCharacteristic
+"model_view_states" }o--o| "operations" : operation
+"model_view_states" }o--o| "work_instructions" : workInstruction
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -7043,6 +7193,11 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `approvedAt`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `stepInstructionUuid`: 
+  - `pmiAnnotationIds`: 
+  - `viewOrientationData`: 
+  - `pmiTolerances`: 
+  - `pmiDimensions`: 
 
 ### `operation_parameters`
 
@@ -7251,6 +7406,22 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `llpRegulatoryReference`: 
   - `llpCertificationRequired`: 
   - `llpNotes`: 
+  - `stepAp242Uuid`: 
+  - `stepAp242FileUrl`: 
+  - `stepAp242Version`: 
+  - `stepAp242Checksum`: 
+  - `stepAp242LastSync`: 
+  - `cadModelUuid`: 
+  - `cadModelRevision`: 
+  - `cadModelFormat`: 
+  - `cadSystemSource`: 
+  - `hasPMI`: 
+  - `pmiExtractionDate`: 
+  - `pmiCharacteristics`: 
+  - `plmSystemName`: 
+  - `plmItemId`: 
+  - `plmRevisionId`: 
+  - `plmLastModified`: 
 
 ### `part_site_availability`
 
@@ -7798,6 +7969,16 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `isActive`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `pmiFeatureUuid`: 
+  - `pmiAnnotationId`: 
+  - `cadDatumReferences`: 
+  - `gdtType`: 
+  - `gdtTolerance`: 
+  - `gdtToleranceUnit`: 
+  - `gdtModifier`: 
+  - `featureGeometry`: 
+  - `actualValue`: 
+  - `deviation`: 
 
 ### `quality_inspections`
 
@@ -8201,6 +8382,9 @@ Cause Code Change History - Audit trail for cause code modifications
   - `categories`: 
   - `keywords`: 
   - `thumbnailUrl`: 
+  - `stepModelUuid`: 
+  - `pmiViewStates`: 
+  - `annotatedModelUrl`: 
 
 ### `work_instruction_steps`
 
@@ -9145,6 +9329,7 @@ Enhanced maintenance work order model for comprehensive maintenance management (
   - `acknowledgedBy`: 
   - `acknowledgedAt`: 
   - `resolution`: 
+  - `correctiveActionId`: 
   - `createdAt`: 
 
 ### `sampling_plans`
@@ -12985,6 +13170,37 @@ Corrective Action - CAPA management (ISO 9001 Clause 10)
   - `updatedAt`: 
   - `createdById`: 
 
+### `corrective_action_audits`
+CorrectiveAction Audit Trail - Tracks all changes to corrective actions for compliance
+
+**Properties**
+  - `id`: 
+  - `caId`: 
+  - `userId`: 
+  - `action`: 
+  - `fieldName`: 
+  - `previousValue`: 
+  - `newValue`: 
+  - `notes`: 
+  - `timestamp`: 
+
+### `ca_approval_requests`
+CorrectiveAction Approval Request - Tracks RCA and effectiveness verification approvals
+
+**Properties**
+  - `id`: 
+  - `caId`: 
+  - `approvalType`: 
+  - `requestedBy`: 
+  - `requestedAt`: 
+  - `approverUserId`: 
+  - `status`: 
+  - `approvalNotes`: 
+  - `approvedAt`: 
+  - `dueDate`: 
+  - `escalated`: 
+  - `escalatedAt`: 
+
 ### `management_reviews`
 Management Review - Management review sessions (ISO 9001 Clause 9.3)
 
@@ -13433,6 +13649,97 @@ API Compatibility Test - Test results for version compatibility
   - `reviewNotes`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `digital_thread_traces`
+Digital Thread Trace - Links CAD models to manufacturing data
+
+**Properties**
+  - `id`: 
+  - `cadModelUuid`: 
+  - `pmiFeatureId`: 
+  - `partId`: 
+  - `operationId`: 
+  - `qualityCharacteristicId`: 
+  - `measurementData`: 
+  - `asBuiltNominal`: 
+  - `asBuiltActual`: 
+  - `asBuiltDeviation`: 
+  - `withinTolerance`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+  - `verifiedBy`: 
+  - `verifiedAt`: 
+
+### `model_view_states`
+Model View State - Store 3D model view states for operations
+
+**Properties**
+  - `id`: 
+  - `modelUuid`: 
+  - `operationId`: 
+  - `workInstructionId`: 
+  - `viewName`: 
+  - `description`: 
+  - `cameraPositionX`: 
+  - `cameraPositionY`: 
+  - `cameraPositionZ`: 
+  - `cameraTargetX`: 
+  - `cameraTargetY`: 
+  - `cameraTargetZ`: 
+  - `cameraUpX`: 
+  - `cameraUpY`: 
+  - `cameraUpZ`: 
+  - `fov`: 
+  - `visibleFeaturesJson`: 
+  - `hiddenFeaturesJson`: 
+  - `highlightedFeaturesJson`: 
+  - `highlightColor`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plm_integrations`
+PLM Integration - Store PLM system connection configurations
+
+**Properties**
+  - `id`: 
+  - `systemName`: 
+  - `systemVersion`: 
+  - `baseUrl`: 
+  - `apiVersion`: 
+  - `authMethod`: 
+  - `credentialsEncrypted`: 
+  - `autoSyncEnabled`: 
+  - `syncIntervalMinutes`: 
+  - `fileExportPath`: 
+  - `isActive`: 
+  - `lastSyncAt`: 
+  - `lastError`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `step_file_imports`
+STEP File Import - Track STEP file imports and their status
+
+**Properties**
+  - `id`: 
+  - `fileName`: 
+  - `fileUrl`: 
+  - `fileHash`: 
+  - `fileSize`: 
+  - `stepUuid`: 
+  - `cadSystemSource`: 
+  - `cadModelRevision`: 
+  - `partId`: 
+  - `status`: 
+  - `pmiExtracted`: 
+  - `pmiExtractionDate`: 
+  - `extractedPMIJson`: 
+  - `extractionErrors`: 
+  - `extractionWarnings`: 
+  - `importedAt`: 
+  - `importedBy`: 
+  - `completedAt`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
