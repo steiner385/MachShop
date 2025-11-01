@@ -12,6 +12,7 @@ vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(() => ({
     operation: {
       findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
     },
     vendor: {
       findUniqueOrThrow: vi.fn(),
