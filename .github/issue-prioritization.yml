@@ -1449,6 +1449,52 @@ issues:
     blocks: []
     notes: "PHASE 3 CRITICAL - Security framework for extension validation. OWASP scanning, code quality gates (90%+ coverage), license compliance, deployment authorization, vulnerability tracking, security monitoring. 4.5 week effort. Required for marketplace launch."
 
+  # --- Phase 2B: Governance & Deployment ---
+  - number: 427
+    title: "Navigation Extension Framework with Approval Workflow"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [426, 434]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "PHASE 2B - Controlled menu extensibility with standard menu groups and foundation-tier approval for new groups. NavigationRegistry, permission-aware rendering, mobile responsiveness, site-scoped visibility. Implements governance for navigation extensions. 4-5 week effort."
+
+  - number: 413
+    title: "Extension License Management System"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: []
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: []
+    notes: "PHASE 2B - Per-site license management with entitlements, usage tracking, expiration, and compliance. Supports perpetual, subscription, trial, and enterprise licenses. Includes validation, audit logging, and marketplace monetization support. 5-6 week effort."
+
+  - number: 407
+    title: "Multi-Site Extension Deployment Service"
+    category: sdk_extensibility
+    foundation_level: 0
+    dependencies: [434, 404]
+    strategic_focus: null
+    business_value: 8
+    effort_estimate: 8
+    blocks: []
+    notes: "PHASE 2B - Coordinated deployment of extensions across multiple sites with version consistency and rollback support. Handles site-specific configurations, dependency resolution per-site, and deployment orchestration. 4-5 week effort."
+
+  # --- Phase 2C: Documentation & Support ---
+  - number: 436
+    title: "Comprehensive SDK Documentation & Reference Examples"
+    category: sdk_extensibility
+    foundation_level: 1
+    dependencies: [426, 434, 439, 440, 443]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 6
+    blocks: []
+    notes: "PHASE 2C - Complete API reference, 10+ working examples per extension type, architecture decisions, best practices guide, security implementation guides, performance optimization guides, migration guides for version updates. 3-4 week effort. Critical for developer adoption."
+
   # --- Extension Framework (L2) ---
   - number: 415
     title: "Extension Analytics & Monitoring Service"
@@ -1459,7 +1505,7 @@ issues:
     business_value: 7
     effort_estimate: 6
     blocks: []
-    notes: "Analytics and monitoring for extension ecosystem. Includes extension usage metrics, performance monitoring, health checks, dependency graph visualization, lifecycle analytics, and compliance reporting across sites."
+    notes: "PHASE 2C - Analytics and monitoring for extension ecosystem. Includes extension usage metrics, performance monitoring, health checks, dependency graph visualization, lifecycle analytics, and compliance reporting across sites. 3-4 week effort."
 
   # --- Phase 4: Next-Generation Capabilities (L2/L3) ---
   - number: 445
