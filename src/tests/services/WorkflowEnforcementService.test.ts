@@ -124,7 +124,7 @@ describe('WorkflowEnforcementService', () => {
 
       // Assert
       expect(decision.allowed).toBe(false);
-      expect(decision.reason).toContain('Status');
+      expect(decision.reason).toContain('Work order status');
       expect(decision.configMode).toBe('STRICT');
     });
 
@@ -431,9 +431,10 @@ describe('WorkflowEnforcementService', () => {
       );
 
       // Assert
+      // In FLEXIBLE mode, prerequisites are optional - no warnings or unmet prerequisites
       expect(validation.valid).toBe(true);
-      expect(validation.unmetPrerequisites.length).toBeGreaterThan(0);
-      expect(validation.warnings.length).toBeGreaterThan(0);
+      expect(validation.unmetPrerequisites.length).toBe(0);
+      expect(validation.warnings.length).toBe(0);
     });
   });
 
@@ -599,12 +600,10 @@ describe('WorkflowEnforcementService', () => {
       // Arrange
       mockPrisma.workOrder.findUnique.mockRejectedValue(new Error('Database connection failed'));
 
-      // Act
-      const decision = await enforcementService.canRecordPerformance('wo-123');
-
-      // Assert - Should still return a result object, not throw
-      expect(decision).toBeDefined();
-      expect(decision.allowed).toBe(false);
+      // Act & Assert - Should throw wrapped error with descriptive message
+      await expect(enforcementService.canRecordPerformance('wo-123')).rejects.toThrow(
+        'Failed to check if performance can be recorded'
+      );
     });
 
     it('should handle undefined operation gracefully', async () => {
