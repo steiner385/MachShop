@@ -154,6 +154,7 @@ import erpRoutes from './routes/erp';
 import webhookRoutes from './routes/webhooks';
 import monitoringRoutes from './routes/monitoring';
 import reconciliationRoutes from './routes/reconciliation';
+import reconciliationScheduleRoutes from './routes/reconciliation-schedules';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -413,6 +414,9 @@ apiRouter.use('/monitoring', authMiddleware, monitoringRoutes);
 
 // ✅ GITHUB ISSUE #60: ERP Data Reconciliation Routes (Phase 12 - Data Reconciliation System)
 apiRouter.use('/reconciliation', authMiddleware, reconciliationRoutes);
+
+// ✅ GITHUB ISSUE #60: ERP Scheduled Reconciliation Routes (Phase 13 - Scheduled Jobs)
+apiRouter.use('/reconciliation', authMiddleware, reconciliationScheduleRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
