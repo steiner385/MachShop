@@ -46,6 +46,7 @@ import workOrderExecutionRoutes from './routes/workOrderExecution';
 import routingRoutes from './routes/routings';
 import routingTemplateRoutes from './routes/routingTemplates';
 import siteRoutes from './routes/sites';
+import dataCollectionRoutes from './routes/dataCollection';
 
 // Aerospace integration routes
 import maximoRoutes from './routes/maximoRoutes';
@@ -285,6 +286,7 @@ apiRouter.use('/routing-templates', authMiddleware, routingTemplateRoutes);
 apiRouter.use('/presence', authMiddleware, presenceRoutes);
 apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
+apiRouter.use('/data-collection', authMiddleware, dataCollectionRoutes); // Issue #45: Data Collection Forms
 apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
 apiRouter.use('/time-tracking', authMiddleware, timeTrackingRoutes);
