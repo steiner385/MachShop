@@ -48,6 +48,7 @@ import routingTemplateRoutes from './routes/routingTemplates';
 import siteRoutes from './routes/sites';
 import dataCollectionRoutes from './routes/dataCollection';
 import inventoryRoutes from './routes/inventory';
+import lotTrackingRoutes from './routes/lotTracking';
 
 // Aerospace integration routes
 import maximoRoutes from './routes/maximoRoutes';
@@ -293,6 +294,7 @@ apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/data-collection', authMiddleware, dataCollectionRoutes); // Issue #45: Data Collection Forms
 apiRouter.use('/inventory', authMiddleware, inventoryRoutes); // Issue #88: Comprehensive Inventory Management
+apiRouter.use('/lot-tracking', authMiddleware, lotTrackingRoutes); // Issue #90: Lot Tracking & Serialization
 apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
 apiRouter.use('/time-tracking', authMiddleware, timeTrackingRoutes);
