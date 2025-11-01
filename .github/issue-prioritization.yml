@@ -1495,8 +1495,8 @@ issues:
     strategic_focus: null
     business_value: 7
     effort_estimate: 7
-    blocks: []
-    notes: "OSP purchase order and receiving integration"
+    blocks: [61, 62]
+    notes: "COMPLETED - Phase 1 Foundation (PR #376): Database schema (9 tables, 8 enums), ERPIntegrationService, adapter pattern architecture. Comprehensive implementation plan (IMPLEMENTATION_PLAN_ISSUE_60.md) for Phases 2-10."
 
   - number: 61
     title: "Label Printing System Integration"
