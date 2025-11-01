@@ -935,7 +935,7 @@ issues:
     business_value: 9
     effort_estimate: 9
     blocks: [89, 90, 91, 92, 84]
-    notes: "Core inventory tracking system, foundational for material management"
+    notes: "COMPLETED - Comprehensive inventory system with CRUD, transactions, FIFO/LIFO/Average costing, ABC analysis, replenishment, expiration tracking. 1100+ lines, 13 tests, PR #386. Unblocks dependent issues."
 
   - number: 90
     title: "Lot Tracking & Serialization"
@@ -946,7 +946,7 @@ issues:
     business_value: 9
     effort_estimate: 7
     blocks: [105, 149, 150]
-    notes: "Critical for traceability in aerospace manufacturing"
+    notes: "COMPLETED - Lot genealogy (splits/merges), forward/backward traceability, serial assignment, as-built BOM, holds/quarantine, recalls. 1700+ lines, 33 tests, PR #388. No conflicts with existing services."
 
   - number: 91
     title: "Inventory Transaction Engine & Cycle Counting"
@@ -1059,7 +1059,7 @@ issues:
     business_value: 9
     effort_estimate: 9
     blocks: []
-    notes: "Critical for aerospace and defense manufacturing"
+    notes: "COMPLETED - ITAR/export control compliance system with classification, screening, licensing, and auditing - Implemented in PR #390"
 
   - number: 105
     title: "Full Product Genealogy & Where-Used Traceability"
@@ -1070,7 +1070,7 @@ issues:
     business_value: 9
     effort_estimate: 8
     blocks: []
-    notes: "Complete traceability for recalls and compliance"
+    notes: "COMPLETED - Complete traceability for recalls and compliance with ProductGenealogyService, AsBuiltBOMService, and RecallSimulationService - Implemented in PR #389"
 
   # --- Help Documentation & User Guidance ---
   - number: 139
@@ -1750,7 +1750,7 @@ issues:
     business_value: 5
     effort_estimate: 5
     blocks: []
-    notes: "Image and video annotation capabilities"
+    notes: "COMPLETED - Complete annotation system with 8 phases: Core infrastructure, interactive drawing tools, text/callout annotations, layer management, undo/redo/zoom, frontend UI components, test suite, and documentation. 163 tests (100% pass rate), 20 files, 5000+ lines. Merged in PR #385"
 
   - number: 67
     title: "Electronic Work Instructions for Suppliers"

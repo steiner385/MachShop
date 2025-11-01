@@ -47,6 +47,10 @@ import routingRoutes from './routes/routings';
 import routingTemplateRoutes from './routes/routingTemplates';
 import siteRoutes from './routes/sites';
 import dataCollectionRoutes from './routes/dataCollection';
+import inventoryRoutes from './routes/inventory';
+import lotTrackingRoutes from './routes/lotTracking';
+import productGenealogyRoutes from './routes/productGenealogy';
+import exportControlRoutes from './routes/exportControl';
 
 // Aerospace integration routes
 import maximoRoutes from './routes/maximoRoutes';
@@ -158,6 +162,10 @@ import reconciliationScheduleRoutes from './routes/reconciliation-schedules';
 import auditTrailRoutes from './routes/audit-trail';
 import syncRoutes from './routes/sync';
 import erpDashboardRoutes from './routes/erp-dashboard';
+
+// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System Routes
+import movementRoutes from './routes/movements';
+import shipmentWebhookRoutes from './routes/shipment-webhooks';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -301,6 +309,10 @@ apiRouter.use('/presence', authMiddleware, presenceRoutes);
 apiRouter.use('/sites', authMiddleware, siteRoutes);
 apiRouter.use('/work-instructions', authMiddleware, workInstructionRoutes);
 apiRouter.use('/data-collection', authMiddleware, dataCollectionRoutes); // Issue #45: Data Collection Forms
+apiRouter.use('/inventory', authMiddleware, inventoryRoutes); // Issue #88: Comprehensive Inventory Management
+apiRouter.use('/lot-tracking', authMiddleware, lotTrackingRoutes); // Issue #90: Lot Tracking & Serialization
+apiRouter.use('/product-genealogy', authMiddleware, productGenealogyRoutes); // Issue #105: Product Genealogy & BOM Management
+apiRouter.use('/export-control', authMiddleware, exportControlRoutes); // Issue #104: ITAR/Export Control Management
 apiRouter.use('/workflows', authMiddleware, workflowRoutes);
 apiRouter.use('/media', authMiddleware, mediaRoutes);
 apiRouter.use('/time-tracking', authMiddleware, timeTrackingRoutes);
@@ -410,7 +422,7 @@ apiRouter.use('/osp', authMiddleware, ospRoutes);
 apiRouter.use('/erp', authMiddleware, erpRoutes);
 
 // ✅ GITHUB ISSUE #60: ERP Webhook Management Routes (Phase 9 - Real-Time Sync Notifications)
-apiRouter.use('/webhooks', authMiddleware, webhookRoutes);
+apiRouter.use('/erp/webhooks', authMiddleware, webhookRoutes);
 
 // ✅ GITHUB ISSUE #60: ERP Monitoring & Observability Routes (Phase 11 - Advanced Monitoring)
 apiRouter.use('/monitoring', authMiddleware, monitoringRoutes);
@@ -429,6 +441,10 @@ apiRouter.use('/sync', authMiddleware, syncRoutes);
 
 // ✅ GITHUB ISSUE #60: Dashboard & Real-time Visualization Routes (Phase 16 - Dashboard)
 apiRouter.use('/erp/dashboard', authMiddleware, erpDashboardRoutes);
+
+// ✅ GITHUB ISSUE #64: Material Movement & Logistics Management System API Routes (Phase 8-9)
+apiRouter.use('/movements', authMiddleware, movementRoutes);
+apiRouter.use('/webhooks', shipmentWebhookRoutes); // Public webhook endpoints - no auth required
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);

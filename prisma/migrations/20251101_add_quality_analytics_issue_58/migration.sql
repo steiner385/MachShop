@@ -13,6 +13,18 @@ CREATE TYPE "AlertSeverity" AS ENUM ('INFO', 'WARNING', 'CRITICAL', 'URGENT');
 -- CreateEnum DetectionPoint
 CREATE TYPE "DetectionPoint" AS ENUM ('IN_PROCESS', 'FINAL_INSPECTION', 'RECEIVING', 'ASSEMBLY', 'SHIPPING', 'CUSTOMER', 'INTERNAL_AUDIT', 'SUPPLIER_AUDIT');
 
+-- CreateEnum NCRSeverity (if not exists)
+DO $$ BEGIN
+    CREATE TYPE "NCRSeverity" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+-- CreateEnum NCRDisposition (if not exists)
+DO $$ BEGIN
+    CREATE TYPE "NCRDisposition" AS ENUM ('SCRAP', 'REWORK', 'REPAIR', 'USE_AS_IS', 'RETURN_TO_VENDOR', 'CUSTOMER_CONCESSION');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
 -- AlterTable ncrs - Add cost and detection tracking fields
 ALTER TABLE "ncrs" ADD COLUMN "sortingCost" DECIMAL(15,2),
 ADD COLUMN "engineeringCost" DECIMAL(15,2),
