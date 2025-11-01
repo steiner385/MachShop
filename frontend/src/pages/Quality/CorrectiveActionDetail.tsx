@@ -47,6 +47,7 @@ import {
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { qualityApi } from '@/services/qualityApi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import styled from 'styled-components';
@@ -224,65 +225,33 @@ const CorrectiveActionDetail: React.FC = () => {
     try {
       setLoading(true);
 
-      // TODO: Replace with actual API call GET /api/v2/corrective-actions/:id
+      if (!id) {
+        message.error('No CA ID provided');
+        return;
+      }
 
-      // Mock data for demonstration
-      const mockCA: CorrectiveAction = {
-        id: id || '1',
-        caNumber: 'CA-2025-0001',
-        title: 'Implement QC checkpoints on Line 3',
-        description: 'Add visual inspection checkpoints to prevent defects identified in NCR-2025-001. This corrective action was identified during the NCR investigation phase.',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        source: 'NCR',
-        sourceReference: 'NCR-2025-001',
-        assignedTo: {
-          id: 'user1',
-          firstName: 'John',
-          lastName: 'Smith',
-          email: 'john.smith@example.com',
-        },
-        createdBy: {
-          firstName: 'Jane',
-          lastName: 'Doe',
-        },
-        targetDate: dayjs().add(5, 'days').toISOString(),
-        rootCause: 'Operators not consistently applying visual inspection protocol. Training gaps identified.',
-        rootCauseMethod: 'FIVE_WHY',
-        correctiveAction: 'Install standardized visual inspection checkpoints on all production lines. Update operator training protocol.',
-        preventiveAction: 'Implement quarterly training refresher program for all operators on inspection procedures.',
-        verificationMethod: 'Will be verified through defect rate tracking over next 30 days post-implementation.',
-        estimatedCost: 5000,
-        notes: 'Budget approved. Materials ordered.',
-        createdAt: dayjs().subtract(2, 'days').toISOString(),
-        updatedAt: dayjs().subtract(1, 'days').toISOString(),
-      };
+      // Fetch real data from API
+      const [caData, auditData] = await Promise.all([
+        qualityApi.getCorrectiveActionById(id),
+        qualityApi.getAuditTrail(id),
+      ]);
 
-      const mockAudit: AuditEntry[] = [
-        {
-          id: '1',
-          timestamp: dayjs().subtract(1, 'days').toISOString(),
-          userId: 'user1',
-          userName: 'John Smith',
-          action: 'Status changed',
-          fieldName: 'status',
-          previousValue: 'OPEN',
-          newValue: 'IN_PROGRESS',
-          notes: 'Beginning implementation phase',
-        },
-        {
-          id: '2',
-          timestamp: dayjs().subtract(2, 'days').toISOString(),
-          userId: 'user2',
-          userName: 'Sarah Johnson',
-          action: 'Created',
-          notes: 'Initial CAPA created from NCR investigation',
-        },
-      ];
+      // Format audit trail for display
+      const formattedAudit: AuditEntry[] = auditData.map((entry: any) => ({
+        id: entry.id,
+        timestamp: entry.timestamp,
+        userId: entry.userId,
+        userName: entry.userId, // TODO: Map userId to actual name from user service
+        action: entry.action,
+        fieldName: entry.previousValue || entry.newValue ? 'field' : undefined,
+        previousValue: entry.previousValue,
+        newValue: entry.newValue,
+        notes: entry.notes,
+      }));
 
-      setCA(mockCA);
-      setAuditTrail(mockAudit);
-      form.setFieldsValue(mockCA);
+      setCA(caData as any);
+      setAuditTrail(formattedAudit);
+      form.setFieldsValue(caData);
     } catch (error) {
       console.error('Error loading CA:', error);
       message.error('Failed to load corrective action');
