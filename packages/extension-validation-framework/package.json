@@ -1,0 +1,32 @@
+{
+  "name": "@machshop/extension-validation-framework",
+  "version": "2.0.0",
+  "description": "Validation and testing framework for MachShop extensions",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "bin": {
+    "validate-extension": "dist/cli.js"
+  },
+  "dependencies": {
+    "@machshop/ui-extension-contracts": "workspace:*",
+    "ajv": "^8.12.0",
+    "chalk": "^5.3.0",
+    "minimist": "^1.2.8",
+    "wcag-contrast": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  }
+}
