@@ -339,12 +339,12 @@ issues:
     title: "Serialization: Configurable Serial Number Format Engine"
     category: serialization
     foundation_level: 0
-    dependencies: [90]
+    dependencies: [90, 403, 407]
     strategic_focus: null
     business_value: 10
     effort_estimate: 8
     blocks: []
-    notes: "Flexible serial number formats for diverse requirements across sites and parts"
+    notes: "Flexible serial number formats for diverse requirements across sites and parts. Extension framework enables per-site and per-product serial number format variations."
 
   # --- SDK & Extensibility Infrastructure ---
   - number: 165
@@ -1042,12 +1042,12 @@ issues:
     title: "Serialization: Advanced Assignment Workflows (Vendor, Late, Propagation)"
     category: serialization
     foundation_level: 1
-    dependencies: [90]
+    dependencies: [90, 403, 407, 413]
     strategic_focus: null
     business_value: 10
     effort_estimate: 8
     blocks: []
-    notes: "Vendor serials, late assignment, and propagation workflows for diverse scenarios"
+    notes: "Vendor serials, late assignment, and propagation workflows for diverse scenarios. Extension framework enables industry-specific serial assignment strategies."
 
   # --- Production Planning Foundation ---
   - number: 82
@@ -1121,23 +1121,23 @@ issues:
     title: "ITAR/Export Control Management"
     category: regulatory_compliance
     foundation_level: 1
-    dependencies: []
+    dependencies: [403, 407, 413]
     strategic_focus: null
     business_value: 9
     effort_estimate: 9
     blocks: []
-    notes: "COMPLETED - ITAR/export control compliance system with classification, screening, licensing, and auditing - Implemented in PR #390"
+    notes: "COMPLETED - ITAR/export control compliance system with classification, screening, licensing, and auditing - Implemented in PR #390. Extension framework enables per-site ITAR control variations and licensing rules."
 
   - number: 105
     title: "Full Product Genealogy & Where-Used Traceability"
     category: regulatory_compliance
     foundation_level: 1
-    dependencies: [90]
+    dependencies: [90, 403, 407]
     strategic_focus: null
     business_value: 9
     effort_estimate: 8
     blocks: []
-    notes: "COMPLETED - Complete traceability for recalls and compliance with ProductGenealogyService, AsBuiltBOMService, and RecallSimulationService - Implemented in PR #389"
+    notes: "COMPLETED - Complete traceability for recalls and compliance with ProductGenealogyService, AsBuiltBOMService, and RecallSimulationService - Implemented in PR #389. Extension framework enables per-site genealogy and traceability configurations."
 
   # --- Help Documentation & User Guidance ---
   - number: 139
@@ -1526,113 +1526,113 @@ issues:
     title: "Equipment Registry & Maintenance Management"
     category: equipment_maintenance
     foundation_level: 2
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 7
     blocks: [95, 96, 97]
-    notes: "Extends existing ISA-95 equipment hierarchy with maintenance"
+    notes: "Extends existing ISA-95 equipment hierarchy with maintenance. Extension framework enables site-specific equipment configurations."
 
   - number: 95
     title: "Tool Life Tracking & Management"
     category: equipment_maintenance
     foundation_level: 2
-    dependencies: [94]
+    dependencies: [94, 403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
     blocks: []
-    notes: "Tool wear tracking and replacement scheduling"
+    notes: "Tool wear tracking and replacement scheduling. Extension framework enables site-specific tool management policies."
 
   - number: 96
     title: "Calibration Management for Measurement Equipment"
     category: equipment_maintenance
     foundation_level: 2
-    dependencies: [94]
+    dependencies: [94, 403, 407]
     strategic_focus: quality_management
     business_value: 8
     effort_estimate: 6
     blocks: []
-    notes: "Critical for quality compliance and measurement accuracy"
+    notes: "Critical for quality compliance and measurement accuracy. Extension framework enables regulatory-specific calibration rules."
 
   - number: 97
     title: "Preventive & Predictive Maintenance"
     category: equipment_maintenance
     foundation_level: 2
-    dependencies: [94]
+    dependencies: [94, 403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 7
     blocks: []
-    notes: "Reduces downtime and extends equipment life"
+    notes: "Reduces downtime and extends equipment life. Extension framework enables site-specific maintenance schedules."
 
   # --- Outside Processing (OSP) Operations ---
   - number: 59
     title: "Core OSP/Farmout Operations Management"
     category: osp_operations
     foundation_level: 2
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 8
     effort_estimate: 8
     blocks: [60, 61, 62]
-    notes: "Foundation for external processing workflows"
+    notes: "Foundation for external processing workflows. Extension framework enables site-specific OSP supplier configurations."
 
   - number: 60
     title: "ERP Integration for OSP (Impact, SAP, Oracle)"
     category: osp_operations
     foundation_level: 2
-    dependencies: [59]
+    dependencies: [59, 403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 7
     blocks: [61, 62]
-    notes: "COMPLETED - Phase 1 Foundation (PR #376): Database schema (9 tables, 8 enums), ERPIntegrationService, adapter pattern architecture. Comprehensive implementation plan (IMPLEMENTATION_PLAN_ISSUE_60.md) for Phases 2-10."
+    notes: "COMPLETED - Phase 1 Foundation (PR #376): Database schema (9 tables, 8 enums), ERPIntegrationService, adapter pattern architecture. Comprehensive implementation plan (IMPLEMENTATION_PLAN_ISSUE_60.md) for Phases 2-10. Extension framework enables ERP system variations per site."
 
   - number: 61
     title: "Label Printing System Integration"
     category: osp_operations
     foundation_level: 2
-    dependencies: [59]
+    dependencies: [59, 403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 4
     blocks: []
-    notes: "Automated label generation for OSP shipments"
+    notes: "Automated label generation for OSP shipments. Extension framework enables site-specific label formats."
 
   - number: 62
     title: "Supplier Portal & Collaboration Platform"
     category: osp_operations
     foundation_level: 2
-    dependencies: [59]
+    dependencies: [59, 403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 8
     blocks: []
-    notes: "External supplier access for work instructions and data collection"
+    notes: "External supplier access for work instructions and data collection. Extension framework enables per-supplier customization."
 
   # --- Flexible MES Workflow System ---
   - number: 40
     title: "Site-Level Workflow Configuration"
     category: flexible_workflow
     foundation_level: 2
-    dependencies: []
+    dependencies: [403, 407, 409]
     strategic_focus: null
     business_value: 8
     effort_estimate: 7
     blocks: [41, 43, 44, 45]
-    notes: "IN PROGRESS - Phase 1-5 completed. Phase 1 (PR #311): Backend (573 lines). Phase 2 (PR #314): Overrides (573 lines). Phase 3 (PR #318): Admin UI (2,241 lines, 5 components). Phase 4 (PR #319): Test suite (1,868 lines, ~82.5% coverage). Phase 5 (PR #322): Runtime integration (726 lines) - WorkflowAwareExecutionService wrapper, external vouching, mode-aware execution. All modes implemented (STRICT/FLEXIBLE/HYBRID) with enforcement, data collection, quality checks, approval workflows. Remaining: Phase 6 (migration script). Currently 85-90% complete. Unblocks Issues #41, #43, #44."
+    notes: "IN PROGRESS - Phase 1-5 completed. Phase 1 (PR #311): Backend (573 lines). Phase 2 (PR #314): Overrides (573 lines). Phase 3 (PR #318): Admin UI (2,241 lines, 5 components). Phase 4 (PR #319): Test suite (1,868 lines, ~82.5% coverage). Phase 5 (PR #322): Runtime integration (726 lines) - WorkflowAwareExecutionService wrapper, external vouching, mode-aware execution. All modes implemented (STRICT/FLEXIBLE/HYBRID) with enforcement, data collection, quality checks, approval workflows. Remaining: Phase 6 (migration script). Currently 85-90% complete. Unblocks Issues #41, #43, #44. Extension framework enables site-specific workflow configurations with conflict detection."
 
   - number: 41
     title: "Flexible Workflow Enforcement Engine"
     category: flexible_workflow
     foundation_level: 2
-    dependencies: [40]
+    dependencies: [40, 403, 407, 409]
     strategic_focus: null
     business_value: 8
     effort_estimate: 8
     blocks: [43, 44, 45]
-    notes: "Runtime enforcement of configured workflow rules"
+    notes: "Runtime enforcement of configured workflow rules. Extension framework enables detection and resolution of workflow conflicts."
 
   - number: 43
     title: "External System Vouching API"
@@ -1746,91 +1746,91 @@ issues:
     title: "Warehouse Management System (WMS)"
     category: inventory_material
     foundation_level: 3
-    dependencies: [88, 91]
+    dependencies: [88, 91, 403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 9
     blocks: []
-    notes: "Advanced warehouse operations (putaway, picking, etc.)"
+    notes: "Advanced warehouse operations (putaway, picking, etc.). Extension framework enables site-specific warehouse configurations."
 
   # --- Analytics & Reporting ---
   - number: 238
     title: "Analytics & Reporting: Multi-Level BOM Visualization & Explosion Tools"
     category: analytics_reporting
     foundation_level: 2
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 6
     blocks: []
-    notes: "User experience enhancement - Graphical BOM tree visualization, BOM explosion/implosion queries, where-used across multiple levels, BOM comparison (as-designed vs as-built), effectivity visualization, phantom part support. Makes complex BOMs accessible."
+    notes: "User experience enhancement - Graphical BOM tree visualization, BOM explosion/implosion queries, where-used across multiple levels, BOM comparison (as-designed vs as-built), effectivity visualization, phantom part support. Makes complex BOMs accessible. Extension framework enables customizable BOM visualization per site."
 
   - number: 106
     title: "Executive Dashboards & KPI Framework"
     category: analytics_reporting
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 6
     blocks: []
-    notes: "High-level business intelligence dashboards"
+    notes: "High-level business intelligence dashboards. Extension framework enables site-specific KPI definitions."
 
   - number: 107
     title: "Advanced OEE & Performance Analytics"
     category: analytics_reporting
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 7
     effort_estimate: 6
     blocks: []
-    notes: "Deep equipment effectiveness analysis"
+    notes: "Deep equipment effectiveness analysis. Extension framework enables industry-specific OEE metrics."
 
   - number: 108
     title: "Custom Report Builder & Ad-Hoc Reporting"
     category: analytics_reporting
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 7
     blocks: []
-    notes: "User-configurable reporting tools"
+    notes: "User-configurable reporting tools. Extension framework enables per-site report templates."
 
   - number: 109
     title: "BI Tool Integration (Power BI, Tableau, Looker)"
     category: analytics_reporting
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
     blocks: []
-    notes: "Integration with external BI platforms"
+    notes: "Integration with external BI platforms. Extension framework enables per-site BI tool configurations."
 
   # --- Document Management Enhancements ---
   - number: 64
     title: "Material Movement & Logistics Management"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 5
     effort_estimate: 6
     blocks: []
-    notes: "Enhanced material movement tracking"
+    notes: "Enhanced material movement tracking. Extension framework enables site-specific logistics configurations."
 
   - number: 65
     title: "Native WYSIWYG Editor Implementation"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 5
     effort_estimate: 6
     blocks: []
-    notes: "Rich text editing for work instructions"
+    notes: "Rich text editing for work instructions. Extension framework enables custom document templates per site."
 
   - number: 66
     title: "Advanced Media Annotation Tools"
@@ -1847,78 +1847,78 @@ issues:
     title: "Electronic Work Instructions for Suppliers"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
     blocks: []
-    notes: "Extend work instructions to external suppliers"
+    notes: "Extend work instructions to external suppliers. Extension framework enables per-supplier instruction customization."
 
   - number: 68
     title: "PowerPoint Import/Export Support"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 4
     effort_estimate: 5
     blocks: []
-    notes: "PowerPoint file format support"
+    notes: "PowerPoint file format support. Extension framework enables format variations per site."
 
   - number: 69
     title: "Document Template System"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 5
     effort_estimate: 4
     blocks: []
-    notes: "Reusable document templates"
+    notes: "Reusable document templates. Extension framework enables custom templates per site."
 
   - number: 70
     title: "Bulk Document Operations"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 5
     effort_estimate: 4
     blocks: []
-    notes: "Batch operations on multiple documents"
+    notes: "Batch operations on multiple documents. Extension framework enables custom bulk operations."
 
   - number: 71
     title: "AI-Powered Content Discovery"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 5
     effort_estimate: 7
     blocks: []
-    notes: "Intelligent document search and recommendations"
+    notes: "Intelligent document search and recommendations. Extension framework enables custom search algorithms."
 
   - number: 72
     title: "Document Version Control & History"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
     blocks: []
-    notes: "Enhanced versioning (some exists already)"
+    notes: "Enhanced versioning (some exists already). Extension framework enables per-site retention policies."
 
   - number: 73
     title: "Collaboration & Approval Workflows"
     category: document_management
     foundation_level: 3
-    dependencies: []
+    dependencies: [403, 407]
     strategic_focus: null
     business_value: 6
     effort_estimate: 5
     blocks: []
-    notes: "Enhanced collaboration features (some exist)"
+    notes: "Enhanced collaboration features (some exist). Extension framework enables custom approval workflows."
 
   # --- SDK & Extensibility Platform ---
   - number: 74
