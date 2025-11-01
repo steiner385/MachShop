@@ -1480,7 +1480,9 @@ issues:
     business_value: 8
     effort_estimate: 8
     blocks: []
-    notes: "PHASE 2B - Controlled menu extensibility with standard menu groups and foundation-tier approval for new groups. NavigationRegistry, permission-aware rendering, mobile responsiveness, site-scoped visibility. Implements governance for navigation extensions. 4-5 week effort."
+    completed: true
+    completed_date: "2025-11-01"
+    notes: "COMPLETED - Controlled menu extensibility with standard menu groups and foundation-tier approval for new groups. NavigationRegistry (7 standard groups: Production, Quality, Materials, Equipment, Scheduling, Admin, Reports), permission-aware rendering, mobile responsiveness, site-scoped visibility. Implements governance for navigation extensions. React hooks (useNavigation, useNavigationGovernance, etc.), NavigationMenu component, REST API endpoints. 40 comprehensive tests (100% pass rate), 400+ line NAVIGATION_GUIDE.md documentation. Implemented in PR #468."
 
   - number: 413
     title: "Extension License Management System"
