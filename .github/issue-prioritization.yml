@@ -935,7 +935,7 @@ issues:
     business_value: 9
     effort_estimate: 9
     blocks: [89, 90, 91, 92, 84]
-    notes: "Core inventory tracking system, foundational for material management"
+    notes: "COMPLETED - Comprehensive inventory system with CRUD, transactions, FIFO/LIFO/Average costing, ABC analysis, replenishment, expiration tracking. 1100+ lines, 13 tests, PR #386. Unblocks dependent issues."
 
   - number: 90
     title: "Lot Tracking & Serialization"
