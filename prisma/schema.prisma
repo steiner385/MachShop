@@ -96,6 +96,9 @@ model Site {
   // Plugin System Relations (Issue #75)
   plugins               Plugin[]
 
+  // Plugin Registry Relations (Issue #79)
+  pluginInstallations   PluginInstallation[]
+
   @@index([enterpriseId])
   @@map("sites")
 }
@@ -12899,4 +12902,364 @@ model PluginWebhook {
   @@index([eventType])
   @@index([isActive])
   @@map("plugin_webhooks")
+}
+
+// ============================================================================
+// PLUGIN REGISTRY SYSTEM (Issue #79)
+// ============================================================================
+
+// Plugin Registry Types
+enum PluginRegistryType {
+  ENTERPRISE   // Centralized enterprise registry
+  SITE         // Local site-specific registry
+  DEVELOPER    // For plugin development
+}
+
+// Plugin Package Status
+enum PluginPackageStatus {
+  PENDING_REVIEW   // Submitted, awaiting review
+  IN_REVIEW        // Actively being reviewed
+  APPROVED         // Available for installation
+  REJECTED         // Not approved
+  DEPRECATED       // Older version, newer available
+  REVOKED          // Security issue, must uninstall
+}
+
+// Plugin Installation Status
+enum PluginInstallationStatus {
+  INSTALLING      // Installation in progress
+  INSTALLED       // Ready to activate
+  ACTIVE          // Running
+  INACTIVE        // Temporarily inactive
+  FAILED          // Installation failed
+  UNINSTALLING    // Uninstall in progress
+  UNINSTALLED     // Removed
+}
+
+// License Type
+enum PluginLicenseType {
+  FREE        // No license required
+  TRIAL       // Temporary trial license
+  SITE        // Per-site license
+  ENTERPRISE  // All sites license
+  DEVELOPER   // Development only
+}
+
+// Deployment Type
+enum PluginDeploymentType {
+  INSTALL      // New installation
+  UPGRADE      // Version upgrade
+  ROLLBACK     // Rollback to previous
+  UNINSTALL    // Removal
+}
+
+// Deployment Status
+enum PluginDeploymentStatus {
+  SCHEDULED        // Waiting to execute
+  IN_PROGRESS      // Currently deploying
+  COMPLETED        // Successful
+  PARTIALLY_FAILED // Some sites failed
+  FAILED           // All failed
+  ROLLED_BACK      // Rolled back
+}
+
+// Plugin Registry (Central or Site-level)
+model PluginRegistry {
+  id                String                @id @default(cuid())
+  type              PluginRegistryType
+  name              String
+
+  // Registry details
+  storageUrl        String                // S3 bucket, Azure blob, MinIO endpoint
+  storageBucket     String?               // Bucket/container name
+  isDefault         Boolean               @default(false)
+
+  // Access control
+  isPublic          Boolean               @default(false)
+  organizationId    String?               // For enterprise registries
+  enterpriseId      String?
+  siteId            String?               // For site registries
+
+  // Status
+  isActive          Boolean               @default(true)
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  packages          PluginPackage[]
+
+  @@index([type])
+  @@index([organizationId])
+  @@index([enterpriseId])
+  @@index([siteId])
+  @@index([isActive])
+  @@map("plugin_registries")
+}
+
+// Plugin Package (specific version in registry)
+model PluginPackage {
+  id                String                @id @default(cuid())
+  registryId        String
+
+  // Package metadata
+  pluginId          String                // Unique plugin identifier (e.g., "supplier-risk-analyzer")
+  name              String
+  version           String                // Semantic version (1.2.3)
+  description       String?
+  author            String
+  license           String
+
+  // Manifest (stored as JSON)
+  manifest          Json                  // Full plugin manifest.json
+
+  // Storage
+  packageUrl        String                // URL to .mpk file
+  packageSize       Int                   // bytes
+  checksum          String                // SHA-256 hash
+
+  // Compatibility
+  apiVersion        String                // Plugin API version
+  mesVersion        String                // MES version range (e.g., ">=1.5.0")
+
+  // Permissions
+  permissions       String[]              // Array of required permissions
+
+  // Dependencies
+  dependencies      Json?                 // {"pluginId": "version", ...}
+
+  // Status
+  status            PluginPackageStatus   @default(PENDING_REVIEW)
+  approvedBy        String?               // User who approved
+  approvedAt        DateTime?
+  rejectionReason   String?               // Why rejected/revoked
+  revokedAt         DateTime?
+
+  // Statistics
+  downloadCount     Int                   @default(0)
+  installCount      Int                   @default(0)
+
+  // Metadata
+  uploadedBy        String                // User who uploaded
+  uploadedAt        DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  registry          PluginRegistry        @relation(fields: [registryId], references: [id], onDelete: Cascade)
+  installations     PluginInstallation[]
+  reviews           PluginReview[]
+  licenses          PluginLicense[]
+  deployments       PluginDeployment[]
+
+  @@unique([registryId, pluginId, version])
+  @@index([pluginId])
+  @@index([status])
+  @@index([uploadedAt])
+  @@index([installCount])
+  @@map("plugin_packages")
+}
+
+// Plugin Installation (per site)
+model PluginInstallation {
+  id                String                @id @default(cuid())
+  packageId         String
+  siteId            String
+
+  // Installation details
+  installedVersion  String                // Version installed
+  installedAt       DateTime              @default(now())
+  installedBy       String                // User who installed
+
+  // Status
+  status            PluginInstallationStatus @default(INSTALLED)
+  activatedAt       DateTime?
+  deactivatedAt     DateTime?
+
+  // Configuration (stored as JSON)
+  configuration     Json?                 // Plugin configuration for this installation
+
+  // Health
+  errorCount        Int                   @default(0)
+  lastErrorAt       DateTime?
+  lastHealthCheck   DateTime?
+  lastErrorMessage  String?
+
+  // License
+  licenseKey        String?
+  licenseExpires    DateTime?
+
+  // Metadata
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  site              Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  healthLogs        PluginHealthLog[]
+
+  @@unique([packageId, siteId])
+  @@index([siteId])
+  @@index([status])
+  @@index([licenseExpires])
+  @@map("plugin_installations")
+}
+
+// Plugin Health Logs (for monitoring)
+model PluginHealthLog {
+  id                String                @id @default(cuid())
+  installationId    String
+
+  // Health metrics
+  errorCount        Int                   @default(0)
+  warningCount      Int                   @default(0)
+  avgExecutionTime  Int?                  // milliseconds (average)
+  memoryUsage       Int?                  // MB
+  cpuUsage          Decimal?              // percentage (0-100)
+
+  // Timestamp
+  recordedAt        DateTime              @default(now())
+
+  // Relations
+  installation      PluginInstallation    @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([recordedAt])
+  @@map("plugin_health_logs")
+}
+
+// Plugin License
+model PluginLicense {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // License details
+  licenseKey        String                @unique
+  licenseType       PluginLicenseType
+
+  // Scope
+  organizationId    String?
+  enterpriseId      String?
+  siteId            String?
+
+  // Validity
+  issuedAt          DateTime              @default(now())
+  expiresAt         DateTime?
+  isActive          Boolean               @default(true)
+
+  // Limits
+  maxInstallations  Int?                  // Null = unlimited
+  currentInstallations Int @default(0)
+
+  // Metadata
+  issuedBy          String
+  notes             String?
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([licenseKey])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("plugin_licenses")
+}
+
+// Plugin Review (internal usage ratings and comments)
+model PluginReview {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // Review details
+  rating            Int                   // 1-5 stars
+  comment           String?
+
+  // Reviewer
+  reviewerId        String
+  reviewerName      String
+  siteId            String
+
+  // Approval (for internal vetting)
+  isApproved        Boolean               @default(false)
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([siteId])
+  @@index([rating])
+  @@map("plugin_reviews")
+}
+
+// Plugin Deployment (multi-site deployment tracking)
+model PluginDeployment {
+  id                String                @id @default(cuid())
+  packageId         String
+
+  // Deployment details
+  deploymentType    PluginDeploymentType
+  targetSites       String[]              // array of site IDs
+
+  // Schedule
+  scheduledFor      DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  // Status
+  status            PluginDeploymentStatus @default(SCHEDULED)
+  successCount      Int                   @default(0)
+  failureCount      Int                   @default(0)
+
+  // Rollback
+  canRollback       Boolean               @default(true)
+  rolledBackAt      DateTime?
+  rollbackReason    String?
+
+  // Metadata
+  initiatedBy       String
+  notes             String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  package           PluginPackage         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@map("plugin_deployments")
+}
+
+// Plugin Submission (for plugin developers to submit)
+model PluginSubmission {
+  id                String                @id @default(cuid())
+
+  // Plugin info
+  pluginId          String
+  name              String
+  version           String
+  author            String
+
+  // Submission details
+  manifest          Json                  // Plugin manifest
+  packageUrl        String
+  checksum          String
+
+  // Submission state
+  submittedBy       String
+  submittedAt       DateTime              @default(now())
+  reviewNotes       String?
+
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@index([pluginId])
+  @@index([submittedAt])
+  @@map("plugin_submissions")
 }

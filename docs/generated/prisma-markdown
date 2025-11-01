@@ -5664,6 +5664,349 @@ erDiagram
   DateTime updatedAt
   String createdById FK
 }
+"api_versions" {
+  String id PK
+  String version UK
+  String semver
+  DateTime releaseDate
+  String status
+  DateTime maintenanceUntil "nullable"
+  DateTime deprecatedAt "nullable"
+  DateTime sunsetDate "nullable"
+  String changelogUrl "nullable"
+  String migrationGuideUrl "nullable"
+  String documentationUrl "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_breaking_changes" {
+  String id PK
+  String versionId FK
+  String fromVersion
+  String toVersion
+  String changeType
+  String endpoint "nullable"
+  String field "nullable"
+  String description
+  Json before "nullable"
+  Json after "nullable"
+  Json migrationSteps "nullable"
+  String migrationGuideUrl "nullable"
+  DateTime announcedAt
+  DateTime effectiveDate
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_deprecations" {
+  String id PK
+  String versionId FK
+  String feature
+  DateTime deprecatedAt
+  DateTime sunsetDate
+  String replacement "nullable"
+  String migrationGuideUrl "nullable"
+  Int affectedAccounts
+  Int notificationsSent
+  String severity
+  String description
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_usage_by_version" {
+  String id PK
+  String versionId FK
+  String apiKeyId FK "nullable"
+  Int requestCount
+  DateTime lastRequestAt "nullable"
+  Int failureCount
+  DateTime lastFailureAt "nullable"
+  DateTime date
+  String clientName "nullable"
+  String integrationName "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_changelog" {
+  String id PK
+  String version
+  DateTime releaseDate
+  String category
+  String title
+  String description
+  String endpoint "nullable"
+  String field "nullable"
+  String migrationGuide "nullable"
+  String alternativeFeature "nullable"
+  String severity "nullable"
+  Int affectedApiKeys "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"captured_api_calls" {
+  String id PK
+  String apiKeyId FK
+  String apiVersion
+  String method
+  String endpoint
+  String requestPath
+  Json requestHeaders
+  Json requestBody "nullable"
+  Json requestQuery "nullable"
+  Int statusCode
+  Json responseHeaders
+  Json responseBody "nullable"
+  DateTime timestamp
+  Int duration
+  Boolean success
+  String errorMessage "nullable"
+}
+"api_compatibility_tests" {
+  String id PK
+  String sourceVersion
+  String targetVersion
+  Boolean compatible
+  Json breakingChanges "nullable"
+  Json deprecatedFeatures "nullable"
+  Json unsupportedEndpoints "nullable"
+  Json unsupportedFields "nullable"
+  Json recommendations "nullable"
+  String estimatedMigrationEffort "nullable"
+  String migrationGuideUrl "nullable"
+  Int testedEndpoints
+  Int compatibleEndpoints
+  Int failingEndpoints
+  DateTime createdAt
+  DateTime expiresAt
+}
+"plugins" {
+  String id PK
+  String pluginId UK
+  String name
+  String version
+  String description "nullable"
+  String author "nullable"
+  Json manifest
+  PluginStatus status
+  Boolean isActive
+  DateTime installedAt
+  String installedBy
+  String latestVersion "nullable"
+  Boolean updateAvailable
+  Json configuration "nullable"
+  String packageUrl
+  String apiKeyId FK "nullable"
+  Json dependencies "nullable"
+  String permissions
+  String siteId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_hooks" {
+  String id PK
+  String pluginId FK
+  HookType hookType
+  String hookPoint
+  Int priority
+  Boolean isAsync
+  Int timeout
+  String handlerFunction
+  Boolean isActive
+  DateTime lastExecutedAt "nullable"
+  Int executionCount
+  Int errorCount
+  String lastError "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_executions" {
+  String id PK
+  String pluginId FK
+  String hookPoint
+  DateTime startedAt
+  DateTime completedAt "nullable"
+  Int duration "nullable"
+  ExecutionStatus status
+  String errorMessage "nullable"
+  String errorStack "nullable"
+  Json inputData "nullable"
+  Json outputData "nullable"
+  String userId "nullable"
+  String requestId "nullable"
+  String ipAddress "nullable"
+  DateTime createdAt
+}
+"plugin_configurations" {
+  String id PK
+  String pluginId FK
+  String key
+  Json value
+  Int version
+  String changedBy
+  DateTime changedAt
+  String siteId "nullable"
+  String companyId "nullable"
+}
+"plugin_events" {
+  String id PK
+  String eventType
+  Json eventData
+  DateTime timestamp
+  String sourceUserId "nullable"
+  String sourceRequestId "nullable"
+  Json subscribers "nullable"
+  DateTime createdAt
+}
+"plugin_webhooks" {
+  String id PK
+  String pluginId
+  String eventType
+  String webhookUrl
+  String secret
+  Int maxRetries
+  Int retryBackoff
+  Boolean isActive
+  DateTime lastTriggeredAt "nullable"
+  Int successCount
+  Int failureCount
+  Json failedDeliveries "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_registries" {
+  String id PK
+  PluginRegistryType type
+  String name
+  String storageUrl
+  String storageBucket "nullable"
+  Boolean isDefault
+  Boolean isPublic
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_packages" {
+  String id PK
+  String registryId FK
+  String pluginId
+  String name
+  String version
+  String description "nullable"
+  String author
+  String license
+  Json manifest
+  String packageUrl
+  Int packageSize
+  String checksum
+  String apiVersion
+  String mesVersion
+  String permissions
+  Json dependencies "nullable"
+  PluginPackageStatus status
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  String rejectionReason "nullable"
+  DateTime revokedAt "nullable"
+  Int downloadCount
+  Int installCount
+  String uploadedBy
+  DateTime uploadedAt
+  DateTime updatedAt
+}
+"plugin_installations" {
+  String id PK
+  String packageId FK
+  String siteId FK
+  String installedVersion
+  DateTime installedAt
+  String installedBy
+  PluginInstallationStatus status
+  DateTime activatedAt "nullable"
+  DateTime deactivatedAt "nullable"
+  Json configuration "nullable"
+  Int errorCount
+  DateTime lastErrorAt "nullable"
+  DateTime lastHealthCheck "nullable"
+  String lastErrorMessage "nullable"
+  String licenseKey "nullable"
+  DateTime licenseExpires "nullable"
+  DateTime updatedAt
+}
+"plugin_health_logs" {
+  String id PK
+  String installationId FK
+  Int errorCount
+  Int warningCount
+  Int avgExecutionTime "nullable"
+  Int memoryUsage "nullable"
+  Decimal cpuUsage "nullable"
+  DateTime recordedAt
+}
+"plugin_licenses" {
+  String id PK
+  String packageId FK
+  String licenseKey UK
+  PluginLicenseType licenseType
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  DateTime issuedAt
+  DateTime expiresAt "nullable"
+  Boolean isActive
+  Int maxInstallations "nullable"
+  Int currentInstallations
+  String issuedBy
+  String notes "nullable"
+  DateTime updatedAt
+}
+"plugin_reviews" {
+  String id PK
+  String packageId FK
+  Int rating
+  String comment "nullable"
+  String reviewerId
+  String reviewerName
+  String siteId
+  Boolean isApproved
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_deployments" {
+  String id PK
+  String packageId FK
+  PluginDeploymentType deploymentType
+  String targetSites
+  DateTime scheduledFor "nullable"
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
+  PluginDeploymentStatus status
+  Int successCount
+  Int failureCount
+  Boolean canRollback
+  DateTime rolledBackAt "nullable"
+  String rollbackReason "nullable"
+  String initiatedBy
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_submissions" {
+  String id PK
+  String pluginId
+  String name
+  String version
+  String author
+  Json manifest
+  String packageUrl
+  String checksum
+  String submittedBy
+  DateTime submittedAt
+  String reviewNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
   String A FK
   String B FK
@@ -6244,6 +6587,23 @@ erDiagram
 "management_review_actions" }o--o| "users" : assignedTo
 "change_requests" }o--o| "users" : approvedBy
 "change_requests" }o--|| "users" : createdBy
+"api_breaking_changes" }o--|| "api_versions" : version
+"api_deprecations" }o--|| "api_versions" : version
+"api_usage_by_version" }o--|| "api_versions" : version
+"api_usage_by_version" }o--o| "api_keys" : apiKey
+"captured_api_calls" }o--|| "api_keys" : apiKey
+"plugins" }o--o| "sites" : site
+"plugins" }o--o| "api_keys" : apiKey
+"plugin_hooks" }o--|| "plugins" : plugin
+"plugin_executions" }o--|| "plugins" : plugin
+"plugin_configurations" }o--|| "plugins" : plugin
+"plugin_packages" }o--|| "plugin_registries" : registry
+"plugin_installations" }o--|| "plugin_packages" : package
+"plugin_installations" }o--|| "sites" : site
+"plugin_health_logs" }o--|| "plugin_installations" : installation
+"plugin_licenses" }o--|| "plugin_packages" : package
+"plugin_reviews" }o--|| "plugin_packages" : package
+"plugin_deployments" }o--|| "plugin_packages" : package
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
 "_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
@@ -12681,6 +13041,398 @@ Change Request - Change management (AS9100D Clause 8.5.6)
   - `createdAt`: 
   - `updatedAt`: 
   - `createdById`: 
+
+### `api_versions`
+API Version - Manages API versioning and backward compatibility
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `semver`: 
+  - `releaseDate`: 
+  - `status`: 
+  - `maintenanceUntil`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `changelogUrl`: 
+  - `migrationGuideUrl`: 
+  - `documentationUrl`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_breaking_changes`
+API Breaking Change - Tracks breaking changes between versions
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `fromVersion`: 
+  - `toVersion`: 
+  - `changeType`: 
+  - `endpoint`: 
+  - `field`: 
+  - `description`: 
+  - `before`: 
+  - `after`: 
+  - `migrationSteps`: 
+  - `migrationGuideUrl`: 
+  - `announcedAt`: 
+  - `effectiveDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_deprecations`
+API Deprecation - Tracks deprecated features
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `feature`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `replacement`: 
+  - `migrationGuideUrl`: 
+  - `affectedAccounts`: 
+  - `notificationsSent`: 
+  - `severity`: 
+  - `description`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_usage_by_version`
+API Usage by Version - Analytics for API version adoption
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `apiKeyId`: 
+  - `requestCount`: 
+  - `lastRequestAt`: 
+  - `failureCount`: 
+  - `lastFailureAt`: 
+  - `date`: 
+  - `clientName`: 
+  - `integrationName`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_changelog`
+API Changelog - Published changelog entries
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `releaseDate`: 
+  - `category`: 
+  - `title`: 
+  - `description`: 
+  - `endpoint`: 
+  - `field`: 
+  - `migrationGuide`: 
+  - `alternativeFeature`: 
+  - `severity`: 
+  - `affectedApiKeys`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `captured_api_calls`
+Captured API Call - For compatibility testing
+
+**Properties**
+  - `id`: 
+  - `apiKeyId`: 
+  - `apiVersion`: 
+  - `method`: 
+  - `endpoint`: 
+  - `requestPath`: 
+  - `requestHeaders`: 
+  - `requestBody`: 
+  - `requestQuery`: 
+  - `statusCode`: 
+  - `responseHeaders`: 
+  - `responseBody`: 
+  - `timestamp`: 
+  - `duration`: 
+  - `success`: 
+  - `errorMessage`: 
+
+### `api_compatibility_tests`
+API Compatibility Test - Test results for version compatibility
+
+**Properties**
+  - `id`: 
+  - `sourceVersion`: 
+  - `targetVersion`: 
+  - `compatible`: 
+  - `breakingChanges`: 
+  - `deprecatedFeatures`: 
+  - `unsupportedEndpoints`: 
+  - `unsupportedFields`: 
+  - `recommendations`: 
+  - `estimatedMigrationEffort`: 
+  - `migrationGuideUrl`: 
+  - `testedEndpoints`: 
+  - `compatibleEndpoints`: 
+  - `failingEndpoints`: 
+  - `createdAt`: 
+  - `expiresAt`: 
+
+### `plugins`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `manifest`: 
+  - `status`: 
+  - `isActive`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `latestVersion`: 
+  - `updateAvailable`: 
+  - `configuration`: 
+  - `packageUrl`: 
+  - `apiKeyId`: 
+  - `dependencies`: 
+  - `permissions`: 
+  - `siteId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_hooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookType`: 
+  - `hookPoint`: 
+  - `priority`: 
+  - `isAsync`: 
+  - `timeout`: 
+  - `handlerFunction`: 
+  - `isActive`: 
+  - `lastExecutedAt`: 
+  - `executionCount`: 
+  - `errorCount`: 
+  - `lastError`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_executions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookPoint`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `duration`: 
+  - `status`: 
+  - `errorMessage`: 
+  - `errorStack`: 
+  - `inputData`: 
+  - `outputData`: 
+  - `userId`: 
+  - `requestId`: 
+  - `ipAddress`: 
+  - `createdAt`: 
+
+### `plugin_configurations`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `key`: 
+  - `value`: 
+  - `version`: 
+  - `changedBy`: 
+  - `changedAt`: 
+  - `siteId`: 
+  - `companyId`: 
+
+### `plugin_events`
+
+**Properties**
+  - `id`: 
+  - `eventType`: 
+  - `eventData`: 
+  - `timestamp`: 
+  - `sourceUserId`: 
+  - `sourceRequestId`: 
+  - `subscribers`: 
+  - `createdAt`: 
+
+### `plugin_webhooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `eventType`: 
+  - `webhookUrl`: 
+  - `secret`: 
+  - `maxRetries`: 
+  - `retryBackoff`: 
+  - `isActive`: 
+  - `lastTriggeredAt`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `failedDeliveries`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_registries`
+
+**Properties**
+  - `id`: 
+  - `type`: 
+  - `name`: 
+  - `storageUrl`: 
+  - `storageBucket`: 
+  - `isDefault`: 
+  - `isPublic`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_packages`
+
+**Properties**
+  - `id`: 
+  - `registryId`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `license`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `packageSize`: 
+  - `checksum`: 
+  - `apiVersion`: 
+  - `mesVersion`: 
+  - `permissions`: 
+  - `dependencies`: 
+  - `status`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejectionReason`: 
+  - `revokedAt`: 
+  - `downloadCount`: 
+  - `installCount`: 
+  - `uploadedBy`: 
+  - `uploadedAt`: 
+  - `updatedAt`: 
+
+### `plugin_installations`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `siteId`: 
+  - `installedVersion`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `status`: 
+  - `activatedAt`: 
+  - `deactivatedAt`: 
+  - `configuration`: 
+  - `errorCount`: 
+  - `lastErrorAt`: 
+  - `lastHealthCheck`: 
+  - `lastErrorMessage`: 
+  - `licenseKey`: 
+  - `licenseExpires`: 
+  - `updatedAt`: 
+
+### `plugin_health_logs`
+
+**Properties**
+  - `id`: 
+  - `installationId`: 
+  - `errorCount`: 
+  - `warningCount`: 
+  - `avgExecutionTime`: 
+  - `memoryUsage`: 
+  - `cpuUsage`: 
+  - `recordedAt`: 
+
+### `plugin_licenses`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `licenseKey`: 
+  - `licenseType`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `issuedAt`: 
+  - `expiresAt`: 
+  - `isActive`: 
+  - `maxInstallations`: 
+  - `currentInstallations`: 
+  - `issuedBy`: 
+  - `notes`: 
+  - `updatedAt`: 
+
+### `plugin_reviews`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `rating`: 
+  - `comment`: 
+  - `reviewerId`: 
+  - `reviewerName`: 
+  - `siteId`: 
+  - `isApproved`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_deployments`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `deploymentType`: 
+  - `targetSites`: 
+  - `scheduledFor`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `status`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `canRollback`: 
+  - `rolledBackAt`: 
+  - `rollbackReason`: 
+  - `initiatedBy`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_submissions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `author`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `checksum`: 
+  - `submittedBy`: 
+  - `submittedAt`: 
+  - `reviewNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
