@@ -1,0 +1,493 @@
+{
+  "$schema": "../../packages/extension-sdk/schemas/manifest.v2.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "core-mes-ui-foundation",
+  "name": "Core MES UI Foundation",
+  "description": "Mandatory pre-activated extension containing all essential MES UI capabilities including work orders, quality, materials, equipment, scheduling, and admin functions. This extension provides the baseline user interface and ensures consistent core functionality across all MachShop deployments.",
+  "version": "2.0.0",
+  "author": "MachShop",
+  "homepage": "https://machshop.io",
+  "tier": "core-foundation",
+  "status": "active",
+  "governance": {
+    "tier": "core-foundation",
+    "requiresApproval": false,
+    "complianceRequirements": [
+      "wcag-21-aa",
+      "electronic-signature-validation",
+      "data-integrity",
+      "multi-tenant-isolation"
+    ]
+  },
+  "activationPolicy": {
+    "canBeDisabled": false,
+    "preActivatedByDefault": true,
+    "requiredForOperation": true,
+    "minimumInstanceCount": 1,
+    "criticalityLevel": "essential"
+  },
+  "capabilities": {
+    "providers": [
+      {
+        "name": "ui-layout",
+        "version": "2.0.0",
+        "description": "Provides main layout component (header, sidebar, content area)"
+      },
+      {
+        "name": "ui-theme",
+        "version": "2.0.0",
+        "description": "Provides theme system and design tokens"
+      },
+      {
+        "name": "ui-navigation",
+        "version": "2.0.0",
+        "description": "Provides menu infrastructure and navigation components"
+      },
+      {
+        "name": "ui-auth",
+        "version": "2.0.0",
+        "description": "Provides authentication and RBAC integration"
+      },
+      {
+        "name": "ui-components",
+        "version": "2.0.0",
+        "description": "Provides core Ant Design component library (enforced versions)"
+      },
+      {
+        "name": "work-order-management",
+        "version": "2.0.0",
+        "description": "Provides work order creation, execution, and tracking"
+      },
+      {
+        "name": "quality-management",
+        "version": "2.0.0",
+        "description": "Provides inspections, NCRs, CAPA, FAI, and traceability"
+      },
+      {
+        "name": "materials-management",
+        "version": "2.0.0",
+        "description": "Provides inventory, kits, and staging functionality"
+      },
+      {
+        "name": "equipment-management",
+        "version": "2.0.0",
+        "description": "Provides equipment tracking and maintenance scheduling"
+      },
+      {
+        "name": "production-scheduling",
+        "version": "2.0.0",
+        "description": "Provides production scheduling and capacity planning"
+      },
+      {
+        "name": "routing-management",
+        "version": "2.0.0",
+        "description": "Provides process routing and visual routing editor"
+      },
+      {
+        "name": "work-instructions",
+        "version": "2.0.0",
+        "description": "Provides work instruction authoring and shop floor execution"
+      },
+      {
+        "name": "personnel-management",
+        "version": "2.0.0",
+        "description": "Provides personnel management and time tracking"
+      },
+      {
+        "name": "admin-functions",
+        "version": "2.0.0",
+        "description": "Provides RBAC, user management, and system configuration"
+      },
+      {
+        "name": "collaboration",
+        "version": "2.0.0",
+        "description": "Provides real-time collaboration and commenting"
+      },
+      {
+        "name": "analytics",
+        "version": "2.0.0",
+        "description": "Provides dashboards, analytics, and KPI reporting"
+      }
+    ],
+    "requires": [
+      {
+        "type": "capability",
+        "name": "rbac-integration",
+        "minimumVersion": "1.0.0",
+        "optional": false,
+        "description": "Required for permission checking and role-based rendering"
+      },
+      {
+        "type": "capability",
+        "name": "authentication-provider",
+        "minimumVersion": "1.0.0",
+        "optional": false,
+        "description": "Required for user authentication"
+      }
+    ]
+  },
+  "ui": {
+    "category": "core-ui",
+    "widgets": [
+      {
+        "slot": "dashboard-widgets",
+        "componentId": "work-order-summary",
+        "order": 10
+      },
+      {
+        "slot": "dashboard-widgets",
+        "componentId": "quality-kpi-cards",
+        "order": 20
+      },
+      {
+        "slot": "dashboard-widgets",
+        "componentId": "equipment-status",
+        "order": 30
+      },
+      {
+        "slot": "dashboard-widgets",
+        "componentId": "schedule-preview",
+        "order": 40
+      },
+      {
+        "slot": "admin-settings-sections",
+        "componentId": "rbac-management",
+        "order": 10
+      },
+      {
+        "slot": "admin-settings-sections",
+        "componentId": "plugin-management",
+        "order": 20
+      }
+    ],
+    "navigation": {
+      "menuGroups": [
+        {
+          "id": "PRODUCTION",
+          "name": "Production",
+          "description": "Work orders, scheduling, and execution",
+          "icon": "FactoryOutlined",
+          "items": [
+            {
+              "id": "work-orders",
+              "label": "Work Orders",
+              "path": "/work-orders",
+              "icon": "FileTextOutlined",
+              "order": 1
+            },
+            {
+              "id": "scheduling",
+              "label": "Scheduling",
+              "path": "/production/scheduling",
+              "icon": "CalendarOutlined",
+              "order": 2
+            },
+            {
+              "id": "routing",
+              "label": "Routings",
+              "path": "/routing",
+              "icon": "BranchesOutlined",
+              "order": 3
+            },
+            {
+              "id": "operations",
+              "label": "Operations",
+              "path": "/operations",
+              "icon": "AppstoreOutlined",
+              "order": 4
+            }
+          ]
+        },
+        {
+          "id": "QUALITY",
+          "name": "Quality",
+          "description": "Quality management and compliance",
+          "icon": "CheckCircleOutlined",
+          "items": [
+            {
+              "id": "inspections",
+              "label": "Inspections",
+              "path": "/quality/inspections",
+              "icon": "ScanOutlined",
+              "order": 1
+            },
+            {
+              "id": "ncrs",
+              "label": "NCRs",
+              "path": "/quality/ncrs",
+              "icon": "ExclamationOutlined",
+              "order": 2
+            },
+            {
+              "id": "corrective-actions",
+              "label": "Corrective Actions",
+              "path": "/quality/corrective-actions",
+              "icon": "AlertOutlined",
+              "order": 3
+            },
+            {
+              "id": "fai",
+              "label": "FAI",
+              "path": "/quality/fai",
+              "icon": "FileCheckOutlined",
+              "order": 4
+            },
+            {
+              "id": "traceability",
+              "label": "Traceability",
+              "path": "/quality/traceability",
+              "icon": "LinkOutlined",
+              "order": 5
+            },
+            {
+              "id": "quality-analytics",
+              "label": "Analytics",
+              "path": "/quality/analytics",
+              "icon": "AreaChartOutlined",
+              "order": 6
+            }
+          ]
+        },
+        {
+          "id": "MATERIALS",
+          "name": "Materials",
+          "description": "Inventory and materials management",
+          "icon": "BoxPlotOutlined",
+          "items": [
+            {
+              "id": "materials",
+              "label": "Inventory",
+              "path": "/materials",
+              "icon": "AppstoreOutlined",
+              "order": 1
+            },
+            {
+              "id": "kits",
+              "label": "Kits & Staging",
+              "path": "/materials/kits",
+              "icon": "ApartmentOutlined",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "EQUIPMENT",
+          "name": "Equipment",
+          "description": "Equipment tracking and maintenance",
+          "icon": "ThunderboltOutlined",
+          "items": [
+            {
+              "id": "equipment",
+              "label": "Equipment",
+              "path": "/equipment",
+              "icon": "FundOutlined",
+              "order": 1
+            },
+            {
+              "id": "maintenance",
+              "label": "Maintenance",
+              "path": "/equipment/maintenance",
+              "icon": "ToolOutlined",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "PERSONNEL",
+          "name": "Personnel",
+          "description": "Personnel management and time tracking",
+          "icon": "TeamOutlined",
+          "items": [
+            {
+              "id": "personnel",
+              "label": "Personnel",
+              "path": "/personnel",
+              "icon": "UserOutlined",
+              "order": 1
+            },
+            {
+              "id": "time-clock",
+              "label": "Time Tracking",
+              "path": "/time-clock",
+              "icon": "ClockCircleOutlined",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "ADMIN",
+          "name": "Admin",
+          "description": "System administration",
+          "icon": "SettingOutlined",
+          "items": [
+            {
+              "id": "rbac",
+              "label": "RBAC",
+              "path": "/admin/rbac",
+              "icon": "SafeOutlined",
+              "requiredPermission": "admin:manage-rbac",
+              "order": 1
+            },
+            {
+              "id": "plugins",
+              "label": "Plugins",
+              "path": "/admin/plugins",
+              "icon": "AppstoreOutlined",
+              "requiredPermission": "admin:manage-plugins",
+              "order": 2
+            },
+            {
+              "id": "configuration",
+              "label": "Configuration",
+              "path": "/admin/configuration",
+              "icon": "ControlOutlined",
+              "requiredPermission": "admin:manage-config",
+              "order": 3
+            }
+          ]
+        },
+        {
+          "id": "REPORTS",
+          "name": "Reports",
+          "description": "Reporting and analytics",
+          "icon": "FileTextOutlined",
+          "items": [
+            {
+              "id": "reports",
+              "label": "Reports",
+              "path": "/reports",
+              "icon": "BarChartOutlined",
+              "order": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "accessibility": {
+    "level": "wcag-21-aa",
+    "features": [
+      "keyboard-navigation",
+      "screen-reader-support",
+      "high-contrast-mode",
+      "focus-indicators",
+      "semantic-html",
+      "aria-labels"
+    ]
+  },
+  "security": {
+    "permissions": [
+      "workorders:read",
+      "workorders:write",
+      "workorders:execute",
+      "quality:read",
+      "quality:write",
+      "quality:approve",
+      "materials:read",
+      "materials:write",
+      "equipment:read",
+      "equipment:write",
+      "scheduling:read",
+      "scheduling:write",
+      "personnel:read",
+      "personnel:write",
+      "routing:read",
+      "routing:write",
+      "admin:manage-rbac",
+      "admin:manage-plugins",
+      "admin:manage-config",
+      "work-instructions:read",
+      "work-instructions:write",
+      "work-instructions:execute",
+      "analytics:read"
+    ],
+    "encryption": {
+      "dataAtRest": true,
+      "dataInTransit": true,
+      "encryptionStandard": "AES-256"
+    },
+    "auditRequirements": [
+      "all-user-actions",
+      "configuration-changes",
+      "permission-changes",
+      "data-access",
+      "system-administration"
+    ]
+  },
+  "compliance": {
+    "standards": [
+      "WCAG 2.1 Level AA",
+      "FDA 21 CFR Part 11",
+      "ISO 9001:2015",
+      "IEC 61508:2010"
+    ],
+    "delegations": {
+      "electronic-signature-validation": {
+        "delegatedTo": "quality-focal",
+        "aspects": [
+          "signature-authenticity",
+          "user-identity",
+          "timestamp-integrity",
+          "non-repudiation"
+        ]
+      },
+      "data-integrity": {
+        "delegatedTo": "data-owner",
+        "aspects": [
+          "data-accuracy",
+          "data-completeness",
+          "data-timeliness",
+          "audit-trail"
+        ]
+      }
+    }
+  },
+  "performance": {
+    "bundleSize": {
+      "limit": "500KB",
+      "target": "250KB"
+    },
+    "metrics": {
+      "largestContentfulPaint": 2500,
+      "firstInputDelay": 100,
+      "cumulativeLayoutShift": 0.1,
+      "timeToInteractive": 3000
+    },
+    "caching": {
+      "strategy": "aggressive",
+      "ttl": 3600,
+      "assets": ["components", "styles", "theme"]
+    }
+  },
+  "lifecycle": {
+    "createdAt": "2025-11-01T00:00:00Z",
+    "updatedAt": "2025-11-01T00:00:00Z",
+    "deprecated": false,
+    "supportEndDate": "2030-12-31T00:00:00Z"
+  },
+  "documentation": {
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "architecture": "ARCHITECTURE.md",
+    "api": "API.md"
+  },
+  "metadata": {
+    "tags": [
+      "core",
+      "foundation",
+      "mes",
+      "ui",
+      "manufacturing",
+      "mandatory"
+    ],
+    "keywords": [
+      "work-orders",
+      "quality",
+      "equipment",
+      "materials",
+      "scheduling",
+      "personnel",
+      "admin"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@machshop/core-mes-ui-foundation",
+  "version": "2.0.0",
+  "description": "Core MES UI Foundation - Mandatory pre-activated extension containing all essential MES capabilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@machshop/ui-extension-contracts": "^2.0.0",
+    "@machshop/extension-sdk": "^2.0.0",
+    "react": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "antd": "^5.12.8",
+    "zustand": "^4.4.7",
+    "axios": "^1.12.2",
+    "socket.io-client": "^4.7.4",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.1",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/lodash": "^4.14.200",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.0",
+    "@testing-library/react": "^14.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "antd": ">=5.12.0"
+  },
+  "keywords": [
+    "extension-framework",
+    "core-foundation",
+    "mes",
+    "manufacturing",
+    "work-orders",
+    "quality",
+    "equipment",
+    "materials"
+  ],
+  "author": "MachShop",
+  "license": "MIT"
+}
