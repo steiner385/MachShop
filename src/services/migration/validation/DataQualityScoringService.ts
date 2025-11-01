@@ -331,7 +331,10 @@ export class DataQualityScoringService {
       accuracy: [] as ValidationError[]
     };
 
-    errors.forEach(error => {
+    // Filter out undefined errors
+    const validErrors = (errors || []).filter((error): error is ValidationError => error !== undefined && error !== null);
+
+    validErrors.forEach(error => {
       switch (error.errorType) {
         case ValidationType.REQUIRED_FIELD:
         case ValidationType.UNIQUE:
@@ -452,7 +455,7 @@ export class DataQualityScoringService {
     let emptyRecords = 0;
 
     validationResults.forEach(result => {
-      if (result.errors.length === 0) {
+      if (!result.errors || result.errors.length === 0) {
         completeRecords++;
       } else {
         const hasRequiredFieldErrors = result.errors.some(
