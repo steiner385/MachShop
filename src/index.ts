@@ -156,6 +156,7 @@ import monitoringRoutes from './routes/monitoring';
 import reconciliationRoutes from './routes/reconciliation';
 import reconciliationScheduleRoutes from './routes/reconciliation-schedules';
 import auditTrailRoutes from './routes/audit-trail';
+import syncRoutes from './routes/sync';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -421,6 +422,9 @@ apiRouter.use('/reconciliation', authMiddleware, reconciliationScheduleRoutes);
 
 // ✅ GITHUB ISSUE #60: Audit Trail & Change History Routes (Phase 14 - Audit & Compliance)
 apiRouter.use('/audit', authMiddleware, auditTrailRoutes);
+
+// ✅ GITHUB ISSUE #60: Bi-directional Sync Routes (Phase 15 - Real-time Sync)
+apiRouter.use('/sync', authMiddleware, syncRoutes);
 
 // ✅ GITHUB ISSUE #58: Quality Analytics, Pareto Analysis & Cost of Quality Tracking API Routes
 apiRouter.use('/quality', authMiddleware, qualityAnalyticsRoutes);
