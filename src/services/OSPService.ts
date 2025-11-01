@@ -111,7 +111,7 @@ export default class OSPService {
 
       // Validate capability if provided
       if (request.capabilityId) {
-        await this.prisma.ospCapability.findUniqueOrThrow({
+        await this.prisma.oSPCapability.findUniqueOrThrow({
           where: { id: request.capabilityId }
         });
       }
@@ -120,7 +120,7 @@ export default class OSPService {
       const ospNumber = await this.generateOSPNumber();
 
       // Create OSP operation
-      const ospOperation = await this.prisma.ospOperation.create({
+      const ospOperation = await this.prisma.oSPOperation.create({
         data: {
           ospNumber,
           workOrderId: request.workOrderId,
@@ -157,7 +157,7 @@ export default class OSPService {
     try {
       logger.info('Updating OSP operation', { ospId });
 
-      const ospOperation = await this.prisma.ospOperation.update({
+      const ospOperation = await this.prisma.oSPOperation.update({
         where: { id: ospId },
         data: {
           quantityReceived: request.quantityReceived,
@@ -192,7 +192,7 @@ export default class OSPService {
    */
   async getOSPOperation(ospId: string): Promise<OSPOperationResponse> {
     try {
-      const ospOperation = await this.prisma.ospOperation.findUniqueOrThrow({
+      const ospOperation = await this.prisma.oSPOperation.findUniqueOrThrow({
         where: { id: ospId }
       });
 
@@ -208,7 +208,7 @@ export default class OSPService {
    */
   async getWorkOrderOSPOperations(workOrderId: string): Promise<OSPOperationResponse[]> {
     try {
-      const ospOperations = await this.prisma.ospOperation.findMany({
+      const ospOperations = await this.prisma.oSPOperation.findMany({
         where: { workOrderId },
         orderBy: { createdAt: 'desc' }
       });
@@ -230,7 +230,7 @@ export default class OSPService {
         where.status = status;
       }
 
-      const ospOperations = await this.prisma.ospOperation.findMany({
+      const ospOperations = await this.prisma.oSPOperation.findMany({
         where,
         orderBy: { requestedReturnDate: 'asc' }
       });
@@ -247,7 +247,7 @@ export default class OSPService {
    */
   async getOSPOperationsByStatus(status: OSPOperationStatus, limit: number = 50): Promise<OSPOperationResponse[]> {
     try {
-      const ospOperations = await this.prisma.ospOperation.findMany({
+      const ospOperations = await this.prisma.oSPOperation.findMany({
         where: { status },
         orderBy: { requestedReturnDate: 'asc' },
         take: limit
@@ -267,7 +267,7 @@ export default class OSPService {
     try {
       logger.info('Transitioning OSP operation status', { ospId, newStatus });
 
-      const ospOperation = await this.prisma.ospOperation.findUniqueOrThrow({
+      const ospOperation = await this.prisma.oSPOperation.findUniqueOrThrow({
         where: { id: ospId }
       });
 
@@ -313,7 +313,7 @@ export default class OSPService {
 
       for (const operation of operations) {
         // Get vendors with this capability
-        const capabilities = await this.prisma.ospCapability.findMany({
+        const capabilities = await this.prisma.oSPCapability.findMany({
           where: { operationId: operation.id, isActive: true },
           include: { vendor: true }
         });
@@ -345,7 +345,7 @@ export default class OSPService {
     try {
       logger.info('Cancelling OSP operation', { ospId, reason });
 
-      const ospOperation = await this.prisma.ospOperation.findUniqueOrThrow({
+      const ospOperation = await this.prisma.oSPOperation.findUniqueOrThrow({
         where: { id: ospId }
       });
 
@@ -372,7 +372,7 @@ export default class OSPService {
     try {
       logger.info('Completing OSP operation', { ospId });
 
-      const ospOperation = await this.prisma.ospOperation.findUniqueOrThrow({
+      const ospOperation = await this.prisma.oSPOperation.findUniqueOrThrow({
         where: { id: ospId }
       });
 
@@ -393,7 +393,7 @@ export default class OSPService {
   private async generateOSPNumber(): Promise<string> {
     try {
       const year = new Date().getFullYear();
-      const latestOSP = await this.prisma.ospOperation.findFirst({
+      const latestOSP = await this.prisma.oSPOperation.findFirst({
         where: {
           ospNumber: {
             startsWith: `OSP-${year}`

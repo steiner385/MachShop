@@ -89,7 +89,7 @@ export default class OSPShipmentService {
       });
 
       // Validate OSP operation exists
-      const ospOperation = await this.prisma.ospOperation.findUniqueOrThrow({
+      const ospOperation = await this.prisma.oSPOperation.findUniqueOrThrow({
         where: { id: request.ospOperationId }
       });
 
@@ -112,7 +112,7 @@ export default class OSPShipmentService {
       }
 
       // Create shipment
-      const shipment = await this.prisma.ospShipment.create({
+      const shipment = await this.prisma.oSPShipment.create({
         data: {
           ospOperationId: request.ospOperationId,
           shipmentType: request.shipmentType,
@@ -149,7 +149,7 @@ export default class OSPShipmentService {
     try {
       logger.info('Updating OSP shipment', { shipmentId, newStatus: request.status });
 
-      const shipment = await this.prisma.ospShipment.update({
+      const shipment = await this.prisma.oSPShipment.update({
         where: { id: shipmentId },
         data: {
           status: request.status,
@@ -174,7 +174,7 @@ export default class OSPShipmentService {
    */
   async getShipment(shipmentId: string): Promise<OSPShipmentResponse> {
     try {
-      const shipment = await this.prisma.ospShipment.findUniqueOrThrow({
+      const shipment = await this.prisma.oSPShipment.findUniqueOrThrow({
         where: { id: shipmentId }
       });
 
@@ -190,7 +190,7 @@ export default class OSPShipmentService {
    */
   async getShipmentByTracking(trackingNumber: string): Promise<OSPShipmentResponse | null> {
     try {
-      const shipment = await this.prisma.ospShipment.findFirst({
+      const shipment = await this.prisma.oSPShipment.findFirst({
         where: { trackingNumber }
       });
 
@@ -206,7 +206,7 @@ export default class OSPShipmentService {
    */
   async getOSPOperationShipments(ospOperationId: string): Promise<OSPShipmentResponse[]> {
     try {
-      const shipments = await this.prisma.ospShipment.findMany({
+      const shipments = await this.prisma.oSPShipment.findMany({
         where: { ospOperationId },
         orderBy: { createdAt: 'desc' }
       });
@@ -223,7 +223,7 @@ export default class OSPShipmentService {
    */
   async getShipmentsByStatus(status: OSPShipmentStatus, limit: number = 50): Promise<OSPShipmentResponse[]> {
     try {
-      const shipments = await this.prisma.ospShipment.findMany({
+      const shipments = await this.prisma.oSPShipment.findMany({
         where: { status },
         orderBy: { createdAt: 'desc' },
         take: limit
@@ -250,7 +250,7 @@ export default class OSPShipmentService {
         where.status = status;
       }
 
-      const shipments = await this.prisma.ospShipment.findMany({
+      const shipments = await this.prisma.oSPShipment.findMany({
         where,
         orderBy: { expectedDeliveryDate: 'asc' }
       });
@@ -276,7 +276,7 @@ export default class OSPShipmentService {
         where.status = status;
       }
 
-      const shipments = await this.prisma.ospShipment.findMany({
+      const shipments = await this.prisma.oSPShipment.findMany({
         where,
         orderBy: { createdAt: 'desc' }
       });
@@ -295,7 +295,7 @@ export default class OSPShipmentService {
     try {
       logger.info('Transitioning shipment status', { shipmentId, newStatus });
 
-      const shipment = await this.prisma.ospShipment.findUniqueOrThrow({
+      const shipment = await this.prisma.oSPShipment.findUniqueOrThrow({
         where: { id: shipmentId }
       });
 
@@ -365,7 +365,7 @@ export default class OSPShipmentService {
    */
   async getTrackingInfo(shipmentId: string): Promise<ShipmentTrackingInfo> {
     try {
-      const shipment = await this.prisma.ospShipment.findUniqueOrThrow({
+      const shipment = await this.prisma.oSPShipment.findUniqueOrThrow({
         where: { id: shipmentId }
       });
 
@@ -392,7 +392,7 @@ export default class OSPShipmentService {
       const year = new Date().getFullYear();
       const month = String(new Date().getMonth() + 1).padStart(2, '0');
 
-      const latestShipment = await this.prisma.ospShipment.findFirst({
+      const latestShipment = await this.prisma.oSPShipment.findFirst({
         where: {
           shipmentNumber: {
             startsWith: `SHP-${year}${month}`

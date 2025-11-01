@@ -383,7 +383,7 @@ export default class SupplierPerformanceService {
       }
 
       // Get completed OSP operations for the period
-      const ospOperations = await this.prisma.ospOperation.findMany({
+      const ospOperations = await this.prisma.oSPOperation.findMany({
         where: {
           vendorId,
           status: 'ACCEPTED',
@@ -395,7 +395,7 @@ export default class SupplierPerformanceService {
       });
 
       // Get shipments for the period
-      const shipments = await this.prisma.ospShipment.findMany({
+      const shipments = await this.prisma.oSPShipment.findMany({
         where: {
           sendingVendorId: vendorId,
           shipmentType: 'FROM_SUPPLIER',
