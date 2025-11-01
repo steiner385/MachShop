@@ -138,6 +138,7 @@ import errorSimulationRoutes from './routes/error-simulation';
 
 // GitHub Issue #31: Data Migration - Import Template System Routes
 import migrationTemplatesRoutes from './routes/migration/templates';
+import etlRoutes from './routes/migration/etl';
 
 import { initializeIntegrationManager } from './services/IntegrationManager';
 import { webSocketService } from './services/WebSocketService';
@@ -372,6 +373,9 @@ apiRouter.use('/downtime', authMiddleware, downtimeRoutes);
 
 // GitHub Issue #31: Data Migration - Import Template System API Routes
 apiRouter.use('/migration/templates', authMiddleware, migrationTemplatesRoutes);
+
+// GitHub Issue #34: Database Direct Import/ETL Engine API Routes
+apiRouter.use('/migration/etl', authMiddleware, etlRoutes);
 
 // ✅ GITHUB ISSUE #245: Testing Infrastructure: Identity Management Surrogates (Saviynt IDM)
 // Note: No auth middleware for testing infrastructure surrogates to enable easier CI/CD testing

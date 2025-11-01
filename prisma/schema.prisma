@@ -13572,3 +13572,81 @@ model STEPFileImport {
   @@index([status])
   @@map("step_file_imports")
 }
+
+// ============================================================================
+// ETL (Extract, Transform, Load) - Issue #34
+// ============================================================================
+
+model DatabaseConnection {
+  id                String   @id @default(cuid())
+  name              String
+  type              String   // 'sqlserver', 'oracle', 'mysql', 'postgresql', 'mariadb'
+  host              String
+  port              Int
+  database          String
+  username          String
+  encryptedPassword String   // Encrypted with application secret
+  ssl               Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  lastTestedAt      DateTime?
+  lastTestSuccess   Boolean?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+
+  etlJobs           ETLJob[]
+
+  @@index([isActive])
+  @@index([type])
+  @@map("database_connections")
+}
+
+model ETLJob {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  sourceConnectionId String
+  targetEntityType   String
+  extractionConfig   Json     // Extraction query, table, where, etc.
+  transformationConfig Json   // Field mappings and transformations
+  loadConfig         Json     // Load mode, batch size, error handling
+  scheduleConfig     Json?    // Cron schedule
+  isActive           Boolean  @default(true)
+  lastExecutedAt     DateTime?
+  lastWatermark      String?  // For incremental sync
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdBy          String?
+
+  sourceConnection   DatabaseConnection @relation(fields: [sourceConnectionId], references: [id])
+  executions         ETLJobExecution[]
+
+  @@index([sourceConnectionId])
+  @@index([isActive])
+  @@index([targetEntityType])
+  @@map("etl_jobs")
+}
+
+model ETLJobExecution {
+  id             String   @id @default(cuid())
+  jobId          String
+  status         String   // 'PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'PARTIAL'
+  startedAt      DateTime
+  completedAt    DateTime?
+  duration       Int?     // milliseconds
+  extractedRows  Int      @default(0)
+  transformedRows Int     @default(0)
+  loadedRows     Int      @default(0)
+  failedRows     Int      @default(0)
+  skippedRows    Int      @default(0)
+  lastWatermark  String?  // Watermark after this execution
+  errorLog       Json?    // Array of errors
+  warningLog     Json?    // Array of warnings
+
+  job            ETLJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("etl_job_executions")
+}
