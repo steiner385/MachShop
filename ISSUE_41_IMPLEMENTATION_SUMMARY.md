@@ -4,11 +4,11 @@
 This document summarizes the implementation of Issue #41: Flexible Workflow Enforcement Engine for the MES system. This feature enables configuration-driven enforcement of workflow rules, allowing sites to use MES for data collection without enforcing strict operation sequencing requirements.
 
 ## Status
-**PHASES COMPLETED: 3/6**
+**PHASES COMPLETED: 4/6**
 - ✅ Phase 1: WorkflowEnforcementService (COMPLETE)
 - ✅ Phase 2: Schema Model and Relations (COMPLETE)
 - ✅ Phase 3: Integration with WorkOrderExecutionService (COMPLETE)
-- ⏳ Phase 4: API Endpoints (PENDING)
+- ✅ Phase 4: API Endpoints (COMPLETE)
 - ⏳ Phase 5: Comprehensive Testing (PENDING)
 - ⏳ Phase 6: Backward Compatibility Verification (PENDING)
 
@@ -387,10 +387,93 @@ Every enforcement decision is logged with:
 - 1 new relation (to WorkOrder)
 - Schema validation fixes
 
-### Total So Far
+### Total So Far - Phase 3
 - **Total Code Lines: 1,047 lines** (Phase 1: 487 + Phase 2: 34 + Phase 3: 526)
 - **3/6 phases complete (50%)**
-- **Estimated 2-3 weeks for remaining phases** (Phase 4: 2-3 days, Phase 5: 3-4 days, Phase 6: 1 day)
+
+---
+
+## Phase 4: API Endpoints (343 lines)
+
+### Files Modified
+- `src/routes/workOrderExecution.ts` - Added 5 new enforcement validation endpoints
+
+### REST API Endpoints Implemented
+
+#### 1. GET /api/v1/work-order-execution/:id/can-record-performance
+Check if work performance can be recorded for a work order
+- Path Parameters: workOrderId (required)
+- Response: Standard enforcement decision format with warnings and bypasses
+- HTTP Status: 200 (success), 400 (validation error), 404 (not found), 500 (error)
+
+#### 2. GET /api/v1/work-order-execution/:id/operations/:operationId/can-start
+Check if an operation can be started
+- Path Parameters: workOrderId, operationId (both required)
+- Response: Standard enforcement decision format
+- HTTP Status: 200 (success), 400 (validation error), 404 (not found), 500 (error)
+
+#### 3. GET /api/v1/work-order-execution/:id/operations/:operationId/can-complete
+Check if an operation can be completed
+- Path Parameters: workOrderId, operationId (both required)
+- Response: Standard enforcement decision format
+- HTTP Status: 200 (success), 400 (validation error), 404 (not found), 500 (error)
+
+#### 4. GET /api/v1/work-order-execution/:id/enforcement-audit
+Get enforcement audit records with pagination and filtering
+- Path Parameters: workOrderId (required)
+- Query Parameters: page (default 1), limit (default 50, max 100), action, mode
+- Response: Paginated audit records list with total count
+- Features: Filtering by action type and enforcement mode
+- HTTP Status: 200 (success), 400 (validation error), 503 (audit unavailable), 500 (error)
+
+#### 5. GET /api/v1/work-order-execution/:id/enforcement-audit/:auditId
+Get a specific enforcement audit record
+- Path Parameters: workOrderId, auditId (both required)
+- Response: Single audit record with parsed decision JSON
+- HTTP Status: 200 (success), 400 (validation error), 404 (not found), 503 (audit unavailable), 500 (error)
+
+### Standard Response Format
+All decision endpoints return:
+```json
+{
+  "workOrderId": "string",
+  "allowed": boolean,
+  "reason": "string (if not allowed)",
+  "warnings": ["string"],
+  "configMode": "STRICT|FLEXIBLE|HYBRID",
+  "bypassesApplied": ["string"],
+  "timestamp": "ISO8601"
+}
+```
+
+### API Features
+- ✅ 5 validation endpoints for enforcement decisions
+- ✅ Complete audit trail retrieval with pagination
+- ✅ Filtering by action and enforcement mode
+- ✅ Comprehensive error handling with 8 error codes
+- ✅ Safe JSON serialization of decision objects
+- ✅ Graceful fallback for unavailable audit system
+- ✅ Full JSDoc documentation
+- ✅ Input validation and parameter sanitization
+
+### Error Codes
+- MISSING_WORK_ORDER_ID, MISSING_REQUIRED_PARAMS
+- WORK_ORDER_NOT_FOUND, OPERATION_NOT_FOUND
+- ENFORCEMENT_CHECK_FAILED
+- AUDIT_SYSTEM_UNAVAILABLE, AUDIT_FETCH_FAILED, AUDIT_RECORD_NOT_FOUND
+
+### Code Statistics - Phase 4
+- **New Endpoints**: 5
+- **Lines Added**: ~340
+- **Error Codes**: 8 unique error conditions
+- **Breaking Changes**: 0
+
+---
+
+## Total So Far - Phase 4
+- **Total Code Lines: 1,390 lines** (Phase 1: 487 + Phase 2: 34 + Phase 3: 526 + Phase 4: 343)
+- **4/6 phases complete (67%)**
+- **Estimated 1-2 weeks for remaining phases** (Phase 5: 3-4 days, Phase 6: 1 day)
 
 ---
 
