@@ -2,7 +2,6 @@ import { PrismaClient, SPCChartType, LimitCalculationMethod, SPCConfiguration } 
 import { mean, standardDeviation, quantile } from 'simple-statistics';
 import { createLogger } from '../utils/logger';
 
-const prisma = new PrismaClient();
 const logger = createLogger('SPCService');
 
 /**
@@ -50,12 +49,18 @@ export interface RuleViolation {
  * - Process capability indices (Cp, Cpk, Pp, Ppk, Cpm)
  */
 export class SPCService {
+  private prisma: PrismaClient;
+
   // Constants for control chart calculations
   private readonly D3_FACTORS = [0, 0, 0, 0, 0, 0, 0.076, 0.136, 0.184, 0.223, 0.256];
   private readonly D4_FACTORS = [0, 0, 3.267, 2.574, 2.282, 2.114, 2.004, 1.924, 1.864, 1.816, 1.777];
   private readonly A2_FACTORS = [0, 0, 1.880, 1.023, 0.729, 0.577, 0.483, 0.419, 0.373, 0.337, 0.308];
   private readonly A3_FACTORS = [0, 0, 2.659, 1.954, 1.628, 1.427, 1.287, 1.182, 1.099, 1.032, 0.975];
   private readonly d2_FACTORS = [0, 0, 1.128, 1.693, 2.059, 2.326, 2.534, 2.704, 2.847, 2.970, 3.078];
+
+  constructor(prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
+  }
 
   /**
    * Calculate control limits for X-bar and R chart
@@ -571,13 +576,13 @@ export class SPCService {
     }
 
     // Check if configuration already exists
-    const existing = await prisma.sPCConfiguration.findUnique({
+    const existing = await this.prisma.sPCConfiguration.findUnique({
       where: { parameterId },
     });
 
     if (existing) {
       // Update existing configuration
-      return await prisma.sPCConfiguration.update({
+      return await this.prisma.sPCConfiguration.update({
         where: { parameterId },
         data: {
           chartType,
@@ -604,7 +609,7 @@ export class SPCService {
       });
     } else {
       // Create new configuration
-      return await prisma.sPCConfiguration.create({
+      return await this.prisma.sPCConfiguration.create({
         data: {
           parameterId,
           chartType,
@@ -636,7 +641,7 @@ export class SPCService {
    * Get SPC configuration by parameter ID
    */
   async getSPCConfiguration(parameterId: string): Promise<SPCConfiguration | null> {
-    return await prisma.sPCConfiguration.findUnique({
+    return await this.prisma.sPCConfiguration.findUnique({
       where: { parameterId },
       include: {
         parameter: true,
@@ -655,7 +660,7 @@ export class SPCService {
     // Remove fields that shouldn't be updated directly
     const { id, parameterId: _, createdBy, createdAt, ...updateData } = updates as any;
 
-    return await prisma.sPCConfiguration.update({
+    return await this.prisma.sPCConfiguration.update({
       where: { parameterId },
       data: {
         ...updateData,
@@ -669,7 +674,7 @@ export class SPCService {
    * Delete SPC configuration
    */
   async deleteSPCConfiguration(parameterId: string): Promise<void> {
-    await prisma.sPCConfiguration.delete({
+    await this.prisma.sPCConfiguration.delete({
       where: { parameterId },
     });
     logger.info('SPC configuration deleted', { parameterId });
@@ -679,7 +684,7 @@ export class SPCService {
    * List all SPC configurations
    */
   async listSPCConfigurations(filters?: { isActive?: boolean; chartType?: SPCChartType }) {
-    return await prisma.sPCConfiguration.findMany({
+    return await this.prisma.sPCConfiguration.findMany({
       where: filters,
       include: {
         parameter: {
@@ -693,4 +698,23 @@ export class SPCService {
   }
 }
 
-export const spcService = new SPCService();
+// Lazy-loaded singleton for backward compatibility
+// This pattern allows tests to mock Prisma before the service is instantiated
+let _spcServiceInstance: SPCService | null = null;
+
+export function getSPCService(): SPCService {
+  if (!_spcServiceInstance) {
+    _spcServiceInstance = new SPCService();
+  }
+  return _spcServiceInstance;
+}
+
+// For backward compatibility with existing code that imports spcService directly
+export const spcService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getSPCService() as any)[prop];
+    },
+  }
+) as any as SPCService;
