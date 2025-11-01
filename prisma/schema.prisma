@@ -13650,3 +13650,98 @@ model ETLJobExecution {
   @@index([startedAt])
   @@map("etl_job_executions")
 }
+
+// ============================================================================
+// Traveler Digitization Models (Issue #36)
+// ============================================================================
+
+model TravelerTemplate {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  version         Int      @default(1)
+  documentType    String   // 'traveler', 'router', 'work_order'
+  fields          Json     // Array of FieldDefinition
+  matchPatterns   String[] // Patterns to identify template
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  digitizedTravelers DigitizedTraveler[]
+
+  @@index([documentType])
+  @@map("traveler_templates")
+}
+
+model DigitizedTraveler {
+  id                    String   @id @default(cuid())
+
+  // Source document info
+  sourceFileName        String?
+  sourceUploadedAt      DateTime?
+  processingMethod      String   // 'ocr', 'manual', 'hybrid'
+
+  // Work order info
+  workOrderNumber       String   @unique
+  partNumber            String
+  partDescription       String?
+  quantity              Int
+  dueDate               DateTime?
+  priority              String?  // 'low', 'medium', 'high', 'urgent'
+
+  // Template matching
+  templateId            String?
+  matchConfidence       Float?   // 0-1 confidence score
+  template              TravelerTemplate? @relation(fields: [templateId], references: [id])
+
+  // Status and review
+  status                String   @default("draft") // 'draft', 'pending_review', 'approved', 'rejected', 'work_order_created'
+  reviewerNotes         String?
+  confidence            Float    @default(0)
+  warnings              String[]
+  errors                String[]
+
+  // Review tracking
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  createdBy             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Related data
+  operations            DigitizedOperation[]
+
+  @@index([workOrderNumber])
+  @@index([partNumber])
+  @@index([status])
+  @@index([templateId])
+  @@index([createdAt])
+  @@map("digitized_travelers")
+}
+
+model DigitizedOperation {
+  id                    String   @id @default(cuid())
+  travelerId            String
+
+  operationNumber       String
+  operationDescription  String?
+  workCenter            String?
+  quantity              Int?
+  startTime             DateTime?
+  endTime               DateTime?
+  status                String?  // 'pending', 'in_progress', 'completed'
+  notes                 String?
+  laborHours            Float?
+  materialUsed          Json?    // Record of material usage
+  tools                 String[]
+  qualityNotes          String?
+
+  traveler              DigitizedTraveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([travelerId])
+  @@index([operationNumber])
+  @@map("digitized_operations")
+}
