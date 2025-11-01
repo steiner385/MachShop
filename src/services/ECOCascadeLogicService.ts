@@ -46,7 +46,7 @@ export interface CascadePlan {
 }
 
 export interface PartNumberGenerationRequest {
-  basePart Number: string;
+  basePartNumber: string;
   revisionLevel: string;
   changeType: string;
   cascadeReason: string;

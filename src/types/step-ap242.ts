@@ -188,7 +188,7 @@ export interface StepImportRequest {
   plmSystemName?: string;            // Source PLM system
   plmItemId?: string;                // PLM item identifier
   cadSystemSource?: string;          // CAD system that created file
-  auto ExtractPMI?: boolean;         // Auto-extract PMI data
+  autoExtractPMI?: boolean;          // Auto-extract PMI data
   validateGDT?: boolean;             // Validate GD&T specifications
 }
 
