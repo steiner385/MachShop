@@ -1102,6 +1102,44 @@ erDiagram
   String notes "nullable"
   DateTime createdAt
 }
+"cause_code_categories" {
+  String id PK
+  String code
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  Boolean enabled
+  Int sortOrder
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_codes" {
+  String id PK
+  String code UK
+  String name
+  String description "nullable"
+  String parentId FK "nullable"
+  String categoryId FK
+  Boolean enabled
+  Int level
+  Int sortOrder
+  Int usageCount
+  DateTime lastUsedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
+}
+"cause_code_history" {
+  String id PK
+  String causeCodeId FK
+  String changeType
+  String oldValue "nullable"
+  String newValue "nullable"
+  String changeReason "nullable"
+  DateTime changedAt
+  String changedBy
+}
 "ncrs" {
   String id PK
   String ncrNumber UK
@@ -1118,12 +1156,88 @@ erDiagram
   String createdById FK
   String assignedToId FK "nullable"
   DateTime dueDate "nullable"
-  String rootCause "nullable"
+  String rootCauseId FK "nullable"
   String correctiveAction "nullable"
   String preventiveAction "nullable"
   DateTime closedAt "nullable"
+  NCRDisposition disposition "nullable"
+  String dispositionJustification "nullable"
+  String dispositionApprovedBy "nullable"
+  DateTime dispositionApprovedAt "nullable"
+  Boolean ctpAuthorized "nullable"
+  String ctpApprovedBy "nullable"
+  DateTime ctpApprovedAt "nullable"
+  String ctpJustification "nullable"
+  String ctpConditions "nullable"
+  String ctpOperations "nullable"
+  DateTime ddrExpectedDate "nullable"
+  String ddrPendingItems "nullable"
+  Boolean ddrEscalated "nullable"
+  DateTime ddrEscalatedAt "nullable"
+  Boolean mrbRequired "nullable"
+  DateTime mrbMeetingDate "nullable"
+  String mrbAttendees "nullable"
+  String mrbDecision "nullable"
+  String mrbVotes "nullable"
+  String mrbMinutes "nullable"
+  Decimal estimatedCost "nullable"
+  Decimal actualCost "nullable"
+  Decimal scrapCost "nullable"
+  Decimal reworkCost "nullable"
   DateTime createdAt
   DateTime updatedAt
+}
+"ncr_state_history" {
+  String id PK
+  String ncrId FK
+  NCRStatus fromState "nullable"
+  NCRStatus toState
+  String changedBy
+  String changeReason "nullable"
+  Boolean approvalRequired
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  DateTime timestamp
+}
+"ncr_approval_requests" {
+  String id PK
+  String ncrId FK
+  NCRApprovalRequestType requestType
+  String requestedBy
+  DateTime requestedAt
+  String approverUserId
+  NCRApprovalStatus status
+  String approvalNotes "nullable"
+  DateTime approvedAt "nullable"
+  DateTime dueDate "nullable"
+  Boolean escalated
+  DateTime escalatedAt "nullable"
+}
+"ncr_workflow_configs" {
+  String id PK
+  String siteId FK "nullable"
+  NCRSeverity severityLevel "nullable"
+  String enabledStates
+  NCRStatus initialState
+  String stateTransitions
+  String requiredFieldsByState "nullable"
+  Boolean ctpEnabled
+  String ctpApprovalRole "nullable"
+  Boolean ctpPreventFinalShip
+  Boolean ddrEnabled
+  Int ddrAutoTriggerHours "nullable"
+  Int ddrEscalationThreshold
+  Boolean mrbEnabled
+  Decimal mrbValueThreshold "nullable"
+  String mrbTriggerConditions "nullable"
+  String mrbRequiredAttendees "nullable"
+  NCRMRBVotingMethod mrbVotingMethod
+  String allowedDispositions
+  String dispositionApprovalRules "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdBy
 }
 "equipment" {
   String id PK
@@ -5353,56 +5467,555 @@ erDiagram
   DateTime updatedAt
   String createdBy
 }
-"cause_code_hierarchy_configs" {
+"controlled_documents" {
   String id PK
-  String siteId UK "nullable"
-  Int numberOfLevels
-  Json levelNames
-  Boolean isActive
-  String createdBy
-  DateTime createdAt
-  DateTime updatedAt
-}
-"cause_codes" {
-  String id PK
-  String code
-  String name
+  String documentNumber UK
+  String title
   String description "nullable"
-  Int level
-  String parentCauseCodeId FK "nullable"
-  String scope
-  String siteId "nullable"
-  String status
+  QMSDocumentType documentType
+  String category "nullable"
+  String revision
+  DateTime revisionDate
   DateTime effectiveDate "nullable"
-  DateTime expirationDate "nullable"
-  Boolean capaRequired
-  Json notificationRecipients "nullable"
-  Int displayOrder "nullable"
-  Int version
-  String createdBy
+  QMSDocumentStatus status
+  String fileUrl
+  String fileName
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  Int reviewFrequency "nullable"
+  DateTime nextReviewDate "nullable"
+  DateTime lastReviewDate "nullable"
+  Boolean isControlled
+  String parentDocumentId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"document_approvals" {
+  String id PK
+  String documentId FK
+  String approverRole
+  String approverId FK
+  Int sequence
+  ApprovalStatus status
+  DateTime requestedAt
+  DateTime reviewedAt "nullable"
+  String comments "nullable"
   DateTime createdAt
   DateTime updatedAt
 }
-"cause_code_history" {
+"training_courses" {
   String id PK
-  String causeCodeId FK
-  Int version
+  String courseNumber UK
+  String courseName
+  String description "nullable"
+  String objectives "nullable"
+  Int duration "nullable"
+  CourseType courseType
+  String materials "nullable"
+  String requiredForRoles
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"competency_tests" {
+  String id PK
+  String trainingCourseId FK
+  String testName
+  Int passingScore
+  DateTime createdAt
+  DateTime updatedAt
+}
+"test_questions" {
+  String id PK
+  String testId FK
+  String questionText
+  QuestionType questionType
+  String correctAnswer
+  String possibleAnswers
+  Int points
+  DateTime createdAt
+  DateTime updatedAt
+}
+"training_records" {
+  String id PK
+  String trainingCourseId FK
+  String traineeId FK
+  String instructorId FK "nullable"
+  DateTime trainingDate
+  DateTime completionDate "nullable"
+  Int testScore "nullable"
+  Boolean passed "nullable"
+  DateTime certificationDate "nullable"
+  DateTime expirationDate "nullable"
+  Int effectivenessScore "nullable"
+  String effectivenessNotes "nullable"
+  String certificateUrl "nullable"
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"internal_audits" {
+  String id PK
+  String auditNumber UK
+  String auditTitle
+  QMSAuditType auditType
+  String auditScope
+  DateTime plannedDate
+  DateTime actualDate "nullable"
+  Int duration "nullable"
+  String leadAuditorId FK
+  String auditeeId FK "nullable"
+  String auditeeDepartment "nullable"
+  QMSAuditStatus status
+  String reportUrl "nullable"
+  String summary "nullable"
+  String closedById FK "nullable"
+  DateTime closedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"audit_findings" {
+  String id PK
+  String auditId FK
+  String findingNumber
+  QMSFindingType findingType
+  String clause "nullable"
+  String description
+  String objectiveEvidence "nullable"
+  QMSFindingSeverity severity
+  String correctiveActionId FK "nullable"
+  QMSFindingStatus status
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"corrective_actions" {
+  String id PK
+  String caNumber UK
+  String title
+  String description
+  QMSCASource source
+  String sourceReference "nullable"
+  QMSRCAMethod rootCauseMethod "nullable"
+  String rootCause "nullable"
+  String correctiveAction
+  String preventiveAction "nullable"
+  String assignedToId FK
+  DateTime targetDate
+  DateTime implementedDate "nullable"
+  String verificationMethod "nullable"
+  String verifiedById FK "nullable"
+  DateTime verifiedAt "nullable"
+  Boolean isEffective "nullable"
+  QMSCAStatus status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_reviews" {
+  String id PK
+  String reviewNumber UK
+  DateTime reviewDate
+  String chairpersonId FK
+  String inputsDiscussed "nullable"
+  String decisions "nullable"
+  String resourceNeeds "nullable"
+  String minutes "nullable"
+  String minutesUrl "nullable"
+  String status
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"management_review_actions" {
+  String id PK
+  String reviewId FK
+  String actionDescription
+  String assignedToId FK "nullable"
+  DateTime dueDate "nullable"
+  DateTime completedDate "nullable"
+  String status
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"change_requests" {
+  String id PK
+  String changeNumber UK
+  String title
+  String description
+  QMSChangeType changeType
+  String affectedParts
+  String reason
+  String benefits "nullable"
+  String risks "nullable"
+  String impactAssessment "nullable"
+  Boolean customerNotificationRequired
+  String implementationPlan "nullable"
+  DateTime implementationDate "nullable"
+  QMSChangeStatus status
+  String approvedById FK "nullable"
+  DateTime approvedAt "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+  String createdById FK
+}
+"api_versions" {
+  String id PK
+  String version UK
+  String semver
+  DateTime releaseDate
+  String status
+  DateTime maintenanceUntil "nullable"
+  DateTime deprecatedAt "nullable"
+  DateTime sunsetDate "nullable"
+  String changelogUrl "nullable"
+  String migrationGuideUrl "nullable"
+  String documentationUrl "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_breaking_changes" {
+  String id PK
+  String versionId FK
+  String fromVersion
+  String toVersion
   String changeType
-  Json changedFields
-  String changeReason "nullable"
+  String endpoint "nullable"
+  String field "nullable"
+  String description
+  Json before "nullable"
+  Json after "nullable"
+  Json migrationSteps "nullable"
+  String migrationGuideUrl "nullable"
+  DateTime announcedAt
+  DateTime effectiveDate
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_deprecations" {
+  String id PK
+  String versionId FK
+  String feature
+  DateTime deprecatedAt
+  DateTime sunsetDate
+  String replacement "nullable"
+  String migrationGuideUrl "nullable"
+  Int affectedAccounts
+  Int notificationsSent
+  String severity
+  String description
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_usage_by_version" {
+  String id PK
+  String versionId FK
+  String apiKeyId FK "nullable"
+  Int requestCount
+  DateTime lastRequestAt "nullable"
+  Int failureCount
+  DateTime lastFailureAt "nullable"
+  DateTime date
+  String clientName "nullable"
+  String integrationName "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"api_changelog" {
+  String id PK
+  String version
+  DateTime releaseDate
+  String category
+  String title
+  String description
+  String endpoint "nullable"
+  String field "nullable"
+  String migrationGuide "nullable"
+  String alternativeFeature "nullable"
+  String severity "nullable"
+  Int affectedApiKeys "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"captured_api_calls" {
+  String id PK
+  String apiKeyId FK
+  String apiVersion
+  String method
+  String endpoint
+  String requestPath
+  Json requestHeaders
+  Json requestBody "nullable"
+  Json requestQuery "nullable"
+  Int statusCode
+  Json responseHeaders
+  Json responseBody "nullable"
+  DateTime timestamp
+  Int duration
+  Boolean success
+  String errorMessage "nullable"
+}
+"api_compatibility_tests" {
+  String id PK
+  String sourceVersion
+  String targetVersion
+  Boolean compatible
+  Json breakingChanges "nullable"
+  Json deprecatedFeatures "nullable"
+  Json unsupportedEndpoints "nullable"
+  Json unsupportedFields "nullable"
+  Json recommendations "nullable"
+  String estimatedMigrationEffort "nullable"
+  String migrationGuideUrl "nullable"
+  Int testedEndpoints
+  Int compatibleEndpoints
+  Int failingEndpoints
+  DateTime createdAt
+  DateTime expiresAt
+}
+"plugins" {
+  String id PK
+  String pluginId UK
+  String name
+  String version
+  String description "nullable"
+  String author "nullable"
+  Json manifest
+  PluginStatus status
+  Boolean isActive
+  DateTime installedAt
+  String installedBy
+  String latestVersion "nullable"
+  Boolean updateAvailable
+  Json configuration "nullable"
+  String packageUrl
+  String apiKeyId FK "nullable"
+  Json dependencies "nullable"
+  String permissions
+  String siteId FK "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_hooks" {
+  String id PK
+  String pluginId FK
+  HookType hookType
+  String hookPoint
+  Int priority
+  Boolean isAsync
+  Int timeout
+  String handlerFunction
+  Boolean isActive
+  DateTime lastExecutedAt "nullable"
+  Int executionCount
+  Int errorCount
+  String lastError "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_executions" {
+  String id PK
+  String pluginId FK
+  String hookPoint
+  DateTime startedAt
+  DateTime completedAt "nullable"
+  Int duration "nullable"
+  ExecutionStatus status
+  String errorMessage "nullable"
+  String errorStack "nullable"
+  Json inputData "nullable"
+  Json outputData "nullable"
+  String userId "nullable"
+  String requestId "nullable"
+  String ipAddress "nullable"
+  DateTime createdAt
+}
+"plugin_configurations" {
+  String id PK
+  String pluginId FK
+  String key
+  Json value
+  Int version
   String changedBy
   DateTime changedAt
+  String siteId "nullable"
+  String companyId "nullable"
 }
-"ncr_cause_mappings" {
+"plugin_events" {
   String id PK
-  String ncrId
-  String causeCodeId FK
-  Boolean isPrimary
-  Int attribution "nullable"
-  String additionalNotes "nullable"
+  String eventType
+  Json eventData
+  DateTime timestamp
+  String sourceUserId "nullable"
+  String sourceRequestId "nullable"
+  Json subscribers "nullable"
   DateTime createdAt
 }
+"plugin_webhooks" {
+  String id PK
+  String pluginId
+  String eventType
+  String webhookUrl
+  String secret
+  Int maxRetries
+  Int retryBackoff
+  Boolean isActive
+  DateTime lastTriggeredAt "nullable"
+  Int successCount
+  Int failureCount
+  Json failedDeliveries "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_registries" {
+  String id PK
+  PluginRegistryType type
+  String name
+  String storageUrl
+  String storageBucket "nullable"
+  Boolean isDefault
+  Boolean isPublic
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  Boolean isActive
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_packages" {
+  String id PK
+  String registryId FK
+  String pluginId
+  String name
+  String version
+  String description "nullable"
+  String author
+  String license
+  Json manifest
+  String packageUrl
+  Int packageSize
+  String checksum
+  String apiVersion
+  String mesVersion
+  String permissions
+  Json dependencies "nullable"
+  PluginPackageStatus status
+  String approvedBy "nullable"
+  DateTime approvedAt "nullable"
+  String rejectionReason "nullable"
+  DateTime revokedAt "nullable"
+  Int downloadCount
+  Int installCount
+  String uploadedBy
+  DateTime uploadedAt
+  DateTime updatedAt
+}
+"plugin_installations" {
+  String id PK
+  String packageId FK
+  String siteId FK
+  String installedVersion
+  DateTime installedAt
+  String installedBy
+  PluginInstallationStatus status
+  DateTime activatedAt "nullable"
+  DateTime deactivatedAt "nullable"
+  Json configuration "nullable"
+  Int errorCount
+  DateTime lastErrorAt "nullable"
+  DateTime lastHealthCheck "nullable"
+  String lastErrorMessage "nullable"
+  String licenseKey "nullable"
+  DateTime licenseExpires "nullable"
+  DateTime updatedAt
+}
+"plugin_health_logs" {
+  String id PK
+  String installationId FK
+  Int errorCount
+  Int warningCount
+  Int avgExecutionTime "nullable"
+  Int memoryUsage "nullable"
+  Decimal cpuUsage "nullable"
+  DateTime recordedAt
+}
+"plugin_licenses" {
+  String id PK
+  String packageId FK
+  String licenseKey UK
+  PluginLicenseType licenseType
+  String organizationId "nullable"
+  String enterpriseId "nullable"
+  String siteId "nullable"
+  DateTime issuedAt
+  DateTime expiresAt "nullable"
+  Boolean isActive
+  Int maxInstallations "nullable"
+  Int currentInstallations
+  String issuedBy
+  String notes "nullable"
+  DateTime updatedAt
+}
+"plugin_reviews" {
+  String id PK
+  String packageId FK
+  Int rating
+  String comment "nullable"
+  String reviewerId
+  String reviewerName
+  String siteId
+  Boolean isApproved
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_deployments" {
+  String id PK
+  String packageId FK
+  PluginDeploymentType deploymentType
+  String targetSites
+  DateTime scheduledFor "nullable"
+  DateTime startedAt "nullable"
+  DateTime completedAt "nullable"
+  PluginDeploymentStatus status
+  Int successCount
+  Int failureCount
+  Boolean canRollback
+  DateTime rolledBackAt "nullable"
+  String rollbackReason "nullable"
+  String initiatedBy
+  String notes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
+"plugin_submissions" {
+  String id PK
+  String pluginId
+  String name
+  String version
+  String author
+  Json manifest
+  String packageUrl
+  String checksum
+  String submittedBy
+  DateTime submittedAt
+  String reviewNotes "nullable"
+  DateTime createdAt
+  DateTime updatedAt
+}
 "_DepartmentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToUser" {
+  String A FK
+  String B FK
+}
+"_ControlledDocumentToTrainingCourse" {
   String A FK
   String B FK
 }
@@ -5529,11 +6142,19 @@ erDiagram
 "quality_inspections" }o--|| "work_orders" : workOrder
 "quality_measurements" }o--|| "quality_characteristics" : characteristic
 "quality_measurements" }o--|| "quality_inspections" : inspection
+"cause_code_categories" }o--o| "cause_code_categories" : parent
+"cause_codes" }o--o| "cause_codes" : parent
+"cause_codes" }o--|| "cause_code_categories" : category
+"cause_code_history" }o--|| "cause_codes" : causeCode
 "ncrs" }o--o| "users" : assignedTo
 "ncrs" }o--|| "users" : createdBy
 "ncrs" }o--o| "quality_inspections" : inspection
 "ncrs" }o--o| "sites" : site
 "ncrs" }o--o| "work_orders" : workOrder
+"ncrs" }o--o| "cause_codes" : rootCause
+"ncr_state_history" }o--|| "ncrs" : ncr
+"ncr_approval_requests" }o--|| "ncrs" : ncr
+"ncr_workflow_configs" }o--o| "sites" : site
 "equipment" }o--o| "areas" : area
 "equipment" }o--o| "equipment" : parentEquipment
 "equipment" }o--o| "sites" : site
@@ -5939,11 +6560,56 @@ erDiagram
 "work_order_workflow_configurations" }o--o| "routing_workflow_configurations" : routingConfig
 "workflow_configuration_history" }o--o| "site_workflow_configurations" : siteConfig
 "operation_workflow_configurations" |o--|| "operations" : operation
-"cause_codes" }o--o| "cause_codes" : parent
-"cause_code_history" }o--|| "cause_codes" : causeCode
-"ncr_cause_mappings" }o--|| "cause_codes" : causeCode
+"controlled_documents" }o--o| "users" : approvedBy
+"controlled_documents" }o--o| "controlled_documents" : parentDocument
+"controlled_documents" }o--|| "users" : createdBy
+"document_approvals" }o--|| "controlled_documents" : document
+"document_approvals" }o--|| "users" : approver
+"training_courses" }o--|| "users" : createdBy
+"competency_tests" |o--|| "training_courses" : trainingCourse
+"test_questions" }o--|| "competency_tests" : test
+"training_records" }o--|| "training_courses" : trainingCourse
+"training_records" }o--|| "users" : trainee
+"training_records" }o--o| "users" : instructor
+"internal_audits" }o--|| "users" : leadAuditor
+"internal_audits" }o--o| "users" : auditee
+"internal_audits" }o--o| "users" : closedBy
+"internal_audits" }o--|| "users" : createdBy
+"audit_findings" }o--|| "internal_audits" : audit
+"audit_findings" }o--o| "corrective_actions" : correctiveAction
+"audit_findings" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : assignedTo
+"corrective_actions" }o--o| "users" : verifiedBy
+"corrective_actions" }o--|| "users" : createdBy
+"management_reviews" }o--|| "users" : chairperson
+"management_reviews" }o--|| "users" : createdBy
+"management_review_actions" }o--|| "management_reviews" : review
+"management_review_actions" }o--o| "users" : assignedTo
+"change_requests" }o--o| "users" : approvedBy
+"change_requests" }o--|| "users" : createdBy
+"api_breaking_changes" }o--|| "api_versions" : version
+"api_deprecations" }o--|| "api_versions" : version
+"api_usage_by_version" }o--|| "api_versions" : version
+"api_usage_by_version" }o--o| "api_keys" : apiKey
+"captured_api_calls" }o--|| "api_keys" : apiKey
+"plugins" }o--o| "sites" : site
+"plugins" }o--o| "api_keys" : apiKey
+"plugin_hooks" }o--|| "plugins" : plugin
+"plugin_executions" }o--|| "plugins" : plugin
+"plugin_configurations" }o--|| "plugins" : plugin
+"plugin_packages" }o--|| "plugin_registries" : registry
+"plugin_installations" }o--|| "plugin_packages" : package
+"plugin_installations" }o--|| "sites" : site
+"plugin_health_logs" }o--|| "plugin_installations" : installation
+"plugin_licenses" }o--|| "plugin_packages" : package
+"plugin_reviews" }o--|| "plugin_packages" : package
+"plugin_deployments" }o--|| "plugin_packages" : package
 "_DepartmentToUser" }o--|| "departments" : Department
 "_DepartmentToUser" }o--|| "users" : User
+"_ControlledDocumentToUser" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToUser" }o--|| "users" : User
+"_ControlledDocumentToTrainingCourse" }o--|| "controlled_documents" : ControlledDocument
+"_ControlledDocumentToTrainingCourse" }o--|| "training_courses" : TrainingCourse
 ```
 
 ### `enterprises`
@@ -7161,6 +7827,53 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `notes`: 
   - `createdAt`: 
 
+### `cause_code_categories`
+Cause Code Category - Top-level grouping (e.g., Material, Equipment, Process)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `enabled`: 
+  - `sortOrder`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_codes`
+Cause Code - Detailed root cause classification (hierarchical)
+
+**Properties**
+  - `id`: 
+  - `code`: 
+  - `name`: 
+  - `description`: 
+  - `parentId`: 
+  - `categoryId`: 
+  - `enabled`: 
+  - `level`: 
+  - `sortOrder`: 
+  - `usageCount`: 
+  - `lastUsedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
+
+### `cause_code_history`
+Cause Code Change History - Audit trail for cause code modifications
+
+**Properties**
+  - `id`: 
+  - `causeCodeId`: 
+  - `changeType`: 
+  - `oldValue`: 
+  - `newValue`: 
+  - `changeReason`: 
+  - `changedAt`: 
+  - `changedBy`: 
+
 ### `ncrs`
 
 **Properties**
@@ -7179,12 +7892,97 @@ Unit of Measure lookup table for standardizing measurement units across the syst
   - `createdById`: 
   - `assignedToId`: 
   - `dueDate`: 
-  - `rootCause`: 
+  - `rootCauseId`: 
   - `correctiveAction`: 
   - `preventiveAction`: 
   - `closedAt`: 
+  - `disposition`: 
+  - `dispositionJustification`: 
+  - `dispositionApprovedBy`: 
+  - `dispositionApprovedAt`: 
+  - `ctpAuthorized`: 
+  - `ctpApprovedBy`: 
+  - `ctpApprovedAt`: 
+  - `ctpJustification`: 
+  - `ctpConditions`: 
+  - `ctpOperations`: 
+  - `ddrExpectedDate`: 
+  - `ddrPendingItems`: 
+  - `ddrEscalated`: 
+  - `ddrEscalatedAt`: 
+  - `mrbRequired`: 
+  - `mrbMeetingDate`: 
+  - `mrbAttendees`: 
+  - `mrbDecision`: 
+  - `mrbVotes`: 
+  - `mrbMinutes`: 
+  - `estimatedCost`: 
+  - `actualCost`: 
+  - `scrapCost`: 
+  - `reworkCost`: 
   - `createdAt`: 
   - `updatedAt`: 
+
+### `ncr_state_history`
+✅ ISSUE #55: NCR State History - Track all state transitions
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `fromState`: 
+  - `toState`: 
+  - `changedBy`: 
+  - `changeReason`: 
+  - `approvalRequired`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `timestamp`: 
+
+### `ncr_approval_requests`
+✅ ISSUE #55: NCR Approval Requests - Track pending approvals
+
+**Properties**
+  - `id`: 
+  - `ncrId`: 
+  - `requestType`: 
+  - `requestedBy`: 
+  - `requestedAt`: 
+  - `approverUserId`: 
+  - `status`: 
+  - `approvalNotes`: 
+  - `approvedAt`: 
+  - `dueDate`: 
+  - `escalated`: 
+  - `escalatedAt`: 
+
+### `ncr_workflow_configs`
+✅ ISSUE #55: NCR Workflow Configuration - Per-site and per-severity workflow rules
+
+**Properties**
+  - `id`: 
+  - `siteId`: 
+  - `severityLevel`: 
+  - `enabledStates`: 
+  - `initialState`: 
+  - `stateTransitions`: 
+  - `requiredFieldsByState`: 
+  - `ctpEnabled`: 
+  - `ctpApprovalRole`: 
+  - `ctpPreventFinalShip`: 
+  - `ddrEnabled`: 
+  - `ddrAutoTriggerHours`: 
+  - `ddrEscalationThreshold`: 
+  - `mrbEnabled`: 
+  - `mrbValueThreshold`: 
+  - `mrbTriggerConditions`: 
+  - `mrbRequiredAttendees`: 
+  - `mrbVotingMethod`: 
+  - `allowedDispositions`: 
+  - `dispositionApprovalRules`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdBy`: 
 
 ### `equipment`
 
@@ -12011,73 +12809,647 @@ Granular configuration control per operation type
   - `updatedAt`: 
   - `createdBy`: 
 
-### `cause_code_hierarchy_configs`
-Cause Code Hierarchy Configuration (Issue #54)
-Defines the hierarchical structure of cause codes per site
+### `controlled_documents`
+Controlled Document - Core document management model (ISO 9001 Clause 7.5)
 
 **Properties**
   - `id`: 
-  - `siteId`: 
-  - `numberOfLevels`: 
-  - `levelNames`: 
-  - `isActive`: 
-  - `createdBy`: 
-  - `createdAt`: 
-  - `updatedAt`: 
-
-### `cause_codes`
-Cause Code (Issue #54)
-Standardized reasons for nonconformance with hierarchical structure
-
-**Properties**
-  - `id`: 
-  - `code`: 
-  - `name`: 
+  - `documentNumber`: 
+  - `title`: 
   - `description`: 
-  - `level`: 
-  - `parentCauseCodeId`: 
-  - `scope`: 
-  - `siteId`: 
-  - `status`: 
+  - `documentType`: 
+  - `category`: 
+  - `revision`: 
+  - `revisionDate`: 
   - `effectiveDate`: 
-  - `expirationDate`: 
-  - `capaRequired`: 
-  - `notificationRecipients`: 
-  - `displayOrder`: 
-  - `version`: 
-  - `createdBy`: 
+  - `status`: 
+  - `fileUrl`: 
+  - `fileName`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `reviewFrequency`: 
+  - `nextReviewDate`: 
+  - `lastReviewDate`: 
+  - `isControlled`: 
+  - `parentDocumentId`: 
   - `createdAt`: 
   - `updatedAt`: 
+  - `createdById`: 
 
-### `cause_code_history`
-Cause Code History (Issue #54)
-Audit trail for all changes to cause codes
+### `document_approvals`
+Document Approval - Approval workflow step
 
 **Properties**
   - `id`: 
-  - `causeCodeId`: 
-  - `version`: 
+  - `documentId`: 
+  - `approverRole`: 
+  - `approverId`: 
+  - `sequence`: 
+  - `status`: 
+  - `requestedAt`: 
+  - `reviewedAt`: 
+  - `comments`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_courses`
+Training Course - Course definition and management
+
+**Properties**
+  - `id`: 
+  - `courseNumber`: 
+  - `courseName`: 
+  - `description`: 
+  - `objectives`: 
+  - `duration`: 
+  - `courseType`: 
+  - `materials`: 
+  - `requiredForRoles`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `competency_tests`
+Competency Test - Test/assessment associated with training
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `testName`: 
+  - `passingScore`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `test_questions`
+Test Question - Individual question in competency test
+
+**Properties**
+  - `id`: 
+  - `testId`: 
+  - `questionText`: 
+  - `questionType`: 
+  - `correctAnswer`: 
+  - `possibleAnswers`: 
+  - `points`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `training_records`
+Training Record - Record of training completion for individual
+
+**Properties**
+  - `id`: 
+  - `trainingCourseId`: 
+  - `traineeId`: 
+  - `instructorId`: 
+  - `trainingDate`: 
+  - `completionDate`: 
+  - `testScore`: 
+  - `passed`: 
+  - `certificationDate`: 
+  - `expirationDate`: 
+  - `effectivenessScore`: 
+  - `effectivenessNotes`: 
+  - `certificateUrl`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `internal_audits`
+Internal Audit - Audit planning and execution (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditNumber`: 
+  - `auditTitle`: 
+  - `auditType`: 
+  - `auditScope`: 
+  - `plannedDate`: 
+  - `actualDate`: 
+  - `duration`: 
+  - `leadAuditorId`: 
+  - `auditeeId`: 
+  - `auditeeDepartment`: 
+  - `status`: 
+  - `reportUrl`: 
+  - `summary`: 
+  - `closedById`: 
+  - `closedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `audit_findings`
+Audit Finding - Findings from audit (ISO 9001 Clause 9.2)
+
+**Properties**
+  - `id`: 
+  - `auditId`: 
+  - `findingNumber`: 
+  - `findingType`: 
+  - `clause`: 
+  - `description`: 
+  - `objectiveEvidence`: 
+  - `severity`: 
+  - `correctiveActionId`: 
+  - `status`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `corrective_actions`
+Corrective Action - CAPA management (ISO 9001 Clause 10)
+
+**Properties**
+  - `id`: 
+  - `caNumber`: 
+  - `title`: 
+  - `description`: 
+  - `source`: 
+  - `sourceReference`: 
+  - `rootCauseMethod`: 
+  - `rootCause`: 
+  - `correctiveAction`: 
+  - `preventiveAction`: 
+  - `assignedToId`: 
+  - `targetDate`: 
+  - `implementedDate`: 
+  - `verificationMethod`: 
+  - `verifiedById`: 
+  - `verifiedAt`: 
+  - `isEffective`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_reviews`
+Management Review - Management review sessions (ISO 9001 Clause 9.3)
+
+**Properties**
+  - `id`: 
+  - `reviewNumber`: 
+  - `reviewDate`: 
+  - `chairpersonId`: 
+  - `inputsDiscussed`: 
+  - `decisions`: 
+  - `resourceNeeds`: 
+  - `minutes`: 
+  - `minutesUrl`: 
+  - `status`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `management_review_actions`
+Management Review Action - Action items from management review
+
+**Properties**
+  - `id`: 
+  - `reviewId`: 
+  - `actionDescription`: 
+  - `assignedToId`: 
+  - `dueDate`: 
+  - `completedDate`: 
+  - `status`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `change_requests`
+Change Request - Change management (AS9100D Clause 8.5.6)
+
+**Properties**
+  - `id`: 
+  - `changeNumber`: 
+  - `title`: 
+  - `description`: 
   - `changeType`: 
-  - `changedFields`: 
-  - `changeReason`: 
+  - `affectedParts`: 
+  - `reason`: 
+  - `benefits`: 
+  - `risks`: 
+  - `impactAssessment`: 
+  - `customerNotificationRequired`: 
+  - `implementationPlan`: 
+  - `implementationDate`: 
+  - `status`: 
+  - `approvedById`: 
+  - `approvedAt`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+  - `createdById`: 
+
+### `api_versions`
+API Version - Manages API versioning and backward compatibility
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `semver`: 
+  - `releaseDate`: 
+  - `status`: 
+  - `maintenanceUntil`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `changelogUrl`: 
+  - `migrationGuideUrl`: 
+  - `documentationUrl`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_breaking_changes`
+API Breaking Change - Tracks breaking changes between versions
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `fromVersion`: 
+  - `toVersion`: 
+  - `changeType`: 
+  - `endpoint`: 
+  - `field`: 
+  - `description`: 
+  - `before`: 
+  - `after`: 
+  - `migrationSteps`: 
+  - `migrationGuideUrl`: 
+  - `announcedAt`: 
+  - `effectiveDate`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_deprecations`
+API Deprecation - Tracks deprecated features
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `feature`: 
+  - `deprecatedAt`: 
+  - `sunsetDate`: 
+  - `replacement`: 
+  - `migrationGuideUrl`: 
+  - `affectedAccounts`: 
+  - `notificationsSent`: 
+  - `severity`: 
+  - `description`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_usage_by_version`
+API Usage by Version - Analytics for API version adoption
+
+**Properties**
+  - `id`: 
+  - `versionId`: 
+  - `apiKeyId`: 
+  - `requestCount`: 
+  - `lastRequestAt`: 
+  - `failureCount`: 
+  - `lastFailureAt`: 
+  - `date`: 
+  - `clientName`: 
+  - `integrationName`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `api_changelog`
+API Changelog - Published changelog entries
+
+**Properties**
+  - `id`: 
+  - `version`: 
+  - `releaseDate`: 
+  - `category`: 
+  - `title`: 
+  - `description`: 
+  - `endpoint`: 
+  - `field`: 
+  - `migrationGuide`: 
+  - `alternativeFeature`: 
+  - `severity`: 
+  - `affectedApiKeys`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `captured_api_calls`
+Captured API Call - For compatibility testing
+
+**Properties**
+  - `id`: 
+  - `apiKeyId`: 
+  - `apiVersion`: 
+  - `method`: 
+  - `endpoint`: 
+  - `requestPath`: 
+  - `requestHeaders`: 
+  - `requestBody`: 
+  - `requestQuery`: 
+  - `statusCode`: 
+  - `responseHeaders`: 
+  - `responseBody`: 
+  - `timestamp`: 
+  - `duration`: 
+  - `success`: 
+  - `errorMessage`: 
+
+### `api_compatibility_tests`
+API Compatibility Test - Test results for version compatibility
+
+**Properties**
+  - `id`: 
+  - `sourceVersion`: 
+  - `targetVersion`: 
+  - `compatible`: 
+  - `breakingChanges`: 
+  - `deprecatedFeatures`: 
+  - `unsupportedEndpoints`: 
+  - `unsupportedFields`: 
+  - `recommendations`: 
+  - `estimatedMigrationEffort`: 
+  - `migrationGuideUrl`: 
+  - `testedEndpoints`: 
+  - `compatibleEndpoints`: 
+  - `failingEndpoints`: 
+  - `createdAt`: 
+  - `expiresAt`: 
+
+### `plugins`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `manifest`: 
+  - `status`: 
+  - `isActive`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `latestVersion`: 
+  - `updateAvailable`: 
+  - `configuration`: 
+  - `packageUrl`: 
+  - `apiKeyId`: 
+  - `dependencies`: 
+  - `permissions`: 
+  - `siteId`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_hooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookType`: 
+  - `hookPoint`: 
+  - `priority`: 
+  - `isAsync`: 
+  - `timeout`: 
+  - `handlerFunction`: 
+  - `isActive`: 
+  - `lastExecutedAt`: 
+  - `executionCount`: 
+  - `errorCount`: 
+  - `lastError`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_executions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `hookPoint`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `duration`: 
+  - `status`: 
+  - `errorMessage`: 
+  - `errorStack`: 
+  - `inputData`: 
+  - `outputData`: 
+  - `userId`: 
+  - `requestId`: 
+  - `ipAddress`: 
+  - `createdAt`: 
+
+### `plugin_configurations`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `key`: 
+  - `value`: 
+  - `version`: 
   - `changedBy`: 
   - `changedAt`: 
+  - `siteId`: 
+  - `companyId`: 
 
-### `ncr_cause_mappings`
-NCR Cause Mapping (Issue #54)
-Links cause codes to NCRs with support for multiple causes per NCR
+### `plugin_events`
 
 **Properties**
   - `id`: 
-  - `ncrId`: 
-  - `causeCodeId`: 
-  - `isPrimary`: 
-  - `attribution`: 
-  - `additionalNotes`: 
+  - `eventType`: 
+  - `eventData`: 
+  - `timestamp`: 
+  - `sourceUserId`: 
+  - `sourceRequestId`: 
+  - `subscribers`: 
   - `createdAt`: 
+
+### `plugin_webhooks`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `eventType`: 
+  - `webhookUrl`: 
+  - `secret`: 
+  - `maxRetries`: 
+  - `retryBackoff`: 
+  - `isActive`: 
+  - `lastTriggeredAt`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `failedDeliveries`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_registries`
+
+**Properties**
+  - `id`: 
+  - `type`: 
+  - `name`: 
+  - `storageUrl`: 
+  - `storageBucket`: 
+  - `isDefault`: 
+  - `isPublic`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `isActive`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_packages`
+
+**Properties**
+  - `id`: 
+  - `registryId`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `description`: 
+  - `author`: 
+  - `license`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `packageSize`: 
+  - `checksum`: 
+  - `apiVersion`: 
+  - `mesVersion`: 
+  - `permissions`: 
+  - `dependencies`: 
+  - `status`: 
+  - `approvedBy`: 
+  - `approvedAt`: 
+  - `rejectionReason`: 
+  - `revokedAt`: 
+  - `downloadCount`: 
+  - `installCount`: 
+  - `uploadedBy`: 
+  - `uploadedAt`: 
+  - `updatedAt`: 
+
+### `plugin_installations`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `siteId`: 
+  - `installedVersion`: 
+  - `installedAt`: 
+  - `installedBy`: 
+  - `status`: 
+  - `activatedAt`: 
+  - `deactivatedAt`: 
+  - `configuration`: 
+  - `errorCount`: 
+  - `lastErrorAt`: 
+  - `lastHealthCheck`: 
+  - `lastErrorMessage`: 
+  - `licenseKey`: 
+  - `licenseExpires`: 
+  - `updatedAt`: 
+
+### `plugin_health_logs`
+
+**Properties**
+  - `id`: 
+  - `installationId`: 
+  - `errorCount`: 
+  - `warningCount`: 
+  - `avgExecutionTime`: 
+  - `memoryUsage`: 
+  - `cpuUsage`: 
+  - `recordedAt`: 
+
+### `plugin_licenses`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `licenseKey`: 
+  - `licenseType`: 
+  - `organizationId`: 
+  - `enterpriseId`: 
+  - `siteId`: 
+  - `issuedAt`: 
+  - `expiresAt`: 
+  - `isActive`: 
+  - `maxInstallations`: 
+  - `currentInstallations`: 
+  - `issuedBy`: 
+  - `notes`: 
+  - `updatedAt`: 
+
+### `plugin_reviews`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `rating`: 
+  - `comment`: 
+  - `reviewerId`: 
+  - `reviewerName`: 
+  - `siteId`: 
+  - `isApproved`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_deployments`
+
+**Properties**
+  - `id`: 
+  - `packageId`: 
+  - `deploymentType`: 
+  - `targetSites`: 
+  - `scheduledFor`: 
+  - `startedAt`: 
+  - `completedAt`: 
+  - `status`: 
+  - `successCount`: 
+  - `failureCount`: 
+  - `canRollback`: 
+  - `rolledBackAt`: 
+  - `rollbackReason`: 
+  - `initiatedBy`: 
+  - `notes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
+
+### `plugin_submissions`
+
+**Properties**
+  - `id`: 
+  - `pluginId`: 
+  - `name`: 
+  - `version`: 
+  - `author`: 
+  - `manifest`: 
+  - `packageUrl`: 
+  - `checksum`: 
+  - `submittedBy`: 
+  - `submittedAt`: 
+  - `reviewNotes`: 
+  - `createdAt`: 
+  - `updatedAt`: 
 
 ### `_DepartmentToUser`
 Pair relationship table between [departments](#departments) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToUser`
+Pair relationship table between [controlled_documents](#controlled_documents) and [users](#users)
+
+**Properties**
+  - `A`: 
+  - `B`: 
+
+### `_ControlledDocumentToTrainingCourse`
+Pair relationship table between [controlled_documents](#controlled_documents) and [training_courses](#training_courses)
 
 **Properties**
   - `A`: 

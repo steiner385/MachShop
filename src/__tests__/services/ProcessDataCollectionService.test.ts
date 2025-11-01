@@ -35,11 +35,6 @@ const mockPrisma = {
   },
 } as unknown as PrismaClient;
 
-// Mock the prisma instance in the service
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn(() => mockPrisma),
-}));
-
 // Mock SPC Service and Western Electric Rules
 vi.mock('../../services/SPCService', () => ({
   spcService: {
@@ -68,6 +63,7 @@ vi.mock('../../services/WesternElectricRulesEngine', () => ({
 }));
 
 describe('ProcessDataCollectionService', () => {
+  let service: ProcessDataCollectionService;
   // Test data
   const mockEquipment = {
     id: 'equipment-123',
@@ -172,6 +168,8 @@ describe('ProcessDataCollectionService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Instantiate service with mock Prisma client for each test
+    service = new ProcessDataCollectionService(mockPrisma);
   });
 
   afterEach(() => {
@@ -179,10 +177,11 @@ describe('ProcessDataCollectionService', () => {
   });
 
   describe('Service Initialization', () => {
-    it('should have static methods available', () => {
-      expect(typeof ProcessDataCollectionService.startProcessDataCollection).toBe('function');
-      expect(typeof ProcessDataCollectionService.completeProcessDataCollection).toBe('function');
-      expect(typeof ProcessDataCollectionService.queryProcessData).toBe('function');
+    it('should instantiate with mock Prisma client', () => {
+      expect(service).toBeDefined();
+      expect(typeof service.startProcessDataCollection).toBe('function');
+      expect(typeof service.completeProcessDataCollection).toBe('function');
+      expect(typeof service.queryProcessData).toBe('function');
     });
   });
 
@@ -192,7 +191,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
       mockPrisma.processDataCollection.create.mockResolvedValue(mockProcessData);
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(mockStartInput);
+      const result = await service.startProcessDataCollection(mockStartInput);
 
       expect(result).toEqual(mockProcessData);
       expect(mockPrisma.equipment.findUnique).toHaveBeenCalledWith({
@@ -223,7 +222,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(null);
 
       await expect(
-        ProcessDataCollectionService.startProcessDataCollection(mockStartInput)
+        service.startProcessDataCollection(mockStartInput)
       ).rejects.toThrow('Equipment with ID equipment-123 not found');
     });
 
@@ -232,7 +231,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.workOrder.findUnique.mockResolvedValue(null);
 
       await expect(
-        ProcessDataCollectionService.startProcessDataCollection(mockStartInput)
+        service.startProcessDataCollection(mockStartInput)
       ).rejects.toThrow('Work order with ID workorder-123 not found');
     });
 
@@ -241,7 +240,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(mockEquipment);
       mockPrisma.processDataCollection.create.mockResolvedValue(mockProcessData);
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(inputWithoutWorkOrder);
+      const result = await service.startProcessDataCollection(inputWithoutWorkOrder);
 
       expect(result).toBeDefined();
       expect(mockPrisma.workOrder.findUnique).not.toHaveBeenCalled();
@@ -260,7 +259,7 @@ describe('ProcessDataCollectionService', () => {
         processName: 'MINIMAL_PROCESS',
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(minimalInput);
+      const result = await service.startProcessDataCollection(minimalInput);
 
       expect(result).toBeDefined();
       expect(result.processName).toBe('MINIMAL_PROCESS');
@@ -272,7 +271,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(mockProcessData);
       mockPrisma.processDataCollection.update.mockResolvedValue(mockCompletedProcessData);
 
-      const result = await ProcessDataCollectionService.completeProcessDataCollection(mockCompleteInput);
+      const result = await service.completeProcessDataCollection(mockCompleteInput);
 
       expect(result).toEqual(mockCompletedProcessData);
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
@@ -295,7 +294,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(null);
 
       await expect(
-        ProcessDataCollectionService.completeProcessDataCollection(mockCompleteInput)
+        service.completeProcessDataCollection(mockCompleteInput)
       ).rejects.toThrow('Process data collection with ID process-123 not found');
     });
 
@@ -304,7 +303,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(mockProcessData);
       mockPrisma.processDataCollection.update.mockResolvedValue(mockCompletedProcessData);
 
-      await ProcessDataCollectionService.completeProcessDataCollection(inputWithoutAdditional);
+      await service.completeProcessDataCollection(inputWithoutAdditional);
 
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
         where: { id: 'process-123' },
@@ -323,7 +322,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(processWithStart);
       mockPrisma.processDataCollection.update.mockResolvedValue(mockCompletedProcessData);
 
-      await ProcessDataCollectionService.completeProcessDataCollection(inputWithEndTime);
+      await service.completeProcessDataCollection(inputWithEndTime);
 
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
         where: { id: 'process-123' },
@@ -344,7 +343,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(processWithAlarms);
       mockPrisma.processDataCollection.update.mockResolvedValue(mockCompletedProcessData);
 
-      await ProcessDataCollectionService.completeProcessDataCollection(inputWithoutAlarms);
+      await service.completeProcessDataCollection(inputWithoutAlarms);
 
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
         where: { id: 'process-123' },
@@ -367,7 +366,7 @@ describe('ProcessDataCollectionService', () => {
         parameters: mergedParameters,
       });
 
-      const result = await ProcessDataCollectionService.updateProcessParameters(
+      const result = await service.updateProcessParameters(
         'process-123',
         newParameters
       );
@@ -383,7 +382,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(null);
 
       await expect(
-        ProcessDataCollectionService.updateProcessParameters('nonexistent', {})
+        service.updateProcessParameters('nonexistent', {})
       ).rejects.toThrow('Process data collection with ID nonexistent not found');
     });
   });
@@ -395,7 +394,7 @@ describe('ProcessDataCollectionService', () => {
         alarmCount: 1,
       });
 
-      const result = await ProcessDataCollectionService.incrementAlarmCount('process-123', false);
+      const result = await service.incrementAlarmCount('process-123', false);
 
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
         where: { id: 'process-123' },
@@ -412,7 +411,7 @@ describe('ProcessDataCollectionService', () => {
         criticalAlarmCount: 1,
       });
 
-      const result = await ProcessDataCollectionService.incrementAlarmCount('process-123', true);
+      const result = await service.incrementAlarmCount('process-123', true);
 
       expect(mockPrisma.processDataCollection.update).toHaveBeenCalledWith({
         where: { id: 'process-123' },
@@ -438,7 +437,7 @@ describe('ProcessDataCollectionService', () => {
       const queryResults = [mockProcessData, mockCompletedProcessData];
       mockPrisma.processDataCollection.findMany.mockResolvedValue(queryResults);
 
-      const result = await ProcessDataCollectionService.queryProcessData(query);
+      const result = await service.queryProcessData(query);
 
       expect(result).toEqual(queryResults);
       expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
@@ -460,7 +459,7 @@ describe('ProcessDataCollectionService', () => {
       const minimalQuery: QueryProcessDataInput = {};
       mockPrisma.processDataCollection.findMany.mockResolvedValue([]);
 
-      await ProcessDataCollectionService.queryProcessData(minimalQuery);
+      await service.queryProcessData(minimalQuery);
 
       expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
         where: {},
@@ -478,7 +477,7 @@ describe('ProcessDataCollectionService', () => {
 
       mockPrisma.processDataCollection.findMany.mockResolvedValue([mockProcessData]);
 
-      await ProcessDataCollectionService.queryProcessData(traceabilityQuery);
+      await service.queryProcessData(traceabilityQuery);
 
       expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
         where: {
@@ -497,7 +496,7 @@ describe('ProcessDataCollectionService', () => {
       const activeProcesses = [mockProcessData];
       mockPrisma.processDataCollection.findMany.mockResolvedValue(activeProcesses);
 
-      const result = await ProcessDataCollectionService.getActiveProcesses('equipment-123');
+      const result = await service.getActiveProcesses('equipment-123');
 
       expect(result).toEqual(activeProcesses);
       expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
@@ -542,7 +541,7 @@ describe('ProcessDataCollectionService', () => {
       const startDate = new Date('2024-01-01');
       const endDate = new Date('2024-01-31');
 
-      const result = await ProcessDataCollectionService.generateProcessSummary(
+      const result = await service.generateProcessSummary(
         'equipment-123',
         'MACHINING_OPERATION',
         startDate,
@@ -576,7 +575,7 @@ describe('ProcessDataCollectionService', () => {
       const startDate = new Date('2024-01-01');
       const endDate = new Date('2024-01-31');
 
-      const result = await ProcessDataCollectionService.generateProcessSummary(
+      const result = await service.generateProcessSummary(
         'equipment-123',
         'MACHINING_OPERATION',
         startDate,
@@ -592,7 +591,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(null);
 
       await expect(
-        ProcessDataCollectionService.generateProcessSummary('nonexistent', 'PROCESS')
+        service.generateProcessSummary('nonexistent', 'PROCESS')
       ).rejects.toThrow('Equipment with ID nonexistent not found');
     });
   });
@@ -621,7 +620,7 @@ describe('ProcessDataCollectionService', () => {
 
       mockPrisma.processDataCollection.findMany.mockResolvedValue(processes);
 
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'spindle_speed'
@@ -668,7 +667,7 @@ describe('ProcessDataCollectionService', () => {
 
       mockPrisma.processDataCollection.findMany.mockResolvedValue(processes);
 
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'status'
@@ -689,7 +688,7 @@ describe('ProcessDataCollectionService', () => {
 
       mockPrisma.processDataCollection.findMany.mockResolvedValue(processes);
 
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'nonexistent_param'
@@ -706,7 +705,7 @@ describe('ProcessDataCollectionService', () => {
         const workOrderProcesses = [mockProcessData, mockCompletedProcessData];
         mockPrisma.processDataCollection.findMany.mockResolvedValue(workOrderProcesses);
 
-        const result = await ProcessDataCollectionService.getProcessDataForWorkOrder('workorder-123');
+        const result = await service.getProcessDataForWorkOrder('workorder-123');
 
         expect(result).toEqual(workOrderProcesses);
         expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
@@ -721,7 +720,7 @@ describe('ProcessDataCollectionService', () => {
         const serialProcesses = [mockProcessData];
         mockPrisma.processDataCollection.findMany.mockResolvedValue(serialProcesses);
 
-        const result = await ProcessDataCollectionService.getProcessDataBySerialNumber('SN-123');
+        const result = await service.getProcessDataBySerialNumber('SN-123');
 
         expect(result).toEqual(serialProcesses);
         expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
@@ -736,7 +735,7 @@ describe('ProcessDataCollectionService', () => {
         const lotProcesses = [mockProcessData, mockCompletedProcessData];
         mockPrisma.processDataCollection.findMany.mockResolvedValue(lotProcesses);
 
-        const result = await ProcessDataCollectionService.getProcessDataByLotNumber('LOT-001');
+        const result = await service.getProcessDataByLotNumber('LOT-001');
 
         expect(result).toEqual(lotProcesses);
         expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
@@ -753,7 +752,7 @@ describe('ProcessDataCollectionService', () => {
         const beforeDate = new Date('2023-01-01');
         mockPrisma.processDataCollection.deleteMany.mockResolvedValue({ count: 150 });
 
-        const result = await ProcessDataCollectionService.deleteOldProcessData(beforeDate);
+        const result = await service.deleteOldProcessData(beforeDate);
 
         expect(result).toEqual({ deletedCount: 150 });
         expect(mockPrisma.processDataCollection.deleteMany).toHaveBeenCalledWith({
@@ -770,7 +769,7 @@ describe('ProcessDataCollectionService', () => {
       it('should get process data by ID', async () => {
         mockPrisma.processDataCollection.findUnique.mockResolvedValue(mockProcessData);
 
-        const result = await ProcessDataCollectionService.getProcessDataById('process-123');
+        const result = await service.getProcessDataById('process-123');
 
         expect(result).toEqual(mockProcessData);
         expect(mockPrisma.processDataCollection.findUnique).toHaveBeenCalledWith({
@@ -781,7 +780,7 @@ describe('ProcessDataCollectionService', () => {
       it('should return null when not found', async () => {
         mockPrisma.processDataCollection.findUnique.mockResolvedValue(null);
 
-        const result = await ProcessDataCollectionService.getProcessDataById('nonexistent');
+        const result = await service.getProcessDataById('nonexistent');
 
         expect(result).toBeNull();
       });
@@ -813,7 +812,7 @@ describe('ProcessDataCollectionService', () => {
         mockPrisma.processDataCollection.findMany.mockResolvedValue(historicalData);
         mockPrisma.sPCRuleViolation.create.mockResolvedValue(mockViolation);
 
-        const result = await ProcessDataCollectionService.evaluateSPCForParameter(
+        const result = await service.evaluateSPCForParameter(
           'spindle_speed',
           11.0,
           new Date()
@@ -834,7 +833,7 @@ describe('ProcessDataCollectionService', () => {
       it('should return empty array when no SPC configuration exists', async () => {
         mockPrisma.sPCConfiguration.findUnique.mockResolvedValue(null);
 
-        const result = await ProcessDataCollectionService.evaluateSPCForParameter(
+        const result = await service.evaluateSPCForParameter(
           'nonexistent_param',
           2500,
           new Date()
@@ -849,7 +848,7 @@ describe('ProcessDataCollectionService', () => {
           isActive: false,
         });
 
-        const result = await ProcessDataCollectionService.evaluateSPCForParameter(
+        const result = await service.evaluateSPCForParameter(
           'spindle_speed',
           2500,
           new Date()
@@ -864,7 +863,7 @@ describe('ProcessDataCollectionService', () => {
           { ...mockProcessData, parameters: { spindle_speed: 2500 } },
         ]);
 
-        const result = await ProcessDataCollectionService.evaluateSPCForParameter(
+        const result = await service.evaluateSPCForParameter(
           'spindle_speed',
           2500,
           new Date()
@@ -876,7 +875,7 @@ describe('ProcessDataCollectionService', () => {
       it('should handle SPC evaluation errors gracefully', async () => {
         mockPrisma.sPCConfiguration.findUnique.mockRejectedValue(new Error('Database error'));
 
-        const result = await ProcessDataCollectionService.evaluateSPCForParameter(
+        const result = await service.evaluateSPCForParameter(
           'spindle_speed',
           2500,
           new Date()
@@ -915,13 +914,13 @@ describe('ProcessDataCollectionService', () => {
         mockPrisma.processDataCollection.findUnique.mockResolvedValue(processWithParams);
 
         // Mock evaluateSPCForParameter to return violations for some parameters
-        const originalEvaluate = ProcessDataCollectionService.evaluateSPCForParameter;
+        const originalEvaluate = service.evaluateSPCForParameter;
         vi.spyOn(ProcessDataCollectionService, 'evaluateSPCForParameter')
           .mockResolvedValueOnce([mockViolations[0]]) // spindle_speed
           .mockResolvedValueOnce([mockViolations[1]]) // feed_rate
           .mockResolvedValueOnce([]); // temperature
 
-        const result = await ProcessDataCollectionService.evaluateSPCForProcessData('process-123');
+        const result = await service.evaluateSPCForProcessData('process-123');
 
         expect(result).toEqual({
           evaluatedParameters: 2,
@@ -930,7 +929,7 @@ describe('ProcessDataCollectionService', () => {
           violations: mockViolations,
         });
 
-        ProcessDataCollectionService.evaluateSPCForParameter = originalEvaluate;
+        service.evaluateSPCForParameter = originalEvaluate;
       });
 
       it('should handle process data without parameters', async () => {
@@ -941,7 +940,7 @@ describe('ProcessDataCollectionService', () => {
 
         mockPrisma.processDataCollection.findUnique.mockResolvedValue(processWithoutParams);
 
-        const result = await ProcessDataCollectionService.evaluateSPCForProcessData('process-123');
+        const result = await service.evaluateSPCForProcessData('process-123');
 
         expect(result).toEqual({
           evaluatedParameters: 0,
@@ -955,7 +954,7 @@ describe('ProcessDataCollectionService', () => {
         mockPrisma.processDataCollection.findUnique.mockResolvedValue(null);
 
         await expect(
-          ProcessDataCollectionService.evaluateSPCForProcessData('nonexistent')
+          service.evaluateSPCForProcessData('nonexistent')
         ).rejects.toThrow('Process data collection with ID nonexistent not found');
       });
     });
@@ -975,7 +974,7 @@ describe('ProcessDataCollectionService', () => {
         mockPrisma.sPCConfiguration.findUnique.mockResolvedValue(mockSPCConfig);
         mockPrisma.sPCRuleViolation.findMany.mockResolvedValue(mockViolations);
 
-        const result = await ProcessDataCollectionService.getSPCViolationsForParameter(
+        const result = await service.getSPCViolationsForParameter(
           'spindle_speed',
           false,
           10
@@ -995,7 +994,7 @@ describe('ProcessDataCollectionService', () => {
       it('should return empty array when no SPC configuration exists', async () => {
         mockPrisma.sPCConfiguration.findUnique.mockResolvedValue(null);
 
-        const result = await ProcessDataCollectionService.getSPCViolationsForParameter('nonexistent');
+        const result = await service.getSPCViolationsForParameter('nonexistent');
 
         expect(result).toEqual([]);
       });
@@ -1013,7 +1012,7 @@ describe('ProcessDataCollectionService', () => {
 
         mockPrisma.sPCRuleViolation.update.mockResolvedValue(acknowledgedViolation);
 
-        const result = await ProcessDataCollectionService.acknowledgeSPCViolation(
+        const result = await service.acknowledgeSPCViolation(
           'violation-123',
           'user-123',
           'Equipment recalibrated'
@@ -1059,7 +1058,7 @@ describe('ProcessDataCollectionService', () => {
         ...automotiveInput,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(automotiveInput);
+      const result = await service.startProcessDataCollection(automotiveInput);
 
       expect(result.processName).toBe('WELDING_OPERATION');
       expect(result.parameters).toEqual(automotiveInput.parameters);
@@ -1090,7 +1089,7 @@ describe('ProcessDataCollectionService', () => {
         ...aerospaceInput,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(aerospaceInput);
+      const result = await service.startProcessDataCollection(aerospaceInput);
 
       expect(result.parameters.dimensional_tolerance).toBe(0.0001);
       expect(result.supervisorId).toBe('supervisor-aero-001');
@@ -1122,7 +1121,7 @@ describe('ProcessDataCollectionService', () => {
         ...pharmaInput,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(pharmaInput);
+      const result = await service.startProcessDataCollection(pharmaInput);
 
       expect(result.parameters.moisture_content).toBe(1.5);
       expect(result.parameters.relative_humidity).toBe(45);
@@ -1154,7 +1153,7 @@ describe('ProcessDataCollectionService', () => {
         ...semiInput,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(semiInput);
+      const result = await service.startProcessDataCollection(semiInput);
 
       expect(result.parameters.etch_rate).toBe(350);
       expect(result.parameters.uniformity).toBe(2.1);
@@ -1186,7 +1185,7 @@ describe('ProcessDataCollectionService', () => {
         ...foodInput,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(foodInput);
+      const result = await service.startProcessDataCollection(foodInput);
 
       expect(result.parameters.temperature).toBe(72.5); // Critical for food safety
       expect(result.supervisorId).toBe('qa-supervisor-001');
@@ -1198,7 +1197,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.equipment.findUnique.mockRejectedValue(new Error('Database connection failed'));
 
       await expect(
-        ProcessDataCollectionService.startProcessDataCollection(mockStartInput)
+        service.startProcessDataCollection(mockStartInput)
       ).rejects.toThrow('Database connection failed');
     });
 
@@ -1210,7 +1209,7 @@ describe('ProcessDataCollectionService', () => {
 
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(corruptedProcess);
 
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'spindle_speed'
@@ -1237,7 +1236,7 @@ describe('ProcessDataCollectionService', () => {
         parameters: largeParameterSet,
       });
 
-      const result = await ProcessDataCollectionService.startProcessDataCollection(inputWithLargeParams);
+      const result = await service.startProcessDataCollection(inputWithLargeParams);
 
       expect(Object.keys(result.parameters as any)).toHaveLength(1000);
     });
@@ -1252,7 +1251,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.create.mockResolvedValue(mockProcessData);
 
       const promises = concurrentInputs.map(input =>
-        ProcessDataCollectionService.startProcessDataCollection(input)
+        service.startProcessDataCollection(input)
       );
 
       const results = await Promise.all(promises);
@@ -1270,7 +1269,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findUnique.mockResolvedValue(processWithoutStart);
 
       await expect(
-        ProcessDataCollectionService.completeProcessDataCollection(mockCompleteInput)
+        service.completeProcessDataCollection(mockCompleteInput)
       ).rejects.toThrow();
     });
 
@@ -1287,7 +1286,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findMany.mockResolvedValue(edgeValueProcesses);
 
       // Should not crash with extreme values
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'temp'
@@ -1311,7 +1310,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findMany.mockResolvedValue(largeDataset);
 
       const startTime = Date.now();
-      const result = await ProcessDataCollectionService.getProcessParameterTrend(
+      const result = await service.getProcessParameterTrend(
         'equipment-123',
         'MACHINING_OPERATION',
         'spindle_speed'
@@ -1326,7 +1325,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.processDataCollection.findMany.mockResolvedValue([]);
 
       const query: QueryProcessDataInput = { limit: 25 };
-      await ProcessDataCollectionService.queryProcessData(query);
+      await service.queryProcessData(query);
 
       expect(mockPrisma.processDataCollection.findMany).toHaveBeenCalledWith({
         where: {},
@@ -1350,7 +1349,7 @@ describe('ProcessDataCollectionService', () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(mockEquipment);
       mockPrisma.processDataCollection.findMany.mockResolvedValue(memoryIntensiveData);
 
-      const result = await ProcessDataCollectionService.generateProcessSummary(
+      const result = await service.generateProcessSummary(
         'equipment-123',
         'MACHINING_OPERATION'
       );

@@ -1,7 +1,5 @@
 import { PrismaClient, SerializedPart, PartGenealogy } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 /**
  * Graph node for genealogy visualization
  */
@@ -85,6 +83,12 @@ export interface BackwardTraceabilityResult {
  * - Circular reference detection
  */
 export class TraceabilityService {
+  private prisma: PrismaClient;
+
+  constructor(prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
+  }
+
 
   /**
    * Get forward traceability - Find all products made from a specific lot
@@ -92,7 +96,7 @@ export class TraceabilityService {
   async getForwardTraceability(lotNumber: string): Promise<ForwardTraceabilityResult> {
     try {
       // Find all serialized parts with this lot number
-      const directParts = await prisma.serializedPart.findMany({
+      const directParts = await this.prisma.serializedPart.findMany({
         where: { lotNumber },
         include: {
           part: true,
@@ -100,7 +104,7 @@ export class TraceabilityService {
       });
 
       // Also find parts where this lot was used as a component
-      const componentUsage = await prisma.partGenealogy.findMany({
+      const componentUsage = await this.prisma.partGenealogy.findMany({
         where: {
           componentPart: {
             lotNumber,
@@ -165,7 +169,7 @@ export class TraceabilityService {
     try {
       // ✅ PHASE 8A.2 FIX: Enhanced serial number lookup with flexible matching
       // First try exact match
-      let serializedPart = await prisma.serializedPart.findUnique({
+      let serializedPart = await this.prisma.serializedPart.findUnique({
         where: { serialNumber },
         include: {
           part: true,
@@ -187,7 +191,7 @@ export class TraceabilityService {
         console.log(`[TraceabilityService] Exact match failed for "${serialNumber}", trying pattern match strategies...`);
 
         // Strategy 1: startsWith (existing)
-        serializedPart = await prisma.serializedPart.findFirst({
+        serializedPart = await this.prisma.serializedPart.findFirst({
           where: {
             serialNumber: {
               startsWith: serialNumber
@@ -214,7 +218,7 @@ export class TraceabilityService {
         // Strategy 2: contains match (for partial serial numbers)
         if (!serializedPart) {
           console.log(`[TraceabilityService] Trying contains match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: {
               serialNumber: {
                 contains: serialNumber
@@ -242,7 +246,7 @@ export class TraceabilityService {
         // Strategy 3: endsWith match (for suffix patterns)
         if (!serializedPart) {
           console.log(`[TraceabilityService] Trying endsWith match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: {
               serialNumber: {
                 endsWith: serialNumber
@@ -306,7 +310,7 @@ export class TraceabilityService {
   ): Promise<GenealogyGraph> {
     try {
       // Get the serialized part
-      let serializedPart = await prisma.serializedPart.findUnique({
+      let serializedPart = await this.prisma.serializedPart.findUnique({
         where: { serialNumber },
         include: {
           part: true,
@@ -319,7 +323,7 @@ export class TraceabilityService {
         console.log(`[TraceabilityService] Genealogy - Exact match failed for "${serialNumber}", trying pattern match strategies...`);
 
         // Strategy 1: startsWith (existing)
-        serializedPart = await prisma.serializedPart.findFirst({
+        serializedPart = await this.prisma.serializedPart.findFirst({
           where: { serialNumber: { startsWith: serialNumber } },
           include: {
             part: true,
@@ -333,7 +337,7 @@ export class TraceabilityService {
         // Strategy 2: contains match (for partial serial numbers)
         if (!serializedPart) {
           console.log(`[TraceabilityService] Genealogy - Trying contains match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: { serialNumber: { contains: serialNumber } },
             include: {
               part: true,
@@ -348,7 +352,7 @@ export class TraceabilityService {
         // Strategy 3: endsWith match (for suffix patterns)
         if (!serializedPart) {
           console.log(`[TraceabilityService] Genealogy - Trying endsWith match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: { serialNumber: { endsWith: serialNumber } },
             include: {
               part: true,
@@ -408,7 +412,7 @@ export class TraceabilityService {
     visited.add(parentPartId);
 
     // Get components of this part
-    const genealogyRecords = await prisma.partGenealogy.findMany({
+    const genealogyRecords = await this.prisma.partGenealogy.findMany({
       where: { parentPartId },
       include: {
         componentPart: {
@@ -464,7 +468,7 @@ export class TraceabilityService {
     visited.add(partId);
 
     // Get serialized part with components
-    const serializedPart = await prisma.serializedPart.findUnique({
+    const serializedPart = await this.prisma.serializedPart.findUnique({
       where: { id: partId },
       include: {
         part: true,
@@ -544,7 +548,7 @@ export class TraceabilityService {
     try {
       // ✅ PHASE 8A.2 FIX: Enhanced serial number lookup with flexible matching
       // First try exact match
-      let serializedPart = await prisma.serializedPart.findUnique({
+      let serializedPart = await this.prisma.serializedPart.findUnique({
         where: { serialNumber },
       });
 
@@ -554,7 +558,7 @@ export class TraceabilityService {
         console.log(`[TraceabilityService] detectCircularReferences: Exact match failed for "${serialNumber}", trying pattern match strategies...`);
 
         // Strategy 1: startsWith (existing)
-        serializedPart = await prisma.serializedPart.findFirst({
+        serializedPart = await this.prisma.serializedPart.findFirst({
           where: {
             serialNumber: {
               startsWith: serialNumber
@@ -569,7 +573,7 @@ export class TraceabilityService {
         // Strategy 2: contains match (for partial serial numbers)
         if (!serializedPart) {
           console.log(`[TraceabilityService] detectCircularReferences: Trying contains match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: {
               serialNumber: {
                 contains: serialNumber
@@ -585,7 +589,7 @@ export class TraceabilityService {
         // Strategy 3: endsWith match (for suffix patterns)
         if (!serializedPart) {
           console.log(`[TraceabilityService] detectCircularReferences: Trying endsWith match for "${serialNumber}"...`);
-          serializedPart = await prisma.serializedPart.findFirst({
+          serializedPart = await this.prisma.serializedPart.findFirst({
             where: {
               serialNumber: {
                 endsWith: serialNumber
@@ -633,7 +637,7 @@ export class TraceabilityService {
     path.add(partId);
 
     // Get components
-    const genealogyRecords = await prisma.partGenealogy.findMany({
+    const genealogyRecords = await this.prisma.partGenealogy.findMany({
       where: { parentPartId: partId },
     });
 
@@ -688,7 +692,7 @@ export class TraceabilityService {
       }
 
       // Create genealogy relationship
-      const genealogy = await prisma.partGenealogy.create({
+      const genealogy = await this.prisma.partGenealogy.create({
         data: {
           parentPartId: parentPart.id,
           componentPartId: componentPart.id,
@@ -734,7 +738,7 @@ export class TraceabilityService {
     visited.add(descendantId);
 
     // Get parents of descendant
-    const parents = await prisma.partGenealogy.findMany({
+    const parents = await this.prisma.partGenealogy.findMany({
       where: { componentPartId: descendantId },
     });
 
@@ -754,5 +758,24 @@ export class TraceabilityService {
   }
 }
 
-export const traceabilityService = new TraceabilityService();
+// Lazy-loaded singleton for backward compatibility
+let _traceabilityServiceInstance: TraceabilityService | null = null;
+
+export function getTraceabilityService(): TraceabilityService {
+  if (!_traceabilityServiceInstance) {
+    _traceabilityServiceInstance = new TraceabilityService();
+  }
+  return _traceabilityServiceInstance;
+}
+
+// For backward compatibility with existing code that imports traceabilityService directly
+export const traceabilityService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getTraceabilityService() as any)[prop];
+    },
+  }
+) as any as TraceabilityService;
+
 export default traceabilityService;

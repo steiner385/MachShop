@@ -1,0 +1,1124 @@
+import prisma from '../lib/database';
+import { logger } from '../utils/logger';
+import { Plugin, PluginHook, PluginExecution, PluginEvent, HookType, PluginStatus, ExecutionStatus } from '@prisma/client';
+import * as vm from 'vm';
+import crypto from 'crypto';
+import eventBusService from './EventBusService';
+import webhookQueueService from './WebhookQueueService';
+
+/**
+ * Plugin & Hook System Service (Issue #75)
+ *
+ * Manages plugin lifecycle, hook registration, execution, and sandboxing.
+ * Provides event-driven architecture for extensibility.
+ */
+
+// Plugin Manifest Schema
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  license?: string;
+  apiVersion: string;
+  permissions?: string[];
+  hooks?: {
+    workflow?: string[];
+    ui?: string[];
+    data?: string[];
+    integration?: string[];
+    notification?: string[];
+  };
+  dependencies?: Record<string, string>;
+  database?: {
+    migrationsDir: string;
+    requiresMigrations: boolean;
+  };
+  configuration?: Record<string, any>;
+  endpoints?: Array<{
+    path: string;
+    method: string;
+    handler: string;
+  }>;
+}
+
+// Hook Context passed to hook handlers
+export interface HookContext {
+  // Data
+  data: any;
+  original?: any;
+
+  // Metadata
+  plugin: {
+    id: string;
+    version: string;
+  };
+  user: {
+    id: string;
+    roles: string[];
+    permissions: string[];
+  };
+  request: {
+    id: string;
+    timestamp: Date;
+    ipAddress: string;
+  };
+
+  // Methods
+  reject(reason: string): void;
+  addWarning(message: string): void;
+  abort(): void;
+
+  // API access
+  api: {
+    get(url: string): Promise<any>;
+    post(url: string, data: any): Promise<any>;
+    put(url: string, data: any): Promise<any>;
+    delete(url: string): Promise<any>;
+  };
+}
+
+export class PluginSystemService {
+  private hookRegistry: Map<string, PluginHook[]> = new Map();
+  private loadedPluginCode: Map<string, any> = new Map();
+
+  /**
+   * Install a plugin from package
+   */
+  async installPlugin(
+    manifestJson: PluginManifest,
+    packageUrl: string,
+    installedBy: string,
+    siteId?: string
+  ): Promise<Plugin> {
+    try {
+      // Validate manifest
+      this.validateManifest(manifestJson);
+
+      // Check for duplicate
+      const existing = await prisma.plugin.findUnique({
+        where: { pluginId: manifestJson.id },
+      });
+
+      if (existing) {
+        throw new Error(`Plugin ${manifestJson.id} is already installed`);
+      }
+
+      // Create plugin record
+      const plugin = await prisma.plugin.create({
+        data: {
+          pluginId: manifestJson.id,
+          name: manifestJson.name,
+          version: manifestJson.version,
+          description: manifestJson.description,
+          author: manifestJson.author,
+          manifest: manifestJson,
+          packageUrl,
+          installedBy,
+          status: 'PENDING_APPROVAL',
+          isActive: false,
+          permissions: manifestJson.permissions || [],
+          dependencies: manifestJson.dependencies,
+          siteId,
+        },
+        include: {
+          hooks: true,
+        },
+      });
+
+      logger.info(`Plugin installed: ${plugin.pluginId} v${plugin.version}`);
+      return plugin;
+    } catch (error) {
+      logger.error('Failed to install plugin', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve and activate a plugin
+   */
+  async approvePlugin(pluginId: string): Promise<Plugin> {
+    try {
+      const plugin = await prisma.plugin.update({
+        where: { id: pluginId },
+        data: {
+          status: 'INSTALLED',
+        },
+        include: {
+          hooks: true,
+        },
+      });
+
+      logger.info(`Plugin approved: ${plugin.pluginId}`);
+      return plugin;
+    } catch (error) {
+      logger.error(`Failed to approve plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activate a plugin and register its hooks
+   */
+  async activatePlugin(pluginId: string): Promise<Plugin> {
+    try {
+      const plugin = await prisma.plugin.findUnique({
+        where: { id: pluginId },
+        include: {
+          hooks: true,
+        },
+      });
+
+      if (!plugin) {
+        throw new Error(`Plugin ${pluginId} not found`);
+      }
+
+      if (plugin.status !== 'INSTALLED') {
+        throw new Error(`Cannot activate plugin in ${plugin.status} status`);
+      }
+
+      // Register hooks
+      await this.registerHooksForPlugin(plugin);
+
+      // Update status
+      const updated = await prisma.plugin.update({
+        where: { id: pluginId },
+        data: {
+          status: 'ACTIVE',
+          isActive: true,
+        },
+        include: {
+          hooks: true,
+        },
+      });
+
+      logger.info(`Plugin activated: ${updated.pluginId}`);
+      return updated;
+    } catch (error) {
+      logger.error(`Failed to activate plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deactivate a plugin and unregister its hooks
+   */
+  async deactivatePlugin(pluginId: string): Promise<Plugin> {
+    try {
+      const plugin = await prisma.plugin.findUnique({
+        where: { id: pluginId },
+        include: {
+          hooks: true,
+        },
+      });
+
+      if (!plugin) {
+        throw new Error(`Plugin ${pluginId} not found`);
+      }
+
+      // Unregister hooks
+      for (const hook of plugin.hooks) {
+        const key = `${hook.hookType}:${hook.hookPoint}`;
+        const hooks = this.hookRegistry.get(key) || [];
+        this.hookRegistry.set(
+          key,
+          hooks.filter((h) => h.id !== hook.id)
+        );
+      }
+
+      // Update status
+      const updated = await prisma.plugin.update({
+        where: { id: pluginId },
+        data: {
+          isActive: false,
+          status: 'DISABLED',
+        },
+        include: {
+          hooks: true,
+        },
+      });
+
+      logger.info(`Plugin deactivated: ${updated.pluginId}`);
+      return updated;
+    } catch (error) {
+      logger.error(`Failed to deactivate plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Uninstall a plugin
+   */
+  async uninstallPlugin(pluginId: string): Promise<void> {
+    try {
+      const plugin = await prisma.plugin.findUnique({
+        where: { id: pluginId },
+      });
+
+      if (!plugin) {
+        throw new Error(`Plugin ${pluginId} not found`);
+      }
+
+      // Deactivate if active
+      if (plugin.isActive) {
+        await this.deactivatePlugin(pluginId);
+      }
+
+      // Delete plugin
+      await prisma.plugin.delete({
+        where: { id: pluginId },
+      });
+
+      // Clear cached code
+      this.loadedPluginCode.delete(pluginId);
+
+      logger.info(`Plugin uninstalled: ${pluginId}`);
+    } catch (error) {
+      logger.error(`Failed to uninstall plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register a hook for a plugin
+   */
+  async registerHook(
+    pluginId: string,
+    hookType: HookType,
+    hookPoint: string,
+    handlerFunction: string,
+    priority: number = 50,
+    isAsync: boolean = false,
+    timeout: number = 5000
+  ): Promise<PluginHook> {
+    try {
+      // Check if hook already exists for this plugin
+      const existing = await prisma.pluginHook.findUnique({
+        where: {
+          pluginId_hookPoint: {
+            pluginId,
+            hookPoint,
+          },
+        },
+      });
+
+      if (existing) {
+        // Update existing hook
+        return await prisma.pluginHook.update({
+          where: { id: existing.id },
+          data: {
+            hookType,
+            handlerFunction,
+            priority,
+            isAsync,
+            timeout,
+          },
+        });
+      }
+
+      // Create new hook
+      const hook = await prisma.pluginHook.create({
+        data: {
+          pluginId,
+          hookType,
+          hookPoint,
+          handlerFunction,
+          priority,
+          isAsync,
+          timeout,
+          isActive: true,
+        },
+      });
+
+      // Add to registry
+      const key = `${hookType}:${hookPoint}`;
+      const hooks = this.hookRegistry.get(key) || [];
+      hooks.push(hook);
+      hooks.sort((a, b) => b.priority - a.priority); // Sort by priority desc
+      this.hookRegistry.set(key, hooks);
+
+      logger.info(`Hook registered: ${hookPoint} for plugin ${pluginId}`);
+      return hook;
+    } catch (error) {
+      logger.error(`Failed to register hook`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute hooks for a hook point
+   */
+  async executeHooks(
+    hookType: HookType,
+    hookPoint: string,
+    context: Partial<HookContext>,
+    pluginCode: Record<string, any>
+  ): Promise<void> {
+    try {
+      const key = `${hookType}:${hookPoint}`;
+      const hooks = this.hookRegistry.get(key) || [];
+
+      if (hooks.length === 0) {
+        return;
+      }
+
+      // Execute hooks in priority order
+      for (const hook of hooks) {
+        if (!hook.isActive) {
+          continue;
+        }
+
+        const plugin = await prisma.plugin.findUnique({
+          where: { id: hook.pluginId },
+        });
+
+        if (!plugin || !plugin.isActive) {
+          continue;
+        }
+
+        try {
+          // Create execution record
+          const execution = await prisma.pluginExecution.create({
+            data: {
+              pluginId: hook.pluginId,
+              hookPoint,
+              status: 'STARTED',
+              userId: context.user?.id,
+              requestId: context.request?.id,
+              ipAddress: context.request?.ipAddress,
+            },
+          });
+
+          const startTime = Date.now();
+
+          // Execute hook with timeout
+          const result = await this.executeHookWithTimeout(
+            hook,
+            context,
+            pluginCode,
+            hook.timeout
+          );
+
+          const duration = Date.now() - startTime;
+
+          // Update execution
+          await prisma.pluginExecution.update({
+            where: { id: execution.id },
+            data: {
+              status: 'COMPLETED',
+              duration,
+              completedAt: new Date(),
+              outputData: result,
+            },
+          });
+
+          // Update hook stats
+          await prisma.pluginHook.update({
+            where: { id: hook.id },
+            data: {
+              executionCount: { increment: 1 },
+              lastExecutedAt: new Date(),
+            },
+          });
+        } catch (error: any) {
+          logger.error(`Hook execution failed: ${hookPoint}`, error);
+
+          // Record failed execution
+          const execution = await prisma.pluginExecution.findFirst({
+            where: {
+              pluginId: hook.pluginId,
+              hookPoint,
+              status: 'STARTED',
+            },
+            orderBy: { startedAt: 'desc' },
+          });
+
+          if (execution) {
+            await prisma.pluginExecution.update({
+              where: { id: execution.id },
+              data: {
+                status: 'FAILED',
+                errorMessage: error.message,
+                errorStack: error.stack,
+                completedAt: new Date(),
+              },
+            });
+          }
+
+          // Update hook error count
+          await prisma.pluginHook.update({
+            where: { id: hook.id },
+            data: {
+              errorCount: { increment: 1 },
+              lastError: error.message,
+            },
+          });
+
+          // For synchronous hooks, re-throw error
+          if (!hook.isAsync) {
+            throw error;
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(`Failed to execute hooks for ${hookPoint}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Emit an event to subscribers
+   */
+  async emitEvent(eventType: string, eventData: any, sourceUserId?: string, sourceRequestId?: string): Promise<void> {
+    try {
+      // Create event record
+      const event = await prisma.pluginEvent.create({
+        data: {
+          eventType,
+          eventData,
+          sourceUserId,
+          sourceRequestId,
+        },
+      });
+
+      // Find subscribing webhooks
+      const webhooks = await prisma.pluginWebhook.findMany({
+        where: {
+          eventType,
+          isActive: true,
+        },
+      });
+
+      // Deliver to webhooks (async, fire-and-forget)
+      for (const webhook of webhooks) {
+        this.deliverWebhook(webhook.id, event, webhook.webhookUrl, webhook.secret, webhook.maxRetries).catch(
+          (error) => {
+            logger.error(`Failed to deliver webhook`, error);
+          }
+        );
+      }
+    } catch (error) {
+      logger.error(`Failed to emit event ${eventType}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Private helper: Register hooks for a plugin from manifest
+   */
+  private async registerHooksForPlugin(plugin: Plugin): Promise<void> {
+    const manifest = plugin.manifest as PluginManifest;
+
+    if (!manifest.hooks) {
+      return;
+    }
+
+    // Register workflow hooks
+    if (manifest.hooks.workflow) {
+      for (const hookPoint of manifest.hooks.workflow) {
+        const hookType: HookType = 'WORKFLOW';
+        await this.registerHook(plugin.id, hookType, hookPoint, `handle_${hookPoint.replace(/\./g, '_')}`, 50, false);
+      }
+    }
+
+    // Register UI hooks
+    if (manifest.hooks.ui) {
+      for (const hookPoint of manifest.hooks.ui) {
+        const hookType: HookType = 'UI';
+        await this.registerHook(plugin.id, hookType, hookPoint, `handle_${hookPoint.replace(/\./g, '_')}`, 50, true);
+      }
+    }
+
+    // Register data hooks
+    if (manifest.hooks.data) {
+      for (const hookPoint of manifest.hooks.data) {
+        const hookType: HookType = 'DATA';
+        await this.registerHook(plugin.id, hookType, hookPoint, `handle_${hookPoint.replace(/\./g, '_')}`, 50, false);
+      }
+    }
+
+    // Register integration hooks
+    if (manifest.hooks.integration) {
+      for (const hookPoint of manifest.hooks.integration) {
+        const hookType: HookType = 'INTEGRATION';
+        await this.registerHook(plugin.id, hookType, hookPoint, `handle_${hookPoint.replace(/\./g, '_')}`, 50, true);
+      }
+    }
+
+    // Register notification hooks
+    if (manifest.hooks.notification) {
+      for (const hookPoint of manifest.hooks.notification) {
+        const hookType: HookType = 'NOTIFICATION';
+        await this.registerHook(plugin.id, hookType, hookPoint, `handle_${hookPoint.replace(/\./g, '_')}`, 50, true);
+      }
+    }
+  }
+
+  /**
+   * Private helper: Execute hook with timeout and sandboxing
+   */
+  private async executeHookWithTimeout(
+    hook: PluginHook,
+    context: Partial<HookContext>,
+    pluginCode: Record<string, any>,
+    timeout: number
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      // Set timeout
+      const timeoutHandle = setTimeout(() => {
+        reject(new Error(`Hook execution timeout after ${timeout}ms`));
+      }, timeout);
+
+      try {
+        // Execute handler from plugin code
+        const handler = pluginCode[hook.handlerFunction];
+        if (!handler) {
+          throw new Error(`Handler ${hook.handlerFunction} not found in plugin code`);
+        }
+
+        const result = handler(context);
+
+        // Handle async result
+        if (result instanceof Promise) {
+          result
+            .then((data) => {
+              clearTimeout(timeoutHandle);
+              resolve(data);
+            })
+            .catch((error) => {
+              clearTimeout(timeoutHandle);
+              reject(error);
+            });
+        } else {
+          clearTimeout(timeoutHandle);
+          resolve(result);
+        }
+      } catch (error) {
+        clearTimeout(timeoutHandle);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Private helper: Deliver webhook with retries
+   */
+  private async deliverWebhook(
+    webhookId: string,
+    event: PluginEvent,
+    webhookUrl: string,
+    secret: string,
+    maxRetries: number,
+    attempt: number = 1
+  ): Promise<void> {
+    try {
+      // Create HMAC signature
+      const payload = JSON.stringify(event);
+      const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+      // Send webhook
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Plugin-Signature': signature,
+          'X-Plugin-Event': event.eventType,
+          'X-Plugin-Timestamp': event.timestamp.toISOString(),
+        },
+        body: payload,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook returned ${response.status}`);
+      }
+
+      // Update webhook stats
+      await prisma.pluginWebhook.update({
+        where: { id: webhookId },
+        data: {
+          successCount: { increment: 1 },
+          lastTriggeredAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (attempt < maxRetries) {
+        // Retry with exponential backoff
+        const backoff = Math.pow(2, attempt - 1) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+        return this.deliverWebhook(webhookId, event, webhookUrl, secret, maxRetries, attempt + 1);
+      } else {
+        // Record failed delivery
+        const webhook = await prisma.pluginWebhook.findUnique({
+          where: { id: webhookId },
+        });
+
+        if (webhook) {
+          const failures = (webhook.failedDeliveries as any[]) || [];
+          failures.push({
+            timestamp: new Date(),
+            error: (error as Error).message,
+            attempt,
+          });
+
+          await prisma.pluginWebhook.update({
+            where: { id: webhookId },
+            data: {
+              failureCount: { increment: 1 },
+              failedDeliveries: failures,
+            },
+          });
+        }
+
+        logger.error(`Failed to deliver webhook after ${maxRetries} attempts`, error);
+      }
+    }
+  }
+
+  /**
+   * Validate plugin manifest
+   */
+  private validateManifest(manifest: PluginManifest): void {
+    if (!manifest.id || !manifest.name || !manifest.version || !manifest.apiVersion) {
+      throw new Error('Plugin manifest missing required fields: id, name, version, apiVersion');
+    }
+
+    if (!/^\d+\.\d+\.\d+/.test(manifest.version)) {
+      throw new Error('Plugin version must follow semantic versioning (e.g., 1.2.3)');
+    }
+  }
+
+  /**
+   * Get plugin by ID
+   */
+  async getPlugin(pluginId: string): Promise<Plugin | null> {
+    try {
+      return await prisma.plugin.findUnique({
+        where: { id: pluginId },
+        include: {
+          hooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Failed to get plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all plugins
+   */
+  async getPlugins(filters?: { status?: PluginStatus; isActive?: boolean; siteId?: string }): Promise<Plugin[]> {
+    try {
+      return await prisma.plugin.findMany({
+        where: {
+          ...(filters?.status && { status: filters.status }),
+          ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
+          ...(filters?.siteId && { siteId: filters.siteId }),
+        },
+        include: {
+          hooks: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error) {
+      logger.error('Failed to get plugins', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get hook execution history
+   */
+  async getExecutionHistory(pluginId: string, limit: number = 100, hookPoint?: string): Promise<PluginExecution[]> {
+    try {
+      return await prisma.pluginExecution.findMany({
+        where: {
+          pluginId,
+          ...(hookPoint && { hookPoint }),
+        },
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+      });
+    } catch (error) {
+      logger.error(`Failed to get execution history for ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific execution record
+   */
+  async getExecution(executionId: string): Promise<PluginExecution | null> {
+    try {
+      return await prisma.pluginExecution.findUnique({
+        where: { id: executionId },
+      });
+    } catch (error) {
+      logger.error(`Failed to get execution ${executionId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get plugin statistics and health metrics
+   */
+  async getPluginStats(pluginId: string): Promise<any> {
+    try {
+      const plugin = await prisma.plugin.findUnique({
+        where: { id: pluginId },
+        include: {
+          hooks: true,
+          executions: true,
+        },
+      });
+
+      if (!plugin) {
+        return null;
+      }
+
+      // Calculate stats
+      const totalExecutions = plugin.executions.length;
+      const successfulExecutions = plugin.executions.filter((e) => e.status === 'COMPLETED').length;
+      const failedExecutions = plugin.executions.filter((e) => e.status === 'FAILED').length;
+      const timeoutExecutions = plugin.executions.filter((e) => e.status === 'TIMEOUT').length;
+
+      const avgDuration =
+        plugin.executions.filter((e) => e.duration).reduce((sum, e) => sum + (e.duration || 0), 0) /
+          (plugin.executions.filter((e) => e.duration).length || 1) || 0;
+
+      const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
+
+      return {
+        pluginId: plugin.pluginId,
+        status: plugin.status,
+        isActive: plugin.isActive,
+        version: plugin.version,
+        hookCount: plugin.hooks.length,
+        executions: {
+          total: totalExecutions,
+          successful: successfulExecutions,
+          failed: failedExecutions,
+          timeout: timeoutExecutions,
+          successRate: successRate.toFixed(2) + '%',
+        },
+        performance: {
+          avgDuration: Math.round(avgDuration),
+          lastExecution: plugin.executions[0]?.startedAt || null,
+        },
+      };
+    } catch (error) {
+      logger.error(`Failed to get plugin stats for ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update plugin configuration
+   */
+  async updatePluginConfiguration(pluginId: string, configuration: any, userId: string): Promise<any> {
+    try {
+      const plugin = await prisma.plugin.update({
+        where: { id: pluginId },
+        data: {
+          configuration,
+          updatedAt: new Date(),
+        },
+      });
+
+      logger.info(`Plugin configuration updated: ${plugin.pluginId}`);
+      return configuration;
+    } catch (error) {
+      logger.error(`Failed to update plugin configuration for ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get webhooks for a plugin
+   */
+  async getPluginWebhooks(pluginId: string): Promise<any[]> {
+    try {
+      return await prisma.pluginWebhook.findMany({
+        where: { pluginId },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error) {
+      logger.error(`Failed to get webhooks for plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register a webhook for a plugin
+   */
+  async registerWebhook(pluginId: string, eventType: string, webhookUrl: string, secret: string, maxRetries: number = 3): Promise<any> {
+    try {
+      const webhook = await prisma.pluginWebhook.create({
+        data: {
+          pluginId,
+          eventType,
+          webhookUrl,
+          secret,
+          maxRetries,
+          isActive: true,
+        },
+      });
+
+      logger.info(`Webhook registered: ${eventType} for plugin ${pluginId}`);
+      return webhook;
+    } catch (error) {
+      logger.error(`Failed to register webhook for plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unregister a webhook
+   */
+  async unregisterWebhook(webhookId: string): Promise<void> {
+    try {
+      await prisma.pluginWebhook.delete({
+        where: { id: webhookId },
+      });
+
+      logger.info(`Webhook unregistered: ${webhookId}`);
+    } catch (error) {
+      logger.error(`Failed to unregister webhook ${webhookId}`, error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // PHASE 4: EVENT BUS & WEBHOOK QUEUE INTEGRATION
+  // ============================================================================
+
+  /**
+   * Publish event to event bus (Redis pub/sub)
+   */
+  async publishEvent(
+    eventType: string,
+    eventData: Record<string, any>,
+    sourceUserId?: string,
+    sourceRequestId?: string
+  ): Promise<string> {
+    try {
+      const eventId = await eventBusService.publishEvent(
+        eventType,
+        eventData,
+        sourceUserId,
+        sourceRequestId
+      );
+
+      logger.debug(`Event published: ${eventId} (${eventType})`);
+      return eventId;
+    } catch (error) {
+      logger.error(`Failed to publish event ${eventType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Subscribe to events with callback
+   */
+  subscribeToEvent(
+    eventType: string,
+    handler: (event: any) => Promise<void>
+  ): string {
+    try {
+      const subscriptionId = eventBusService.subscribe(eventType, handler);
+      logger.debug(`Subscribed to event type: ${eventType} (${subscriptionId})`);
+      return subscriptionId;
+    } catch (error) {
+      logger.error(`Failed to subscribe to event ${eventType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unsubscribe from events
+   */
+  unsubscribeFromEvent(subscriptionId: string): boolean {
+    try {
+      const success = eventBusService.unsubscribe(subscriptionId);
+      if (success) {
+        logger.debug(`Unsubscribed from event: ${subscriptionId}`);
+      }
+      return success;
+    } catch (error) {
+      logger.error(`Failed to unsubscribe from event:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get event bus stats
+   */
+  getEventBusStats(): any {
+    try {
+      return eventBusService.getStats();
+    } catch (error) {
+      logger.error('Failed to get event bus stats:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get webhook queue stats
+   */
+  async getWebhookQueueStats(): Promise<any> {
+    try {
+      return await webhookQueueService.getQueueStats();
+    } catch (error) {
+      logger.error('Failed to get webhook queue stats:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get webhook delivery metrics
+   */
+  async getWebhookMetrics(webhookId: string): Promise<any> {
+    try {
+      return await webhookQueueService.getWebhookMetrics(webhookId);
+    } catch (error) {
+      logger.error(`Failed to get webhook metrics for ${webhookId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Retry failed webhook delivery
+   */
+  async retryWebhookDelivery(webhookId: string, pluginId: string): Promise<void> {
+    try {
+      await webhookQueueService.retryWebhook(webhookId, pluginId);
+      logger.info(`Webhook ${webhookId} queued for retry`);
+    } catch (error) {
+      logger.error(`Failed to retry webhook ${webhookId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Emit plugin lifecycle event
+   */
+  private async emitPluginEvent(
+    eventType: string,
+    pluginId: string,
+    pluginName: string,
+    userId?: string,
+    requestId?: string
+  ): Promise<void> {
+    try {
+      await this.publishEvent(
+        eventType,
+        {
+          pluginId,
+          pluginName,
+          timestamp: new Date(),
+          eventType,
+        },
+        userId,
+        requestId
+      );
+    } catch (error) {
+      logger.error(`Failed to emit plugin event ${eventType}:`, error);
+      // Don't throw - event bus failure shouldn't block plugin operations
+    }
+  }
+
+  /**
+   * Initialize event bus and webhook queue (called on app startup)
+   */
+  async initializeEventBusAndQueue(): Promise<void> {
+    try {
+      await eventBusService.initialize();
+      await webhookQueueService.startProcessor();
+      logger.info('[PluginSystem] Event bus and webhook queue initialized');
+    } catch (error) {
+      logger.error('[PluginSystem] Failed to initialize event bus and webhook queue:', error);
+      // Don't throw - allow app to continue even if event bus fails
+    }
+  }
+
+  /**
+   * Shutdown event bus and webhook queue (called on app shutdown)
+   */
+  async shutdownEventBusAndQueue(): Promise<void> {
+    try {
+      webhookQueueService.stopProcessor();
+      logger.info('[PluginSystem] Event bus and webhook queue shutdown');
+    } catch (error) {
+      logger.error('[PluginSystem] Error during event bus shutdown:', error);
+    }
+  }
+
+  /**
+   * Get events with optional filtering
+   */
+  async getEvents(options: {
+    eventType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PluginEvent[]> {
+    try {
+      const events = await prisma.pluginEvent.findMany({
+        where: {
+          ...(options.eventType && { eventType: options.eventType }),
+        },
+        orderBy: { timestamp: 'desc' },
+        take: options.limit || 100,
+        skip: options.offset || 0,
+      });
+
+      return events;
+    } catch (error) {
+      logger.error('Failed to get events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send test event to webhook
+   */
+  async testWebhook(webhookId: string, pluginId: string): Promise<void> {
+    try {
+      const webhook = await prisma.pluginWebhook.findUnique({
+        where: { id: webhookId },
+      });
+
+      if (!webhook) {
+        throw new Error(`Webhook ${webhookId} not found`);
+      }
+
+      // Create test event
+      const testEvent = {
+        id: `test-${Date.now()}`,
+        eventType: `${webhook.eventType}:test`,
+        eventData: {
+          test: true,
+          timestamp: new Date().toISOString(),
+          message: 'This is a test event from the plugin system',
+        },
+        timestamp: new Date(),
+      };
+
+      // Queue for delivery
+      await prisma.pluginEvent.create({
+        data: {
+          eventType: testEvent.eventType,
+          eventData: testEvent.eventData,
+          timestamp: testEvent.timestamp,
+        },
+      });
+
+      logger.info(`Test event queued for webhook ${webhookId}`);
+    } catch (error) {
+      logger.error(`Failed to send test webhook for ${webhookId}:`, error);
+      throw error;
+    }
+  }
+}
+
+export default new PluginSystemService();

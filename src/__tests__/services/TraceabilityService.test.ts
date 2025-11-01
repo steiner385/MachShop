@@ -97,7 +97,8 @@ describe('TraceabilityService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new TraceabilityService();
+    // Instantiate service with mock Prisma client for each test
+    service = new TraceabilityService(mockPrisma);
   });
 
   afterEach(() => {

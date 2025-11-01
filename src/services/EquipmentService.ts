@@ -1,7 +1,6 @@
 import { PrismaClient, Equipment, EquipmentClass, EquipmentState, EquipmentStatus, Area, CriticalityLevel, EquipmentType, Prisma } from '@prisma/client';
 import { ValidationError, NotFoundError, ConflictError } from '../middleware/errorHandler';
-
-const prisma = new PrismaClient();
+import { BaseService } from './BaseService';
 
 // Equipment with related data
 export interface EquipmentWithRelations extends Equipment {
@@ -162,7 +161,11 @@ export interface EquipmentMetrics {
   lastCalculated: Date;
 }
 
-class EquipmentService {
+class EquipmentService extends BaseService {
+  constructor(prisma?: PrismaClient) {
+    super(prisma, 'EquipmentService');
+  }
+
   /**
    * Get all equipment with optional filtering and pagination
    */
@@ -225,14 +228,14 @@ class EquipmentService {
       : undefined;
 
     const [equipment, total] = await Promise.all([
-      prisma.equipment.findMany({
+      this.prisma.equipment.findMany({
         where,
         include,
         skip: options?.skip,
         take: options?.take,
         orderBy: { equipmentNumber: 'asc' },
       }),
-      prisma.equipment.count({ where }),
+      this.prisma.equipment.count({ where }),
     ]);
 
     return { equipment, total };
@@ -315,21 +318,21 @@ class EquipmentService {
 
     // Validate references exist
     if (data.siteId) {
-      const site = await prisma.site.findUnique({ where: { id: data.siteId } });
+      const site = await this.prisma.site.findUnique({ where: { id: data.siteId } });
       if (!site) {
         throw new NotFoundError(`Site with ID ${data.siteId} not found`);
       }
     }
 
     if (data.areaId) {
-      const area = await prisma.area.findUnique({ where: { id: data.areaId } });
+      const area = await this.prisma.area.findUnique({ where: { id: data.areaId } });
       if (!area) {
         throw new NotFoundError(`Area with ID ${data.areaId} not found`);
       }
     }
 
     if (data.workCenterId) {
-      const workCenter = await prisma.workCenter.findUnique({ where: { id: data.workCenterId } });
+      const workCenter = await this.prisma.workCenter.findUnique({ where: { id: data.workCenterId } });
       if (!workCenter) {
         throw new NotFoundError(`Work center with ID ${data.workCenterId} not found`);
       }
@@ -427,7 +430,7 @@ class EquipmentService {
    * Get all descendants recursively
    */
   private async getDescendants(equipmentId: string): Promise<EquipmentWithRelations[]> {
-    const children = await prisma.equipment.findMany({
+    const children = await this.prisma.equipment.findMany({
       where: { parentEquipmentId: equipmentId },
       include: {
         childEquipment: true,
@@ -458,7 +461,7 @@ class EquipmentService {
     let current = equipment;
 
     while (current.parentEquipmentId) {
-      const parent = await prisma.equipment.findUnique({
+      const parent = await this.prisma.equipment.findUnique({
         where: { id: current.parentEquipmentId },
       });
       if (!parent) break;
@@ -490,7 +493,7 @@ class EquipmentService {
     const previousState = equipment.currentState;
 
     // Use transaction to ensure atomicity
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Close previous state history entry
       await tx.equipmentStateHistory.updateMany({
         where: {
@@ -639,7 +642,7 @@ class EquipmentService {
    * Remove capability from equipment
    */
   async removeCapability(capabilityId: string) {
-    const capability = await prisma.equipmentCapability.findUnique({
+    const capability = await this.prisma.equipmentCapability.findUnique({
       where: { id: capabilityId },
     });
 
@@ -681,7 +684,7 @@ class EquipmentService {
       where.capabilityType = options.capabilityType;
     }
 
-    const capabilities = await prisma.equipmentCapability.findMany({
+    const capabilities = await this.prisma.equipmentCapability.findMany({
       where,
       include: {
         equipment: {
@@ -721,7 +724,7 @@ class EquipmentService {
       isActive?: boolean;
     }
   ) {
-    const capability = await prisma.equipmentCapability.findUnique({
+    const capability = await this.prisma.equipmentCapability.findUnique({
       where: { id: capabilityId },
     });
 
@@ -740,7 +743,7 @@ class EquipmentService {
    * Returns: Enterprise → Site → Area → WorkCenter → WorkUnit → Equipment
    */
   async getFullHierarchyPath(equipmentId: string) {
-    const equipment = await prisma.equipment.findUnique({
+    const equipment = await this.prisma.equipment.findUnique({
       where: { id: equipmentId },
       include: {
         workUnit: {
@@ -876,7 +879,7 @@ class EquipmentService {
    * Calculate and update equipment metrics (MTBF, MTTR, availability)
    */
   async calculateEquipmentMetrics(equipmentId: string): Promise<EquipmentMetrics> {
-    const equipment = await prisma.equipment.findUnique({
+    const equipment = await this.prisma.equipment.findUnique({
       where: { id: equipmentId },
       include: {
         downtimeEvents: {
@@ -949,7 +952,7 @@ class EquipmentService {
     const maintainability = mttr ? 1 - Math.exp(-4 / mttr) : 0; // 4-hour maintainability
 
     // Update equipment with calculated metrics
-    await prisma.equipment.update({
+    await this.prisma.equipment.update({
       where: { id: equipmentId },
       data: {
         totalRunTime: equipment.totalRunTime + totalRunTime,
@@ -1016,7 +1019,7 @@ class EquipmentService {
     const days = options?.days || 30;
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const downtimeEvents = await prisma.downtimeEvent.findMany({
+    const downtimeEvents = await this.prisma.downtimeEvent.findMany({
       where: {
         equipmentId,
         startTime: { gte: startDate },
@@ -1062,7 +1065,7 @@ class EquipmentService {
    */
   async createEquipmentType(data: CreateEquipmentTypeData): Promise<EquipmentType> {
     // Check if code already exists
-    const existing = await prisma.equipmentType.findUnique({
+    const existing = await this.prisma.equipmentType.findUnique({
       where: { code: data.code },
     });
 
@@ -1110,7 +1113,7 @@ class EquipmentService {
    * Update equipment type
    */
   async updateEquipmentType(id: string, data: UpdateEquipmentTypeData): Promise<EquipmentType> {
-    const equipmentType = await prisma.equipmentType.findUnique({
+    const equipmentType = await this.prisma.equipmentType.findUnique({
       where: { id },
     });
 
@@ -1120,7 +1123,7 @@ class EquipmentService {
 
     // Check code uniqueness if changing
     if (data.code && data.code !== equipmentType.code) {
-      const existing = await prisma.equipmentType.findUnique({
+      const existing = await this.prisma.equipmentType.findUnique({
         where: { code: data.code },
       });
 
@@ -1145,7 +1148,7 @@ class EquipmentService {
     }
 
     // Check if any equipment uses this type
-    const equipmentCount = await prisma.equipment.count({
+    const equipmentCount = await this.prisma.equipment.count({
       where: { equipmentTypeId: id },
     });
 
@@ -1155,11 +1158,31 @@ class EquipmentService {
       );
     }
 
-    return prisma.equipmentType.delete({
+    return this.prisma.equipmentType.delete({
       where: { id },
     });
   }
 }
 
+// Lazy-loaded singleton for backward compatibility
+let _equipmentServiceInstance: EquipmentService | null = null;
+
+export function getEquipmentService(): EquipmentService {
+  if (!_equipmentServiceInstance) {
+    _equipmentServiceInstance = new EquipmentService();
+  }
+  return _equipmentServiceInstance;
+}
+
+// For backward compatibility with existing code that imports equipmentService directly
+export const equipmentService = new Proxy(
+  {},
+  {
+    get: (target, prop) => {
+      return (getEquipmentService() as any)[prop];
+    },
+  }
+) as any as EquipmentService;
+
 export { EquipmentService };
-export default new EquipmentService();
+export default equipmentService;

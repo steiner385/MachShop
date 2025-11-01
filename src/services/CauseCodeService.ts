@@ -1,756 +1,512 @@
+import prisma from '../lib/database';
+import { logger } from '../utils/logger';
+import { CauseCode, CauseCodeCategory } from '@prisma/client';
+
 /**
- * ✅ GITHUB ISSUE #54: Hierarchical Cause Code System - Phase 1-2
- * CauseCodeService
+ * Hierarchical Cause Code Service (Issue #54)
  *
- * Manages hierarchical cause codes with:
- * - Tree-based navigation with parent-child relationships
- * - Version control and audit trail
- * - Scope management (global vs site-specific)
- * - Circular reference prevention
- * - Multi-level hierarchy support (2-10 levels)
+ * Manages the hierarchical cause code system for root cause analysis in NCRs.
+ * Supports multiple levels of categorization and detailed cause code tracking.
  */
 
-import {
-  CauseCode,
-  CauseCodeNode,
-  CauseCodeHistory,
-  CauseCodeChangeType,
-  CauseCodeScope,
-  CauseCodeStatus,
-  CauseCodeHierarchyValidationResult,
-  CauseCodeSearchResult
-} from '@/types/quality';
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+export interface CreateCauseCodeCategoryInput {
+  code: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  createdBy: string;
+}
 
-/**
- * CauseCodeService
- * Manages cause code lifecycle, hierarchy, versioning, and search
- */
+export interface CreateCauseCodeInput {
+  code: string;
+  name: string;
+  description?: string;
+  categoryId: string;
+  parentId?: string;
+  createdBy: string;
+}
+
+export interface UpdateCauseCodeInput {
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+  updatedBy: string;
+  reason?: string;
+}
+
+export interface CauseCodeHierarchy {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  level: number;
+  children: CauseCodeHierarchy[];
+  enabled: boolean;
+  usageCount: number;
+}
+
 export class CauseCodeService {
-  constructor(private prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+  /**
+   * Create a new cause code category
+   */
+  async createCategory(input: CreateCauseCodeCategoryInput): Promise<CauseCodeCategory> {
+    try {
+      // Validate parent exists if specified
+      if (input.parentId) {
+        const parent = await prisma.causeCodeCategory.findUnique({
+          where: { id: input.parentId },
+        });
+        if (!parent) {
+          throw new Error(`Parent category ${input.parentId} not found`);
+        }
+      }
+
+      // Check for duplicate code
+      const existing = await prisma.causeCodeCategory.findMany({
+        where: { code: input.code },
+        take: 1,
+      });
+      if (existing.length > 0) {
+        throw new Error(`Category code ${input.code} already exists`);
+      }
+
+      const category = await prisma.causeCodeCategory.create({
+        data: {
+          code: input.code,
+          name: input.name,
+          description: input.description,
+          parentId: input.parentId,
+          createdBy: input.createdBy,
+        },
+      });
+
+      logger.info(`Created cause code category: ${category.code} (${category.name})`);
+      return category;
+    } catch (error) {
+      logger.error('Failed to create cause code category', error);
+      throw error;
+    }
   }
 
   /**
    * Create a new cause code
    */
-  async createCauseCode(
-    code: string,
-    name: string,
-    level: number,
-    scope: CauseCodeScope,
-    createdBy: string,
-    parentCauseCodeId?: string,
-    siteId?: string,
-    description?: string,
-    capaRequired: boolean = false,
-    notificationRecipients?: string[],
-    displayOrder?: number,
-    effectiveDate?: Date
-  ): Promise<CauseCode> {
-    // Validate code format (alphanumeric with hyphens/underscores)
-    if (!/^[A-Z0-9_-]+$/.test(code)) {
-      throw new Error('Code must be uppercase alphanumeric with hyphens or underscores');
+  async createCauseCode(input: CreateCauseCodeInput): Promise<CauseCode> {
+    try {
+      // Validate category exists
+      const category = await prisma.causeCodeCategory.findUnique({
+        where: { id: input.categoryId },
+      });
+      if (!category) {
+        throw new Error(`Category ${input.categoryId} not found`);
+      }
+
+      // Validate parent exists if specified
+      let parentLevel = 0;
+      if (input.parentId) {
+        const parent = await prisma.causeCode.findUnique({
+          where: { id: input.parentId },
+        });
+        if (!parent) {
+          throw new Error(`Parent cause code ${input.parentId} not found`);
+        }
+        parentLevel = parent.level;
+      }
+
+      // Check for duplicate code
+      const existing = await prisma.causeCode.findMany({
+        where: { code: input.code },
+        take: 1,
+      });
+      if (existing.length > 0) {
+        throw new Error(`Cause code ${input.code} already exists`);
+      }
+
+      const causeCode = await prisma.causeCode.create({
+        data: {
+          code: input.code,
+          name: input.name,
+          description: input.description,
+          categoryId: input.categoryId,
+          parentId: input.parentId,
+          level: parentLevel + 1,
+          createdBy: input.createdBy,
+        },
+      });
+
+      // Create history entry
+      await this.createHistoryEntry(
+        causeCode.id,
+        'CREATED',
+        null,
+        JSON.stringify({ code: causeCode.code, name: causeCode.name }),
+        `Created new cause code`,
+        input.createdBy
+      );
+
+      logger.info(`Created cause code: ${causeCode.code} (${causeCode.name})`);
+      return causeCode;
+    } catch (error) {
+      logger.error('Failed to create cause code', error);
+      throw error;
     }
-
-    // Check for duplicate code within same scope and site
-    const existing = await this.prisma?.causeCode.findFirst({
-      where: {
-        code,
-        scope,
-        siteId: siteId || null
-      }
-    });
-
-    if (existing) {
-      throw new Error(`Cause code ${code} already exists in this scope`);
-    }
-
-    // Validate parent exists if provided
-    let parentCode: CauseCode | null = null;
-    if (parentCauseCodeId) {
-      parentCode = await this.getCauseCodeById(parentCauseCodeId);
-      if (!parentCode) {
-        throw new Error(`Parent cause code ${parentCauseCodeId} not found`);
-      }
-
-      // Prevent circular references
-      const isCircular = await this.wouldCreateCircularReference(parentCauseCodeId, parentCauseCodeId);
-      if (isCircular) {
-        throw new Error('Cannot create circular reference in hierarchy');
-      }
-
-      // Validate level (must be parent level + 1)
-      if (level !== parentCode.level + 1) {
-        throw new Error(`Level must be ${parentCode.level + 1} for this parent`);
-      }
-    } else if (level !== 1) {
-      throw new Error('Top-level cause codes must have level 1');
-    }
-
-    const newCauseCode: CauseCode = {
-      id: uuidv4(),
-      code,
-      name,
-      description,
-      level,
-      parentCauseCodeId,
-      scope,
-      siteId: scope === CauseCodeScope.SITE_SPECIFIC ? siteId : undefined,
-      status: CauseCodeStatus.ACTIVE,
-      effectiveDate: effectiveDate || new Date(),
-      capaRequired,
-      notificationRecipients,
-      displayOrder,
-      version: 1,
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    // Save to database
-    await this.prisma?.causeCode.create({
-      data: {
-        id: newCauseCode.id,
-        code: newCauseCode.code,
-        name: newCauseCode.name,
-        description: newCauseCode.description,
-        level: newCauseCode.level,
-        parentCauseCodeId: newCauseCode.parentCauseCodeId,
-        scope: newCauseCode.scope,
-        siteId: newCauseCode.siteId,
-        status: newCauseCode.status,
-        effectiveDate: newCauseCode.effectiveDate,
-        capaRequired: newCauseCode.capaRequired,
-        notificationRecipients: newCauseCode.notificationRecipients,
-        displayOrder: newCauseCode.displayOrder,
-        version: newCauseCode.version,
-        createdBy: newCauseCode.createdBy,
-        createdAt: newCauseCode.createdAt,
-        updatedAt: newCauseCode.updatedAt
-      }
-    });
-
-    return newCauseCode;
   }
 
   /**
-   * Get cause code by ID
+   * Get all cause codes with hierarchy
    */
-  async getCauseCodeById(id: string): Promise<CauseCode | null> {
-    const causeCode = await this.prisma?.causeCode.findUnique({
-      where: { id }
-    });
+  async getHierarchy(categoryId?: string): Promise<CauseCodeHierarchy[]> {
+    try {
+      const where = categoryId ? { categoryId, parentId: null } : { parentId: null };
 
-    return causeCode || null;
-  }
+      const rootCodes = await prisma.causeCode.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+      });
 
-  /**
-   * Get cause code by code string (code + scope + siteId)
-   */
-  async getCauseCodeByCode(
-    code: string,
-    scope: CauseCodeScope,
-    siteId?: string
-  ): Promise<CauseCode | null> {
-    const causeCode = await this.prisma?.causeCode.findFirst({
-      where: {
-        code,
-        scope,
-        siteId: scope === CauseCodeScope.SITE_SPECIFIC ? siteId : null
+      const hierarchy: CauseCodeHierarchy[] = [];
+
+      for (const code of rootCodes) {
+        hierarchy.push(await this.buildHierarchy(code));
       }
+
+      return hierarchy;
+    } catch (error) {
+      logger.error('Failed to get cause code hierarchy', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Build hierarchical structure recursively
+   */
+  private async buildHierarchy(code: CauseCode): Promise<CauseCodeHierarchy> {
+    const children = await prisma.causeCode.findMany({
+      where: { parentId: code.id },
+      orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
     });
 
-    return causeCode || null;
-  }
-
-  /**
-   * Get all cause codes at a specific level
-   */
-  async getCauseCodesByLevel(
-    level: number,
-    scope?: CauseCodeScope,
-    siteId?: string
-  ): Promise<CauseCode[]> {
-    const where: any = { level, status: CauseCodeStatus.ACTIVE };
-
-    if (scope) {
-      where.scope = scope;
-    }
-
-    if (siteId && scope === CauseCodeScope.SITE_SPECIFIC) {
-      where.siteId = siteId;
-    }
-
-    const causeCodes = await this.prisma?.causeCode.findMany({
-      where,
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }]
-    });
-
-    return causeCodes || [];
-  }
-
-  /**
-   * Get all children of a cause code
-   */
-  async getChildren(parentId: string): Promise<CauseCode[]> {
-    const children = await this.prisma?.causeCode.findMany({
-      where: {
-        parentCauseCodeId: parentId,
-        status: CauseCodeStatus.ACTIVE
-      },
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }]
-    });
-
-    return children || [];
-  }
-
-  /**
-   * Get cause code hierarchy as tree structure (recursive)
-   */
-  async getCauseCodeTree(
-    scope?: CauseCodeScope,
-    siteId?: string,
-    expandAll: boolean = false
-  ): Promise<CauseCodeNode[]> {
-    // Get all level 1 nodes
-    const roots = await this.getCauseCodesByLevel(1, scope, siteId);
-
-    const tree: CauseCodeNode[] = [];
-
-    for (const root of roots) {
-      const node = await this.buildCauseCodeNode(root, expandAll);
-      tree.push(node);
-    }
-
-    return tree;
-  }
-
-  /**
-   * Build a hierarchical node with children (recursive)
-   */
-  private async buildCauseCodeNode(
-    causeCode: CauseCode,
-    expandAll: boolean = false
-  ): Promise<CauseCodeNode> {
-    const children = await this.getChildren(causeCode.id);
-    const childNodes: CauseCodeNode[] = [];
-
+    const childHierarchy: CauseCodeHierarchy[] = [];
     for (const child of children) {
-      const childNode = await this.buildCauseCodeNode(child, expandAll);
-      childNodes.push(childNode);
+      childHierarchy.push(await this.buildHierarchy(child));
     }
 
     return {
-      ...causeCode,
-      children: childNodes.length > 0 ? childNodes : undefined,
-      isExpanded: expandAll,
-      childCount: childNodes.length
+      id: code.id,
+      code: code.code,
+      name: code.name,
+      description: code.description || undefined,
+      level: code.level,
+      children: childHierarchy,
+      enabled: code.enabled,
+      usageCount: code.usageCount,
     };
   }
 
   /**
-   * Get hierarchy path for a cause code (breadcrumb trail)
+   * Get a specific cause code with its full path
    */
-  async getHierarchyPath(id: string): Promise<CauseCode[]> {
-    const path: CauseCode[] = [];
-    let current = await this.getCauseCodeById(id);
+  async getCauseCode(id: string): Promise<CauseCode | null> {
+    try {
+      const causeCode = await prisma.causeCode.findUnique({
+        where: { id },
+        include: {
+          category: true,
+          parent: true,
+        },
+      });
 
-    while (current) {
-      path.unshift(current);
-      if (current.parentCauseCodeId) {
-        current = await this.getCauseCodeById(current.parentCauseCodeId);
-      } else {
-        break;
+      return causeCode;
+    } catch (error) {
+      logger.error(`Failed to get cause code ${id}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the full path for a cause code (e.g., "Material > Defective Lot > Scratches")
+   */
+  async getFullPath(id: string): Promise<string> {
+    try {
+      const causeCode = await this.getCauseCode(id);
+      if (!causeCode) {
+        return '';
       }
+
+      const path: string[] = [causeCode.code];
+      let current = causeCode;
+
+      while (current.parentId) {
+        const parent = await this.getCauseCode(current.parentId);
+        if (parent) {
+          path.unshift(parent.code);
+          current = parent;
+        } else {
+          break;
+        }
+      }
+
+      return path.join(' > ');
+    } catch (error) {
+      logger.error(`Failed to get full path for cause code ${id}`, error);
+      throw error;
     }
-
-    return path;
-  }
-
-  /**
-   * Get hierarchy path as formatted string
-   */
-  async getHierarchyPathString(id: string, separator: string = ' > '): Promise<string> {
-    const path = await this.getHierarchyPath(id);
-    return path.map(c => c.name).join(separator);
-  }
-
-  /**
-   * Check if one cause code is an ancestor of another
-   */
-  private async wouldCreateCircularReference(
-    parentId: string,
-    checkAgainstId: string,
-    visited: Set<string> = new Set()
-  ): Promise<boolean> {
-    if (visited.has(parentId)) {
-      return true; // Circular reference detected
-    }
-
-    if (parentId === checkAgainstId) {
-      return true;
-    }
-
-    visited.add(parentId);
-
-    const parent = await this.getCauseCodeById(parentId);
-    if (!parent || !parent.parentCauseCodeId) {
-      return false;
-    }
-
-    return this.wouldCreateCircularReference(
-      parent.parentCauseCodeId,
-      checkAgainstId,
-      visited
-    );
   }
 
   /**
    * Update a cause code
    */
-  async updateCauseCode(
-    id: string,
-    updates: Partial<Omit<CauseCode, 'id' | 'createdAt' | 'createdBy'>>,
-    changedBy: string,
-    changeReason?: string
-  ): Promise<CauseCode> {
-    const existing = await this.getCauseCodeById(id);
-    if (!existing) {
-      throw new Error(`Cause code ${id} not found`);
-    }
-
-    // Prevent code change
-    if (updates.code && updates.code !== existing.code) {
-      throw new Error('Cannot change cause code once created');
-    }
-
-    // Validate parent change (prevent circular references)
-    if (updates.parentCauseCodeId && updates.parentCauseCodeId !== existing.parentCauseCodeId) {
-      const isCircular = await this.wouldCreateCircularReference(
-        updates.parentCauseCodeId,
-        id
-      );
-      if (isCircular) {
-        throw new Error('Cannot create circular reference in hierarchy');
-      }
-    }
-
-    // Track changed fields for history
-    const changedFields: Record<string, { oldValue: any; newValue: any }> = {};
-    for (const [key, newValue] of Object.entries(updates)) {
-      if (newValue !== (existing as any)[key]) {
-        changedFields[key] = {
-          oldValue: (existing as any)[key],
-          newValue
-        };
-      }
-    }
-
-    // Create history record
-    const newVersion = existing.version + 1;
-    await this.prisma?.causeCodeHistory.create({
-      data: {
-        id: uuidv4(),
-        causeCodeId: id,
-        version: newVersion,
-        changeType: CauseCodeChangeType.MODIFIED,
-        changedFields,
-        changeReason,
-        changedBy,
-        changedAt: new Date()
-      }
-    });
-
-    // Update the cause code
-    const updated = await this.prisma?.causeCode.update({
-      where: { id },
-      data: {
-        ...updates,
-        version: newVersion,
-        updatedAt: new Date()
-      }
-    });
-
-    return updated!;
-  }
-
-  /**
-   * Deprecate a cause code
-   */
-  async deprecateCauseCode(
-    id: string,
-    deprecatedBy: string,
-    expirationDate?: Date
-  ): Promise<CauseCode> {
-    return this.updateCauseCode(
-      id,
-      {
-        status: CauseCodeStatus.DEPRECATED,
-        expirationDate: expirationDate || new Date()
-      },
-      deprecatedBy,
-      'Cause code deprecated'
-    );
-  }
-
-  /**
-   * Restore a deprecated cause code
-   */
-  async restoreCauseCode(
-    id: string,
-    restoredBy: string
-  ): Promise<CauseCode> {
-    const existing = await this.getCauseCodeById(id);
-    if (!existing) {
-      throw new Error(`Cause code ${id} not found`);
-    }
-
-    if (existing.status !== CauseCodeStatus.DEPRECATED) {
-      throw new Error('Can only restore deprecated cause codes');
-    }
-
-    return this.updateCauseCode(
-      id,
-      {
-        status: CauseCodeStatus.ACTIVE,
-        expirationDate: undefined
-      },
-      restoredBy,
-      'Cause code restored'
-    );
-  }
-
-  /**
-   * Get change history for a cause code
-   */
-  async getCauseCodeHistory(id: string): Promise<CauseCodeHistory[]> {
-    const history = await this.prisma?.causeCodeHistory.findMany({
-      where: { causeCodeId: id },
-      orderBy: { changedAt: 'desc' }
-    });
-
-    return history || [];
-  }
-
-  /**
-   * Restore cause code to a previous version
-   */
-  async restoreToPreviousVersion(
-    id: string,
-    targetVersion: number,
-    restoredBy: string
-  ): Promise<CauseCode> {
-    const history = await this.prisma?.causeCodeHistory.findFirst({
-      where: {
-        causeCodeId: id,
-        version: targetVersion
-      }
-    });
-
-    if (!history) {
-      throw new Error(`Version ${targetVersion} not found for cause code ${id}`);
-    }
-
-    const current = await this.getCauseCodeById(id);
-    if (!current) {
-      throw new Error(`Cause code ${id} not found`);
-    }
-
-    // Reconstruct the state from history
-    const restored: any = { ...current };
-    for (const [field, change] of Object.entries(history.changedFields)) {
-      restored[field] = (change as any).oldValue;
-    }
-
-    return this.updateCauseCode(
-      id,
-      restored,
-      restoredBy,
-      `Restored from version ${targetVersion}`
-    );
-  }
-
-  /**
-   * Search cause codes by keyword
-   */
-  async searchCauseCodes(
-    keyword: string,
-    scope?: CauseCodeScope,
-    siteId?: string
-  ): Promise<CauseCodeSearchResult[]> {
-    const where: any = {
-      status: CauseCodeStatus.ACTIVE,
-      OR: [
-        { code: { contains: keyword, mode: 'insensitive' } },
-        { name: { contains: keyword, mode: 'insensitive' } },
-        { description: { contains: keyword, mode: 'insensitive' } }
-      ]
-    };
-
-    if (scope) {
-      where.scope = scope;
-    }
-
-    if (siteId && scope === CauseCodeScope.SITE_SPECIFIC) {
-      where.siteId = siteId;
-    }
-
-    const results = await this.prisma?.causeCode.findMany({
-      where,
-      orderBy: [{ level: 'asc' }, { displayOrder: 'asc' }]
-    });
-
-    if (!results) {
-      return [];
-    }
-
-    // Convert to search results with hierarchy paths
-    const searchResults: CauseCodeSearchResult[] = [];
-
-    for (const result of results) {
-      const hierarchyPath = await this.getHierarchyPathString(result.id);
-
-      // Determine which field matched
-      let matchedField: 'code' | 'name' | 'description' = 'name';
-      if (result.code.toLowerCase().includes(keyword.toLowerCase())) {
-        matchedField = 'code';
-      } else if (result.description?.toLowerCase().includes(keyword.toLowerCase())) {
-        matchedField = 'description';
+  async updateCauseCode(id: string, input: UpdateCauseCodeInput): Promise<CauseCode> {
+    try {
+      const existing = await this.getCauseCode(id);
+      if (!existing) {
+        throw new Error(`Cause code ${id} not found`);
       }
 
-      // Calculate relevance score (0-100)
-      let relevanceScore = 50;
-      if (matchedField === 'code') {
-        relevanceScore = result.code.toLowerCase() === keyword.toLowerCase() ? 100 : 75;
-      } else if (matchedField === 'name') {
-        relevanceScore = result.name.toLowerCase() === keyword.toLowerCase() ? 100 : 75;
-      }
-
-      searchResults.push({
-        id: result.id,
-        code: result.code,
-        name: result.name,
-        level: result.level,
-        scope: result.scope,
-        siteId: result.siteId,
-        status: result.status,
-        hierarchyPath,
-        matchedField,
-        relevanceScore
+      const oldValue = JSON.stringify({
+        name: existing.name,
+        description: existing.description,
+        enabled: existing.enabled,
       });
-    }
 
-    return searchResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      const updated = await prisma.causeCode.update({
+        where: { id },
+        data: {
+          ...(input.name && { name: input.name }),
+          ...(input.description !== undefined && { description: input.description }),
+          ...(input.enabled !== undefined && { enabled: input.enabled }),
+          updatedAt: new Date(),
+        },
+      });
+
+      const newValue = JSON.stringify({
+        name: updated.name,
+        description: updated.description,
+        enabled: updated.enabled,
+      });
+
+      // Create history entry
+      await this.createHistoryEntry(
+        id,
+        'UPDATED',
+        oldValue,
+        newValue,
+        input.reason || 'Updated cause code',
+        input.updatedBy
+      );
+
+      logger.info(`Updated cause code: ${updated.code}`);
+      return updated;
+    } catch (error) {
+      logger.error(`Failed to update cause code ${id}`, error);
+      throw error;
+    }
   }
 
   /**
-   * Validate the entire hierarchy structure
+   * Disable a cause code (soft delete)
    */
-  async validateHierarchy(scope?: CauseCodeScope, siteId?: string): Promise<CauseCodeHierarchyValidationResult> {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    const allCodes = await this.prisma?.causeCode.findMany({
-      where: {
-        ...(scope ? { scope } : {}),
-        ...(siteId && scope === CauseCodeScope.SITE_SPECIFIC ? { siteId } : {})
+  async disableCauseCode(id: string, reason: string, updatedBy: string): Promise<CauseCode> {
+    try {
+      const causeCode = await this.getCauseCode(id);
+      if (!causeCode) {
+        throw new Error(`Cause code ${id} not found`);
       }
-    });
 
-    if (!allCodes) {
-      return { isValid: true, errors, warnings };
+      if (!causeCode.enabled) {
+        throw new Error(`Cause code ${id} is already disabled`);
+      }
+
+      // Disable children as well
+      await prisma.causeCode.updateMany({
+        where: { parentId: id },
+        data: { enabled: false },
+      });
+
+      const updated = await prisma.causeCode.update({
+        where: { id },
+        data: { enabled: false, updatedAt: new Date() },
+      });
+
+      // Create history entry
+      await this.createHistoryEntry(
+        id,
+        'DISABLED',
+        JSON.stringify({ enabled: true }),
+        JSON.stringify({ enabled: false }),
+        reason,
+        updatedBy
+      );
+
+      logger.info(`Disabled cause code: ${updated.code}`);
+      return updated;
+    } catch (error) {
+      logger.error(`Failed to disable cause code ${id}`, error);
+      throw error;
     }
-
-    const codesById = new Map(allCodes.map(c => [c.id, c]));
-
-    for (const code of allCodes) {
-      // Validate parent exists
-      if (code.parentCauseCodeId) {
-        const parent = codesById.get(code.parentCauseCodeId);
-        if (!parent) {
-          errors.push(`Code ${code.code}: Parent ${code.parentCauseCodeId} not found`);
-        } else if (parent.level + 1 !== code.level) {
-          errors.push(`Code ${code.code}: Level ${code.level} doesn't match parent level + 1`);
-        }
-      } else if (code.level !== 1) {
-        errors.push(`Code ${code.code}: Level ${code.level} but has no parent`);
-      }
-
-      // Check for expired codes
-      if (code.expirationDate && code.expirationDate < new Date() && code.status !== CauseCodeStatus.DEPRECATED) {
-        warnings.push(`Code ${code.code}: Expiration date passed but status is not DEPRECATED`);
-      }
-
-      // Check for deprecated codes with future expiration
-      if (code.status === CauseCodeStatus.DEPRECATED && code.expirationDate && code.expirationDate > new Date()) {
-        warnings.push(`Code ${code.code}: Deprecated but expiration date is in the future`);
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings
-    };
   }
 
   /**
-   * Bulk import cause codes from array
+   * Record usage of a cause code (increment counter and update lastUsedAt)
    */
-  async bulkImportCauseCodes(
-    codes: Array<Omit<CauseCode, 'id' | 'createdAt' | 'updatedAt'> & { parentCode?: string }>,
-    importedBy: string
-  ): Promise<{ created: CauseCode[]; failed: Array<{ code: string; error: string }> }> {
-    const created: CauseCode[] = [];
-    const failed: Array<{ code: string; error: string }> = [];
-    const codeMap = new Map<string, string>(); // code -> id mapping
+  async recordUsage(id: string): Promise<void> {
+    try {
+      await prisma.causeCode.update({
+        where: { id },
+        data: {
+          usageCount: { increment: 1 },
+          lastUsedAt: new Date(),
+        },
+      });
 
-    for (const codeData of codes) {
-      try {
-        let parentId: string | undefined;
-
-        if (codeData.parentCode) {
-          const parentId_lookup = codeMap.get(codeData.parentCode);
-          if (parentId_lookup) {
-            parentId = parentId_lookup;
-          } else {
-            const parent = await this.getCauseCodeByCode(
-              codeData.parentCode,
-              codeData.scope,
-              codeData.siteId
-            );
-            parentId = parent?.id;
-          }
-        }
-
-        const newCode = await this.createCauseCode(
-          codeData.code,
-          codeData.name,
-          codeData.level,
-          codeData.scope,
-          importedBy,
-          parentId,
-          codeData.siteId,
-          codeData.description,
-          codeData.capaRequired,
-          codeData.notificationRecipients,
-          codeData.displayOrder,
-          codeData.effectiveDate
-        );
-
-        created.push(newCode);
-        codeMap.set(codeData.code, newCode.id);
-      } catch (error) {
-        failed.push({
-          code: codeData.code,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+      logger.debug(`Recorded usage of cause code ${id}`);
+    } catch (error) {
+      logger.error(`Failed to record usage for cause code ${id}`, error);
+      throw error;
     }
+  }
 
-    return { created, failed };
+  /**
+   * Get cause codes by category
+   */
+  async getCauseCodesByCategory(categoryId: string): Promise<CauseCode[]> {
+    try {
+      const codes = await prisma.causeCode.findMany({
+        where: { categoryId, enabled: true },
+        orderBy: [{ level: 'asc' }, { sortOrder: 'asc' }],
+      });
+
+      return codes;
+    } catch (error) {
+      logger.error(`Failed to get cause codes for category ${categoryId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all categories
+   */
+  async getCategories(): Promise<CauseCodeCategory[]> {
+    try {
+      const categories = await prisma.causeCodeCategory.findMany({
+        where: { enabled: true },
+        orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+      });
+
+      return categories;
+    } catch (error) {
+      logger.error('Failed to get cause code categories', error);
+      throw error;
+    }
   }
 
   /**
    * Get cause code statistics
    */
-  async getCauseCodeStats(): Promise<{
-    totalActiveCodes: number;
-    totalDeprecatedCodes: number;
-    levelDistribution: Record<number, number>;
-    scopeDistribution: Record<string, number>;
-    averageChildrenPerNode: number;
+  async getStatistics(): Promise<{
+    totalCategories: number;
+    totalCauseCodes: number;
+    mostUsedCodes: Array<{ id: string; code: string; name: string; usageCount: number }>;
+    recentlyCreated: Array<{ id: string; code: string; name: string; createdAt: Date }>;
   }> {
-    const allCodes = await this.prisma?.causeCode.findMany();
+    try {
+      const totalCategories = await prisma.causeCodeCategory.count();
+      const totalCauseCodes = await prisma.causeCode.count();
 
-    if (!allCodes || allCodes.length === 0) {
+      const mostUsedCodes = await prisma.causeCode.findMany({
+        select: { id: true, code: true, name: true, usageCount: true },
+        orderBy: { usageCount: 'desc' },
+        take: 10,
+      });
+
+      const recentlyCreated = await prisma.causeCode.findMany({
+        select: { id: true, code: true, name: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+
       return {
-        totalActiveCodes: 0,
-        totalDeprecatedCodes: 0,
-        levelDistribution: {},
-        scopeDistribution: {},
-        averageChildrenPerNode: 0
+        totalCategories,
+        totalCauseCodes,
+        mostUsedCodes,
+        recentlyCreated,
       };
+    } catch (error) {
+      logger.error('Failed to get cause code statistics', error);
+      throw error;
     }
-
-    const stats = {
-      totalActiveCodes: allCodes.filter(c => c.status === CauseCodeStatus.ACTIVE).length,
-      totalDeprecatedCodes: allCodes.filter(c => c.status === CauseCodeStatus.DEPRECATED).length,
-      levelDistribution: {} as Record<number, number>,
-      scopeDistribution: {} as Record<string, number>,
-      averageChildrenPerNode: 0
-    };
-
-    // Calculate level distribution
-    for (const code of allCodes) {
-      stats.levelDistribution[code.level] = (stats.levelDistribution[code.level] || 0) + 1;
-      stats.scopeDistribution[code.scope] = (stats.scopeDistribution[code.scope] || 0) + 1;
-    }
-
-    // Calculate average children per node
-    let totalChildren = 0;
-    let nodeCount = 0;
-    for (const code of allCodes) {
-      const children = await this.getChildren(code.id);
-      totalChildren += children.length;
-      nodeCount++;
-    }
-
-    if (nodeCount > 0) {
-      stats.averageChildrenPerNode = totalChildren / nodeCount;
-    }
-
-    return stats;
   }
 
   /**
-   * Deactivate a cause code (mark as inactive without deprecating)
+   * Create a history entry
    */
-  async deactivateCauseCode(
-    id: string,
-    deactivatedBy: string,
-    reason?: string
-  ): Promise<CauseCode> {
-    return this.updateCauseCode(
-      id,
-      { status: CauseCodeStatus.INACTIVE },
-      deactivatedBy,
-      reason || 'Cause code deactivated'
-    );
+  private async createHistoryEntry(
+    causeCodeId: string,
+    changeType: string,
+    oldValue: string | null,
+    newValue: string,
+    changeReason: string,
+    changedBy: string
+  ): Promise<void> {
+    try {
+      await prisma.causeCodeHistory.create({
+        data: {
+          causeCodeId,
+          changeType,
+          oldValue,
+          newValue,
+          changeReason,
+          changedBy,
+        },
+      });
+    } catch (error) {
+      logger.error(`Failed to create history entry for cause code ${causeCodeId}`, error);
+      // Don't throw - history is supplementary
+    }
   }
 
   /**
-   * Reactivate an inactive cause code
+   * Get history for a cause code
    */
-  async reactivateCauseCode(
-    id: string,
-    reactivatedBy: string
-  ): Promise<CauseCode> {
-    const existing = await this.getCauseCodeById(id);
-    if (!existing) {
-      throw new Error(`Cause code ${id} not found`);
-    }
+  async getHistory(causeCodeId: string, limit: number = 50): Promise<any[]> {
+    try {
+      const history = await prisma.causeCodeHistory.findMany({
+        where: { causeCodeId },
+        orderBy: { changedAt: 'desc' },
+        take: limit,
+      });
 
-    if (existing.status !== CauseCodeStatus.INACTIVE) {
-      throw new Error('Can only reactivate inactive cause codes');
+      return history;
+    } catch (error) {
+      logger.error(`Failed to get history for cause code ${causeCodeId}`, error);
+      throw error;
     }
-
-    return this.updateCauseCode(
-      id,
-      { status: CauseCodeStatus.ACTIVE },
-      reactivatedBy,
-      'Cause code reactivated'
-    );
   }
 
   /**
-   * Close database connection
+   * Search cause codes by name or code
    */
-  async disconnect(): Promise<void> {
-    if (this.prisma) {
-      await this.prisma.$disconnect();
+  async search(query: string, limit: number = 20): Promise<CauseCode[]> {
+    try {
+      const codes = await prisma.causeCode.findMany({
+        where: {
+          enabled: true,
+          OR: [
+            { code: { contains: query, mode: 'insensitive' } },
+            { name: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ level: 'asc' }, { code: 'asc' }],
+        take: limit,
+      });
+
+      return codes;
+    } catch (error) {
+      logger.error(`Failed to search cause codes for ${query}`, error);
+      throw error;
     }
   }
 }
+
+export default new CauseCodeService();
