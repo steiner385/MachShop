@@ -1,0 +1,13 @@
+/**
+ * CSS Module for FormComponentTemplate
+ */
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+}
+
+/* TODO: Add your custom styles */

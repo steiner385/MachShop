@@ -1,0 +1,30 @@
+/**
+ * CSS Module for DarkModeAwareComponent
+ *
+ * All colors use CSS variables for automatic dark mode support
+ */
+
+.container {
+  width: 100%;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.backgroundExample {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.footer {
+  margin-top: var(--margin-lg);
+  padding: var(--margin-md);
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--margin-sm);
+  }
+}

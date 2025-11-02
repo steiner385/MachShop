@@ -1,0 +1,18 @@
+/**
+ * CSS Module for FormWithValidation
+ */
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--margin-sm);
+  }
+}

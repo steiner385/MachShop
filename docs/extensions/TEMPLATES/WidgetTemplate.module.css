@@ -1,0 +1,30 @@
+/**
+ * CSS Module for WidgetTemplate
+ *
+ * TODO: Add your custom styles here
+ * Always use CSS variables from theme tokens
+ */
+
+.container {
+  width: 100%;
+  min-height: 200px;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--margin-xl);
+}
+
+/* TODO: Add your custom styles below */
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    min-height: 150px;
+  }
+}

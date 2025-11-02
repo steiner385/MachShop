@@ -1,0 +1,10 @@
+/**
+ * CSS Module for DashboardWidgetTemplate
+ */
+
+.container {
+  width: 100%;
+  min-height: 150px;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+}

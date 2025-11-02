@@ -1,0 +1,176 @@
+{
+  "$schema": "https://machshop.io/schemas/extension-manifest.schema.json",
+  "name": "my-extension",
+  "version": "1.0.0",
+  "displayName": "My Extension",
+  "description": "A brief description of what your extension does",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "url": "https://yourwebsite.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/my-extension"
+  },
+  "keywords": [
+    "manufacturing",
+    "production",
+    "machshop"
+  ],
+  "category": "productivity",
+  "icon": "path/to/icon.png",
+  "screenshots": [
+    "path/to/screenshot1.png",
+    "path/to/screenshot2.png"
+  ],
+  "machshop": {
+    "minVersion": "1.0.0",
+    "maxVersion": "2.0.0"
+  },
+  "permissions": [
+    {
+      "id": "my-extension:read",
+      "name": "Read Access",
+      "description": "Allows reading extension data"
+    },
+    {
+      "id": "my-extension:write",
+      "name": "Write Access",
+      "description": "Allows modifying extension data"
+    },
+    {
+      "id": "my-extension:delete",
+      "name": "Delete Access",
+      "description": "Allows deleting extension data"
+    }
+  ],
+  "widgets": [
+    {
+      "id": "my-extension:dashboard-widget",
+      "type": "dashboard-widget",
+      "name": "My Dashboard Widget",
+      "description": "Displays key metrics on the dashboard",
+      "component": "./components/DashboardWidget.tsx",
+      "permissions": ["my-extension:read"],
+      "defaultSize": {
+        "width": 2,
+        "height": 1
+      },
+      "minSize": {
+        "width": 1,
+        "height": 1
+      },
+      "maxSize": {
+        "width": 4,
+        "height": 2
+      }
+    }
+  ],
+  "pages": [
+    {
+      "id": "my-extension:main-page",
+      "path": "/my-extension",
+      "component": "./pages/MainPage.tsx",
+      "name": "My Extension Page",
+      "permissions": ["my-extension:read"]
+    }
+  ],
+  "navigation": {
+    "items": [
+      {
+        "id": "my-extension:nav-item",
+        "label": "My Extension",
+        "path": "/my-extension",
+        "icon": "AppstoreOutlined",
+        "permissions": ["my-extension:read"],
+        "order": 100
+      }
+    ]
+  },
+  "slots": {
+    "toolbar": [
+      {
+        "id": "my-extension:toolbar-action",
+        "component": "./components/ToolbarAction.tsx",
+        "permissions": ["my-extension:write"]
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "my-extension:sidebar-panel",
+        "component": "./components/SidebarPanel.tsx",
+        "permissions": ["my-extension:read"]
+      }
+    ]
+  },
+  "hooks": {
+    "onActivate": "./hooks/onActivate.ts",
+    "onDeactivate": "./hooks/onDeactivate.ts",
+    "onUpdate": "./hooks/onUpdate.ts"
+  },
+  "database": {
+    "schema": "./database/schema.prisma",
+    "migrations": "./database/migrations"
+  },
+  "api": {
+    "endpoints": [
+      {
+        "path": "/api/my-extension/data",
+        "method": "GET",
+        "handler": "./api/getData.ts",
+        "permissions": ["my-extension:read"]
+      },
+      {
+        "path": "/api/my-extension/data",
+        "method": "POST",
+        "handler": "./api/createData.ts",
+        "permissions": ["my-extension:write"]
+      }
+    ]
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "antd": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@machshop/core": "^1.0.0"
+  },
+  "settings": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "type": "string",
+          "title": "API Key",
+          "description": "Your API key for external service",
+          "encrypted": true
+        },
+        "refreshInterval": {
+          "type": "number",
+          "title": "Refresh Interval",
+          "description": "Data refresh interval in seconds",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 300
+        },
+        "enableNotifications": {
+          "type": "boolean",
+          "title": "Enable Notifications",
+          "description": "Show notifications for updates",
+          "default": true
+        }
+      }
+    }
+  },
+  "i18n": {
+    "defaultLocale": "en",
+    "locales": ["en", "es", "fr", "de"],
+    "translationsPath": "./locales"
+  },
+  "build": {
+    "entry": "./src/index.tsx",
+    "output": "./dist"
+  }
+}

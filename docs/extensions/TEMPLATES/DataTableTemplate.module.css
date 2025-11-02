@@ -1,0 +1,25 @@
+/**
+ * CSS Module for DataTableTemplate
+ */
+
+.container {
+  width: 100%;
+  background-color: var(--color-bg-container);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--margin-md);
+  padding: var(--margin-md);
+  background-color: var(--color-bg-base);
+  border-radius: var(--border-radius);
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    gap: var(--margin-sm);
+  }
+}
