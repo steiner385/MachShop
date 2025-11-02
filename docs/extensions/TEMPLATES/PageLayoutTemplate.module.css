@@ -1,0 +1,36 @@
+/**
+ * CSS Module for PageLayoutTemplate
+ */
+
+.container {
+  padding: var(--margin-lg);
+  background-color: var(--color-bg-base);
+  min-height: 100vh;
+}
+
+.breadcrumb {
+  margin-bottom: var(--margin-md);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--margin-lg);
+}
+
+.content {
+  /* Add content styles */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--margin-md);
+  }
+
+  .header {
+    flex-direction: column;
+    gap: var(--margin-md);
+  }
+}

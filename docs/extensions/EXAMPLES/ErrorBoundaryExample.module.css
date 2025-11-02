@@ -1,0 +1,21 @@
+/**
+ * CSS Module for ErrorBoundaryExample
+ */
+
+.errorContainer {
+  width: 100%;
+  max-width: 800px;
+  margin: var(--margin-xl) auto;
+  padding: var(--margin-xl);
+  background-color: var(--color-bg-container);
+  border: 2px solid var(--color-error);
+  border-radius: var(--border-radius);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .errorContainer {
+    margin: var(--margin-md);
+    padding: var(--margin-md);
+  }
+}

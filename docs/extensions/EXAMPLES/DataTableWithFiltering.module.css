@@ -1,0 +1,40 @@
+/**
+ * CSS Module for DataTableWithFiltering
+ */
+
+.container {
+  width: 100%;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+}
+
+.toolbar {
+  margin-bottom: var(--margin-md);
+  padding: var(--margin-md);
+  background-color: var(--color-bg-base);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+}
+
+.bulkActions {
+  margin-bottom: var(--margin-md);
+  padding: var(--margin-sm) var(--margin-md);
+  background-color: var(--color-primary-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-primary-border);
+}
+
+.table {
+  /* Ant Design table styles are handled by the component */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: var(--margin-sm);
+  }
+
+  .bulkActions {
+    padding: var(--margin-xs) var(--margin-sm);
+  }
+}

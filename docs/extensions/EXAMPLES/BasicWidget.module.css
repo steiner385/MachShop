@@ -1,0 +1,55 @@
+/**
+ * CSS Module for BasicWidget component
+ *
+ * Demonstrates:
+ * - CSS variable usage from theme tokens
+ * - Responsive design patterns
+ * - Dark mode compatible styling
+ */
+
+.container {
+  width: 100%;
+  min-height: 200px;
+  background-color: var(--color-bg-container);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-secondary);
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--margin-xl);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--margin-md);
+  padding-top: var(--margin-sm);
+  color: var(--color-text-secondary);
+  font-size: calc(var(--font-size) * 0.875);
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .container {
+    min-height: 150px;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--margin-xs);
+  }
+}
+
+/* Print styles */
+@media print {
+  .container {
+    box-shadow: none;
+    border: 1px solid var(--color-border);
+  }
+}
