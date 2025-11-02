@@ -1,0 +1,36 @@
+{
+  "name": "ai-services",
+  "version": "1.0.0",
+  "description": "Provider-agnostic AI services with natural language processing for low-code/no-code development",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "natural-language",
+    "workflow-generation",
+    "form-generation",
+    "rule-generation",
+    "chatbot",
+    "low-code",
+    "no-code"
+  ],
+  "author": "MachShop",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
