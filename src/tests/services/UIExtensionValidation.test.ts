@@ -358,24 +358,21 @@ describe('ASTAnalyzer', () => {
   const analyzer = new ASTAnalyzer();
 
   it('should analyze valid component code', () => {
-    // Simulated code (not actual imports to avoid dependency resolution)
+    // Test without actual library imports - just stub code
     const code = `
-      // import React from 'react';
-      // import { Button, Input } from 'antd';
-
-      export const MyComponent = () => {
+      const MyComponent = () => {
         return (
           <div>
-            {/* <Button>Click me</Button> */}
-            {/* <Input placeholder="Enter text" /> */}
+            <p>Component content</p>
           </div>
         );
       };
+      export default MyComponent;
     `;
 
     const result = analyzer.analyzeCode(code);
 
-    // Validator should work without external dependencies in test
+    // Validator should analyze the code structure
     expect(result.analysis.importsAnalysis.totalImports >= 0).toBe(true);
   });
 
@@ -399,19 +396,17 @@ describe('ASTAnalyzer', () => {
 
   it('should detect non-Ant Design components', () => {
     const code = `
-      // import { Button } from 'antd';
-      // import { MuiButton } from '@material-ui/core';
-
       export const MyComponent = () => (
         <div>
-          <Button>Ant Button</Button>
-          <MuiButton>MUI Button</MuiButton>
+          <Button>Custom Button</Button>
+          <CustomMuiButton>MUI Button</CustomMuiButton>
         </div>
       );
     `;
 
     const result = analyzer.analyzeCode(code);
 
+    // Should detect custom components that are not Ant Design
     expect(result.analysis.nonAntDesignComponents.length).toBeGreaterThan(0);
   });
 
