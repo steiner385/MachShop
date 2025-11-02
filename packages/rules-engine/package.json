@@ -1,0 +1,28 @@
+{
+  "name": "@machshop/rules-engine",
+  "version": "1.0.0",
+  "description": "Automation Rules Engine for Low-Code Workflows",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "rules",
+    "automation",
+    "workflow",
+    "low-code",
+    "manufacturing",
+    "business-logic"
+  ],
+  "author": "MachShop",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.0"
+  }
+}
