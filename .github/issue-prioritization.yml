@@ -1484,6 +1484,19 @@ issues:
     sub_issues: [469, 470, 471, 472, 473]
     notes: "PENDING - Multi-phase visual workflow builder for manufacturing. Enables non-developers to design complex manufacturing processes via drag-and-drop UI. Requires 5 implementation phases: (1) Backend infrastructure (4pts) #469, (2) React canvas UI (5pts) #470, (3) Node types & execution (4pts) #471, (4) Multi-site deployment (3pts) #472, (5) Documentation & examples (2pts) #473. Includes 100+ node types, variable management, error handling, integration points, WCAG 2.1 AA accessibility, version control, and comprehensive testing (80%+ coverage). Blocks Rules Engine (#398), Form Builder (#399), and dashboard customization (#445). Critical foundation for enterprise low-code/no-code capabilities."
 
+  - number: 395
+    title: "SDK & Extensibility: Safe/Guardrailed Data Integration Framework"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [203, 165]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 8
+    blocks: [396, 402]
+    completed: true
+    completed_date: "2025-11-01"
+    notes: "COMPLETED - Enterprise data integration framework with built-in safety controls. Implements adapter pattern for 5+ connectors (MES, ERP, PLM, Data Historian, Quality). SafeQueryFramework (query validation, SQL injection detection, cost controls, rate limiting, timeouts). AuthenticationHandler (OAuth2, API Key, SAML, Basic Auth, credential rotation). DataValidator (schema validation, type checking, transformations). ErrorHandlingService (retry logic, circuit breaker, fallback strategies). AuditLoggingService (comprehensive compliance logging). 150+ type definitions, 7 core services, 200+ tests (all passing). Integrates with CyberArk (#203) and Data Dictionary (#165). Unblocks Governance Controls (#396) and Compatibility Matrix (#402). Implemented in PR #480."
+
   # --- Phase 2B: Governance & Deployment ---
   - number: 427
     title: "Navigation Extension Framework with Approval Workflow"
