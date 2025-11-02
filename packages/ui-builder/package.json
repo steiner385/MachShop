@@ -1,0 +1,36 @@
+{
+  "name": "@machshop/ui-builder",
+  "version": "1.0.0",
+  "description": "UI Builder - Canvas, Templates, Multi-Site, API, and Documentation (Issues #485-489)",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "ui-builder",
+    "canvas",
+    "drag-drop",
+    "templates",
+    "multi-site",
+    "forms",
+    "low-code",
+    "manufacturing"
+  ],
+  "author": "MachShop",
+  "license": "MIT",
+  "dependencies": {
+    "zustand": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
