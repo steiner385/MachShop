@@ -1497,6 +1497,19 @@ issues:
     completed_date: "2025-11-01"
     notes: "COMPLETED - Enterprise data integration framework with built-in safety controls. Implements adapter pattern for 5+ connectors (MES, ERP, PLM, Data Historian, Quality). SafeQueryFramework (query validation, SQL injection detection, cost controls, rate limiting, timeouts). AuthenticationHandler (OAuth2, API Key, SAML, Basic Auth, credential rotation). DataValidator (schema validation, type checking, transformations). ErrorHandlingService (retry logic, circuit breaker, fallback strategies). AuditLoggingService (comprehensive compliance logging). 150+ type definitions, 7 core services, 200+ tests (all passing). Integrates with CyberArk (#203) and Data Dictionary (#165). Unblocks Governance Controls (#396) and Compatibility Matrix (#402). Implemented in PR #480."
 
+  - number: 398
+    title: "SDK & Extensibility: Automation Rules Engine for Low-Code Workflows"
+    category: sdk_extensibility
+    foundation_level: 2
+    dependencies: [394, 395]
+    strategic_focus: null
+    business_value: 9
+    effort_estimate: 9
+    blocks: []
+    completed: true
+    completed_date: "2025-11-01"
+    notes: "COMPLETED - Automation Rules Engine with trigger-condition-action patterns. RuleEngine (register, execute, track statistics). ActionExecutor (15+ action handlers: email, SMS, alerts, API calls, record operations, workflow integration). RuleRepository (persistence, search, versioning). PreBuiltRules (15+ manufacturing templates: quality, production, inventory, equipment, scheduling, governance). 150+ type definitions, 5 trigger types, 15+ condition operators, 20+ action types. 40+ tests (80%+ coverage). Hook-based execution with priority ordering, blocking rules, async support. Rule statistics and execution history tracking. Integration with Workflow Builder (#394), Data Integration (#395), Governance Controls (#396). Implemented in PR #482."
+
   # --- Phase 2B: Governance & Deployment ---
   - number: 427
     title: "Navigation Extension Framework with Approval Workflow"
