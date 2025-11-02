@@ -883,7 +883,7 @@ issues:
     business_value: 8
     effort_estimate: 6
     blocks: [226]
-    notes: "Intelligent change impact analysis with where-used queries across BOM. Recommends propagate vs. isolate based on interchangeability and interface boundaries. Essential for informed ECO decisions"
+    notes: "COMPLETED - Intelligent change impact analysis with where-used queries across BOM. Recommends propagate vs. isolate based on interchangeability and interface boundaries. Essential for informed ECO decisions - Issue closed in GitHub"
 
   - number: 226
     title: "Quality Management: Engineering Change Order (ECO) Smart Workflow"
@@ -894,7 +894,7 @@ issues:
     business_value: 8
     effort_estimate: 8
     blocks: []
-    notes: "Intelligent ECO workflow with automatic routing, cascade when needed, containment when appropriate. Implements hybrid configuration management strategy. AS9100 Section 8.3.6 compliance"
+    notes: "COMPLETED - Implemented ECO Smart Workflow with 4 core services (Classification, Routing, Cascade, Containment) and 59 passing tests - merged in bc6a92c"
 
   # --- Engine Assembly Operations ---
   - number: 233
