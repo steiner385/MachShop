@@ -1,0 +1,8 @@
+import { render } from '@testing-library/react';
+import { SideNavigation } from './SideNavigation';
+
+describe('SideNavigation', () => {
+  it('renders successfully', () => {
+    render(<SideNavigation />);
+  });
+});

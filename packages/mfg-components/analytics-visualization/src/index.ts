@@ -1,0 +1,11 @@
+export { LineChart } from './components/charts/LineChart';
+export { BarChart } from './components/charts/BarChart';
+export { PieChart } from './components/charts/PieChart';
+export { GaugeChart } from './components/charts/GaugeChart';
+export { FunnelChart } from './components/charts/FunnelChart';
+export { ScatterPlot } from './components/charts/ScatterPlot';
+export { KPIDisplay } from './components/dashboards/KPIDisplay';
+export { DashboardBuilder } from './components/dashboards/DashboardBuilder';
+export { HeatMap } from './components/dashboards/HeatMap';
+export { TrendAnalyzer } from './components/dashboards/TrendAnalyzer';
+export * from './types';
