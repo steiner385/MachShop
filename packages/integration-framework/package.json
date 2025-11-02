@@ -1,0 +1,28 @@
+{
+  "name": "@machshop/integration-framework",
+  "version": "1.0.0",
+  "description": "Safe/Guardrailed Data Integration Framework for MachShop MES",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "integration",
+    "connector",
+    "adapter",
+    "safe-queries",
+    "guardrails",
+    "data-sync"
+  ],
+  "author": "MachShop",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.0"
+  }
+}
